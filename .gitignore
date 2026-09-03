@@ -1,0 +1,25 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment (never commit this — it's machine-specific and huge)
+venv/
+.venv/
+env/
+
+# Environment variables / secrets (API keys go here later, never in code)
+.env
+.env.*
+
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
+# Data caches / downloaded market data (regenerable, keep repo lightweight)
+data/raw/
+data/cache/
+*.csv
+*.parquet
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
