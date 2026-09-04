@@ -52,6 +52,7 @@ Each script is a standalone entry point. Run them from the project root:
 python scripts/data_pipeline_sanity_check.py   # download, inspect, plot one price series
 python scripts/return_stats.py                 # volatility, skew, kurtosis, drawdown, Sharpe
 python scripts/ma_crossover_backtest.py        # SMA crossover baseline backtest
+python scripts/logistic_baseline.py            # Phase 2 logistic walk-forward baseline
 ```
 
 | Script | What it produces |
@@ -59,6 +60,7 @@ python scripts/ma_crossover_backtest.py        # SMA crossover baseline backtest
 | [data_pipeline_sanity_check.py](scripts/data_pipeline_sanity_check.py) | Shape, dtypes, missing-value counts, and a closing-price chart |
 | [return_stats.py](scripts/return_stats.py) | Return summary table, annualized return and Sharpe, distribution plots vs. a normal reference |
 | [ma_crossover_backtest.py](scripts/ma_crossover_backtest.py) | Trade log CSV, summary statistics, and an annotated price chart |
+| [logistic_baseline.py](scripts/logistic_baseline.py) | Fold accuracies and class counts for a causal logistic-regression baseline |
 
 ## Tests
 
