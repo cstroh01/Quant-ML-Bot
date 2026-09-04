@@ -29,6 +29,16 @@ def main():
         prices = market_data[market_data["Ticker"] == ticker].sort_values("Date")
         returns = np.log(prices["Close"] / prices["Close"].shift(1)).dropna()
         return_series[ticker] = returns
+        dates = prices.loc[returns.index, "Date"]
+
+        cumulative_index = np.exp(returns.cumsum())
+        running_max = cumulative_index.cummax()
+        drawdown = cumulative_index / running_max - 1
+        trough_index = drawdown.idxmin()
+        peak_candidates = cumulative_index[
+            (cumulative_index.index < trough_index) & (cumulative_index == running_max)
+        ]
+        peak_index = peak_candidates.index[-1] if not peak_candidates.empty else None
 
         daily_mean = returns.mean()
         daily_std = returns.std()
@@ -41,12 +51,22 @@ def main():
                 "Annualized Volatility": annualized_volatility,
                 "Skew": skew(returns),
                 "Excess Kurtosis": kurtosis(returns),
+                "Max Drawdown": drawdown.min(),
+                "Peak Date": (
+                    dates.loc[peak_index] if peak_index is not None else pd.NaT
+                ),
+                "Trough Date": dates.loc[trough_index],
             }
         )
 
     summary = pd.DataFrame(summary_rows).set_index("Ticker")
     print("Daily log-return summary:")
-    print(summary.to_string(float_format=lambda value: f"{value:.6f}"))
+    print(
+        summary.to_string(
+            float_format=lambda value: f"{value:.6f}",
+            formatters={"Max Drawdown": lambda value: f"{value:.2%}"},
+        )
+    )
 
     print(
         "\nAnnualized return and Sharpe ratio (risk-free rate: RISK_FREE_RATE_ANNUAL):"
