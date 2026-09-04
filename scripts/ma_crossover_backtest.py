@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from data import download_market_data
+from signals import sma_crossover_signal
+from backtest_harness import run_backtest, summarize_trades
 
 TICKER = "AAPL"
 SHORT_WINDOW = 10
@@ -30,75 +32,8 @@ def main():
     # A 10-day average reacts fairly quickly, while a 30-day average gives a
     # little more trend context. These are illustrative defaults, not tuned
     # parameters; tuning them here would make this baseline less useful.
-    prices["Short_SMA"] = prices["Close"].rolling(SHORT_WINDOW).mean()
-    prices["Long_SMA"] = prices["Close"].rolling(LONG_WINDOW).mean()
-
-    # The comparison uses today's completed closing price and yesterday's
-    # completed averages. It therefore identifies a crossover only after the
-    # close that caused it is known. The first valid long average cannot exist
-    # until LONG_WINDOW observations have accumulated.
-    prices["Crosses_Above"] = (prices["Short_SMA"] > prices["Long_SMA"]) & (
-        prices["Short_SMA"].shift(1) <= prices["Long_SMA"].shift(1)
-    )
-    prices["Crosses_Below"] = (prices["Short_SMA"] < prices["Long_SMA"]) & (
-        prices["Short_SMA"].shift(1) >= prices["Long_SMA"].shift(1)
-    )
-
-    # A close-based signal cannot be filled at that same close without using
-    # information that was only known at the end of the bar. Shifting the
-    # signals by one row means we trade at the next day's Open instead.
-    prices["Buy_Next_Open"] = prices["Crosses_Above"].shift(1, fill_value=False)
-    prices["Sell_Next_Open"] = prices["Crosses_Below"].shift(1, fill_value=False)
-
-    # We go flat below the long average rather than shorting. That keeps this
-    # first test focused on long-entry/exit accounting and avoids borrowing and
-    # short-sale assumptions before the plumbing is trusted.
-    trades = []
-    entry_date = None
-    entry_price = None
-
-    # This small state machine represents one share: either we hold it or we
-    # do not. Checking exits before entries makes the intended order explicit
-    # if the signal rules are expanded later.
-    for row in prices.itertuples(index=False):
-        if entry_price is not None and row.Sell_Next_Open:
-            exit_price = float(row.Open)
-            trades.append(
-                {
-                    "Entry Date": entry_date,
-                    "Entry Price": entry_price,
-                    "Exit Date": row.Date,
-                    "Exit Price": exit_price,
-                    "P&L": exit_price - entry_price,
-                }
-            )
-            entry_date = None
-            entry_price = None
-
-        if entry_price is None and row.Buy_Next_Open:
-            entry_date = row.Date
-            entry_price = float(row.Open)
-
-    # If the final position is still open, mark it to the final known close.
-    # This is an end-of-data bookkeeping exit, not a future prediction.
-    if entry_price is not None:
-        final_row = prices.iloc[-1]
-        exit_price = float(final_row["Close"])
-        trades.append(
-            {
-                "Entry Date": entry_date,
-                "Entry Price": entry_price,
-                "Exit Date": final_row["Date"],
-                "Exit Price": exit_price,
-                "P&L": exit_price - entry_price,
-            }
-        )
-
-    trade_log = pd.DataFrame(
-        trades,
-        columns=["Entry Date", "Entry Price", "Exit Date", "Exit Price", "P&L"],
-    )
-    trade_log["Cumulative P&L"] = trade_log["P&L"].cumsum()
+    prices = sma_crossover_signal(prices, SHORT_WINDOW, LONG_WINDOW)
+    trade_log = run_backtest(prices)
     trade_log_path = (
         Path(__file__).resolve().parents[1]
         / "data"
@@ -127,10 +62,10 @@ def main():
             )
         )
 
-    total_pnl = float(trade_log["P&L"].sum()) if not trade_log.empty else 0.0
-    wins = int((trade_log["P&L"] > 0).sum()) if not trade_log.empty else 0
-    total_trades = len(trade_log)
-    win_rate = (wins / total_trades * 100) if total_trades else 0.0
+    summary = summarize_trades(trade_log)
+    total_trades = summary["total_trades"]
+    total_pnl = summary["total_pnl"]
+    win_rate = summary["win_rate"]
 
     print("\nSummary:")
     print(f"Total trades: {total_trades}")
