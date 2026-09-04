@@ -7,6 +7,17 @@ def sma_crossover_signal(
     prices: pd.DataFrame, short_window: int = 10, long_window: int = 30
 ) -> pd.DataFrame:
     """Add tradeable next-open SMA crossover signals to one ticker's prices."""
+    if short_window >= long_window:
+        raise ValueError(
+            "short_window must be smaller than long_window; "
+            f"got {short_window} and {long_window}."
+        )
+
+    # Work on a copy so the caller's frame is never modified as a side effect.
+    # A function that both returns a frame and rewrites its argument is easy to
+    # misuse once more than one signal is generated from the same prices.
+    prices = prices.copy()
+
     prices["Short_SMA"] = prices["Close"].rolling(short_window).mean()
     prices["Long_SMA"] = prices["Close"].rolling(long_window).mean()
 

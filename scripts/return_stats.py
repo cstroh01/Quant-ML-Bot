@@ -1,54 +1,81 @@
 """Phase 0 return statistics and distribution plots for cached market data."""
 
-from pathlib import Path
-
-import matplotlib
-
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from scipy.stats import kurtosis, norm, skew
+
+from data import cache_path, download_market_data
+from plotting import plt, save_figure
 
 TICKERS = ["AAPL", "MSFT", "GOOGL"]
 TRADING_DAYS_PER_YEAR = 252
 RISK_FREE_RATE_ANNUAL = 0.0378  # 3-month T-bill, ~Sept 2026 snapshot — not live-fetched, revisit periodically
 
 
-def main():
-    project_root = Path(__file__).resolve().parents[1]
-    input_path = project_root / "data" / "cache" / "AAPL-MSFT-GOOGL_2y.csv"
-    output_path = project_root / "data" / "cache" / "phase0_return_distributions.png"
+def daily_log_returns(prices: pd.DataFrame) -> pd.Series:
+    """Return the daily log returns of one ticker's closing prices.
 
-    market_data = pd.read_csv(input_path, parse_dates=["Date"])
+    Log returns are used because they add across time: the two-day return is
+    the sum of the two daily returns, which simple percentage returns are not.
+    """
+    return np.log(prices["Close"] / prices["Close"].shift(1)).dropna()
+
+
+def cumulative_price_index(prices: pd.DataFrame, returns: pd.Series) -> pd.Series:
+    """Rebuild a growth-of-one price index from a series of log returns.
+
+    The index is anchored at 1.0 on the first close, not on the first return.
+    That first close is itself a candidate peak, and anchoring later would
+    silently ignore a drawdown that began on day one.
+    """
+    return pd.concat(
+        [pd.Series([1.0], index=[prices.index[0]]), np.exp(returns.cumsum())]
+    )
+
+
+def annualize(returns: pd.Series) -> tuple[float, float]:
+    """Return the annualized mean return and volatility of a daily series."""
+    # Mean scales with time, standard deviation with its square root — the
+    # standard independent-increments assumption behind this convention.
+    annualized_return = returns.mean() * TRADING_DAYS_PER_YEAR
+    annualized_volatility = returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
+    return annualized_return, annualized_volatility
+
+
+def main():
+    market_data = download_market_data(TICKERS)
+
     return_series = {}
     summary_rows = []
 
     for ticker in TICKERS:
         prices = market_data[market_data["Ticker"] == ticker].sort_values("Date")
-        returns = np.log(prices["Close"] / prices["Close"].shift(1)).dropna()
+        returns = daily_log_returns(prices)
         return_series[ticker] = returns
-        dates = prices.loc[returns.index, "Date"]
+        dates = prices["Date"]
 
-        cumulative_index = np.exp(returns.cumsum())
-        running_max = cumulative_index.cummax()
-        drawdown = cumulative_index / running_max - 1
+        price_index = cumulative_price_index(prices, returns)
+        running_max = price_index.cummax()
+        drawdown = price_index / running_max - 1
         trough_index = drawdown.idxmin()
-        peak_candidates = cumulative_index[
-            (cumulative_index.index < trough_index) & (cumulative_index == running_max)
+
+        # The peak is the most recent high water mark strictly before the
+        # trough, which is what makes the pair a real peak-to-trough decline
+        # rather than two unrelated dates.
+        peak_candidates = price_index[
+            (price_index.index < trough_index) & (price_index == running_max)
         ]
         peak_index = peak_candidates.index[-1] if not peak_candidates.empty else None
 
-        daily_mean = returns.mean()
-        daily_std = returns.std()
-        annualized_volatility = daily_std * np.sqrt(TRADING_DAYS_PER_YEAR)
+        annualized_return, annualized_volatility = annualize(returns)
         summary_rows.append(
             {
                 "Ticker": ticker,
-                "Mean Daily Log Return": daily_mean,
-                "Daily Std Dev": daily_std,
+                "Mean Daily Log Return": returns.mean(),
+                "Daily Std Dev": returns.std(),
                 "Annualized Volatility": annualized_volatility,
+                # Skew measures lopsidedness; excess kurtosis measures how much
+                # more weight the tails carry than a normal distribution would.
                 "Skew": skew(returns),
                 "Excess Kurtosis": kurtosis(returns),
                 "Max Drawdown": drawdown.min(),
@@ -69,11 +96,14 @@ def main():
     )
 
     print(
-        "\nAnnualized return and Sharpe ratio (risk-free rate: RISK_FREE_RATE_ANNUAL):"
+        f"\nAnnualized return and Sharpe ratio "
+        f"(risk-free rate: {RISK_FREE_RATE_ANNUAL:.2%}):"
     )
     for ticker, returns in return_series.items():
-        annualized_return = returns.mean() * TRADING_DAYS_PER_YEAR
-        annualized_volatility = returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
+        annualized_return, annualized_volatility = annualize(returns)
+        # Sharpe is excess return per unit of volatility. Subtracting the
+        # risk-free rate is what makes it a measure of skill rather than a
+        # measure of simply having been invested.
         sharpe_ratio = (
             annualized_return - RISK_FREE_RATE_ANNUAL
         ) / annualized_volatility
@@ -96,6 +126,9 @@ def main():
             edgecolor="white",
             label="Daily log returns",
         )
+        # Overlaying a normal curve fitted to the same mean and standard
+        # deviation is what makes the fat tails visible: the histogram has
+        # more weight far from centre than this reference curve allows.
         x_values = np.linspace(
             daily_mean - 4 * daily_std, daily_mean + 4 * daily_std, 300
         )
@@ -113,11 +146,7 @@ def main():
         axis.legend()
 
     figure.suptitle("Daily Log-Return Distributions")
-    figure.tight_layout()
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    figure.savefig(output_path, dpi=150)
-    plt.close(figure)
-    print(f"\nSaved plot to: {output_path}")
+    save_figure(figure, cache_path("phase0_return_distributions.png"))
 
 
 if __name__ == "__main__":

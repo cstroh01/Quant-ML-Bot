@@ -4,24 +4,18 @@ This is intentionally a simple plumbing baseline. It is not meant to be a
 production trading strategy or investment recommendation.
 """
 
-from pathlib import Path
-
-# Select a non-interactive backend before importing pyplot so this also works
-# on a server or in another environment without a desktop window.
-import matplotlib
-
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
-import pandas as pd
-
-from data import download_market_data
-from signals import sma_crossover_signal
 from backtest_harness import run_backtest, summarize_trades
+from data import cache_path, download_market_data
+from plotting import plt, save_figure
+from signals import sma_crossover_signal
 
 TICKER = "AAPL"
 SHORT_WINDOW = 10
 LONG_WINDOW = 30
+
+# Every dollar column in the trade log is printed the same way, so the format
+# is declared once rather than repeated per column.
+CURRENCY_COLUMNS = ["Entry Price", "Exit Price", "P&L", "Cumulative P&L"]
 
 
 def main():
@@ -34,14 +28,7 @@ def main():
     # parameters; tuning them here would make this baseline less useful.
     prices = sma_crossover_signal(prices, SHORT_WINDOW, LONG_WINDOW)
     trade_log = run_backtest(prices)
-    trade_log_path = (
-        Path(__file__).resolve().parents[1]
-        / "data"
-        / "cache"
-        / "phase0_aapl_ma_crossover_trades.csv"
-    )
-    trade_log_path.parent.mkdir(parents=True, exist_ok=True)
-    trade_log.to_csv(trade_log_path, index=False)
+    trade_log.to_csv(cache_path("phase0_aapl_ma_crossover_trades.csv"), index=False)
 
     print(f"{TICKER} SMA crossover backtest")
     print(f"SMA windows: {SHORT_WINDOW} and {LONG_WINDOW} trading days")
@@ -54,52 +41,36 @@ def main():
             trade_log.to_string(
                 index=False,
                 formatters={
-                    "Entry Price": "${:,.2f}".format,
-                    "Exit Price": "${:,.2f}".format,
-                    "P&L": "${:,.2f}".format,
-                    "Cumulative P&L": "${:,.2f}".format,
+                    column: "${:,.2f}".format for column in CURRENCY_COLUMNS
                 },
             )
         )
 
     summary = summarize_trades(trade_log)
-    total_trades = summary["total_trades"]
-    total_pnl = summary["total_pnl"]
-    win_rate = summary["win_rate"]
-
     print("\nSummary:")
-    print(f"Total trades: {total_trades}")
-    print(f"Total P&L: ${total_pnl:,.2f}")
-    print(f"Win rate: {win_rate:.1f}%")
-
-    output_path = (
-        Path(__file__).resolve().parents[1]
-        / "data"
-        / "cache"
-        / "phase0_aapl_ma_crossover.png"
-    )
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Total trades: {summary['total_trades']}")
+    print(f"Total P&L: ${summary['total_pnl']:,.2f}")
+    print(f"Win rate: {summary['win_rate']:.1f}%")
 
     figure, axis = plt.subplots(figsize=(10, 5))
     axis.plot(prices["Date"], prices["Close"], label="Adjusted close", color="black")
     axis.plot(prices["Date"], prices["Short_SMA"], label=f"SMA {SHORT_WINDOW}")
     axis.plot(prices["Date"], prices["Long_SMA"], label=f"SMA {LONG_WINDOW}")
 
-    buy_dates = prices.loc[prices["Buy_Next_Open"], "Date"]
-    buy_prices = prices.loc[prices["Buy_Next_Open"], "Open"]
-    sell_dates = prices.loc[prices["Sell_Next_Open"], "Date"]
-    sell_prices = prices.loc[prices["Sell_Next_Open"], "Open"]
-    axis.scatter(buy_dates, buy_prices, marker="^", color="green", label="Buy")
-    axis.scatter(sell_dates, sell_prices, marker="v", color="red", label="Sell")
+    # Markers sit at the Open, because that is the bar the shifted signal
+    # actually trades at — plotting them on the Close would draw a fill the
+    # backtest never took.
+    buys = prices.loc[prices["Buy_Next_Open"]]
+    sells = prices.loc[prices["Sell_Next_Open"]]
+    axis.scatter(buys["Date"], buys["Open"], marker="^", color="green", label="Buy")
+    axis.scatter(sells["Date"], sells["Open"], marker="v", color="red", label="Sell")
     axis.set_title(f"{TICKER} SMA Crossover Backtest")
     axis.set_xlabel("Date")
     axis.set_ylabel("Adjusted price (USD)")
     axis.grid(True, alpha=0.3)
     axis.legend()
-    figure.tight_layout()
-    figure.savefig(output_path, dpi=150)
-    plt.close(figure)
-    print(f"\nSaved plot to: {output_path}")
+
+    save_figure(figure, cache_path("phase0_aapl_ma_crossover.png"))
 
 
 if __name__ == "__main__":
