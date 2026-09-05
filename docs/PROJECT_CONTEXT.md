@@ -2,6 +2,53 @@
 
 _Last updated: 2026-09-05_
 
+## Spec 005 — ML signal wiring: DONE
+
+Wired `logistic_baseline.py`'s walk-forward model into an actual tradeable
+signal and ran it through `backtest_harness.py`, beside both Rule 4
+baselines with identical costs — the first spec to actually trade on
+spec 003's purge/embargo fix rather than just score it.
+
+- `walk_forward_predictions`: collects one out-of-sample prediction per
+  row, fold-by-fold (same `label_horizon=1, embargo_bars=1` as
+  `evaluate_walk_forward`) — never fit-once-predict-all, which would leak.
+- `build_ml_signal` / `_signal_from_predictions`: turns predictions into
+  `Buy_Next_Open`/`Sell_Next_Open` via the same next-open-shifted
+  transition-detector pattern `sma_crossover_signal` uses. Rows before the
+  first fold have no prediction and trade flat.
+- `main()` slices to the live (post-warm-up) window and reports the ML
+  strategy beside buy-and-hold and the random baseline, same $1.00/5bps
+  cost model as `ma_crossover_backtest.py`.
+- New `tests/test_logistic_baseline.py`: fold-coverage, agreement with a
+  manually replicated fold loop, transition/shift logic (tested directly,
+  independent of any model fit), and an end-to-end smoke test. Full suite:
+  117 passed.
+- **Real AAPL run (2y, live window 2025-04-16 to 2026-09-02):** overall
+  walk-forward accuracy 0.519 vs. a 0.542 majority-class baseline — the
+  model is *not* beating "always guess up." Strategy P&L $47.25 vs.
+  buy-and-hold $126.71 vs. random baseline mean $74.26 ± $19.00 (20 seeds,
+  same cost model). The strategy underperforms both baselines. This is the
+  expected, honest result for a 5-feature logistic model on daily
+  single-stock direction (SC-004) — not a bug, and not grounds to tune the
+  model within this spec's scope. It is real evidence the pipeline is
+  correct: a reliably-better-than-random model on a dataset this weak
+  would be the "too good" result CLAUDE.md says to distrust first.
+- Reused (imported, not modified) `ma_crossover_backtest.baseline_results`
+  and `.mean_holding_bars`; wrote a local `_format_ml_comparison` rather
+  than reusing `.format_comparison`, which hardcodes the SMA strategy's
+  own label.
+- Out of scope, untouched: `scripts/data.py`, `scripts/signals.py`,
+  `scripts/backtest_harness.py`, `scripts/plotting.py`,
+  `scripts/walk_forward_cv.py`; no behavior change to
+  `scripts/ma_crossover_backtest.py`.
+
+**Where this leaves the ML track:** mechanics are proven end to end
+(backtest -> costs -> baselines -> purge/embargo CV -> live signal). The
+model itself is the weak link, not the pipeline. Next real ML step is
+improving the model (better features, a stronger classifier, or both) —
+not wiring, which is now done.
+
+
 ## Spec 003 — Purged & embargoed walk-forward CV: DONE
 
 Closed the Rule 2 gap in `scripts/walk_forward_cv.py`: the expanding-window
