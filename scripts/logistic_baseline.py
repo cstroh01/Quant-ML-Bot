@@ -51,7 +51,7 @@ def evaluate_walk_forward(features: pd.DataFrame) -> pd.DataFrame:
     all_actuals = []
 
     for fold, (train_indices, test_indices) in enumerate(
-        walk_forward_splits(features), start=1
+        walk_forward_splits(features, label_horizon=1, embargo_bars=1), start=1
     ):
         train_dates = pd.to_datetime(features.iloc[train_indices]["Date"])
         test_dates = pd.to_datetime(features.iloc[test_indices]["Date"])

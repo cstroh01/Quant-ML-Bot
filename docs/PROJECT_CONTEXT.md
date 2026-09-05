@@ -2,6 +2,36 @@
 
 _Last updated: 2026-09-05_
 
+## Spec 003 — Purged & embargoed walk-forward CV: DONE
+
+Closed the Rule 2 gap in `scripts/walk_forward_cv.py`: the expanding-window
+splitter had no purge and no embargo, so the training row immediately
+before each fold boundary carried a label (`Close[i+1]`) computed from
+inside that fold's own test window.
+
+- `walk_forward_splits` now takes required keyword-only `label_horizon`
+  and `embargo_bars` (no defaults — the caller states its own label
+  horizon, per the Rule 1/8 module boundary). Raises `ValueError` if
+  `embargo_bars < label_horizon`.
+- Purges training rows within `label_horizon` bars of each fold's test
+  start; maintains a persistent embargo ledger applied in full to every
+  later fold, so an earlier fold's embargo zone stays excluded permanently
+  (not just from the immediately following fold).
+- `logistic_baseline.py`'s call site now passes `label_horizon=1,
+  embargo_bars=1`, matching its `Close[i+1]` label exactly.
+- New `tests/test_walk_forward_cv.py` (module had zero tests — also
+  closes a standalone Rule 5 gap): purge boundary + off-by-one-at-equality,
+  embargo-immediate, embargo-persistence across 3+ folds, validation,
+  `label_horizon=0`, empty-after-purge-is-skipped, and a
+  `logistic_baseline.py` integration case. Full suite: 110 passed.
+- **Expected, not a regression:** `logistic_baseline.py`'s reported fold
+  accuracies will differ from any prior run — the old numbers were computed
+  on leaked data and were never a real result to preserve.
+- Out of scope, untouched: `scripts/data.py`, `scripts/signals.py`,
+  `scripts/backtest_harness.py`, `scripts/plotting.py`,
+  `scripts/ma_crossover_backtest.py`.
+
+
 ## Response Style (non-negotiable)
 
 Keep every response short and skimmable — bullets, tables, short
