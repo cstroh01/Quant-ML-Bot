@@ -116,9 +116,50 @@ menu, never an open-ended question.
   Good Friday and adds Columbus and Veterans Day, when the market is
   open.
 - SMA crossover baseline (`scripts/ma_crossover_backtest.py`) is
-  reviewed and verified lookahead-free. Real result: 8 trades, 50%
-  win rate, about +$33 total per share, no fees or slippage modeled
-  yet.
+  reviewed and verified lookahead-free. Last *uncosted* real result:
+  8 trades, 50% win rate, about +$33 total per share. That figure is
+  now superseded — see spec 002 below, which makes every reported
+  number net of costs.
+- **Spec 002 (backtest costs & baselines) implemented.** Rule 3 and
+  Rule 4 are closed, and 36 tests were added (67 → 103). What is
+  worth knowing:
+
+  - **Costs live in the harness, not the signal.** `run_backtest`
+    takes `commission_per_trade` and `slippage_bps`, both keyword-only
+    and both defaulting to `0.0`. The defaults multiply by exactly
+    `1.0` and subtract exactly `0.0`, so the old uncosted arithmetic
+    is reproduced bit for bit rather than approximately — that is why
+    no existing test's expected numbers moved.
+  - **Commission is charged per fill, not per round trip.** A $1.00
+    commission costs a completed trade $2.00. This is a real modeling
+    choice, taken as the conservative one; it matches how a broker
+    bills. Worth a second look before any live capital.
+  - **Slippage is applied against the trade, always.** The buy fill is
+    raised, the sell fill lowered, on both exit paths — the normal
+    sell and the end-of-data close. A test proves a winner flips to a
+    loser under 200 bps, because that is the outcome Rule 3 exists to
+    make visible rather than the outcome to engineer around.
+  - **`summarize_trades` carries its cost parameters back out.** A net
+    P&L cannot be decomposed into the costs that produced it, so the
+    summary carries them or the number stops being reportable the
+    moment it leaves the function.
+  - **Both baselines are signal generators**, `buy_and_hold_signal`
+    and `random_signal` in `scripts/signals.py`. Neither knows what a
+    fill is. Buy-and-hold adds no exit logic at all: it relies on the
+    harness's existing "still open at end" mark.
+  - **The random baseline's non-overlap is structural.** Entries are
+    drawn without replacement from a range shortened by the room each
+    trip needs, then spread apart by construction — so trips cannot
+    overlap, rather than being checked for overlap afterwards. Seed is
+    required, via `numpy.random.default_rng`. Too few bars to match
+    the strategy's trade count raises; it never quietly returns fewer
+    trades, because a baseline at a different activity level answers a
+    different question.
+  - **Still to run on real data.** The end-to-end AAPL numbers are not
+    in this repo yet — Yahoo is unreachable from the agent lane, so
+    the three-way comparison has only been exercised on synthetic
+    prices. Run `scripts/ma_crossover_backtest.py` locally to fill in
+    the real figures.
 - Return statistics (`scripts/return_stats.py`) are built and run on
   two years of real AAPL/MSFT/GOOGL data:
 
@@ -185,6 +226,12 @@ open, and it is Camden's rather than an agent's:
    else. Until that commit exists, Rule 10 reads as written and the
    CLAUDE.md section is an explanation, not a licence.
 
-Costs and slippage (Rule 3) are still unmodeled in the crossover
-backtest, and that remains the largest outstanding correctness gap
-in the repo — it is upstream of any reportable metric.
+Costs and slippage (Rule 3) and the two required baselines (Rule 4)
+are now implemented and tested. What is left is not code:
+
+- Run `scripts/ma_crossover_backtest.py` locally to produce the real
+  AAPL three-way comparison. Until that run happens, the repo has a
+  correct cost model and no costed result to show for it.
+- Decide whether the SMA rule survives its own costs. If it does not,
+  that is a finding, not a failure — and it is the finding that makes
+  the whole build order worth having.
