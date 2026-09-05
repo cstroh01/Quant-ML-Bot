@@ -30,6 +30,14 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
@@ -42,12 +50,11 @@ jobs:
           # Optional: Trigger when specific user is assigned to an issue
           # assignee_trigger: "claude-bot"
 
-          # Optional: Configure Claude's behavior with CLI arguments
-          # claude_args: |
-          #   --model claude-opus-4-1-20250805
-          #   --max-turns 10
-          #   --allowedTools "Bash(npm install),Bash(npm run build),Bash(npm run test:*),Bash(npm run lint:*)"
-          #   --system-prompt "Follow our coding standards. Ensure all new code has tests. Use TypeScript for new files."
+          # Allow Claude to actually run this repo's test suite (CLAUDE.md:
+          # `python -m unittest discover -s tests`). Without this, tests get
+          # written but never executed before a PR is opened.
+          claude_args: |
+            --allowedTools "Bash(python -m unittest discover -s tests:*),Bash(python3 -m unittest discover -s tests:*)"
 
           # Optional: Advanced settings configuration
           # settings: |
