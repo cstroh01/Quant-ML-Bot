@@ -89,3 +89,10 @@ Unchanged. A path inside `data/cache/`, creating the directory if needed.
 session rather than an instant. Applied identically to the download path and
 the cache-read path — guarantee 6 above depends on that being one function and
 not two (research R3).
+
+This is the project-wide rule, not a module-local choice: CLAUDE.md,
+*Conventions → Timestamps*, splits instants (always tz-aware) from session
+labels (always tz-naive midnight), and requires any session label crossing
+into instant-space to be localized to `America/New_York` explicitly at that
+boundary. A consumer of this frame that needs an instant does that conversion
+itself; `data.py` does not do it on the consumer's behalf.

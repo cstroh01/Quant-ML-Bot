@@ -91,16 +91,23 @@ menu, never an open-ended question.
     between them would have worked until it silently didn't. This
     is the Rule 5 failure mode exactly: no exception, just a
     mismatch waiting for the right query.
-  - **A timestamp convention is now stated, not assumed.** `Date`
+  - **A timestamp convention is now ruled on, project-wide.** `Date`
     is timezone-naive, midnight-normalized, and denotes a session
-    rather than an instant. Worth a look — it is a reading of
-    CLAUDE.md's "timezone-aware throughout" rather than a literal
-    application of it, and the reasoning is in the spec's
-    `research.md` R3.
+    rather than an instant. The rule now lives in CLAUDE.md
+    (*Conventions → Timestamps*): instants are always tz-aware,
+    session labels are always tz-naive, and a session label crossing
+    into instant-space is localized to `America/New_York` explicitly
+    by the code doing the crossing. `research.md` R3 has the
+    reasoning; CLAUDE.md is where the next module reads the answer.
   - **FR-009 answered "inspectable only."** `find_missing_bars`
     reports NYSE sessions with no bar; it does not fill, reject, or
     modify anything. Auto-fill was rejected on Rule 1 grounds — a
     backward fill writes into row `t` a value not knowable at `t`.
+    It is wired into `scripts/data_pipeline_sanity_check.py`, so
+    gaps print on every run — a count per ticker plus the first ten
+    dates. That answers a question the NaN check structurally cannot:
+    `isna()` finds a row that exists with a missing field, this finds
+    a row that is not there at all.
 
   The NYSE calendar is hand-rolled from the exchange's rules, no new
   dependency. It reproduces the published session counts for
@@ -160,19 +167,23 @@ doesn't get tangled up with unrelated uncommitted work.
 
 Spec 001 (data ingestion) is implemented and tested. The backtest
 harness exists and is tested. Rolling-volatility scripting stays
-deferred. Two things want a decision:
+deferred.
 
-1. **Rule on the timestamp convention** (`research.md` R3). `Date` is
-   tz-naive and session-labelled. If the preferred reading of
-   "timezone-aware throughout" is that it should carry
-   `America/New_York`, that is a one-line change in
-   `_normalize_dates` plus its test — but it should be decided once,
-   for the whole project, rather than per module.
-2. **What consumes the gap report.** `find_missing_bars` exists and
-   nothing calls it yet. Wiring it into
-   `data_pipeline_sanity_check.py` would make gaps visible on every
-   run at no cost, which is probably the cheapest next step. Not
-   done here — out of spec 001's scope.
+Both decisions previously open here are now closed. The timestamp
+convention is ruled on project-wide in CLAUDE.md, and the gap report
+is consumed by `data_pipeline_sanity_check.py`. One item is left
+open, and it is Camden's rather than an agent's:
+
+1. **Rule 10 and the Actions lane.** An agent pushed to the spec-001
+   branch because the issue asked it to. The carve-out and its
+   reasoning are written up in CLAUDE.md under *Rule 10 and the
+   GitHub Actions lane* — narrow (add/commit/push to the invoking
+   branch, never `main`, never a merge or a history rewrite) and
+   defensible, since Rule 10 guards comprehension and Rule 9 still
+   gates the merge. But CLAUDE.md does not override the constitution,
+   and the Amendment clause wants a dedicated commit touching nothing
+   else. Until that commit exists, Rule 10 reads as written and the
+   CLAUDE.md section is an explanation, not a licence.
 
 Costs and slippage (Rule 3) are still unmodeled in the crossover
 backtest, and that remains the largest outstanding correctness gap

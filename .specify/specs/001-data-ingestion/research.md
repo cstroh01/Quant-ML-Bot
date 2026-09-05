@@ -126,11 +126,17 @@ or, where pandas coerces, shifts the bar. Normalizing both paths through one
 function is what makes cache-hit and cache-miss substitutable, which is the
 property Scenario 2 is actually asserting.
 
-**Flagged for Camden.** This is a stated interpretation of "timezone-aware
-throughout" for date-only session labels, not a silent exception to it. If the
-preferred reading is that `Date` should carry `America/New_York` explicitly,
-that is a one-line change in `_normalize_dates` plus the corresponding test —
-but it should be decided once, here, rather than per-module.
+**Settled — project-wide, not per-module.** This was flagged as needing a
+ruling because the answer is not `data.py`'s to make alone. The ruling now
+lives in CLAUDE.md under *Conventions → Timestamps*: an **instant** is
+timezone-aware without exception; a **session label** is timezone-naive and
+midnight-normalized. A session label crossing into instant-space — an order, a
+broker call, an intraday join — is localized to `America/New_York` explicitly
+by the code doing the crossing, never implicitly and never to UTC.
+
+`_normalize_dates` is that ruling applied, not a local interpretation of it.
+The next module that produces a daily bar reads the rule in CLAUDE.md rather
+than rediscovering it here.
 
 ---
 

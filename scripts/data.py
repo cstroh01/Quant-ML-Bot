@@ -12,6 +12,11 @@ boundary for some reader: the same bar stored as midnight Eastern and read as
 UTC lands on a different calendar day. That is the silent one-bar shift Rule 5
 exists to catch, so the label stays zone-free and means "this session".
 
+This is the project-wide rule from CLAUDE.md (*Conventions → Timestamps*), not
+a choice local to this module: instants are timezone-aware without exception,
+session labels are timezone-naive. A caller that needs an instant localizes to
+``America/New_York`` itself, at the boundary where it crosses over.
+
 The convention is applied by ``_normalize_dates`` on both the fresh-download
 path and the cache-read path. That it is one function and not two is what
 makes a cache hit and a cache miss substitutable for the caller.

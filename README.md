@@ -99,6 +99,12 @@ and a cache miss substitutable, and it is pinned by
 `test_cache_round_trip_does_not_shift_any_date` in
 [tests/test_data.py](tests/test_data.py).
 
+This is the project-wide rule, not a quirk of the data layer: instants are
+always timezone-aware, session labels are always timezone-naive, and a session
+label crossing into instant-space is localized to `America/New_York`
+explicitly by the code doing the crossing. [CLAUDE.md](CLAUDE.md), *Conventions
+→ Timestamps*, is the statement of record.
+
 ### Inspecting calendar gaps
 
 `find_missing_bars` reports NYSE sessions that have no bar, per ticker:
@@ -122,6 +128,11 @@ This is a **report**, not an action. The frame is returned unmodified and
 nothing is filled — a backward fill or an interpolation would write a value
 into a row that was not knowable at that row's timestamp, which the
 constitution's point-in-time rule forbids by name.
+
+`scripts/data_pipeline_sanity_check.py` calls it on every run and prints a
+count per ticker plus the first ten dates. That catches something the
+missing-value check above it structurally cannot: `isna()` finds a row that is
+present but incomplete, this finds a row that is not there at all.
 
 ## Repository layout
 
