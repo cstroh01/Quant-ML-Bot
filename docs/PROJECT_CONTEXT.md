@@ -1,6 +1,6 @@
 # Quant-ML-Bot — Project Context
 
-_Last updated: 2026-09-03_
+_Last updated: 2026-09-05_
 
 ## Response Style (non-negotiable)
 
@@ -80,6 +80,41 @@ menu, never an open-ended question.
   `data/cache/*.csv` (Yahoo Finance is unreachable from Claude's own
   execution environments, so the cache is the permanent workaround,
   not temporary).
+- **Spec 001 (data ingestion) implemented.** `scripts/data.py` went
+  from zero tests to 46, closing the Rule 5 gap on the one module
+  every other module depends on. Three things worth keeping:
+
+  - **A real bug surfaced.** `Date` came back as `datetime64[s]`
+    from a fresh download and `datetime64[us]` from the CSV cache
+    read. Same instants, different dtype — so a cache hit and a
+    cache miss were not interchangeable, and a downstream join
+    between them would have worked until it silently didn't. This
+    is the Rule 5 failure mode exactly: no exception, just a
+    mismatch waiting for the right query.
+  - **A timestamp convention is now ruled on, project-wide.** `Date`
+    is timezone-naive, midnight-normalized, and denotes a session
+    rather than an instant. The rule now lives in CLAUDE.md
+    (*Conventions → Timestamps*): instants are always tz-aware,
+    session labels are always tz-naive, and a session label crossing
+    into instant-space is localized to `America/New_York` explicitly
+    by the code doing the crossing. `research.md` R3 has the
+    reasoning; CLAUDE.md is where the next module reads the answer.
+  - **FR-009 answered "inspectable only."** `find_missing_bars`
+    reports NYSE sessions with no bar; it does not fill, reject, or
+    modify anything. Auto-fill was rejected on Rule 1 grounds — a
+    backward fill writes into row `t` a value not knowable at `t`.
+    It is wired into `scripts/data_pipeline_sanity_check.py`, so
+    gaps print on every run — a count per ticker plus the first ten
+    dates. That answers a question the NaN check structurally cannot:
+    `isna()` finds a row that exists with a missing field, this finds
+    a row that is not there at all.
+
+  The NYSE calendar is hand-rolled from the exchange's rules, no new
+  dependency. It reproduces the published session counts for
+  2018-2025 exactly. pandas' `USFederalHolidayCalendar` was
+  available and was rejected as *wrong*, not merely heavy: it omits
+  Good Friday and adds Columbus and Veterans Day, when the market is
+  open.
 - SMA crossover baseline (`scripts/ma_crossover_backtest.py`) is
   reviewed and verified lookahead-free. Real result: 8 trades, 50%
   win rate, about +$33 total per share, no fees or slippage modeled
@@ -130,10 +165,26 @@ doesn't get tangled up with unrelated uncommitted work.
 
 ## Next Decision Point
 
-Risk-free-rate fix and drawdown are both done. Rolling-volatility
-scripting stays deferred. The only next-step candidate on the table:
+Spec 001 (data ingestion) is implemented and tested. The backtest
+harness exists and is tested. Rolling-volatility scripting stays
+deferred.
 
-1. Start the reusable backtest harness — decouple signal generation
-   from execution/accounting so ML signals can plug in later without
-   rewriting the crossover-specific script. (Offered, not yet
-   started — this is the agreed next task once Camden says go.)
+Both decisions previously open here are now closed. The timestamp
+convention is ruled on project-wide in CLAUDE.md, and the gap report
+is consumed by `data_pipeline_sanity_check.py`. One item is left
+open, and it is Camden's rather than an agent's:
+
+1. **Rule 10 and the Actions lane.** An agent pushed to the spec-001
+   branch because the issue asked it to. The carve-out and its
+   reasoning are written up in CLAUDE.md under *Rule 10 and the
+   GitHub Actions lane* — narrow (add/commit/push to the invoking
+   branch, never `main`, never a merge or a history rewrite) and
+   defensible, since Rule 10 guards comprehension and Rule 9 still
+   gates the merge. But CLAUDE.md does not override the constitution,
+   and the Amendment clause wants a dedicated commit touching nothing
+   else. Until that commit exists, Rule 10 reads as written and the
+   CLAUDE.md section is an explanation, not a licence.
+
+Costs and slippage (Rule 3) are still unmodeled in the crossover
+backtest, and that remains the largest outstanding correctness gap
+in the repo — it is upstream of any reportable metric.

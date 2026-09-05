@@ -77,15 +77,71 @@ The first run downloads from Yahoo Finance via `yfinance` and writes a CSV to
 `download_market_data` to re-download. Cache writes are atomic, so an
 interrupted run leaves the previous good file intact.
 
+The cache is keyed by the *sorted* ticker set and the period, so
+`["MSFT", "AAPL"]` and `["AAPL", "MSFT"]` are one entry rather than two. A
+cached file is only used if it holds every requested ticker; otherwise the
+full set is re-downloaded.
+
 Everything under `data/cache/` — CSVs, charts, trade logs — is generated
 output and is gitignored. Deleting the directory costs nothing but a re-run.
+
+### The timestamp convention
+
+`Date` is a **timezone-naive, midnight-normalized** timestamp, and it denotes
+a trading *session* rather than an instant. A daily bar has no single moment
+to attach a zone to, and every choice of one shifts the bar across a date
+boundary for some reader — the same bar written as midnight Eastern and read
+as UTC lands on a different calendar day.
+
+The convention is applied in one function, on both the download path and the
+cache-read path. That it is one function and not two is what makes a cache hit
+and a cache miss substitutable, and it is pinned by
+`test_cache_round_trip_does_not_shift_any_date` in
+[tests/test_data.py](tests/test_data.py).
+
+This is the project-wide rule, not a quirk of the data layer: instants are
+always timezone-aware, session labels are always timezone-naive, and a session
+label crossing into instant-space is localized to `America/New_York`
+explicitly by the code doing the crossing. [CLAUDE.md](CLAUDE.md), *Conventions
+→ Timestamps*, is the statement of record.
+
+### Inspecting calendar gaps
+
+`find_missing_bars` reports NYSE sessions that have no bar, per ticker:
+
+```python
+from data import download_market_data, find_missing_bars
+
+prices = download_market_data(["AAPL", "MSFT"], "2y")
+gaps = find_missing_bars(prices)   # empty frame when nothing is missing
+```
+
+A row means the exchange was open that day, the day falls inside that
+ticker's own history, and there is no bar — so no weekend or market holiday
+explains it. The NYSE calendar is computed in `data.py` from the exchange's
+own rules rather than taken from a library, because pandas'
+`USFederalHolidayCalendar` describes the federal government instead: it omits
+Good Friday and includes Columbus and Veterans Day, on which the market is
+open.
+
+This is a **report**, not an action. The frame is returned unmodified and
+nothing is filled — a backward fill or an interpolation would write a value
+into a row that was not knowable at that row's timestamp, which the
+constitution's point-in-time rule forbids by name.
+
+`scripts/data_pipeline_sanity_check.py` calls it on every run and prints a
+count per ticker plus the first ten dates. That catches something the
+missing-value check above it structurally cannot: `isna()` finds a row that is
+present but incomplete, this finds a row that is not there at all.
 
 ## Repository layout
 
 ```
 docs/PROJECT_CONTEXT.md   Roadmap, standing principles, and current state
 scripts/                  Reusable modules and runnable entry points
-tests/                    Regression tests for the signal and accounting layers
+tests/                    Regression tests for the data, signal, and accounting layers
+.specify/memory/          The constitution — non-negotiable rules
+.specify/specs/           Numbered specs; the unit of work
 data/cache/               Generated output (gitignored)
 ```
 
