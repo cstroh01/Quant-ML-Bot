@@ -1,4 +1,10 @@
-"""Expanding-window walk-forward cross-validation for market data."""
+"""Expanding-window walk-forward cross-validation for market data.
+
+The window genuinely expands: each fold trains on everything before its own
+test window except the rows purged at the boundary and the embargo gaps left
+behind by earlier folds. An embargo is a gap after a test window, not a
+permanent exclusion of it — see `walk_forward_splits` and spec 006.
+"""
 
 from collections.abc import Iterator
 
@@ -28,9 +34,20 @@ def walk_forward_splits(
     computed and must not guess another module's label horizon.
 
     For each fold, training rows whose label horizon would reach into that
-    fold's test window are purged, and a persistent embargo ledger excludes
-    every prior fold's test-window-plus-embargo zone from all later folds'
-    training data (Rule 2).
+    fold's test window are purged, and a cumulative ledger excludes every
+    prior fold's embargo gap from all later folds' training data (Rule 2).
+
+    The embargo is a **gap of ``embargo_bars`` rows immediately following
+    each test window**, not a quarantine of the test window itself. A fold's
+    test data is ordinary history to a later fold and re-enters its training
+    set; only the gap stays excluded, permanently, for every subsequent
+    fold. That is what makes the window expanding: fold ``k+1`` trains on
+    everything fold ``k`` trained on, plus the period fold ``k`` tested on,
+    minus the gaps.
+
+    A gap lands inside the *next* fold's test window whenever test windows
+    are adjacent, so it excludes nothing there; it begins removing training
+    rows one fold later, once ``train_end`` has moved past it.
 
     Raises:
         ValueError: if ``embargo_bars < label_horizon`` (an embargo shorter
@@ -58,9 +75,10 @@ def walk_forward_splits(
     train_end = dates.iloc[0] + pd.DateOffset(months=initial_train_months)
     final_date = dates.iloc[-1]
 
-    # Ledger of (embargo_start, embargo_end) *positional* ranges, one per
-    # fold, accumulated across the whole generator call and re-applied in
-    # full to every subsequent fold's training indices.
+    # Ledger of (gap_start, gap_end) *positional* ranges — one embargo gap
+    # per fold, accumulated across the whole generator call and re-applied
+    # in full to every subsequent fold's training indices. Each entry covers
+    # only the bars after a test window, never the test window itself.
     embargoed_ranges: list[tuple[int, int]] = []
 
     while train_end <= final_date:
@@ -90,8 +108,14 @@ def walk_forward_splits(
             if train_indices.size:
                 yield train_indices, test_indices
 
+            # Record the embargo *gap* — the bars immediately after this
+            # test window — not the test window itself. Anchoring the range
+            # at test_start_pos instead would make consecutive folds' ranges
+            # tile without gaps, and their union would exclude the whole
+            # expanding region from every later fold's training data. See
+            # spec 006 Background for the measurement.
             test_end_pos = int(test_indices.max()) + 1
-            embargoed_ranges.append((test_start_pos, test_end_pos + embargo_bars))
+            embargoed_ranges.append((test_end_pos, test_end_pos + embargo_bars))
 
         train_end = test_end
 
