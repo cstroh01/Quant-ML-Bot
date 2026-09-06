@@ -1,6 +1,82 @@
 # Quant-ML-Bot — Project Context
 
-_Last updated: 2026-09-05_
+_Last updated: 2026-09-06_
+
+## Spec 009 — Selectable prediction target: DONE
+
+Made the prediction target a real parameter instead of the hardcoded
+`shift(-1)` direction label buried in `logistic_baseline.build_features`.
+
+- New `scripts/targets.py`: `direction_label` (nullable `Int64`, matches
+  the old label exactly) and `forward_log_return_label` (continuous,
+  `NaN` where unobservable or non-positive), both behind `build_target(kind,
+  horizon)`, which hands back `(label, task, label_horizon)` so a caller
+  passes one number to both the label and `walk_forward_splits` instead of
+  writing the horizon twice.
+- New `scripts/features.py`: the general `build_features`, parameterized by
+  window sizes, `target_kind`, and `label_horizon`. Proven equivalent to
+  `logistic_baseline.build_features` by test, not by inspection.
+  `logistic_baseline.py` itself is untouched — it stays the pinned Phase 2
+  control result.
+- Rejects `horizon <= 0` (a zero-horizon label is silently `False`/`0.0`
+  everywhere) and an unrecognized target kind (no default, ever).
+- New `tests/test_targets.py`: off-by-one both ways, boundaries, the
+  positional-not-calendar gap case, mutation check, equivalence with the
+  baseline. Full suite: **180 passed**.
+- Sets up specs 010-013 directly: `task` (`"classification"`/`"regression"`)
+  is what an estimator registry keys on next.
+
+## Spec 008 — Metrics reporting layer: DONE
+
+Added the risk-adjusted reporting a strategy comparison actually needs —
+until now the harness produced a trade log and nothing downstream of it.
+
+- New `scripts/metrics.py`: `equity_curve` (per-bar P&L reconciled to the
+  harness's own trade-by-trade arithmetic to 1e-9), `sharpe_ratio`,
+  `max_drawdown`, and `performance_summary` tying them together.
+- New `scripts/constants.py`: `TRADING_DAYS_PER_YEAR` and
+  `RISK_FREE_RATE_ANNUAL`, lifted out of `return_stats.py` so both modules
+  share one number instead of two copies that could drift.
+- An empty trade log is treated as an expected outcome, not an error — the
+  path a cost-aware entry rule (spec 012) is expected to travel through
+  often.
+- New `tests/test_metrics.py`. Full suite: **152 passed, 70 subtests**.
+
+## Spec 007 — OOS coverage index bug: FIXED
+
+A latent index/position bug in `logistic_baseline.build_ml_signal`: the
+first out-of-sample row was being located by pandas index *label*
+(`first_valid_index()`) and then fed to `.iloc`, which expects a *position*.
+The two only agree on a fresh 0-based `RangeIndex` — true of every caller
+today, so nothing was wrong yet, but a per-ticker slice (Phase 3's
+multi-ticker runner, spec 013) would have silently truncated the live
+window or raised outright on a non-`RangeIndex` frame.
+
+- Fixed to derive the position from a boolean mask (`np.flatnonzero`), never
+  from the series' own index.
+- New regression tests pin the fix against exactly this failure mode.
+
+## Spec 006 — Embargo window semantics: FIXED
+
+A measurement taken while scoping Phase 3 (gradient boosting, continuous
+targets, nested tuning, multi-ticker generalization) found that
+`walk_forward_cv.py`'s training set never grew: the embargo added in spec
+003 permanently excluded each test window rather than only the gap after
+it, and because test windows tile contiguously, their union swallowed the
+whole expanding region. Every fold was training on the same first
+`initial_train_months` of data.
+
+- Fixed: the embargo is now a `embargo_bars`-row gap immediately after each
+  fold's test window, added to a persistent ledger — a later fold's test
+  data re-enters training, only the gap stays excluded.
+- **All of spec 005's reported AAPL numbers are now known-stale** (produced
+  under the old, non-expanding semantics) — flagged here as the reason,
+  not silently corrected, since the honest replacement figures come from
+  the Phase 3 multi-ticker run (spec 013), not a rerun of this fix alone.
+- Named consequence, spec 011: after this fix a fold's legal training
+  positions are no longer contiguous (an earlier fold's embargo gap can
+  fall inside a later fold's training range), which is exactly what a
+  nested hyperparameter search has to handle correctly.
 
 ## Spec 005 — ML signal wiring: DONE
 
@@ -281,34 +357,40 @@ The drawdown change (and a few other working-tree edits to
 changes. Commit it before starting the harness, so the harness diff
 doesn't get tangled up with unrelated uncommitted work.
 
-## Next Decision Point
+## Phase 3 — In Progress
 
-Spec 001 (data ingestion) is implemented and tested. The backtest
-harness exists and is tested. Rolling-volatility scripting stays
-deferred.
+Specs 006-009 closed out the plumbing gaps Phase 3 scoping surfaced
+(embargo semantics, an OOS index bug, metrics, a selectable target).
+Four specs are now committed to carry Phase 3 the rest of the way,
+dependency-sequenced:
 
-Both decisions previously open here are now closed. The timestamp
-convention is ruled on project-wide in CLAUDE.md, and the gap report
-is consumed by `data_pipeline_sanity_check.py`. One item is left
-open, and it is Camden's rather than an agent's:
+- **Spec 010 — Estimator registry.** One walk-forward fit/predict loop
+  that works for both classification and regression, keyed on the
+  `task` spec 009 already produces. Proven equivalent to
+  `logistic_baseline.py`'s existing loop before anything new is trusted.
+- **Spec 011 — Nested, leakage-safe hyperparameter tuning.** Handles the
+  non-contiguous training positions spec 006's fix produces; picks
+  hyperparameters using only an outer fold's own training data, never its
+  test window.
+- **Spec 012 — Cost-aware entry rule.** Turns a continuous return
+  prediction into a trade only when it clears the actual round-trip cost
+  hurdle — the payoff spec 009 set up. Expected to decline nearly every
+  trade; that is the honest result, not a bug.
+- **Spec 013 — Multi-ticker comparison table.** Runs the full pipeline
+  per ticker, isolates one ticker's failure from the rest, and produces
+  the risk-adjusted comparison table that finally replaces this doc's
+  stale single-ticker AAPL figures.
 
-1. **Rule 10 and the Actions lane.** An agent pushed to the spec-001
-   branch because the issue asked it to. The carve-out and its
-   reasoning are written up in CLAUDE.md under *Rule 10 and the
-   GitHub Actions lane* — narrow (add/commit/push to the invoking
-   branch, never `main`, never a merge or a history rewrite) and
-   defensible, since Rule 10 guards comprehension and Rule 9 still
-   gates the merge. But CLAUDE.md does not override the constitution,
-   and the Amendment clause wants a dedicated commit touching nothing
-   else. Until that commit exists, Rule 10 reads as written and the
-   CLAUDE.md section is an explanation, not a licence.
+**Open decision, Camden's not an agent's:** spec 013 needs a real named
+ticker universe (five names, per spec 008's original framing) — nothing
+in the repo commits to one yet. Confirm it before the real (non-synthetic)
+run happens.
 
-Costs and slippage (Rule 3) and the two required baselines (Rule 4)
-are now implemented and tested. What is left is not code:
+**Still true from earlier phases:**
 
-- Run `scripts/ma_crossover_backtest.py` locally to produce the real
-  AAPL three-way comparison. Until that run happens, the repo has a
-  correct cost model and no costed result to show for it.
-- Decide whether the SMA rule survives its own costs. If it does not,
-  that is a finding, not a failure — and it is the finding that makes
-  the whole build order worth having.
+1. Rule 10 and the Actions lane carve-out (CLAUDE.md) is a documented
+   exception, not a constitutional amendment, until Camden makes it one
+   in `.specify/memory/constitution.md` directly.
+2. The agent lane cannot reach Yahoo Finance. Every real multi-ticker run
+   (spec 013) and any other real-data run happens on Camden's machine,
+   not in an agent session or CI.
