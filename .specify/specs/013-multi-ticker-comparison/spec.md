@@ -19,8 +19,9 @@ honest replacement.
 **Owns / must not know about** (per CLAUDE.md's module table): a new
 runner script, `scripts/multi_ticker_comparison.py`. It composes
 `data.download_market_data`, `features.build_features`,
-`estimator.fit_predict_walk_forward` (spec 010, tuned per spec 011),
-`signals.cost_aware_entry_signal` (spec 012), `backtest_harness.run_backtest`,
+`model_cv.nested_walk_forward` (specs 010/011),
+`ml_signal.positions_from_predicted_return` (spec 012),
+`backtest_harness.run_backtest`,
 and `metrics.performance_summary` (spec 008) — one ticker at a time. It adds
 no new logic to any of those modules; it is composition and aggregation
 only.
@@ -42,11 +43,21 @@ universe means:
    collecting one such summary per (ticker, strategy) pair into one table,
    with both baselines alongside the model for every ticker (Rule 4 applies
    per ticker, not once for the universe).
-3. **An explicit, named universe.** Nothing in this repo names five tickers
-   anywhere. `return_stats.py` uses three (AAPL, MSFT, GOOGL) for an
-   unrelated purpose. This spec does not invent a five-name list — see
-   *Assumptions*, which flags the actual universe as Camden's decision, not
-   an assumed one.
+3. **An explicit, named universe.** No *module* in this repo names five
+   tickers; `return_stats.py` uses three (AAPL, MSFT, GOOGL) for an unrelated
+   purpose. The universe is nonetheless already decided — **AAPL, MSFT,
+   GOOGL, NVDA, AMZN** — chosen when Phase 3 was scoped: it extends the three
+   already characterized in `docs/PROJECT_CONTEXT.md` with two more mega-cap
+   names, and every one of the five is high-priced, which keeps the
+   per-share commission hurdle (spec 012) as small as this cost model allows.
+   This spec writes that list down; it does not reopen it.
+
+4. **A table that cannot be misread.** A $1.00 commission is 40 bps on a $250
+   share and 400 bps on a $25 one, so a cross-ticker P&L ranking is partly a
+   share-price ranking. The table therefore carries the median hurdle and the
+   predicted-magnitude distribution beside every result — see FR-005. Without
+   those columns, "AAPL beat AMZN" reads as an alpha claim when it may be an
+   arithmetic one.
 
 ### What the agent lane cannot do here
 
@@ -119,9 +130,9 @@ table by Sharpe (not raw P&L) is a comparison of alpha, not of share price.
 ### Functional Requirements
 
 - **FR-001**: `TICKER_UNIVERSE` MUST be an explicit, named module-level
-  constant (a plain list of ticker strings) — never inferred from another
-  script or a config file this spec would have to invent. See Assumptions
-  for what the actual list should be.
+  constant, equal to `["AAPL", "MSFT", "GOOGL", "NVDA", "AMZN"]` — never
+  inferred from another script or a config file this spec would have to
+  invent.
 - **FR-002**: `run_one_ticker(ticker, ...) -> dict | ComparisonFailure` MUST
   run the full per-ticker pipeline (features -> tuned estimator -> cost-aware
   signal -> backtest -> performance summary, plus both Rule 4 baselines run
@@ -137,11 +148,26 @@ table by Sharpe (not raw P&L) is a comparison of alpha, not of share price.
   buy-and-hold, random baseline), carrying every `performance_summary`
   field plus the cost parameters used (Rule 3/4 PR-description
   requirements apply to this table's own columns, not just the PR text).
-- **FR-005**: Output MUST be written via `data.cache_path` as one CSV.
-- **FR-006** *(Rule 8)*: This module composes existing modules; it adds no
+- **FR-005** *(the columns that keep the table honest)*: Every ML row MUST
+  carry a **`Median hurdle (bps)`** column and a predicted-magnitude
+  summary (at minimum `|pred| q90`, in bps). These are mandatory, not
+  optional diagnostics: with an expected trade count of zero, they are what
+  turns an empty table into the actual finding — "the hurdle is 90 bps and
+  the model's 90th-percentile conviction is 14 bps" is a result; "0 trades"
+  alone is not. Every row MUST additionally carry the Rule 2/3/4 parameters
+  behind its metrics: fold count, purge length, embargo length,
+  `commission_per_trade`, `slippage_bps`, capital base, `random_state`, and
+  the random baseline's seed count and dispersion. A metric without these is
+  not reportable (CLAUDE.md, PR requirements) — and that applies to the
+  artifact's own columns, not only to the PR text.
+- **FR-006**: Output MUST be written via `data.cache_path` as one CSV, with
+  a **ticker-namespaced filename**. The existing
+  `phase2_logistic_baseline_results.csv` is not namespaced, so a naive loop
+  would have each ticker overwrite the last.
+- **FR-007** *(Rule 8)*: This module composes existing modules; it adds no
   new feature, target, estimator, signal, or metrics logic of its own.
-- **FR-007** *(Rule 6)*: No new dependency.
-- **FR-008** *(Rule 5, tests)*: Coverage via a synthetic, network-free
+- **FR-008** *(Rule 6)*: No new dependency.
+- **FR-009** *(Rule 5, tests)*: Coverage via a synthetic, network-free
   multi-ticker frame: the isolated-failure case, the all-succeed case, the
   all-fail case, and confirmation that every row's cost parameters match
   across tickers.
@@ -174,13 +200,12 @@ table by Sharpe (not raw P&L) is a comparison of alpha, not of share price.
 
 ## Assumptions
 
-- **The five-ticker universe is not named anywhere in this repo and is
-  flagged here as Camden's decision, not this spec's** — the constitution's
-  "what to flag rather than fix" applies directly: naming a universe is a
-  research/data choice (liquidity, sector spread, history length), not an
-  engineering one. `TICKER_UNIVERSE`'s default should be treated as a
-  placeholder (e.g. the three `return_stats.py` already uses, extended by
-  two) until Camden confirms the real list.
+- **The universe is settled, not open.** AAPL, MSFT, GOOGL, NVDA, AMZN was
+  chosen during Phase 3 scoping and is recorded in FR-001. An earlier draft
+  of this spec reopened it as "Camden's decision" — that was a regression;
+  the decision had already been made, and re-flagging a closed question is
+  its own kind of noise. Changing the universe later is a one-line edit to
+  `TICKER_UNIVERSE` plus a rerun, so nothing here is hard to revisit.
 - This spec's tests exercise the composition and failure-isolation logic
   only, against synthetic data. The real run — the one that finally
   supersedes `docs/PROJECT_CONTEXT.md`'s stale AAPL-only figures — happens

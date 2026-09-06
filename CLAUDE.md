@@ -40,12 +40,12 @@ Camden being able to explain the change. What the agent gains is the ability
 to put a commit where the review already is. What it does not gain is the
 ability to make anything permanent.
 
-**Status.** This is a documented exception, not an amendment. CLAUDE.md does
-not override the constitution, and this file saying so would not make it so.
-The constitution's Amendment clause requires a dedicated commit that changes
-nothing else — so if this carve-out is to be permanent, Camden makes it in
-`.specify/memory/constitution.md` himself. Until then Rule 10 reads as
-written, and this section explains why one branch does not match it.
+**Status.** Amended into the constitution directly, 2026-09-06, per
+Camden's confirmation — Rule 10 now states this exception itself, in a
+dedicated commit to `.specify/memory/constitution.md` that changes nothing
+else, per that file's own Amendment clause. This section is kept as the
+record of why the carve-out exists and what it does and does not grant; the
+constitution's own text is the current authority on the rule.
 
 ## What this project is
 

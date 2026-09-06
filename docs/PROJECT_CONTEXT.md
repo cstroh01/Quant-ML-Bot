@@ -2,6 +2,30 @@
 
 _Last updated: 2026-09-06_
 
+## Spec 010 — Estimator registry: DONE
+
+Gave the project one place a model is declared, and one walk-forward
+fit/predict loop that works for either task.
+
+- New `scripts/estimators.py`: `EstimatorSpec` (factory + `param_grid` +
+  `default_params`) and `ESTIMATOR_REGISTRY` keyed on `(name, task)`, with
+  four entries — `logistic`/classification, `ridge`/regression, and
+  **`hgb`/both**, using scikit-learn's `HistGradientBoosting*`. That is
+  Phase 3's gradient-boosting feature, added as a registry entry with **no
+  change to the fit/predict loop**, which was the whole argument for
+  building a registry first.
+- `fit_predict_walk_forward` fits one estimator per fold (never once on the
+  whole frame) and returns `Int64`/`pd.NA` for classification or
+  `float64`/`NaN` for regression. The regression path did not exist before
+  this spec — `LogisticRegression` raises on a continuous label.
+- Proven equivalent to `logistic_baseline.walk_forward_predictions` element
+  for element on the classification path, so the Phase 2 control is pinned
+  before spec 011 adds tuning as a second possible source of difference.
+  `logistic_baseline.py` remains untouched.
+- No new dependency (Rule 6): scikit-learn was already in use, and both
+  `HistGradientBoosting*` and `Ridge` ship with it.
+- New `tests/test_estimators.py`. Full suite: **210 passed**.
+
 ## Spec 009 — Selectable prediction target: DONE
 
 Made the prediction target a real parameter instead of the hardcoded
@@ -360,14 +384,20 @@ doesn't get tangled up with unrelated uncommitted work.
 ## Phase 3 — In Progress
 
 Specs 006-009 closed out the plumbing gaps Phase 3 scoping surfaced
-(embargo semantics, an OOS index bug, metrics, a selectable target).
-Four specs are now committed to carry Phase 3 the rest of the way,
-dependency-sequenced:
+(embargo semantics, an OOS index bug, metrics, a selectable target), and
+spec 010 is now implemented. Specs 011-013 carry Phase 3 the rest of the
+way, dependency-sequenced:
 
-- **Spec 010 — Estimator registry.** One walk-forward fit/predict loop
-  that works for both classification and regression, keyed on the
-  `task` spec 009 already produces. Proven equivalent to
-  `logistic_baseline.py`'s existing loop before anything new is trusted.
+Specs 010-013 were first drafted in one pass and then corrected before
+implementation; the corrections are recorded in each spec's own *Revision
+note* rather than silently applied. The substantive ones: gradient boosting
+had been deferred out of 010 and was owned by no spec; 011's requirements
+were self-contradictory (reuse `walk_forward_splits`' rule, while importing
+no project module); and 012's cost hurdle dropped the `1/(1-s)` factor and
+compared a simple return against a log-return target.
+
+- **Spec 010 — Estimator registry. DONE** (see above). Also carries the
+  parameter grids and declared fallback params spec 011 searches over.
 - **Spec 011 — Nested, leakage-safe hyperparameter tuning.** Handles the
   non-contiguous training positions spec 006's fix produces; picks
   hyperparameters using only an outer fold's own training data, never its
@@ -381,10 +411,17 @@ dependency-sequenced:
   the risk-adjusted comparison table that finally replaces this doc's
   stale single-ticker AAPL figures.
 
-**Open decision, Camden's not an agent's:** spec 013 needs a real named
-ticker universe (five names, per spec 008's original framing) — nothing
-in the repo commits to one yet. Confirm it before the real (non-synthetic)
-run happens.
+**Outstanding, and Camden's rather than an agent's:**
+
+- The 10-year download for AAPL, MSFT, GOOGL, NVDA, AMZN. The agent lane
+  cannot reach Yahoo, so spec 013's real run needs this cache present
+  first; the exact command is in that spec's tasks.md (T014). The universe
+  itself is settled and written down in spec 013 FR-001 — an earlier draft
+  reopened it as an open question, which was a regression.
+- Run `scripts/ma_crossover_backtest.py` locally to produce the real AAPL
+  three-way costed comparison. This has been outstanding since Phase 2:
+  the repo has a correct cost model and still no costed result to show for
+  it. Whether the SMA rule survives its own costs is a finding either way.
 
 **Still true from earlier phases:**
 

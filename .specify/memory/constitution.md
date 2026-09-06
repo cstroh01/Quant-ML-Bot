@@ -184,11 +184,30 @@ explanation, and the explanation is the deliverable.
 ## Rule 10 — Version control is human-owned
 
 **Agents do not run `git`.** No `add`, `commit`, `branch`, `merge`, `rebase`,
-`push`, or `checkout`. Agents write files and open explanations; Camden performs
-every version-control operation himself in GitKraken.
+`push`, or `checkout` — with one narrow, permanent exception below. Camden
+performs every other version-control operation himself in GitKraken.
 
-This is not a safety rule. It is a comprehension rule — the same one as Rule 9,
-enforced at the point where changes become permanent.
+**Exception — the GitHub Actions lane.** An agent invoked from a GitHub issue
+or PR comment, running in the repository's GitHub Actions workflow, may run
+`git add`, `git commit`, and `git push` — and only those three — to the
+branch it was invoked on. `merge`, `rebase`, `reset`, `checkout` of another
+branch, force-push, tag, any push to `main`, and any history rewrite remain
+forbidden in every lane, including this one. An agent working outside the
+Actions lane — a local session, a worktree, a terminal — runs no `git` at
+all.
+
+This is not a safety rule. It is a comprehension rule — the same one as
+Rule 9, enforced at the point where changes become permanent. The exception
+does not defeat it: a push in this lane lands on a feature branch inside an
+open PR, never `main`, and Rule 9 still gates the merge on Camden being able
+to explain the change. What it grants is the ability to put a commit where
+the review already is — not the ability to make anything permanent.
+
+_Amended 2026-09-06, Camden's confirmation: this exception was previously a
+documented carve-out in `CLAUDE.md` ("Rule 10 and the GitHub Actions lane"),
+pending a dedicated amendment here per this file's own Amendment clause. That
+CLAUDE.md section now records history rather than an open question — this
+rule's text is the current authority._
 
 ---
 
