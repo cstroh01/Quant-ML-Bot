@@ -196,18 +196,34 @@ def build_ml_signal(features: pd.DataFrame) -> tuple[pd.DataFrame, int]:
     the positional index of the first row with an out-of-sample
     prediction — the point at which "live" trading, and therefore any
     honest backtest of it, can actually start.
+
+    That position is derived positionally, from a boolean mask, and never
+    from the predictions' pandas index. `Series.first_valid_index()` returns
+    an index *label*; the caller feeds the result to `.iloc`, which takes a
+    *position*. The two agree only on a 0-based `RangeIndex` — which every
+    caller happens to pass today, because `build_features` ends with
+    `reset_index(drop=True)`. On an offset index the live window would be
+    silently truncated and the reported P&L would change; on a
+    `DatetimeIndex` it would raise (spec 007).
     """
     predictions = walk_forward_predictions(features)
-    first_covered_pos = predictions.first_valid_index()
-    if first_covered_pos is None:
+
+    # Positions, not labels. `notna()` is exactly "has an out-of-sample
+    # prediction": walk_forward_predictions writes only into fold test
+    # windows and leaves every other row <NA>.
+    covered_positions = np.flatnonzero(predictions.notna().to_numpy())
+    if covered_positions.size == 0:
         raise RuntimeError("walk_forward_predictions produced no predictions.")
+    # Emptiness, not falsiness — position 0 is a legitimate answer meaning
+    # the very first row is covered.
+    first_covered_pos = int(covered_positions[0])
 
     buy_next_open, sell_next_open = _signal_from_predictions(predictions)
 
     features = features.copy()
     features["Buy_Next_Open"] = buy_next_open
     features["Sell_Next_Open"] = sell_next_open
-    return features, int(first_covered_pos)
+    return features, first_covered_pos
 
 
 def _format_ml_comparison(ml_summary: dict, baselines: dict, *, seed_count: int) -> str:

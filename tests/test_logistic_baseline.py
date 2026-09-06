@@ -140,5 +140,73 @@ class TestBuildMlSignalEndToEnd(unittest.TestCase):
         self.assertTrue(np.isfinite(trade_log["Cumulative P&L"]).all())
 
 
+class TestFirstCoveredPositionIsPositional(unittest.TestCase):
+    """T006/T007 (spec 007) — build_ml_signal's second return value is a row
+    *position*, not a pandas index label.
+
+    `Series.first_valid_index()` returns a label; `main()` feeds the result
+    to `.iloc`, which takes a position. They agree only on a 0-based
+    RangeIndex, which every caller happens to pass today. These tests pin
+    the distinction so an ordinary pandas operation between `build_features`
+    and `build_ml_signal` — a boolean filter, a `dropna`, a per-ticker
+    `groupby` slice — cannot silently truncate the backtest window.
+    """
+
+    def _frames(self):
+        """One frame under three index shapes. Only the index differs."""
+        features = _synthetic_features("2024-01-01", "2024-10-31")
+
+        offset = features.copy()
+        offset.index = pd.RangeIndex(start=100, stop=100 + len(features))
+
+        dated = features.copy()
+        dated.index = pd.DatetimeIndex(features["Date"])
+
+        return {
+            "range_index": features,
+            "offset_index": offset,
+            "datetime_index": dated,
+        }
+
+    def test_same_position_regardless_of_index(self):
+        """SC-001/SC-002 — all three index shapes return the same position.
+
+        Against the pre-fix code the offset case returns 282 instead of 182,
+        and the datetime case raises TypeError.
+        """
+        positions = {
+            name: build_ml_signal(frame)[1]
+            for name, frame in self._frames().items()
+        }
+
+        self.assertEqual(
+            len(set(positions.values())),
+            1,
+            f"position depends on the index: {positions}",
+        )
+
+    def test_returned_position_points_at_the_first_prediction(self):
+        """SC-003 — the position is not merely consistent, it is correct.
+
+        Catches an off-by-one that `test_same_position_regardless_of_index`
+        would pass: the row at `pos` must have a prediction and the row
+        before it must not.
+        """
+        for name, frame in self._frames().items():
+            with self.subTest(index=name):
+                _, first_covered_pos = build_ml_signal(frame)
+                predictions = walk_forward_predictions(frame)
+
+                self.assertGreater(first_covered_pos, 0)
+                self.assertTrue(
+                    pd.notna(predictions.iloc[first_covered_pos]),
+                    "row at the returned position has no prediction",
+                )
+                self.assertTrue(
+                    predictions.iloc[:first_covered_pos].isna().all(),
+                    "a row before the returned position already had one",
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
