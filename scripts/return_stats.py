@@ -4,12 +4,11 @@ import numpy as np
 import pandas as pd
 from scipy.stats import kurtosis, norm, skew
 
+from constants import RISK_FREE_RATE_ANNUAL, TRADING_DAYS_PER_YEAR
 from data import cache_path, download_market_data
 from plotting import plt, save_figure
 
 TICKERS = ["AAPL", "MSFT", "GOOGL"]
-TRADING_DAYS_PER_YEAR = 252
-RISK_FREE_RATE_ANNUAL = 0.0378  # 3-month T-bill, ~Sept 2026 snapshot — not live-fetched, revisit periodically
 
 
 def daily_log_returns(prices: pd.DataFrame) -> pd.Series:
