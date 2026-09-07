@@ -46,6 +46,9 @@ of fills, positions, or P&L — no metric here is a return.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from scipy.stats import wilcoxon
@@ -208,7 +211,7 @@ def compare_regression(
     one-sided test that B has the smaller error — stated directly to scipy
     rather than derived from a two-sided p-value.
 
-    `zero_method="wilcoxon"` discards exactly-tied pairs, which is the
+    `zero_method="wilcox"` discards exactly-tied pairs, which is the
     standard treatment and the conservative one: a bar where both feature
     sets erred identically is evidence for neither.
     """
@@ -231,8 +234,8 @@ def compare_regression(
             "note": "identical squared errors; nothing to rank",
         }
 
-    one_sided = wilcoxon(difference, alternative="less", zero_method="wilcoxon")
-    two_sided = wilcoxon(difference, alternative="two-sided", zero_method="wilcoxon")
+    one_sided = wilcoxon(difference, alternative="less", zero_method="wilcox")
+    two_sided = wilcoxon(difference, alternative="two-sided", zero_method="wilcox")
 
     return {
         "test": "wilcoxon signed-rank",
@@ -365,6 +368,21 @@ def format_report(results: list[dict]) -> str:
     return "\n".join(lines)
 
 
+CHECKPOINT_PATH = Path(__file__).resolve().parents[1] / "data" / "cache" / "feature_set_comparison.json"
+
+
+def _checkpoint(results: list[dict]) -> None:
+    """Write completed entries to `data/cache/` after each one.
+
+    This run is hours long and prints only at the end. An exception in the
+    fourth entry used to discard the first three, which is a bad trade for
+    two lines of code. The file is regenerable output under `data/cache/`,
+    so it is gitignored like everything else there.
+    """
+    CHECKPOINT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    CHECKPOINT_PATH.write_text(json.dumps(results, indent=2), encoding="utf-8")
+
+
 def main():
     """Print the paired comparison for every registry entry.
 
@@ -380,7 +398,13 @@ def main():
     results = []
     for name, task in sorted(ESTIMATOR_REGISTRY):
         print(f"running {name}/{task} ...", flush=True)
-        results.append(compare_entry(prices, name=name, task=task))
+        result = compare_entry(prices, name=name, task=task)
+        results.append(result)
+        _checkpoint(results)
+        print(
+            f"  done: p(one-sided)={result['p_one_sided']:.4f}",
+            flush=True,
+        )
 
     print()
     print(format_report(results))
