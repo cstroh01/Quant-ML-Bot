@@ -1,0 +1,57 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-terminal: #080A0E;
+    --bg-card: #0F131A;
+    --bg-card-hover: #151A24;
+    --border-subtle: #1C2331;
+    --border-focus: #2E384D;
+    --text-primary: #F0F4FC;
+    --text-secondary: #8E9BAE;
+    --text-muted: #586477;
+    
+    /* Standard Palette */
+    --color-up: #10B981;
+    --color-down: #F43F5E;
+    
+    /* Colorblind Safe Palette */
+    --color-cb-up: #0284C7;
+    --color-cb-down: #D97706;
+  }
+
+  body {
+    background-color: var(--bg-terminal);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Financial numbers should always be tabular numbers */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+}
+
+/* Custom scrollbars for high data-density terminal tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080A0E;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1C2331;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2E384D;
+}

@@ -1,0 +1,9 @@
+# UI & Terminal API Dependencies (Spec 016)
+# Rule 6 Justification:
+# fastapi==0.141.1: Asynchronous non-blocking REST/SSE framework with automatic OpenAPI documentation and Pydantic schema validation.
+# uvicorn==0.52.4: High-performance ASGI web server for serving FastAPI and static terminal assets on localhost.
+# httpx==0.28.1: Modern async HTTP client required for TestClient integration testing of the reporting API.
+
+fastapi==0.141.1
+uvicorn==0.52.4
+httpx==0.28.1
