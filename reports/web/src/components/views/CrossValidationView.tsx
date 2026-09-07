@@ -1,7 +1,12 @@
 import React from 'react';
 import { Info, ShieldAlert } from 'lucide-react';
+import { TutorCard } from '../common/TutorCard';
 
-export const CrossValidationView: React.FC = () => {
+interface CrossValidationViewProps {
+  tutorMode?: boolean;
+}
+
+export const CrossValidationView: React.FC<CrossValidationViewProps> = ({ tutorMode = true }) => {
   // Representative walk-forward folds from scripts/walk_forward_cv.py
   const folds = [
     { fold: 1, trainMonths: 'M1 - M6', purgeDays: '1 bar', testMonth: 'M7', embargoDays: '1 bar' },
@@ -29,6 +34,18 @@ export const CrossValidationView: React.FC = () => {
           Random k-fold and standard contiguous splits leak information across time because financial returns are serially correlated. For any label spanning horizon <span className="font-mono text-cyan-300">h</span>, observations within <span className="font-mono text-cyan-300">h</span> bars of the test boundary are purged, and an embargo gap is enforced before training resumes.
         </p>
       </div>
+
+      {/* Tutor Decoder */}
+      {tutorMode && (
+        <TutorCard
+          title="AFML Purging, Embargoing & Leakage Prevention"
+          badge="QUANT DECODER: TIME-SERIES SPLITTING"
+          whatItMeans="In normal AI (like recognizing photos of cats), you can shuffle data randomly. But in financial markets, you can never shuffle! What happened on Tuesday is tied to Monday. If a trading label spans 5 days into the future, and your training data touches those 5 days, your model cheats by reading tomorrow's newspaper. Purging and embargoing cut out those overlap zones so tests are completely honest."
+          whatItRepresents="For an event label spanning horizon h bars: Purging removes all training samples whose event horizons overlap with the out-of-sample test window. Embargo removes e bars of training data immediately succeeding the test window to counter serial autoregression. Folds strictly expand forward in time (Walk-Forward)."
+          howToInterpret="Notice the timeline below: the training window (emerald) expands forward. The amber buffer (purge) prevents forward-looking bias. The cyan bar is the strictly untouched out-of-sample test month. If a model's Sharpe drops significantly when moving from in-sample to these walk-forward folds, the model was overfitted."
+          howToPlan="1. Always set your purge window h equal to or greater than your longest holding period. 2. Enforce a minimum 1-bar embargo gap. 3. Tune all model hyperparameters inside the inner folds (Nested CV) so test data never influences model tuning."
+        />
+      )}
 
       {/* Visual Timeline Folds Breakdown */}
       <div className="bg-[#0F131A] border border-[#1C2331] rounded-lg p-5">

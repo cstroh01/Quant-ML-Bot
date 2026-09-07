@@ -123,3 +123,22 @@ class CapitalGateItem(BaseModel):
 class CapitalGateStatusResponse(BaseModel):
     overall_readiness: str
     gates: list[CapitalGateItem]
+
+
+class MLInsightItem(BaseModel):
+    rank: int
+    category: str
+    headline: str
+    technical_reading: str
+    plain_english: str
+    how_to_plan: str
+    status: str  # "bullish" | "bearish" | "neutral" | "caution"
+    importance: str  # "Critical" | "High" | "Medium"
+
+
+class MLRundownResponse(BaseModel):
+    ticker: str
+    as_of_date: str
+    summary_verdict: str
+    verdict_status: str
+    insights: list[MLInsightItem]

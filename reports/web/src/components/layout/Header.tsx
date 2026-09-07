@@ -1,5 +1,10 @@
 import React from 'react';
-import { Eye, Keyboard, ShieldCheck } from 'lucide-react';
+import {
+  Brain,
+  Eye,
+  GraduationCap,
+  Keyboard,
+} from 'lucide-react';
 
 interface HeaderProps {
   currentTicker: string;
@@ -8,6 +13,10 @@ interface HeaderProps {
   colorblindMode: boolean;
   onToggleColorblind: () => void;
   onOpenShortcuts: () => void;
+  tutorMode: boolean;
+  onToggleTutorMode: () => void;
+  isMLPaneOpen: boolean;
+  onToggleMLPane: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -17,9 +26,13 @@ export const Header: React.FC<HeaderProps> = ({
   colorblindMode,
   onToggleColorblind,
   onOpenShortcuts,
+  tutorMode,
+  onToggleTutorMode,
+  isMLPaneOpen,
+  onToggleMLPane,
 }) => {
   return (
-    <header className="border-b border-[#1C2331] bg-[#0A0D12] px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 select-none">
+    <header className="border-b border-[#1C2331] bg-[#0A0D12] px-6 py-3 flex flex-wrap items-center justify-between gap-4 select-none">
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">
@@ -59,15 +72,39 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Right Action Items */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2.5">
+        {/* Tutor / Beginner Mode Toggle */}
+        <button
+          onClick={onToggleTutorMode}
+          title="Toggle Beginner / Tutor Mode (Explains concepts in plain English)"
+          className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-bold border transition-all ${
+            tutorMode
+              ? 'bg-cyan-500 text-black border-cyan-400 shadow-lg shadow-cyan-500/25'
+              : 'bg-[#121721] border-[#1C2331] text-gray-400 hover:text-white'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4" />
+          <span>{tutorMode ? '🎓 TUTOR MODE: ON' : '🎓 Tutor Mode'}</span>
+        </button>
+
+        {/* ML Decision Pane Toggle */}
+        <button
+          onClick={onToggleMLPane}
+          title="Toggle Right-Side ML Model Decision Pane"
+          className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-bold border transition-all ${
+            isMLPaneOpen
+              ? 'bg-purple-950/60 border-purple-500/60 text-purple-300 shadow-lg shadow-purple-900/20'
+              : 'bg-[#121721] border-[#1C2331] text-gray-400 hover:text-white'
+          }`}
+        >
+          <Brain className="w-4 h-4 text-purple-400" />
+          <span>ML Rundown</span>
+        </button>
+
         {/* Engine Status Badge */}
-        <div className="hidden md:flex items-center gap-2 px-2.5 py-1 rounded bg-[#121721] border border-[#1C2331] text-[11px] font-mono">
+        <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded bg-[#121721] border border-[#1C2331] text-[11px] font-mono">
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-gray-300">CORE: CONNECTED</span>
-          <span className="text-gray-500">|</span>
-          <span className="text-emerald-400 flex items-center gap-1 font-semibold">
-            <ShieldCheck className="w-3.5 h-3.5" /> 310/310 PASS
-          </span>
+          <span className="text-gray-300">CORE: 311/311 PASS</span>
         </div>
 
         {/* Colorblind Palette Toggle */}
@@ -81,7 +118,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <Eye className="w-3.5 h-3.5" />
-          <span>{colorblindMode ? 'Colorblind P&L: ON' : 'Colorblind P&L'}</span>
+          <span>{colorblindMode ? 'CB P&L' : 'P&L'}</span>
         </button>
 
         {/* Shortcuts Help */}

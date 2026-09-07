@@ -2,25 +2,30 @@ import React from 'react';
 import {
   CheckCircle2,
 } from 'lucide-react';
-import type { BarData, GapsResponse, MarketStatsResponse } from '../../types/api';
+import type { BarData, GapsResponse, MarketStatsResponse, TradeRecord } from '../../types/api';
 import { CandlestickChart } from '../charts/CandlestickChart';
+import { TutorCard } from '../common/TutorCard';
 
 interface MarketDataViewProps {
   ticker: string;
   ohlcv: BarData[];
+  trades?: TradeRecord[];
   stats: MarketStatsResponse | null;
   gaps: GapsResponse | null;
   loading: boolean;
   colorblindMode: boolean;
+  tutorMode?: boolean;
 }
 
 export const MarketDataView: React.FC<MarketDataViewProps> = ({
   ticker,
   ohlcv,
+  trades = [],
   stats,
   gaps,
   loading,
   colorblindMode,
+  tutorMode = true,
 }) => {
   if (loading || !stats) {
     return (
@@ -70,6 +75,18 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
         </div>
       </div>
 
+      {/* Tutor Decoder */}
+      {tutorMode && (
+        <TutorCard
+          title="Market Data Dynamics: Volatility, Fat Tails & Exchange Calendars"
+          badge="QUANT DECODER: MARKET DISTRIBUTIONS"
+          whatItMeans="Stock markets do not behave like textbook bell curves. Freak crashes, flash crashes, and parabolic rallies occur far more often than naive probability calculates. This is called 'fat tails'. Volatility also clusters — a wild day is almost always followed by more wild days."
+          whatItRepresents="Excess Kurtosis (Normal distribution = 0.0) quantifies the thickness of return tails. A kurtosis of 4 to 10+ represents high tail risk. Annualized Volatility is σ × √252. NYSE calendar gap detection ensures our time series has zero missing trading sessions without forward-filling synthetic prices."
+          howToInterpret="If Excess Kurtosis is above 3.0, your stop losses will be hit by sudden gaps more often than Gaussian risk models predict. If Volatility is above 35%, expect wide whipsaws. When inspecting the NYSE Gap table below, ensure 'Zero Unexplained Gaps' is confirmed — missing sessions distort indicators and lead to spurious signals."
+          howToPlan="1. In high-kurtosis regimes, downsize your trade allocations (use fractional Kelly sizing or ATR-based position sizing). 2. Never forward-fill missing market dates; fix data pipelines at the source. 3. Look at historical drawdown peak-to-trough dates to ensure your strategy survives historical market stress periods (e.g. 2020 crash, 2022 rate hikes)."
+        />
+      )}
+
       {/* Main Candlestick Chart */}
       <div className="bg-[#0F131A] border border-[#1C2331] rounded-lg p-5">
         <div className="mb-3 flex items-center justify-between">
@@ -86,7 +103,12 @@ export const MarketDataView: React.FC<MarketDataViewProps> = ({
           </span>
         </div>
 
-        <CandlestickChart data={ohlcv} colorblindMode={colorblindMode} height={420} />
+        <CandlestickChart
+          data={ohlcv}
+          trades={trades}
+          colorblindMode={colorblindMode}
+          height={420}
+        />
       </div>
 
       {/* NYSE Calendar Gaps Inspector (FR-009) */}

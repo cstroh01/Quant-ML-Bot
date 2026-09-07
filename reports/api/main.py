@@ -19,6 +19,7 @@ from reports.api.routes.backtest import router as backtest_router
 from reports.api.routes.capital_gate import router as capital_gate_router
 from reports.api.routes.data import router as data_router
 from reports.api.routes.diagnostics import router as diagnostics_router
+from reports.api.routes.ml_rundown import router as ml_rundown_router
 
 app = FastAPI(
     title="Quant-ML-Bot Research & Trading Terminal API",
@@ -40,6 +41,7 @@ app.include_router(data_router)
 app.include_router(diagnostics_router)
 app.include_router(backtest_router)
 app.include_router(capital_gate_router)
+app.include_router(ml_rundown_router)
 
 
 @app.get("/api/health")
@@ -57,7 +59,7 @@ if DIST_DIR.exists():
 def start():
     """Entrypoint for running the API directly via python -m reports.api.main."""
     import uvicorn
-    uvicorn.run("reports.api.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("reports.api.main:app", host="127.0.0.1", port=8000, reload=False)
 
 
 if __name__ == "__main__":

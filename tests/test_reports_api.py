@@ -108,6 +108,18 @@ class TestReportsApi(unittest.TestCase):
         # Gate 1 should be passed
         self.assertEqual(data["gates"][0]["status"], "passed")
 
+    def test_ml_rundown(self):
+        response = self.client.get("/api/ml/rundown?ticker=AAPL")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data["ticker"], "AAPL")
+        self.assertEqual(len(data["insights"]), 5)
+        first = data["insights"][0]
+        self.assertEqual(first["rank"], 1)
+        self.assertIn("technical_reading", first)
+        self.assertIn("plain_english", first)
+        self.assertIn("how_to_plan", first)
+
     def test_static_frontend_root(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)

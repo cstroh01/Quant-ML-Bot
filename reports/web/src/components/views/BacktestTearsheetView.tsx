@@ -2,29 +2,78 @@ import React, { useState } from 'react';
 import {
   ArrowDownRight,
   ArrowUpRight,
+  CandlestickChart as CandlestickIcon,
   CheckCircle2,
   DollarSign,
   FileSpreadsheet,
+  LineChart as LineChartIcon,
   Percent,
+  RefreshCw,
+  Sliders,
   TrendingDown,
   TrendingUp,
 } from 'lucide-react';
-import type { BacktestTearsheetResponse } from '../../types/api';
+import type { BacktestTearsheetResponse, BarData } from '../../types/api';
+import { CandlestickChart } from '../charts/CandlestickChart';
 import { DrawdownChart } from '../charts/DrawdownChart';
 import { EquityCurveChart } from '../charts/EquityCurveChart';
+import { TutorCard } from '../common/TutorCard';
 
 interface BacktestTearsheetViewProps {
   tearsheet: BacktestTearsheetResponse | null;
+  ohlcv: BarData[];
   loading: boolean;
   colorblindMode: boolean;
+  tutorMode?: boolean;
+  currentParams: {
+    shortWindow: number;
+    longWindow: number;
+    commission: number;
+    slippageBps: number;
+  };
+  onApplyParams: (params: {
+    shortWindow: number;
+    longWindow: number;
+    commission: number;
+    slippageBps: number;
+  }) => void;
 }
 
 export const BacktestTearsheetView: React.FC<BacktestTearsheetViewProps> = ({
   tearsheet,
+  ohlcv,
   loading,
   colorblindMode,
+  tutorMode = true,
+  currentParams,
+  onApplyParams,
 }) => {
   const [showAccessibleTable, setShowAccessibleTable] = useState(false);
+  const [chartMode, setChartMode] = useState<'equity' | 'candlestick'>('equity');
+
+  // Local state for interactive sliders
+  const [shortWindow, setShortWindow] = useState(currentParams.shortWindow);
+  const [longWindow, setLongWindow] = useState(currentParams.longWindow);
+  const [commission, setCommission] = useState(currentParams.commission);
+  const [slippageBps, setSlippageBps] = useState(currentParams.slippageBps);
+
+  const hasDirtyParams =
+    shortWindow !== currentParams.shortWindow ||
+    longWindow !== currentParams.longWindow ||
+    commission !== currentParams.commission ||
+    slippageBps !== currentParams.slippageBps;
+
+  const handleReset = () => {
+    setShortWindow(10);
+    setLongWindow(30);
+    setCommission(1.0);
+    setSlippageBps(5.0);
+    onApplyParams({ shortWindow: 10, longWindow: 30, commission: 1.0, slippageBps: 5.0 });
+  };
+
+  const handleApply = () => {
+    onApplyParams({ shortWindow, longWindow, commission, slippageBps });
+  };
 
   if (loading || !tearsheet) {
     return (
@@ -39,6 +88,9 @@ export const BacktestTearsheetView: React.FC<BacktestTearsheetViewProps> = ({
   const returnColor = isPositiveReturn
     ? colorblindMode ? 'text-cyan-400' : 'text-emerald-400'
     : colorblindMode ? 'text-amber-400' : 'text-rose-400';
+
+  // Compute total friction drag in dollars ($2 * commission * trades + roundtrip slippage)
+  const totalFrictionDrag = tearsheet.trade_log.length * (2 * tearsheet.commission_per_trade);
 
   return (
     <div className="space-y-6">
@@ -93,17 +145,154 @@ export const BacktestTearsheetView: React.FC<BacktestTearsheetViewProps> = ({
           <div className="text-[11px] text-gray-500 mt-1 font-mono">Strict peak-to-trough</div>
         </div>
 
-        {/* Friction Model Audit */}
+        {/* Cost Model Audit */}
         <div className="bg-[#0F131A] border border-[#1C2331] rounded-lg p-4 col-span-2 md:col-span-1">
           <div className="flex items-center justify-between text-xs text-gray-400 font-mono mb-1">
-            <span>COST MODEL</span>
+            <span>FRICTION MODEL</span>
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
           </div>
           <div className="text-sm font-semibold font-mono text-cyan-300">
-            ${tearsheet.commission_per_trade.toFixed(2)} / 5.0 bps
+            ${tearsheet.commission_per_trade.toFixed(2)} / {tearsheet.slippage_bps.toFixed(1)} bps
           </div>
-          <div className="text-[11px] text-emerald-400 mt-1 flex items-center gap-1 font-mono">
-            <span>✓ Reconciled (1e-9)</span>
+          <div className="text-[11px] text-gray-400 mt-1 flex items-center justify-between font-mono">
+            <span>Drag: -${totalFrictionDrag.toFixed(2)}</span>
+            <span className="text-emerald-400">✓ 1e-9</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Beginner & Quant Tutor Decoder (Tutor Mode) */}
+      {tutorMode && (
+        <TutorCard
+          title="Backtest Tearsheet & Performance Anatomy"
+          badge="QUANT DECODER: PERFORMANCE & FRICTION"
+          whatItMeans="A backtest simulates how this trading rule would have performed in historical market sessions. Total Net P&L is what lands in your account after paying exchange commissions and market slippage. The Sharpe Ratio measures how much profit you made for every bump of volatility you endured."
+          whatItRepresents="Sharpe = (E[R_p] - R_f) / σ_p, annualized by √252 with R_f = 3.78% (3-month T-Bill). Max Drawdown represents the deepest peak-to-trough capital decline. Friction Drag accounts for $1/trade commission and 5 bps of slippage applied per execution. All metrics are reconciled down to 1e-9 tolerance."
+          howToInterpret="Sharpe < 1.0 indicates poor risk-adjusted returns (uncompensated risk). Sharpe 1.0 - 1.5 is acceptable for systematic strategies. Sharpe > 2.0 requires intense scrutiny for overfitting. If Max Drawdown exceeds 20%, capital preservation rules are failing. Crucially: compare Net P&L against the Rule 4 Baseline table below — if the strategy cannot beat 'Passive Buy-and-Hold' or overlaps with 'Random Trading', you have no edge."
+          howToPlan="1. Check the Drag metric: if friction consumes > 25% of gross profits, widen your moving average windows to reduce over-trading. 2. If Drawdown is unacceptable, cut position sizing or add ATR volatility stops. 3. Only progress if Net P&L beats the Random Baseline by more than 2 standard deviations."
+        />
+      )}
+
+      {/* Interactive Friction & Sensitivity Studio (Rule 3) */}
+      <div className="bg-[#0F131A] border border-[#1C2331] rounded-lg p-5">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-semibold tracking-wide text-white uppercase font-mono">
+              Interactive Friction & Sensitivity Studio (Rule 3)
+            </h3>
+            <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-500/40 text-cyan-400 font-semibold">
+              Live Re-calculation
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#161D29] border border-[#263145] text-gray-400 hover:text-white text-xs font-mono transition-colors"
+            >
+              <RefreshCw className="w-3 h-3" />
+              <span>Reset (10/30, $1, 5bps)</span>
+            </button>
+
+            <button
+              onClick={handleApply}
+              disabled={!hasDirtyParams}
+              className={`px-3 py-1 rounded text-xs font-mono font-bold transition-colors ${
+                hasDirtyParams
+                  ? 'bg-cyan-500 text-black hover:bg-cyan-400 shadow-lg shadow-cyan-500/20'
+                  : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              Apply Simulation
+            </button>
+          </div>
+        </div>
+
+        {/* 4 Interactive Sliders */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 font-mono text-xs">
+          {/* Commission Slider */}
+          <div className="space-y-1.5 bg-[#121620] p-3 rounded border border-[#1C2331]">
+            <div className="flex justify-between text-gray-300">
+              <span>Commission:</span>
+              <span className="text-cyan-400 font-bold">${commission.toFixed(2)}/trade</span>
+            </div>
+            <input
+              type="range"
+              min="0.0"
+              max="5.0"
+              step="0.25"
+              value={commission}
+              onChange={(e) => setCommission(parseFloat(e.target.value))}
+              className="w-full accent-cyan-400 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-gray-500">
+              <span>$0.00 (Zero)</span>
+              <span>$5.00 (Heavy)</span>
+            </div>
+          </div>
+
+          {/* Slippage Slider */}
+          <div className="space-y-1.5 bg-[#121620] p-3 rounded border border-[#1C2331]">
+            <div className="flex justify-between text-gray-300">
+              <span>Slippage:</span>
+              <span className="text-cyan-400 font-bold">{slippageBps.toFixed(1)} bps</span>
+            </div>
+            <input
+              type="range"
+              min="0.0"
+              max="50.0"
+              step="0.5"
+              value={slippageBps}
+              onChange={(e) => setSlippageBps(parseFloat(e.target.value))}
+              className="w-full accent-cyan-400 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-gray-500">
+              <span>0 bps</span>
+              <span>50 bps (Stress test)</span>
+            </div>
+          </div>
+
+          {/* Short MA Window */}
+          <div className="space-y-1.5 bg-[#121620] p-3 rounded border border-[#1C2331]">
+            <div className="flex justify-between text-gray-300">
+              <span>Short MA:</span>
+              <span className="text-cyan-400 font-bold">{shortWindow} bars</span>
+            </div>
+            <input
+              type="range"
+              min="5"
+              max="50"
+              step="1"
+              value={shortWindow}
+              onChange={(e) => setShortWindow(parseInt(e.target.value))}
+              className="w-full accent-cyan-400 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-gray-500">
+              <span>5 bars (Fast)</span>
+              <span>50 bars</span>
+            </div>
+          </div>
+
+          {/* Long MA Window */}
+          <div className="space-y-1.5 bg-[#121620] p-3 rounded border border-[#1C2331]">
+            <div className="flex justify-between text-gray-300">
+              <span>Long MA:</span>
+              <span className="text-cyan-400 font-bold">{longWindow} bars</span>
+            </div>
+            <input
+              type="range"
+              min="15"
+              max="100"
+              step="1"
+              value={longWindow}
+              onChange={(e) => setLongWindow(parseInt(e.target.value))}
+              className="w-full accent-cyan-400 cursor-pointer"
+            />
+            <div className="flex justify-between text-[10px] text-gray-500">
+              <span>15 bars</span>
+              <span>100 bars (Slow)</span>
+            </div>
           </div>
         </div>
       </div>
@@ -113,20 +302,49 @@ export const BacktestTearsheetView: React.FC<BacktestTearsheetViewProps> = ({
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h3 className="text-sm font-semibold tracking-wide text-white uppercase font-mono">
-              Per-Bar Equity Growth & Underwater Drawdown
+              Performance Visualization
             </h3>
             <p className="text-xs text-gray-400">
-              Reconciles bit-for-bit to harness trade log P&L. Initial capital anchored at first close.
+              Toggle between the Reconciled Equity Curve and the Candlestick Price Chart with executed Trade Fills.
             </p>
           </div>
 
-          <button
-            onClick={() => setShowAccessibleTable(!showAccessibleTable)}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded bg-[#161D29] border border-[#263145] text-gray-300 hover:text-white transition-colors"
-          >
-            <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>{showAccessibleTable ? 'Hide Tabular Data' : 'View as Accessible Table'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Chart Mode Toggle */}
+            <div className="flex items-center bg-[#121721] p-0.5 rounded border border-[#1C2331] text-xs font-mono">
+              <button
+                onClick={() => setChartMode('equity')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
+                  chartMode === 'equity'
+                    ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/40 font-semibold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <LineChartIcon className="w-3.5 h-3.5" />
+                <span>Equity & Drawdown</span>
+              </button>
+
+              <button
+                onClick={() => setChartMode('candlestick')}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors ${
+                  chartMode === 'candlestick'
+                    ? 'bg-cyan-950/60 text-cyan-300 border border-cyan-500/40 font-semibold'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <CandlestickIcon className="w-3.5 h-3.5" />
+                <span>Price & Trade Fills</span>
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowAccessibleTable(!showAccessibleTable)}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-mono rounded bg-[#161D29] border border-[#263145] text-gray-300 hover:text-white transition-colors"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>{showAccessibleTable ? 'Hide Table' : 'View as Table'}</span>
+            </button>
+          </div>
         </div>
 
         {showAccessibleTable ? (
@@ -154,13 +372,28 @@ export const BacktestTearsheetView: React.FC<BacktestTearsheetViewProps> = ({
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : chartMode === 'equity' ? (
           <div className="space-y-3">
             <EquityCurveChart equityCurve={tearsheet.equity_curve} colorblindMode={colorblindMode} height={280} />
             <div>
               <div className="text-[11px] font-mono text-gray-400 mb-1">UNDERWATER DRAWDOWN PROFILE (%)</div>
               <DrawdownChart equityCurve={tearsheet.equity_curve} colorblindMode={colorblindMode} height={140} />
             </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="text-xs font-mono text-gray-400 flex items-center justify-between">
+              <span>CANDLESTICK ACTION WITH OVERLAYED ENTRY/EXIT FILLS</span>
+              <span className="text-cyan-400">▲ Buy Entry | ▼ Sell Exit</span>
+            </div>
+            <CandlestickChart
+              data={ohlcv}
+              trades={tearsheet.trade_log}
+              colorblindMode={colorblindMode}
+              height={400}
+              shortWindow={currentParams.shortWindow}
+              longWindow={currentParams.longWindow}
+            />
           </div>
         )}
       </div>

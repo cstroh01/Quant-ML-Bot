@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Header } from './components/layout/Header';
+import { MLRundownPane } from './components/layout/MLRundownPane';
 import { TabNavigation, type TerminalTab } from './components/layout/TabNavigation';
 import { BacktestTearsheetView } from './components/views/BacktestTearsheetView';
 import { CapitalGateView } from './components/views/CapitalGateView';
@@ -13,6 +14,7 @@ import {
   fetchCollinearity,
   fetchGaps,
   fetchMarketStats,
+  fetchMLRundown,
   fetchOhlcv,
   fetchSignificance,
   fetchTickers,
@@ -24,6 +26,7 @@ import type {
   FeatureDiagnosticsResponse,
   GapsResponse,
   MarketStatsResponse,
+  MLRundownResponse,
   SignificanceResponse,
 } from './types/api';
 
@@ -32,12 +35,26 @@ export const App: React.FC = () => {
   const [currentTicker, setCurrentTicker] = useState<string>('AAPL');
   const [tickers, setTickers] = useState<string[]>(['AAPL', 'AMZN', 'GOOGL', 'MSFT', 'NVDA']);
   
+  // Backtest Simulation Parameters
+  const [backtestParams, setBacktestParams] = useState({
+    shortWindow: 10,
+    longWindow: 30,
+    commission: 1.0,
+    slippageBps: 5.0,
+  });
+
   // Accessibility: Colorblind-Safe P&L mode
   const [colorblindMode, setColorblindMode] = useState<boolean>(() => {
     return localStorage.getItem('quant_terminal_cb_mode') === 'true';
   });
 
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+
+  // Tutor / Beginner Mode (default ON to bridge high-level finance to plain English)
+  const [tutorMode, setTutorMode] = useState<boolean>(true);
+
+  // Right-Side ML Model Decision Rundown Pane (default ON)
+  const [isMLPaneOpen, setIsMLPaneOpen] = useState<boolean>(true);
 
   // Data States
   const [ohlcv, setOhlcv] = useState<BarData[]>([]);
@@ -47,6 +64,7 @@ export const App: React.FC = () => {
   const [significance, setSignificance] = useState<SignificanceResponse | null>(null);
   const [tearsheet, setTearsheet] = useState<BacktestTearsheetResponse | null>(null);
   const [capitalGate, setCapitalGate] = useState<CapitalGateStatusResponse | null>(null);
+  const [mlRundown, setMlRundown] = useState<MLRundownResponse | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -79,17 +97,29 @@ export const App: React.FC = () => {
       fetchGaps(currentTicker).catch(() => null),
       fetchCollinearity(currentTicker).catch(() => null),
       fetchSignificance(currentTicker).catch(() => null),
-      fetchBacktestTearsheet(currentTicker).catch(() => null),
-    ]).then(([ohlcvData, statsData, gapsData, diagData, sigData, tsData]) => {
+      fetchBacktestTearsheet(
+        currentTicker,
+        backtestParams.shortWindow,
+        backtestParams.longWindow,
+        backtestParams.commission,
+        backtestParams.slippageBps
+      ).catch(() => null),
+      fetchMLRundown(currentTicker).catch(() => null),
+    ]).then(([ohlcvData, statsData, gapsData, diagData, sigData, tsData, mlData]) => {
       setOhlcv(ohlcvData);
       setStats(statsData);
       setGaps(gapsData);
       setDiagnostics(diagData);
       setSignificance(sigData);
       setTearsheet(tsData);
+      setMlRundown(mlData);
       setLoading(false);
     });
-  }, [currentTicker]);
+  }, [currentTicker, backtestParams]);
+
+  const handleApplyParams = (newParams: typeof backtestParams) => {
+    setBacktestParams(newParams);
+  };
 
   // Global Keyboard Shortcuts (g b, g f, g c, g d, g g, ?)
   useEffect(() => {
@@ -148,46 +178,72 @@ export const App: React.FC = () => {
         colorblindMode={colorblindMode}
         onToggleColorblind={toggleColorblind}
         onOpenShortcuts={() => setIsShortcutsOpen(true)}
+        tutorMode={tutorMode}
+        onToggleTutorMode={() => setTutorMode((prev) => !prev)}
+        isMLPaneOpen={isMLPaneOpen}
+        onToggleMLPane={() => setIsMLPaneOpen((prev) => !prev)}
       />
 
       {/* Tab Navigation */}
       <TabNavigation activeTab={activeTab} onSelectTab={setActiveTab} />
 
-      {/* Main Terminal Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
-        {activeTab === 'backtest' && (
-          <BacktestTearsheetView
-            tearsheet={tearsheet}
-            loading={loading}
-            colorblindMode={colorblindMode}
-          />
-        )}
+      {/* Main Terminal Body with Side-by-Side ML Rundown Pane */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden w-full">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+          {activeTab === 'backtest' && (
+            <BacktestTearsheetView
+              tearsheet={tearsheet}
+              ohlcv={ohlcv}
+              loading={loading}
+              colorblindMode={colorblindMode}
+              tutorMode={tutorMode}
+              currentParams={backtestParams}
+              onApplyParams={handleApplyParams}
+            />
+          )}
 
-        {activeTab === 'diagnostics' && (
-          <FeatureDiagnosticsView
-            diagnostics={diagnostics}
-            significance={significance}
-            loading={loading}
-          />
-        )}
+          {activeTab === 'diagnostics' && (
+            <FeatureDiagnosticsView
+              diagnostics={diagnostics}
+              significance={significance}
+              loading={loading}
+              tutorMode={tutorMode}
+            />
+          )}
 
-        {activeTab === 'cv' && <CrossValidationView />}
+          {activeTab === 'cv' && <CrossValidationView tutorMode={tutorMode} />}
 
-        {activeTab === 'market' && (
-          <MarketDataView
-            ticker={currentTicker}
-            ohlcv={ohlcv}
-            stats={stats}
-            gaps={gaps}
-            loading={loading}
-            colorblindMode={colorblindMode}
-          />
-        )}
+          {activeTab === 'market' && (
+            <MarketDataView
+              ticker={currentTicker}
+              ohlcv={ohlcv}
+              trades={tearsheet?.trade_log}
+              stats={stats}
+              gaps={gaps}
+              loading={loading}
+              colorblindMode={colorblindMode}
+              tutorMode={tutorMode}
+            />
+          )}
 
-        {activeTab === 'capital_gate' && (
-          <CapitalGateView gateStatus={capitalGate} loading={loading} />
-        )}
-      </main>
+          {activeTab === 'capital_gate' && (
+            <CapitalGateView
+              gateStatus={capitalGate}
+              loading={loading}
+              tutorMode={tutorMode}
+            />
+          )}
+        </main>
+
+        {/* 5-Item ML Rundown Right-Side Pane */}
+        <MLRundownPane
+          rundown={mlRundown}
+          loading={loading}
+          isOpen={isMLPaneOpen}
+          onToggleOpen={() => setIsMLPaneOpen((prev) => !prev)}
+          colorblindMode={colorblindMode}
+        />
+      </div>
 
       {/* Keyboard Shortcuts Modal */}
       <KeyboardShortcutsModal

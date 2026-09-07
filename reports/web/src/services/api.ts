@@ -5,6 +5,7 @@ import type {
   FeatureDiagnosticsResponse,
   GapsResponse,
   MarketStatsResponse,
+  MLRundownResponse,
   SignificanceResponse,
 } from '../types/api';
 
@@ -62,5 +63,11 @@ export async function fetchBacktestTearsheet(
 export async function fetchCapitalGateStatus(): Promise<CapitalGateStatusResponse> {
   const res = await fetch(`${API_BASE}/capital_gate/status`);
   if (!res.ok) throw new Error(`Failed to fetch capital gate status: ${res.statusText}`);
+  return res.json();
+}
+
+export async function fetchMLRundown(ticker: string): Promise<MLRundownResponse> {
+  const res = await fetch(`${API_BASE}/ml/rundown?ticker=${encodeURIComponent(ticker)}`);
+  if (!res.ok) throw new Error(`Failed to fetch ML rundown: ${res.statusText}`);
   return res.json();
 }

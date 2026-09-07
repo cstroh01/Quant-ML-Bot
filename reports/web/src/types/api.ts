@@ -115,3 +115,22 @@ export interface CapitalGateStatusResponse {
   overall_readiness: string;
   gates: CapitalGateItem[];
 }
+
+export interface MLInsightItem {
+  rank: number;
+  category: string;
+  headline: string;
+  technical_reading: string;
+  plain_english: string;
+  how_to_plan: string;
+  status: 'bullish' | 'bearish' | 'neutral' | 'caution';
+  importance: 'Critical' | 'High' | 'Medium';
+}
+
+export interface MLRundownResponse {
+  ticker: string;
+  as_of_date: string;
+  summary_verdict: string;
+  verdict_status: string;
+  insights: MLInsightItem[];
+}

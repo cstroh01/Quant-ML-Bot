@@ -6,13 +6,15 @@ import {
   Shield,
 } from 'lucide-react';
 import type { CapitalGateStatusResponse } from '../../types/api';
+import { TutorCard } from '../common/TutorCard';
 
 interface CapitalGateViewProps {
   gateStatus: CapitalGateStatusResponse | null;
   loading: boolean;
+  tutorMode?: boolean;
 }
 
-export const CapitalGateView: React.FC<CapitalGateViewProps> = ({ gateStatus, loading }) => {
+export const CapitalGateView: React.FC<CapitalGateViewProps> = ({ gateStatus, loading, tutorMode = true }) => {
   if (loading || !gateStatus) {
     return (
       <div className="p-12 flex flex-col items-center justify-center text-gray-500 font-mono text-sm">
@@ -53,6 +55,18 @@ export const CapitalGateView: React.FC<CapitalGateViewProps> = ({ gateStatus, lo
           <span className="text-cyan-300 font-semibold">{gateStatus.overall_readiness}</span>
         </div>
       </div>
+
+      {/* Tutor Decoder */}
+      {tutorMode && (
+        <TutorCard
+          title="Understanding The 5 Capital Gates: From Idea to Institutional Fund"
+          badge="QUANT DECODER: CAPITAL GATES"
+          whatItMeans="The number one mistake retail traders make is deploying real money immediately after seeing one attractive backtest chart. In reality, backtests without friction, leakage checks, or live forward testing are financial illusions. The 5 Capital Gates are non-negotiable gates that prove your algorithmic system is robust before risking a single dollar."
+          whatItRepresents="Gate 1 verifies clean, split/dividend adjusted historical data. Gate 2 enforces well-conditioned, scale-free features with low collinearity. Gate 3 requires leak-free purged/embargoed walk-forward cross-validation. Gate 4 mandates realistic execution friction modeling (commissions + slippage). Gate 5 requires paper-trading forward testing to match simulated returns."
+          howToInterpret="Passed gates (green checkmark) are mathematically verified and audited. In-Progress gates (spinning cyan indicator) are where the engineering focus currently sits. Pending gates (gray lock) cannot be unlocked out-of-order. This guarantees disciplined founder execution and prevents capital catastrophe."
+          howToPlan="1. Treat the gates as your engineering roadmap — never skip a gate. 2. Currently, focus on finishing Gate 4 and establishing Gate 5 paper trading infrastructure. 3. Remember §12: the software framework is open-source and professional, while the money goal is gated and earned through rigorous validation."
+        />
+      )}
 
       {/* 5-Gate Accordion / Checklist Cards */}
       <div className="space-y-3 font-mono text-xs">

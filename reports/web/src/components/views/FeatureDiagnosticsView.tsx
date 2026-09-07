@@ -3,17 +3,20 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import type { FeatureDiagnosticsResponse, SignificanceResponse } from '../../types/api';
+import { TutorCard } from '../common/TutorCard';
 
 interface FeatureDiagnosticsViewProps {
   diagnostics: FeatureDiagnosticsResponse | null;
   significance: SignificanceResponse | null;
   loading: boolean;
+  tutorMode?: boolean;
 }
 
 export const FeatureDiagnosticsView: React.FC<FeatureDiagnosticsViewProps> = ({
   diagnostics,
   significance,
   loading,
+  tutorMode = true,
 }) => {
   if (loading || !diagnostics) {
     return (
@@ -44,6 +47,18 @@ export const FeatureDiagnosticsView: React.FC<FeatureDiagnosticsViewProps> = ({
           Zero models beat baseline in Phase 3 because the design matrix suffered from non-stationarity ($50 train bars extrapolating to $200 bars) and collinearity (Short_SMA vs Long_SMA r=0.998). Standardizing ratios resolves both structural defects.
         </p>
       </div>
+
+      {/* Tutor Decoder */}
+      {tutorMode && (
+        <TutorCard
+          title="Matrix Conditioning, Collinearity & Statistical Significance"
+          badge="QUANT DECODER: FEATURES & OVERFITTING"
+          whatItMeans="If you feed an AI model two inputs that tell the exact same story (like Apple's price at $150 and its 10-day moving average at $149), the math explodes and the algorithm can't tell which feature matters. Furthermore, if you train a model on $50 prices and the stock moves to $200, raw price inputs fail completely because they are non-stationary."
+          whatItRepresents="Condition Number κ(X) = σ_max / σ_min measures the sensitivity of matrix inversion (X'X)^-1. VIF_j = 1 / (1 - R_j^2) measures inflation of coefficient variance. McNemar test evaluates 2x2 contingency tables of classification errors, while Wilcoxon signed-rank test compares paired per-bar regression residuals against baseline."
+          howToInterpret="Condition Number > 30 = Ill-conditioned matrix (numerical instability). VIF > 5.0 = Severe collinearity. Notice below how Level Features have κ = 422 and VIF = 54 (disastrous failure), whereas Scale-Free Ratios drop κ down to ~24 and VIF < 3.0 (mathematically stable). In the significance table, passed screening requires p < 0.10, meaning the model's outperformance has less than a 10% chance of being luck."
+          howToPlan="1. Never feed raw prices ($, Open, High, Low, Close) directly to ML models. 2. Always engineer scale-free ratios: percentage returns, Close / Short_SMA - 1, Short_SMA / Long_SMA - 1, and volume ratios. 3. Immediately discard any machine learning model whose paired significance p-value is >= 0.10, regardless of how profitable its backtest looks."
+        />
+      )}
 
       {/* Conditioning Metrics Comparison Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
