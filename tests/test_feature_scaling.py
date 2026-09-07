@@ -30,6 +30,10 @@ from estimators import (
     fit_predict_walk_forward,
     fitted_scaler,
 )
+from feature_set_comparison import (
+    compare_classification,
+    compare_regression,
+)
 from feature_diagnostics import (
     condition_number,
     max_abs_offdiagonal_correlation,
@@ -675,6 +679,77 @@ class TestDerivedColumnsAreDeclared(unittest.TestCase):
     def test_the_scale_free_set_adds_nothing_undeclared(self):
         added = set(SCALE_FREE_FEATURE_COLUMNS) - set(LEVEL_FEATURE_COLUMNS)
         self.assertEqual(added, set(DERIVED_RATIO_COLUMNS))
+
+
+class TestComparisonStatistics(unittest.TestCase):
+    """FR-012 — the paired tests in `feature_set_comparison.py`.
+
+    Written after an invalid `zero_method` argument reached a 45-minute real
+    data run: the script was an entry point with no tests, so nothing
+    executed its statistics until the run itself did. These call the two
+    comparison functions on constructed arrays where the right answer is
+    known, which is enough to catch a bad argument or an inverted
+    alternative — the two ways this file can be wrong without looking wrong.
+    """
+
+    @staticmethod
+    def _regression_case(*, scale_a, scale_b, seed=0, n=200):
+        rng = np.random.default_rng(seed)
+        truth = rng.normal(size=n)
+        predicted_a = truth + rng.normal(scale=scale_a, size=n)
+        predicted_b = truth + rng.normal(scale=scale_b, size=n)
+        return (
+            pd.Series(truth),
+            pd.Series(predicted_a),
+            pd.Series(predicted_b),
+        )
+
+    def test_wilcoxon_favours_b_when_b_has_the_smaller_error(self):
+        truth, a, b = self._regression_case(scale_a=1.0, scale_b=0.4)
+        result = compare_regression(truth, a, b)
+        self.assertTrue(result["favours_b"])
+        self.assertLess(result["p_one_sided"], 0.01)
+
+    def test_the_one_sided_alternative_is_not_inverted(self):
+        """The same data with the arguments swapped must not also 'win'.
+
+        A one-sided test stated in the wrong direction passes the test above
+        and reports every result as significant. This is the assertion that
+        distinguishes the two.
+        """
+        truth, a, b = self._regression_case(scale_a=0.4, scale_b=1.0)
+        result = compare_regression(truth, a, b)
+        self.assertFalse(result["favours_b"])
+        self.assertGreater(result["p_one_sided"], 0.9)
+
+    def test_identical_predictions_rank_nothing(self):
+        truth, a, _ = self._regression_case(scale_a=1.0, scale_b=1.0)
+        result = compare_regression(truth, a, a.copy())
+        self.assertEqual(result["discordant"], 0)
+        self.assertEqual(result["p_one_sided"], 1.0)
+
+    def test_mcnemar_favours_b_when_b_is_right_more_often(self):
+        labels = pd.Series([1] * 200)
+        predicted_a = pd.Series([1] * 60 + [0] * 140)
+        predicted_b = pd.Series([1] * 140 + [0] * 60)
+        result = compare_classification(labels, predicted_a, predicted_b)
+        self.assertGreater(result["accuracy_b"], result["accuracy_a"])
+        self.assertLess(result["p_one_sided"], 0.01)
+
+    def test_mcnemar_is_not_inverted_either(self):
+        labels = pd.Series([1] * 200)
+        predicted_a = pd.Series([1] * 140 + [0] * 60)
+        predicted_b = pd.Series([1] * 60 + [0] * 140)
+        result = compare_classification(labels, predicted_a, predicted_b)
+        self.assertLess(result["accuracy_b"], result["accuracy_a"])
+        self.assertGreater(result["p_one_sided"], 0.9)
+
+    def test_identical_classifications_have_no_discordant_pairs(self):
+        labels = pd.Series([1] * 100 + [0] * 100)
+        predicted = pd.Series([1] * 120 + [0] * 80)
+        result = compare_classification(labels, predicted, predicted.copy())
+        self.assertEqual(result["discordant"], 0)
+        self.assertEqual(result["p_one_sided"], 1.0)
 
 
 if __name__ == "__main__":

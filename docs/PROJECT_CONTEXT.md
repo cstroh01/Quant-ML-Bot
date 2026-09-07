@@ -66,7 +66,7 @@ states FR-005 pairwise rather than as a condition-number threshold.
 - No new dependency (Rule 6): `sklearn.pipeline`/`sklearn.preprocessing` are
   new imports of a package already in use; `scipy` and `statsmodels` were
   already in `requirements.txt`.
-- New `tests/test_feature_scaling.py`. Full suite: **295 passed**.
+- New `tests/test_feature_scaling.py`. Full suite: **301 passed**.
 
 ## Spec 011 - Nested, leakage-safe hyperparameter tuning: DONE
 

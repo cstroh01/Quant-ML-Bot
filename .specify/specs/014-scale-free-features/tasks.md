@@ -107,7 +107,14 @@ Dependency-ordered. `[P]` = parallelizable with the task above it.
   *because* the SC-008 mutation run found the gap: the suite passed with
   `scale` forwarded to the outer fit and not the tuner. An output
   comparison would not have caught it. (FR-010)
-- [x] **T030b** Full suite green: 256 → 295 tests, no network, no new
+- [x] **T030c** `TestComparisonStatistics` — `compare_regression` and
+  `compare_classification` on constructed arrays with a known answer,
+  including a swapped-argument case that a wrongly-directed one-sided test
+  would fail. Added *after* an invalid `zero_method="wilcoxon"` reached a
+  45-minute real-data run: `feature_set_comparison.py` was an entry point
+  with no tests. Mutation-checked by flipping `alternative` to `"greater"` —
+  2 failures. (FR-012)
+- [x] **T030b** Full suite green: 256 → 301 tests, no network, no new
   test dependency.
 
 ## Phase 6 — Evidence and record (outside the agent lane where noted)
@@ -115,6 +122,10 @@ Dependency-ordered. `[P]` = parallelizable with the task above it.
 - [x] **T031** Run `feature_diagnostics.py` on cached 10y AAPL. Result:
   condition number 36.17 → 2.15, max VIF 268.31 → 1.60, largest
   |correlation| 0.998 → 0.527.
+- [x] **T031b** Per-entry checkpoint to
+  `data/cache/feature_set_comparison.json`, so a failure in the fourth entry
+  no longer discards the first three hours. Regenerable output, gitignored
+  like everything else there.
 - [ ] **T032** Run `feature_set_comparison.py` on the same data and record
   all four p-values. **Merge requirement** (FR-012), not optional.
 - [x] **T033** `docs/PROJECT_CONTEXT.md` — record 011 as done (it is

@@ -19,7 +19,7 @@
   number; a levels-vs-scale_free report.
 - `scripts/feature_set_comparison.py` — **new**. The FR-012 paired
   significance tests.
-- `tests/test_feature_scaling.py` — **new**. 39 tests (SC-001 – SC-005,
+- `tests/test_feature_scaling.py` — **new**. 45 tests (SC-001 – SC-005,
   SC-008).
 - `tests/test_targets.py`, `tests/test_estimators.py`,
   `tests/test_model_cv.py` — **modified**. The equivalence tests pin
@@ -46,7 +46,7 @@ installed; the two diagnostic scripts are their first use in this repository.
 | 2 — Purge/embargo | Not re-established, but newly *at risk*: a scaler is a fitted object, and one fitted on the whole frame would leak every test window's mean into every fold. The `Pipeline` makes the scaler fit wherever the estimator fits, which is per fold. Three tests assert the statistics are the training slice's, differ from the frame's, and differ between folds. |
 | 3 — Costs | Not applicable. Nothing in this spec computes a return, a Sharpe, or a P&L. `feature_set_comparison.py` says so in its own report rather than printing a commission line that would imply otherwise. |
 | 4 — Baselines | The comparison's baseline is the level feature set, run over identical bars with identical splits and seed — a paired control, which is stronger than the unpaired kind for this question. Buy-and-hold and random-signal baselines belong to spec 013's runner and are not displaced. |
-| 5 — Tests | 39 new tests; the suite goes 256 → 295, all passing. The pairwise-collinearity class (SC-002) earned its keep during implementation: it caught a `Close_To_Long` definition that passed every other test and still correlated 0.865. |
+| 5 — Tests | 45 new tests; the suite goes 256 → 301, all passing. Six of them cover `feature_set_comparison.py`, added after an invalid `zero_method` argument survived into a 45-minute real-data run — the script was an entry point with no tests, so nothing executed its statistics until the run did. The pairwise-collinearity class (SC-002) earned its keep during implementation: it caught a `Close_To_Long` definition that passed every other test and still correlated 0.865. |
 | 6 — Dependencies | None added. The PR's Rule 6 line is that there is no line. |
 | 8 — Layer separation | `features.py` still imports only `signals` and `targets`. `estimators.py`'s AST import-set assertion still holds — `sklearn.pipeline` and `sklearn.preprocessing` both collapse to the top-level name `sklearn`, so `tests/test_estimators.py:496` needed no change. The two new scripts are entry points above the layers, not new layers. |
 | 9 — The merge gate | Three modified modules, two new scripts, one new test file. The two things to check twice are in **Design** below: why the `Pipeline` is leakage-safe for free, and why `Close_To_Short` rather than the more natural-sounding `Close_To_Long`. |
