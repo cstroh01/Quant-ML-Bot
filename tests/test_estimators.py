@@ -14,10 +14,12 @@ from estimators import (
     REGRESSION,
     build_estimator,
     fit_predict_walk_forward,
+    final_estimator,
+    fitted_scaler,
     get_spec,
     param_grid_points,
 )
-from features import FEATURE_COLUMNS, build_features
+from features import SCALE_FREE_FEATURE_COLUMNS, build_features
 from logistic_baseline import FEATURE_COLUMNS as BASELINE_FEATURE_COLUMNS
 from logistic_baseline import walk_forward_predictions
 from walk_forward_cv import walk_forward_splits
@@ -98,8 +100,10 @@ class TestBuildEstimator(unittest.TestCase):
     """T003, T014, T015 — construction, seeds, and the params=None contract."""
 
     def test_logistic_matches_the_pinned_baseline_construction(self):
+        # scale=False: logistic_baseline.py standardizes nothing, so the
+        # construction this pins is the unscaled one (spec 014).
         model = build_estimator(
-            "logistic", task=CLASSIFICATION, params=None, random_state=42
+            "logistic", task=CLASSIFICATION, params=None, random_state=42, scale=False
         )
         # These three are exactly what logistic_baseline.py constructs. If any
         # drifts, the equivalence test below is the thing that will fail, and
@@ -107,12 +111,13 @@ class TestBuildEstimator(unittest.TestCase):
         self.assertEqual(model.max_iter, 1000)
         self.assertEqual(model.random_state, 42)
         self.assertEqual(model.C, 1.0)
+        self.assertIsNone(fitted_scaler(model))
 
     def test_seed_is_forwarded_to_every_entry(self):
         for name, task in ESTIMATOR_REGISTRY:
             with self.subTest(name=name, task=task):
-                model = build_estimator(
-                    name, task=task, params=None, random_state=7
+                model = final_estimator(
+                    build_estimator(name, task=task, params=None, random_state=7)
                 )
                 self.assertEqual(model.random_state, 7)
 
@@ -120,11 +125,13 @@ class TestBuildEstimator(unittest.TestCase):
         """The mutation this catches: `params or {}` instead of the default."""
         spec = ESTIMATOR_REGISTRY[("ridge", REGRESSION)]
         self.assertEqual(spec.default_params, {"alpha": 1.0})
-        defaulted = build_estimator(
-            "ridge", task=REGRESSION, params=None, random_state=0
+        defaulted = final_estimator(
+            build_estimator("ridge", task=REGRESSION, params=None, random_state=0)
         )
-        explicit = build_estimator(
-            "ridge", task=REGRESSION, params={"alpha": 100.0}, random_state=0
+        explicit = final_estimator(
+            build_estimator(
+                "ridge", task=REGRESSION, params={"alpha": 100.0}, random_state=0
+            )
         )
         self.assertEqual(defaulted.alpha, 1.0)
         self.assertEqual(explicit.alpha, 100.0)
@@ -140,7 +147,9 @@ class TestBuildEstimator(unittest.TestCase):
         declaration is what actually pins the contract.
         """
         for (name, task), spec in ESTIMATOR_REGISTRY.items():
-            model = build_estimator(name, task=task, params=None, random_state=0)
+            model = final_estimator(
+                build_estimator(name, task=task, params=None, random_state=0)
+            )
             for key, expected in spec.default_params.items():
                 with self.subTest(name=name, task=task, param=key):
                     self.assertEqual(getattr(model, key), expected)
@@ -212,6 +221,11 @@ class TestClassificationEquivalence(unittest.TestCase):
             label_horizon=1,
             embargo_bars=1,
             random_state=42,
+            # Spec 014: the ("logistic", classification) entry now declares
+            # scale=True. The pinned control was measured without a scaler,
+            # so this test says so explicitly rather than depending on the
+            # registry never changing.
+            scale=False,
         )
         self.assertEqual(str(actual.dtype), "Int64")
         pd.testing.assert_series_equal(actual, expected, check_names=False)
@@ -230,6 +244,7 @@ class TestClassificationEquivalence(unittest.TestCase):
             label_horizon=1,
             embargo_bars=1,
             random_state=42,
+            scale=False,
         )
         self.assertTrue(actual.isna().any())
         np.testing.assert_array_equal(
@@ -294,10 +309,10 @@ class TestOneFitPerFold(unittest.TestCase):
                 "ridge", task=task, params=None, random_state=42
             )
             model.fit(
-                frame.iloc[train_indices][FEATURE_COLUMNS],
+                frame.iloc[train_indices][SCALE_FREE_FEATURE_COLUMNS],
                 frame.iloc[train_indices]["Label"],
             )
-            per_fold_coefs.append(model.coef_.copy())
+            per_fold_coefs.append(final_estimator(model).coef_.copy())
 
         # If every fold fitted the same coefficients, this test could not
         # distinguish refitting from reuse and would be worthless.
@@ -323,7 +338,7 @@ class TestRegressionPath(unittest.TestCase):
     def test_predictions_are_finite_floats_where_covered(self):
         predictions = fit_predict_walk_forward(
             self.frame,
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=self.task,
             name="ridge",
@@ -339,7 +354,7 @@ class TestRegressionPath(unittest.TestCase):
     def test_rows_before_the_first_fold_are_null(self):
         predictions = fit_predict_walk_forward(
             self.frame,
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=self.task,
             name="ridge",
@@ -357,7 +372,7 @@ class TestRegressionPath(unittest.TestCase):
         with self.assertRaises(Exception):
             fit_predict_walk_forward(
                 self.frame,
-                feature_columns=FEATURE_COLUMNS,
+                feature_columns=SCALE_FREE_FEATURE_COLUMNS,
                 label_column="Label",
                 task=CLASSIFICATION,
                 name="logistic",
@@ -376,7 +391,7 @@ class TestGradientBoosting(unittest.TestCase):
             prices, target_kind="return", label_horizon=1
         )
         common = dict(
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=task,
             label_horizon=horizon,
@@ -400,7 +415,7 @@ class TestGradientBoosting(unittest.TestCase):
         )
         predictions = fit_predict_walk_forward(
             frame,
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=task,
             name="hgb",
@@ -423,7 +438,7 @@ class TestDeterminism(unittest.TestCase):
             prices, target_kind="return", label_horizon=1
         )
         kwargs = dict(
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=task,
             name="hgb",
@@ -442,7 +457,7 @@ class TestDeterminism(unittest.TestCase):
             prices, target_kind="return", label_horizon=1
         )
         common = dict(
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=task,
             name="ridge",

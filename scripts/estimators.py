@@ -29,6 +29,8 @@ from sklearn.ensemble import (
     HistGradientBoostingRegressor,
 )
 from sklearn.linear_model import LogisticRegression, Ridge
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from walk_forward_cv import walk_forward_splits
 
@@ -41,6 +43,13 @@ TASKS = (CLASSIFICATION, REGRESSION)
 # twelve-point grid is a lottery rather than a search. Revising these belongs
 # with a real result, not with a guess.
 MAX_GRID_POINTS = 8
+
+# Step names for the pipeline a scaled entry is wrapped in. Named once so
+# `final_estimator`, `fitted_scaler` and the tests all agree, and a reader
+# grepping for "model" finds the definition rather than seven string
+# literals.
+SCALER_STEP = "scaler"
+MODEL_STEP = "model"
 
 
 @dataclass(frozen=True)
@@ -56,6 +65,13 @@ class EstimatorSpec:
     (asserted by test), so the fallback lands on a configuration that is
     declared and exercised rather than on whichever point happens to sort
     first.
+
+    `scale` declares whether this family needs its inputs standardized
+    (spec 014). It is a property of the *family*, not of the caller: a
+    penalized linear model shares one penalty across columns and so depends
+    on their units, while a tree splits each column independently and cannot
+    tell. Putting the flag here rather than at the call site is what keeps
+    the three fit sites identical.
     """
 
     name: str
@@ -63,6 +79,7 @@ class EstimatorSpec:
     factory: Callable[[dict[str, Any], int], Any]
     param_grid: dict[str, list] = field(default_factory=dict)
     default_params: dict[str, Any] = field(default_factory=dict)
+    scale: bool = False
 
 
 def _logistic(params: dict[str, Any], random_state: int):
@@ -92,8 +109,10 @@ ESTIMATOR_REGISTRY: dict[tuple[str, str], EstimatorSpec] = {
         param_grid={"C": [0.01, 0.1, 1.0, 10.0]},
         # C=1.0 is scikit-learn's own default, which is what
         # logistic_baseline.py gets today by not passing C at all. Keeping it
-        # as the fallback means an untuned fold reproduces the Phase 2 control.
+        # as the fallback means an untuned fold reproduces the Phase 2 control
+        # — with scale=False, which is what that control was measured under.
         default_params={"C": 1.0},
+        scale=True,
     ),
     ("ridge", REGRESSION): EstimatorSpec(
         name="ridge",
@@ -101,6 +120,11 @@ ESTIMATOR_REGISTRY: dict[tuple[str, str], EstimatorSpec] = {
         factory=_ridge,
         param_grid={"alpha": [0.1, 1.0, 10.0, 100.0]},
         default_params={"alpha": 1.0},
+        # The entry spec 014 was opened for. A single `alpha` penalizes every
+        # coefficient equally, so without standardization the grid is really
+        # searching "how much to penalize whichever column happens to be
+        # largest".
+        scale=True,
     ),
     ("hgb", CLASSIFICATION): EstimatorSpec(
         name="hgb",
@@ -111,6 +135,11 @@ ESTIMATOR_REGISTRY: dict[tuple[str, str], EstimatorSpec] = {
         # small. learning_rate is left at its default to keep the grid at 4.
         param_grid={"max_depth": [2, 3], "min_samples_leaf": [20, 50]},
         default_params={"max_depth": 3, "min_samples_leaf": 20},
+        # No scaler on either tree entry. A split threshold is chosen per
+        # column, so a monotone rescaling moves the threshold and nothing
+        # else — the fitted tree is identical. Adding one would be a fit per
+        # fold that provably cannot change a prediction.
+        scale=False,
     ),
     ("hgb", REGRESSION): EstimatorSpec(
         name="hgb",
@@ -118,6 +147,7 @@ ESTIMATOR_REGISTRY: dict[tuple[str, str], EstimatorSpec] = {
         factory=_hgb_regressor,
         param_grid={"max_depth": [2, 3], "min_samples_leaf": [20, 50]},
         default_params={"max_depth": 3, "min_samples_leaf": 20},
+        scale=False,
     ),
 }
 
@@ -171,9 +201,14 @@ def param_grid_points(name: str, *, task: str) -> list[dict[str, Any]]:
 
 
 def build_estimator(
-    name: str, *, task: str, params: dict[str, Any] | None, random_state: int
+    name: str,
+    *,
+    task: str,
+    params: dict[str, Any] | None,
+    random_state: int,
+    scale: bool | None = None,
 ):
-    """Build one unfitted estimator.
+    """Build one unfitted estimator, standardized if its entry says so.
 
     `params=None` means this entry's `default_params` — **not** an empty
     dict. The distinction matters: an empty dict silently accepts
@@ -185,10 +220,56 @@ def build_estimator(
     (`LogisticRegression` with the default solver, `Ridge` with
     `solver="auto"`). Forwarding it always is what keeps a future registry
     entry from being stochastic by accident (Conventions → Determinism).
+
+    `scale=None` means this entry's declared `scale`; `True` or `False`
+    overrides it. The override exists for one purpose: the spec 010
+    equivalence tests pin this loop against
+    `logistic_baseline.walk_forward_predictions`, which standardizes nothing,
+    and they now say `scale=False` rather than depending on the registry
+    never changing. A caller who wants the registry's answer passes nothing.
+
+    When scaling applies, the return is a `Pipeline` of `StandardScaler` then
+    the estimator, under the step names `"scaler"` and `"model"`. Params are
+    applied to the estimator *before* wrapping, so grids stay `{"alpha": ...}`
+    rather than `{"model__alpha": ...}` — a registry entry describes its model,
+    not the plumbing around it (Rule 2 is served by the wrapping, not by the
+    naming). Because every fit site fits per fold, the scaler's mean and
+    variance are computed on that fold's training rows alone.
     """
     spec = get_spec(name, task=task)
     effective = dict(spec.default_params if params is None else params)
-    return spec.factory(effective, random_state)
+    estimator = spec.factory(effective, random_state)
+
+    if not (spec.scale if scale is None else scale):
+        return estimator
+    return Pipeline([(SCALER_STEP, StandardScaler()), (MODEL_STEP, estimator)])
+
+
+def final_estimator(model):
+    """The model itself, whether or not `build_estimator` wrapped it.
+
+    `build_estimator` returns a bare estimator for an unscaled entry and a
+    two-step `Pipeline` for a scaled one, so anything reading a fitted
+    attribute — `coef_`, `alpha`, `classes_` — needs to know which it holds.
+    Answering that here means callers do not each grow their own
+    `named_steps["model"] if isinstance(...)` branch, and a later change to
+    the pipeline's shape has one place to update.
+    """
+    if isinstance(model, Pipeline):
+        return model.named_steps[MODEL_STEP]
+    return model
+
+
+def fitted_scaler(model):
+    """The fitted `StandardScaler`, or `None` if this model has no scaler.
+
+    `None` is the honest answer for an unscaled entry rather than an error:
+    "this family does not standardize" is a normal configuration, not a
+    caller mistake.
+    """
+    if isinstance(model, Pipeline):
+        return model.named_steps.get(SCALER_STEP)
+    return None
 
 
 def fit_predict_walk_forward(
@@ -204,12 +285,16 @@ def fit_predict_walk_forward(
     params: dict[str, Any] | None = None,
     initial_train_months: int | None = None,
     test_months: int | None = None,
+    scale: bool | None = None,
 ) -> pd.Series:
     """One out-of-sample prediction per row, from purged, embargoed folds.
 
     Fits a fresh estimator per fold on that fold's training rows only and
     predicts its test window — never once on the whole frame, which is the
-    lookahead Rule 2 exists to prevent.
+    lookahead Rule 2 exists to prevent. `scale` is forwarded to
+    `build_estimator`; because the fit is per fold, so is the standardization,
+    and a test window never contributes to the mean and variance used to
+    transform it.
 
     The returned series' dtype follows `task`: `Int64` with `pd.NA` for
     classification, `float64` with `NaN` for regression. Rows before the
@@ -254,7 +339,7 @@ def fit_predict_walk_forward(
         ), f"Fold {fold} has test data at or before training data."
 
         model = build_estimator(
-            name, task=task, params=params, random_state=random_state
+            name, task=task, params=params, random_state=random_state, scale=scale
         )
         train_labels = frame.iloc[train_indices][label_column]
         if task == CLASSIFICATION:

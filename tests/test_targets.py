@@ -15,7 +15,12 @@ import pandas as pd
 from context import SCRIPTS_DIR  # noqa: F401  (import for the sys.path effect)
 import features as features_module
 import targets as targets_module
-from features import FEATURE_COLUMNS, build_features
+from features import (
+    LEVEL_FEATURE_COLUMNS,
+    SCALE_FREE_FEATURE_COLUMNS,
+    build_features,
+    feature_columns,
+)
 from targets import (
     LABEL_COLUMN,
     build_target,
@@ -29,7 +34,7 @@ def _walk(n: int, seed: int = 7) -> pd.DataFrame:
     """A price frame with a non-monotonic close, so a direction label has
     both classes and a wrong shift changes the answer.
 
-    `Volume` is added because it is one of `FEATURE_COLUMNS`, and
+    `Volume` is added because every feature set needs it, and
     `build_features` drops on it — `make_prices` alone gives Date/Open/Close.
     """
     rng = np.random.default_rng(seed)
@@ -291,10 +296,22 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
     def setUp(self):
         self.prices = _walk(200)
 
-    def test_feature_columns_match(self):
+    def test_level_feature_columns_match(self):
+        """The anti-drift guard, now pointed at the set it applies to.
+
+        Spec 014 made the scale-free set the default, so a blanket
+        `features.FEATURE_COLUMNS == logistic_baseline.FEATURE_COLUMNS` is no
+        longer the property to hold — but the level set is still the control's
+        own five columns, and it still must not drift from them.
+        """
         from logistic_baseline import FEATURE_COLUMNS as baseline_columns
 
-        self.assertEqual(FEATURE_COLUMNS, baseline_columns)
+        self.assertEqual(LEVEL_FEATURE_COLUMNS, baseline_columns)
+
+    def test_the_default_feature_set_is_not_the_level_set(self):
+        """The point of spec 014: the default is the scale-free set."""
+        self.assertEqual(feature_columns(), SCALE_FREE_FEATURE_COLUMNS)
+        self.assertNotEqual(feature_columns(), LEVEL_FEATURE_COLUMNS)
 
     def test_direction_label_matches_the_baseline_label(self):
         """SC-001 — element for element, dtype included."""
@@ -327,6 +344,7 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
             short_window=logistic_baseline.SHORT_WINDOW,
             long_window=logistic_baseline.LONG_WINDOW,
             volatility_window=logistic_baseline.VOLATILITY_WINDOW,
+            feature_set="levels",
         )
 
         self.assertEqual((task, horizon), ("classification", 1))
@@ -334,7 +352,7 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
 
         shared = [column for column in old.columns if column in new.columns]
         self.assertIn(LABEL_COLUMN, shared)
-        self.assertTrue(set(FEATURE_COLUMNS).issubset(shared))
+        self.assertTrue(set(LEVEL_FEATURE_COLUMNS).issubset(shared))
         pd.testing.assert_frame_equal(new[shared], old[shared])
 
 
@@ -342,7 +360,9 @@ class TestRuleOneShape(unittest.TestCase):
     """FR-009 — the label is never a feature."""
 
     def test_label_is_not_in_feature_columns(self):
-        self.assertNotIn(LABEL_COLUMN, FEATURE_COLUMNS)
+        for name in sorted(features_module.FEATURE_SETS):
+            with self.subTest(feature_set=name):
+                self.assertNotIn(LABEL_COLUMN, feature_columns(name))
 
     def test_features_are_computable_from_the_past(self):
         """Perturbing a future close must not move any feature at t.
@@ -361,8 +381,8 @@ class TestRuleOneShape(unittest.TestCase):
         # Compare the rows before the perturbation, which survive in both.
         rows = 60
         pd.testing.assert_frame_equal(
-            base_frame[FEATURE_COLUMNS].iloc[:rows],
-            changed_frame[FEATURE_COLUMNS].iloc[:rows],
+            base_frame[SCALE_FREE_FEATURE_COLUMNS].iloc[:rows],
+            changed_frame[SCALE_FREE_FEATURE_COLUMNS].iloc[:rows],
         )
 
 

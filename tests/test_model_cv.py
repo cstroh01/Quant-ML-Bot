@@ -19,7 +19,11 @@ from context import SCRIPTS_DIR
 
 import estimators
 from estimators import CLASSIFICATION, ESTIMATOR_REGISTRY, REGRESSION
-from features import FEATURE_COLUMNS, build_features
+from features import (
+    LEVEL_FEATURE_COLUMNS,
+    SCALE_FREE_FEATURE_COLUMNS,
+    build_features,
+)
 from logistic_baseline import FEATURE_COLUMNS as BASELINE_FEATURE_COLUMNS
 from logistic_baseline import walk_forward_predictions
 from model_cv import (
@@ -50,16 +54,22 @@ def _price_walk(n: int, seed: int = 11) -> pd.DataFrame:
     )
 
 
-def _learnable_frame(n: int = 600, *, kind: str) -> pd.DataFrame:
+def _learnable_frame(
+    n: int = 600, *, kind: str, feature_set: str = "scale_free"
+) -> pd.DataFrame:
     """A features frame from a real price walk, where candidates differ.
 
     `_synthetic_features` pairs random features with alternating labels, so
     every candidate scores alike on it and a selection test would pass
     vacuously — the trap spec 010's plan recorded. Selection tests use this
     instead.
+
+    `feature_set` defaults to the project default. The equivalence tests
+    against `logistic_baseline` pass `"levels"`, because that is the set the
+    committed control was computed on.
     """
     frame, _task, _horizon = build_features(
-        _price_walk(n), target_kind=kind, label_horizon=1
+        _price_walk(n), target_kind=kind, label_horizon=1, feature_set=feature_set
     )
     return frame
 
@@ -438,7 +448,7 @@ class TestTuneOnFoldIsolation(unittest.TestCase):
         self.kwargs = dict(
             name="logistic",
             task=CLASSIFICATION,
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             label_horizon=1,
             embargo_bars=1,
@@ -454,7 +464,7 @@ class TestTuneOnFoldIsolation(unittest.TestCase):
             np.arange(len(corrupt)), self.train_indices, assume_unique=False
         )
         self.assertGreater(outside.size, 0)
-        for column in FEATURE_COLUMNS:
+        for column in SCALE_FREE_FEATURE_COLUMNS:
             corrupt.iloc[outside, corrupt.columns.get_loc(column)] = 1e9
         label_position = corrupt.columns.get_loc("Label")
         corrupt.iloc[outside, label_position] = (
@@ -641,7 +651,7 @@ class TestSelectionActuallySelects(unittest.TestCase):
             train_indices,
             name="ridge",
             task=REGRESSION,
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             label_horizon=1,
             embargo_bars=1,
@@ -662,7 +672,7 @@ class TestSelectionActuallySelects(unittest.TestCase):
             outer[-1][0],
             name="ridge",
             task=REGRESSION,
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             label_horizon=1,
             embargo_bars=1,
@@ -732,7 +742,7 @@ class TestNestedWalkForward(unittest.TestCase):
         frame = _learnable_frame(kind="return")
         predictions, covered, results = nested_walk_forward(
             frame,
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=REGRESSION,
             name="ridge",
@@ -783,7 +793,7 @@ class TestDeterminism(unittest.TestCase):
     def test_repeated_nested_runs_agree(self):
         frame = _learnable_frame(kind="return")
         kwargs = dict(
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=REGRESSION,
             name="ridge",
@@ -803,7 +813,7 @@ class TestDeterminism(unittest.TestCase):
         kwargs = dict(
             name="ridge",
             task=REGRESSION,
-            feature_columns=FEATURE_COLUMNS,
+            feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             label_horizon=1,
             embargo_bars=1,
@@ -835,13 +845,17 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
     and `test_one_outer_fit_per_fold_on_top_of_the_tuning_fits` adds the
     structural check that output equality cannot supply.
 
-    `features.FEATURE_COLUMNS` and `logistic_baseline.FEATURE_COLUMNS` are
-    the same five names (`test_targets.py` asserts it), which is what lets
-    `walk_forward_predictions` run on a `build_features` frame at all.
+    `features.LEVEL_FEATURE_COLUMNS` and `logistic_baseline.SCALE_FREE_FEATURE_COLUMNS`
+    are the same five names (`test_targets.py` asserts it), which is what lets
+    `walk_forward_predictions` run on a `build_features` frame at all — so
+    this fixture is built with `feature_set="levels"`, and every call below
+    passes `scale=False`. Spec 014 changed both defaults; the control was
+    measured under neither, and saying so here is what keeps the goalpost
+    where `docs/PROJECT_CONTEXT.md` recorded it.
     """
 
     def setUp(self):
-        self.frame = _learnable_frame(kind="direction")
+        self.frame = _learnable_frame(kind="direction", feature_set="levels")
         self.outer = list(
             walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1)
         )
@@ -852,10 +866,14 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
         coefficients = []
         for train_indices, _ in self.outer:
             model = estimators.build_estimator(
-                "logistic", task=CLASSIFICATION, params={"C": 1.0}, random_state=42
+                "logistic",
+                task=CLASSIFICATION,
+                params={"C": 1.0},
+                random_state=42,
+                scale=False,
             )
             model.fit(
-                self.frame.iloc[train_indices][FEATURE_COLUMNS],
+                self.frame.iloc[train_indices][LEVEL_FEATURE_COLUMNS],
                 self.frame.iloc[train_indices]["Label"].astype(int),
             )
             coefficients.append(model.coef_.copy())
@@ -877,6 +895,7 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
                 label_horizon=1,
                 embargo_bars=1,
                 random_state=42,
+                scale=False,
             )
 
         self.assertEqual(str(actual.dtype), "Int64")
@@ -939,6 +958,7 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
                 label_horizon=1,
                 embargo_bars=1,
                 random_state=42,
+                scale=False,
             )
         self.assertTrue(actual.isna().any())
         np.testing.assert_array_equal(

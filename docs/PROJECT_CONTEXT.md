@@ -2,6 +2,84 @@
 
 _Last updated: 2026-09-06_
 
+## Spec 014 - Scale-free features and fold-fit standardization: DONE
+
+The fix for the Phase 3 negative result. Zero models beat baseline and ridge
+was ill-conditioned; the cause was the design matrix, not the model.
+
+- `scripts/features.py` now declares two named feature sets.
+  `SCALE_FREE_FEATURE_COLUMNS` is the **default**: `Log_Return`,
+  `Rolling_Volatility`, `SMA_Spread` (`Short_SMA/Long_SMA - 1`),
+  `Close_To_Short` (`Close/Short_SMA - 1`), `Rel_Volume` (`Volume` over its
+  trailing mean). `LEVEL_FEATURE_COLUMNS` is the old five, kept as the
+  control the committed AAPL result was computed on.
+- `features.FEATURE_COLUMNS` is **gone**, not repointed. The name meant the
+  level set; letting it mean the scale-free one would change what existing
+  code computes without changing what it says. Callers use
+  `feature_columns(feature_set)`.
+- `EstimatorSpec` gained `scale`. `build_estimator` returns a
+  `StandardScaler` then estimator `Pipeline` for `logistic` and `ridge`, and
+  a bare estimator for both `hgb` entries (a tree cannot see a monotone
+  rescaling - asserted, not assumed). Because all three fit sites already fit
+  per fold, the scaler does too: no call site changed.
+- **Two defects, not one.** Non-stationarity (a fold trained on $50 bars
+  extrapolating to $200 bars) and collinearity. Standardization fixes
+  *neither* - it is a diagonal transform and cannot change a correlation.
+  It was still worth adding, for the six-order-of-magnitude spread between
+  `Log_Return` and `Volume` that made a single `alpha` meaningless. That is a
+  third, smaller defect, and conflating it with the reported one is why
+  "add a scaler" looked sufficient.
+
+**Measured on cached 10y AAPL** (`scripts/feature_diagnostics.py`):
+
+| | levels | scale_free |
+|---|---|---|
+| standardized condition number | 36.17 | 2.15 |
+| max VIF | 268.31 | 1.60 |
+| largest absolute correlation | 0.998 (`Short_SMA`/`Long_SMA`) | 0.527 (`Log_Return`/`Close_To_Short`) |
+
+36.17 is above the conventional ill-conditioning line of 30 - independent
+confirmation of the reported defect, on real data.
+
+**A near-miss worth recording.** The first implementation defined the second
+ratio as `Close/Long_SMA - 1` ("price against the long trend"), which sounds
+right and is not: `Close/Long == (Close/Short) * (Short/Long)`, so it
+re-measures the crossover spread. It correlated **0.865** with `SMA_Spread`
+while passing every scale-invariance test and improving the condition number
+9x. Only the pairwise VIF/correlation assertions caught it. Using the two
+*legs* of that identity instead - fast (`Close/Short`) and slow
+(`Short/Long`) - loses nothing, since their product recovers the long-trend
+quantity exactly, and drops the correlation to 0.325. This is why the spec
+states FR-005 pairwise rather than as a condition-number threshold.
+
+- Two new diagnostic entry points: `feature_diagnostics.py` (conditioning)
+  and `feature_set_comparison.py` (paired significance - McNemar for the
+  classification entries, Wilcoxon signed-rank for the regression ones).
+  Running the second is a **merge requirement**, because better conditioning
+  is a property of the matrix and not evidence that any prediction improved.
+  Its screening bar is p < 0.10 one-sided on at least one of four entries -
+  explicitly *not* a capital-readiness bar, which is the deflated Sharpe step
+  and comes later.
+- The `logistic_baseline` equivalence tests still pass element for element,
+  and now pin `feature_set="levels"` and `scale=False` explicitly rather than
+  relying on defaults that this spec changed.
+- No new dependency (Rule 6): `sklearn.pipeline`/`sklearn.preprocessing` are
+  new imports of a package already in use; `scipy` and `statsmodels` were
+  already in `requirements.txt`.
+- New `tests/test_feature_scaling.py`. Full suite: **295 passed**.
+
+## Spec 011 - Nested, leakage-safe hyperparameter tuning: DONE
+
+`scripts/model_cv.py` selects hyperparameters using only an outer fold's own
+training positions, which after spec 006's embargo fix are sorted but *not*
+contiguous. The inner splitter never slices the original frame: it builds a
+sub-frame from `train_indices`, runs the real `walk_forward_splits` on it,
+and maps positions back. A row outside `outer_train_indices` is not in the
+sub-frame at all, so it cannot be selected on.
+
+This was code-complete on disk before spec 014 and was still listed as
+pending here; recorded now.
+
 ## Spec 010 — Estimator registry: DONE
 
 Gave the project one place a model is declared, and one walk-forward
@@ -398,26 +476,33 @@ compared a simple return against a log-return target.
 
 - **Spec 010 — Estimator registry. DONE** (see above). Also carries the
   parameter grids and declared fallback params spec 011 searches over.
-- **Spec 011 — Nested, leakage-safe hyperparameter tuning.** Handles the
-  non-contiguous training positions spec 006's fix produces; picks
-  hyperparameters using only an outer fold's own training data, never its
-  test window.
-- **Spec 012 — Cost-aware entry rule.** Turns a continuous return
-  prediction into a trade only when it clears the actual round-trip cost
-  hurdle — the payoff spec 009 set up. Expected to decline nearly every
-  trade; that is the honest result, not a bug.
-- **Spec 013 — Multi-ticker comparison table.** Runs the full pipeline
-  per ticker, isolates one ticker's failure from the rest, and produces
-  the risk-adjusted comparison table that finally replaces this doc's
-  stale single-ticker AAPL figures.
+- **Spec 011 — Nested, leakage-safe hyperparameter tuning. DONE** (see
+  above).
+- **Spec 014 — Scale-free features and fold-fit standardization. DONE**
+  (see above). Inserted ahead of 012 and 013, which are **held**, on the
+  reasoning below.
+- **Spec 012 — Cost-aware entry rule. HELD until 014's evidence is in.**
+  Turns a continuous return prediction into a trade only when it clears the
+  actual round-trip cost hurdle. The mechanics are worth building either
+  way, but building an entry rule on predictions from a matrix with a
+  condition number of 36 and a max VIF of 268 spends real work on a known
+  bug. Held deliberately, with time available; not blocked.
+- **Spec 013 — Multi-ticker comparison table. HELD until 014's evidence
+  is in.** Runs the full pipeline per ticker and produces the risk-adjusted
+  table that replaces this doc's stale AAPL figures. Run before 014, that
+  table compares four flavours of "does not beat baseline", which is not the
+  payoff artifact it is meant to be. 014's `feature_set_comparison.py` is
+  also the natural precursor: it is the same levels-vs-scale_free comparison
+  on one ticker.
 
 **Outstanding, and Camden's rather than an agent's:**
 
-- The 10-year download for AAPL, MSFT, GOOGL, NVDA, AMZN. The agent lane
-  cannot reach Yahoo, so spec 013's real run needs this cache present
-  first; the exact command is in that spec's tasks.md (T014). The universe
-  itself is settled and written down in spec 013 FR-001 — an earlier draft
-  reopened it as an open question, which was a regression.
+- ~~The 10-year download for AAPL, MSFT, GOOGL, NVDA, AMZN.~~ **Done** —
+  `data/cache/AAPL-AMZN-GOOGL-MSFT-NVDA_10y.csv` holds 2,514 bars per ticker
+  through 2026-09-04. Spec 014's diagnostics ran against it offline, which is
+  how the condition-number table above exists. Both 014 scripts request the
+  full universe rather than `["AAPL"]` so they hit this cache key instead of
+  triggering a download.
 - Run `scripts/ma_crossover_backtest.py` locally to produce the real AAPL
   three-way costed comparison. This has been outstanding since Phase 2:
   the repo has a correct cost model and still no costed result to show for

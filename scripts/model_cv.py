@@ -256,6 +256,7 @@ def tune_on_fold(
     inner_initial_train_months: int = DEFAULT_INITIAL_TRAIN_MONTHS,
     inner_test_months: int = DEFAULT_TEST_MONTHS,
     date_column: str = "Date",
+    scale: bool | None = None,
 ) -> tuple[dict[str, Any], bool, pd.DataFrame]:
     """Select hyperparameters using this outer fold's training data only.
 
@@ -280,6 +281,11 @@ def tune_on_fold(
     Every row the outer fold excluded is excluded here too, because
     `inner_splits_over` never sees it (see the module docstring). Nothing in
     this function reads `features` outside `outer_train_indices`.
+
+    `scale` is forwarded to `build_estimator` unchanged (spec 014). It is
+    selected on, not tuned: standardization is a property of the model family,
+    so putting it in the grid would spend inner folds choosing between a
+    configuration that is right and one that is wrong.
 
     Raises:
         ValueError: for an unregistered `(name, task)`, a non-increasing
@@ -318,7 +324,11 @@ def tune_on_fold(
         scores: list[float] = []
         for fold_number, (inner_train, inner_val) in enumerate(inner_folds, start=1):
             model = build_estimator(
-                name, task=task, params=params, random_state=random_state
+                name,
+                task=task,
+                params=params,
+                random_state=random_state,
+                scale=scale,
             )
             train_labels = features.iloc[inner_train][label_column]
             val_labels = features.iloc[inner_val][label_column]
@@ -364,6 +374,7 @@ def nested_walk_forward(
     inner_initial_train_months: int = DEFAULT_INITIAL_TRAIN_MONTHS,
     inner_test_months: int = DEFAULT_TEST_MONTHS,
     date_column: str = "Date",
+    scale: bool | None = None,
 ) -> tuple[pd.Series, np.ndarray, pd.DataFrame]:
     """Tune, fit, and predict one outer walk-forward fold at a time.
 
@@ -388,6 +399,11 @@ def nested_walk_forward(
     chosen parameters, the `tuned` flag, and the winning inner score. The
     flag is what makes the artifact honest — a reader can see which folds
     were actually tuned and which fell back to the declared default.
+
+    `scale` (spec 014) is forwarded to both the tuner and the outer fit, so
+    the configuration selected on the inner folds is the configuration the
+    outer fold fits. Passing it to only one of the two would tune one model
+    and report another.
 
     Raises:
         ValueError: for an unknown task or an unregistered `(name, task)`.
@@ -441,10 +457,11 @@ def nested_walk_forward(
             inner_initial_train_months=inner_initial_train_months,
             inner_test_months=inner_test_months,
             date_column=date_column,
+            scale=scale,
         )
 
         model = build_estimator(
-            name, task=task, params=params, random_state=random_state
+            name, task=task, params=params, random_state=random_state, scale=scale
         )
         train_labels = frame.iloc[train_indices][label_column]
         if task == CLASSIFICATION:
