@@ -5,6 +5,7 @@
 **Created**: 2026-09-06
 
 **Revised**: 2026-09-06 — see *Revision note* below.
+**Revised**: 2026-09-08 — see *Scope decision* below.
 
 **Status**: Draft
 
@@ -75,6 +76,21 @@ equivalence test pinning the copy to the original.
 
 A fourth change is an addition rather than a correction: **hysteresis**, per
 *Design constraint* below.
+
+### Scope decision — estimator-agnostic (confirmed 2026-09-08)
+
+This module MUST work with **any** `ESTIMATOR_REGISTRY` entry, not only the
+entries that cleared spec 014's screening bar. It already does so in
+substance — every function here takes a prediction *series* and never asks
+what produced it — and this note pins that as a requirement (FR-012) so no
+implementation narrows it.
+
+The context: 014's T032 comparison run met its screening bar on
+`logistic`/classification (p = 0.0122) and `ridge`/regression (p = 0.0313),
+while both `hgb` entries did not clear (p = 0.433 and p = 0.263). That is a
+one-ticker result on AAPL. Spec 013's multi-ticker expansion may surface
+`hgb` clearing elsewhere, and scoping the entry rule to tonight's two
+winners would only mean rebuilding it when 013 reports.
 
 ---
 
@@ -233,6 +249,12 @@ test, not discovered in a live account.
   prices/costs, the boundary-exclusive case, the null-is-flat case, the
   zero-cost limit, the Rule 1 perturbation test, the hysteresis sequence,
   the harness reconciliation, and the module import set.
+- **FR-012** *(estimator-agnostic; see *Scope decision* above)*: Every
+  public function MUST accept a prediction series and MUST NOT branch on,
+  name, or otherwise require a particular `ESTIMATOR_REGISTRY` entry. Any
+  entry point that selects an estimator MUST take it as a parameter over the
+  registry rather than hard-coding one. `ml_signal.py` MUST NOT import
+  `estimators.py` — it needs the predictions, not the registry.
 
 ### Key Entities
 
@@ -265,6 +287,10 @@ test, not discovered in a live account.
   prediction treated as `0.0`; hysteresis replaced by a per-bar gate; the
   shift applied before the comparison) fails the test suite for each
   injected defect.
+- **SC-008**: The rule produces a signal from a prediction series generated
+  by each `ESTIMATOR_REGISTRY` entry of the matching task, with no
+  entry-specific code path. A test parameterized over the registry, so a new
+  entry is covered by adding it to the registry and nothing else.
 
 ---
 

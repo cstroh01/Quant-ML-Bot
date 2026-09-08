@@ -1,6 +1,6 @@
 # Quant-ML-Bot — Project Context
 
-_Last updated: 2026-09-06_
+_Last updated: 2026-09-08_
 
 ## Spec 014 - Scale-free features and fold-fit standardization: DONE
 
@@ -60,13 +60,52 @@ states FR-005 pairwise rather than as a condition-number threshold.
   Its screening bar is p < 0.10 one-sided on at least one of four entries -
   explicitly *not* a capital-readiness bar, which is the deflated Sharpe step
   and comes later.
+
+**The comparison run: screening bar MET** (`feature_set_comparison.py`,
+cached 10y AAPL, results in `data/cache/feature_set_comparison.json`).
+113 outer folds per side, 2,359 paired bars per entry, purge = label
+horizon = 1 bar, embargo = 1 bar, seed fixed. Commission and slippage are
+not applicable - nothing here is a backtest; these are prediction-quality
+tests only.
+
+| entry | test | levels -> scale_free | p (one-sided) |
+|---|---|---|---|
+| `logistic` / classification | McNemar (exact) | accuracy 0.5078 -> 0.5299 | **0.0122** |
+| `ridge` / regression | Wilcoxon signed-rank | MSE 0.00035600 -> 0.00035570 | **0.0313** |
+| `hgb` / regression | Wilcoxon signed-rank | MSE 0.00036282 -> 0.00036111 | 0.2633 |
+| `hgb` / classification | McNemar (exact) | accuracy 0.5155 -> 0.5180 | 0.4329 |
+
+Cleared on `logistic`/classification and `ridge`/regression; the two `hgb`
+entries did not clear. All four favour the scale-free set directionally.
+The split is the expected shape rather than a surprise: the two linear
+entries are the ones standardization and decorrelation can help, and a tree
+is invariant to the monotone part of what changed, so only the ratios'
+better conditioning could move `hgb` - on one ticker it did not move it
+enough to separate from noise.
+
+**What this result is not.** It is a *screening* result on **AAPL alone**,
+in the script's own words "a screening threshold on one ticker, not a
+capital-readiness bar. That is the deflated Sharpe step, and it is not
+this." Two entries clearing p < 0.10 one-sided on a single ticker is cheap
+evidence that the scale-free set is worth carrying forward. It is not
+evidence that any model beats a baseline, and it justifies no capital.
+Whether these entries hold up across tickers is spec 013's question.
 - The `logistic_baseline` equivalence tests still pass element for element,
   and now pin `feature_set="levels"` and `scale=False` explicitly rather than
   relying on defaults that this spec changed.
 - No new dependency (Rule 6): `sklearn.pipeline`/`sklearn.preprocessing` are
   new imports of a package already in use; `scipy` and `statsmodels` were
   already in `requirements.txt`.
-- New `tests/test_feature_scaling.py`. Full suite: **301 passed**.
+- `feature_set_comparison.py`'s per-entry checkpoint writes atomically
+  (temp file + `os.replace`) and emits valid JSON (`NaN` -> `null`); the
+  write itself now has tests. The 2026-09-06 run left no checkpoint not
+  because of that code but because a machine reboot killed it inside its
+  *first* entry - `sorted(ESTIMATOR_REGISTRY)` runs `hgb/classification`
+  first, not third, so nothing had completed. Second bug found on this
+  script after the `zero_method="wilcoxon"` one, and for the same reason:
+  it was an entry point whose code paths no test executed.
+- New `tests/test_feature_scaling.py`. Full suite at 014's merge:
+  **301 passed**; **321** as of the checkpoint fix above.
 
 ## Spec 011 - Nested, leakage-safe hyperparameter tuning: DONE
 
@@ -479,21 +518,28 @@ compared a simple return against a log-return target.
 - **Spec 011 — Nested, leakage-safe hyperparameter tuning. DONE** (see
   above).
 - **Spec 014 — Scale-free features and fold-fit standardization. DONE**
-  (see above). Inserted ahead of 012 and 013, which are **held**, on the
-  reasoning below.
-- **Spec 012 — Cost-aware entry rule. HELD until 014's evidence is in.**
+  (see above), including the T032 comparison run: **screening bar met** on
+  AAPL, on `logistic`/classification (p = 0.0122) and `ridge`/regression
+  (p = 0.0313). Inserted ahead of 012 and 013 on the reasoning below; that
+  evidence is now in, so the hold it justified is released.
+- **Spec 012 — Cost-aware entry rule. Unheld — 014's evidence is in.**
   Turns a continuous return prediction into a trade only when it clears the
-  actual round-trip cost hurdle. The mechanics are worth building either
-  way, but building an entry rule on predictions from a matrix with a
-  condition number of 36 and a max VIF of 268 spends real work on a known
-  bug. Held deliberately, with time available; not blocked.
-- **Spec 013 — Multi-ticker comparison table. HELD until 014's evidence
-  is in.** Runs the full pipeline per ticker and produces the risk-adjusted
+  actual round-trip cost hurdle. It was held because building an entry rule
+  on predictions from a matrix with a condition number of 36 and a max VIF
+  of 268 spends real work on a known bug; that matrix is fixed and the
+  screening bar is met, so the reason no longer applies. To be built
+  **estimator-agnostic** — it must work with any `ESTIMATOR_REGISTRY` entry,
+  not only the two that cleared on AAPL. `hgb` not clearing on one ticker is
+  not evidence it will not clear elsewhere, and narrowing the rule to the
+  entries that happened to pass tonight would only mean rebuilding it when
+  spec 013's multi-ticker run reports.
+- **Spec 013 — Multi-ticker comparison table. Unheld — 014's evidence is
+  in.** Runs the full pipeline per ticker and produces the risk-adjusted
   table that replaces this doc's stale AAPL figures. Run before 014, that
-  table compares four flavours of "does not beat baseline", which is not the
-  payoff artifact it is meant to be. 014's `feature_set_comparison.py` is
-  also the natural precursor: it is the same levels-vs-scale_free comparison
-  on one ticker.
+  table would have compared four flavours of "does not beat baseline". It
+  also answers the question 014's one-ticker screening cannot: whether the
+  two clearing entries hold up beyond AAPL, and whether `hgb` clears
+  anywhere.
 
 **Outstanding, and Camden's rather than an agent's:**
 

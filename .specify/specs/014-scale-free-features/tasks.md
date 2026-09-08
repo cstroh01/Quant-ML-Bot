@@ -126,8 +126,36 @@ Dependency-ordered. `[P]` = parallelizable with the task above it.
   `data/cache/feature_set_comparison.json`, so a failure in the fourth entry
   no longer discards the first three hours. Regenerable output, gitignored
   like everything else there.
-- [ ] **T032** Run `feature_set_comparison.py` on the same data and record
-  all four p-values. **Merge requirement** (FR-012), not optional.
+- [x] **T031c** `_checkpoint` made atomic (temp file + `os.replace`) and its
+  output made valid JSON (`NaN` → `null`), with `TestComparisonCheckpoint`
+  asserting the file is written and readable after a single entry — the
+  write itself had no test. Found while investigating the 2026-09-06 run
+  that left no checkpoint: the cause was a machine reboot four hours into
+  the *first* entry (`sorted(ESTIMATOR_REGISTRY)` runs `hgb/classification`
+  first, not third), so no entry had completed and none was owed. Not a
+  checkpoint bug, but it surfaced two.
+- [x] **T032** Run `feature_set_comparison.py` on the same data and record
+  all four p-values. **Merge requirement** (FR-012), not optional. Run
+  completed; results in `data/cache/feature_set_comparison.json`. Cached 10y
+  AAPL, 113 outer folds per side, 2359 paired bars per entry, purge = label
+  horizon = 1 bar, embargo = 1 bar. Commission and slippage are not
+  applicable — nothing here is a backtest.
+
+  | entry | test | control -> scale_free | p (one-sided) |
+  |---|---|---|---|
+  | `logistic`/classification | McNemar (exact) | accuracy 0.5078 -> 0.5299 | **0.0122** |
+  | `ridge`/regression | Wilcoxon signed-rank | MSE 0.00035600 -> 0.00035570 | **0.0313** |
+  | `hgb`/regression | Wilcoxon signed-rank | MSE 0.00036282 -> 0.00036111 | 0.2633 |
+  | `hgb`/classification | McNemar (exact) | accuracy 0.5155 -> 0.5180 | 0.4329 |
+
+  **Screening bar MET** (p < 0.10 one-sided on at least one entry), on
+  `logistic`/classification and `ridge`/regression. All four entries favour
+  the scale-free set directionally; the two `hgb` entries do not clear the
+  bar, which is the expected shape — a tree is invariant to the monotone
+  part of what changed, so only the ratios' better conditioning could move
+  it, and on one ticker it did not move it enough to separate from noise.
+  This is a screening threshold on one ticker, not a capital-readiness bar;
+  that is the deflated Sharpe step and it is not this.
 - [x] **T033** `docs/PROJECT_CONTEXT.md` — record 011 as done (it is
   code-complete on disk but still listed pending), add 014 with the
   measured table, and record 012/013 as deliberately held until 014 lands.

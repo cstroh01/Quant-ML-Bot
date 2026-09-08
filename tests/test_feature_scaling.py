@@ -15,7 +15,13 @@ Plus the leakage property the `Pipeline` is there to guarantee: the scaler's
 mean and variance come from training rows only.
 """
 
+import json
+import math
+import pathlib
+import shutil
+import tempfile
 import unittest
+import unittest.mock
 
 import numpy as np
 import pandas as pd
@@ -34,6 +40,7 @@ from feature_set_comparison import (
     compare_classification,
     compare_regression,
 )
+import feature_set_comparison
 from feature_diagnostics import (
     condition_number,
     max_abs_offdiagonal_correlation,
@@ -750,6 +757,179 @@ class TestComparisonStatistics(unittest.TestCase):
         result = compare_classification(labels, predicted, predicted.copy())
         self.assertEqual(result["discordant"], 0)
         self.assertEqual(result["p_one_sided"], 1.0)
+
+
+class TestComparisonCheckpoint(unittest.TestCase):
+    """That the checkpoint is actually written, and survives a kill.
+
+    The gap this closes: the checkpoint added after the `zero_method` run was
+    never executed by a test. Nothing asserted the file appears on disk, so
+    "the checkpoint works" rested on reading the code.
+
+    The 2026-09-06 run then died to a machine reboot four and a half hours
+    into its *first* entry — `sorted(ESTIMATOR_REGISTRY)` puts
+    `hgb/classification` first, not third — so no entry had completed and no
+    checkpoint was owed. That is not a checkpoint bug, but looking for one
+    surfaced two real ones, and these are the tests for them.
+    """
+
+    def setUp(self):
+        self.directory = tempfile.mkdtemp()
+        self.path = pathlib.Path(self.directory) / "nested" / "checkpoint.json"
+        self._saved = feature_set_comparison.CHECKPOINT_PATH
+        feature_set_comparison.CHECKPOINT_PATH = self.path
+
+    def tearDown(self):
+        feature_set_comparison.CHECKPOINT_PATH = self._saved
+        shutil.rmtree(self.directory, ignore_errors=True)
+
+    @staticmethod
+    def _entry(name="logistic", task=CLASSIFICATION):
+        """One entry shaped like what `compare_entry` returns."""
+        labels = pd.Series([1] * 200)
+        predicted_a = pd.Series([1] * 60 + [0] * 140)
+        predicted_b = pd.Series([1] * 140 + [0] * 60)
+        result = compare_classification(labels, predicted_a, predicted_b)
+        result.update(
+            {
+                "name": name,
+                "task": task,
+                "shared_bars": 200,
+                "outer_folds_a": 3,
+                "outer_folds_b": 3,
+            }
+        )
+        return result
+
+    def test_a_file_exists_after_a_single_entry(self):
+        """The assertion nothing made before: the write happens at all."""
+        self.assertFalse(self.path.exists())
+        feature_set_comparison._checkpoint([self._entry()])
+        self.assertTrue(self.path.exists())
+
+    def test_the_missing_parent_directory_is_created(self):
+        """`data/cache/` is gitignored, so a clean checkout has no such path."""
+        self.assertFalse(self.path.parent.exists())
+        feature_set_comparison._checkpoint([self._entry()])
+        self.assertTrue(self.path.parent.is_dir())
+
+    def test_the_written_entry_reads_back_intact(self):
+        written = self._entry()
+        feature_set_comparison._checkpoint([written])
+
+        reloaded = json.loads(self.path.read_text(encoding="utf-8"))
+        self.assertEqual(len(reloaded), 1)
+        self.assertEqual(reloaded[0]["name"], "logistic")
+        self.assertEqual(reloaded[0]["task"], CLASSIFICATION)
+        self.assertEqual(reloaded[0]["discordant"], written["discordant"])
+        self.assertAlmostEqual(
+            reloaded[0]["p_one_sided"], written["p_one_sided"]
+        )
+
+    def test_each_entry_replaces_the_previous_file(self):
+        """Entry two must not have to wait for entries three and four."""
+        feature_set_comparison._checkpoint([self._entry(name="hgb")])
+        self.assertEqual(
+            len(json.loads(self.path.read_text(encoding="utf-8"))), 1
+        )
+
+        feature_set_comparison._checkpoint(
+            [self._entry(name="hgb"), self._entry(name="logistic")]
+        )
+        reloaded = json.loads(self.path.read_text(encoding="utf-8"))
+        self.assertEqual([entry["name"] for entry in reloaded], ["hgb", "logistic"])
+
+    def test_a_nan_statistic_is_still_valid_json(self):
+        """`json.dumps` writes a bare `NaN`, which is not JSON.
+
+        The no-discordant-pairs branch of both comparisons puts
+        `float("nan")` in `statistic`, so an ordinary run produced a file
+        only Python could parse. Parsed here with `parse_constant` raising,
+        which is what a stricter reader does.
+        """
+        labels = pd.Series([1] * 100 + [0] * 100)
+        predicted = pd.Series([1] * 120 + [0] * 80)
+        tied = compare_classification(labels, predicted, predicted.copy())
+        self.assertTrue(math.isnan(tied["statistic"]))
+
+        feature_set_comparison._checkpoint([tied])
+        text = self.path.read_text(encoding="utf-8")
+        self.assertNotIn("NaN", text)
+
+        def reject(token):
+            raise ValueError(f"not valid JSON: {token}")
+
+        reloaded = json.loads(text, parse_constant=reject)
+        self.assertIsNone(reloaded[0]["statistic"])
+
+    def test_no_temporary_file_is_left_behind(self):
+        feature_set_comparison._checkpoint([self._entry()])
+        leftovers = sorted(
+            child.name
+            for child in self.path.parent.iterdir()
+            if child.name != self.path.name
+        )
+        self.assertEqual(leftovers, [])
+
+    def test_a_failed_write_leaves_the_previous_checkpoint_intact(self):
+        """The reason the write is atomic.
+
+        An in-place `write_text` opens the real file for truncation first,
+        so a process killed part-way through the write loses the completed
+        entries the checkpoint exists to protect. The failure is injected
+        *inside* the write here — not in serialisation, which raises before
+        any file is touched and so would pass against the in-place version
+        too. With the atomic write the real path is never opened at all.
+        """
+        feature_set_comparison._checkpoint([self._entry(name="hgb")])
+        good = self.path.read_text(encoding="utf-8")
+
+        def die(_fileno):
+            raise OSError("killed mid-write")
+
+        with unittest.mock.patch.object(
+            feature_set_comparison.os, "fsync", die
+        ):
+            with self.assertRaises(OSError):
+                feature_set_comparison._checkpoint(
+                    [self._entry(name="hgb"), self._entry(name="ridge")]
+                )
+
+        self.assertEqual(self.path.read_text(encoding="utf-8"), good)
+
+    def test_a_failed_write_leaves_no_temporary_file(self):
+        feature_set_comparison._checkpoint([self._entry(name="hgb")])
+
+        def die(_fileno):
+            raise OSError("killed mid-write")
+
+        with unittest.mock.patch.object(
+            feature_set_comparison.os, "fsync", die
+        ):
+            with self.assertRaises(OSError):
+                feature_set_comparison._checkpoint([self._entry(name="ridge")])
+
+        leftovers = sorted(
+            child.name
+            for child in self.path.parent.iterdir()
+            if child.name != self.path.name
+        )
+        self.assertEqual(leftovers, [])
+
+    def test_an_unserialisable_entry_never_opens_the_real_file(self):
+        """Serialisation failure is the cheaper half of the same guarantee."""
+        feature_set_comparison._checkpoint([self._entry(name="hgb")])
+        good = self.path.read_text(encoding="utf-8")
+
+        class Unserialisable:
+            pass
+
+        with self.assertRaises(TypeError):
+            feature_set_comparison._checkpoint(
+                [self._entry(name="hgb"), {"name": Unserialisable()}]
+            )
+
+        self.assertEqual(self.path.read_text(encoding="utf-8"), good)
 
 
 if __name__ == "__main__":

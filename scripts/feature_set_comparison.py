@@ -47,6 +47,8 @@ of fills, positions, or P&L — no metric here is a return.
 from __future__ import annotations
 
 import json
+import math
+import os
 from pathlib import Path
 
 import numpy as np
@@ -368,19 +370,71 @@ def format_report(results: list[dict]) -> str:
     return "\n".join(lines)
 
 
-CHECKPOINT_PATH = Path(__file__).resolve().parents[1] / "data" / "cache" / "feature_set_comparison.json"
+CHECKPOINT_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "cache" / "feature_set_comparison.json"
+)
+
+
+def _json_safe(value):
+    """Replace non-finite floats with `None` so the output is valid JSON.
+
+    `json.dumps` emits a bare `NaN` token for `float("nan")`, which Python's
+    own `json.load` accepts and every other JSON reader rejects. Both
+    comparison functions put `float("nan")` in `statistic` on their
+    no-discordant-pairs branch, so a perfectly ordinary run produces a file
+    that only Python can read. `null` is the JSON spelling of "no value",
+    which is what that statistic is.
+    """
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    return value
 
 
 def _checkpoint(results: list[dict]) -> None:
-    """Write completed entries to `data/cache/` after each one.
+    """Write completed entries to `data/cache/` after each one, atomically.
 
     This run is hours long and prints only at the end. An exception in the
     fourth entry used to discard the first three, which is a bad trade for
     two lines of code. The file is regenerable output under `data/cache/`,
     so it is gitignored like everything else there.
+
+    The write goes to a sibling temporary file and is moved into place with
+    `os.replace`, which is atomic on both POSIX and Windows for a same
+    directory rename. Writing in place would truncate the previous
+    checkpoint first, so a process killed part-way through the write would
+    destroy the completed entries the checkpoint exists to protect. A reader
+    either sees the whole previous checkpoint or the whole new one, never a
+    half-written file.
+
+    This is a reboot-shaped failure, and one reached this script: the
+    2026-09-06 run died to a restart rather than an exception. It happened
+    to land inside the first entry, before any checkpoint was owed, so
+    nothing was lost to a torn write that time. The window is real anyway —
+    the run writes four times over several hours — and closing it costs a
+    rename.
     """
     CHECKPOINT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    CHECKPOINT_PATH.write_text(json.dumps(results, indent=2), encoding="utf-8")
+    temporary = CHECKPOINT_PATH.with_suffix(".json.tmp")
+
+    # Serialise before opening anything. A payload that cannot be encoded
+    # must not have already truncated a good checkpoint.
+    payload = json.dumps(_json_safe(results), indent=2)
+
+    try:
+        with open(temporary, "w", encoding="utf-8") as handle:
+            handle.write(payload)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temporary, CHECKPOINT_PATH)
+    except BaseException:
+        # The half-written temporary is the casualty; the real checkpoint
+        # was never opened and still holds the last complete set of entries.
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def main():

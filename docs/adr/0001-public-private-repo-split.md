@@ -1,7 +1,7 @@
 # ADR 0001: Split into Public Framework and Private Strategy/Execution Repository
 
 ## Status
-Accepted
+Proposed (amended 2026-09-08; see Addendum below — reverted from an erroneous "Accepted" mark, pending Camden's sign-off)
 
 ## Date
 2026-09-06
@@ -78,3 +78,95 @@ A separate, strictly private repository holds proprietary capital-trading assets
 - **Integration Testing Overhead**: End-to-end integration tests that verify private broker
   execution against public framework signals must run in private CI or local developer
   environments.
+
+## Addendum (2026-09-08): Scope amended, status reverted pending review
+
+### Status correction
+
+This ADR's Status field read "Accepted" as committed 2026-09-06 (commit
+`d69a6d4`, an Antigravity session). Camden had not reviewed it at that point.
+**Status is corrected to `Proposed`** as of this addendum. It becomes
+`Accepted` only once Camden signs off on the amended scope below — an agent
+marking its own architectural decision final is not the same thing as the
+decision being made.
+
+### Amended decisions (Camden, 2026-09-08)
+
+1. **Dependency model resolved**: the private repo consumes the public repo
+   as a **versioned package** (pinned, e.g. via `pip install git+ssh://...@vX.Y.Z`
+   or a private package index), not a git submodule. Submodules are simpler
+   to wire up but keep the two repos in a detached-HEAD relationship that is
+   easy to desync silently; a versioned package forces an explicit,
+   reviewable bump every time the private repo takes a new framework
+   version — the same discipline this project already applies to every
+   other dependency (`requirements.txt`, pinned by exact version).
+
+2. **Split trigger widened**: the repo split must be substantively true —
+   not necessarily mechanically split into two git remotes — **before
+   advanced ML/quant logic goes in**, not merely before live capital touches
+   the account. "Substantively true" means: no code that constitutes real
+   predictive edge is written directly into the public tree in the first
+   place, even while both trees still live in one repository during active
+   development. The *physical* two-repo split (separate remotes, package
+   versioning, private CI) still happens on its own schedule — see
+   *Sequencing* below — but the *discipline* of not committing edge-bearing
+   logic to the tree that will become public starts now.
+
+3. **Scope narrowed**: the original Decision section (above) listed
+   `estimators.py`, `signals.py`, and `model_cv.py` as public in full. That
+   is revised:
+
+   - **Stays public, unchanged**: `data.py`, `backtest_harness.py`,
+     `model_cv.py` (the leakage-guard machinery — purge/embargo, walk-forward
+     folds — is itself the open-source credibility asset; it is generic
+     mechanics, not edge), `metrics.py`, `plotting.py`, the cost-hurdle
+     module (spec 012), the test suite, and all specs/docs.
+   - **`estimators.py` stays public as an interface + registry pattern.**
+     Confirmed 2026-09-08: its current `ESTIMATOR_REGISTRY` entries
+     (logistic, ridge, hgb×2) hold generic search grids and sklearn
+     defaults, not tuned values — this is exactly the "untuned fallback
+     configuration" this ADR already calls for. If/when a grid search
+     produces an actually-tuned single configuration (post spec 013), that
+     tuned value moves private; the registry *shape* (a dict of
+     name→factory+grid) stays public.
+   - **`signals.py` becomes an interface, not an implementation.** The
+     public repo ships the contract — a function that takes a prediction
+     series and cost parameters and returns a position/signal series, plus
+     a reference implementation (the untuned logistic baseline already
+     proven out in spec 014's control comparison) — good enough to prove
+     the framework works end-to-end, not good enough to trade. The real,
+     edge-bearing signal-generation logic that follows from spec 013's
+     multi-ticker expansion and beyond lives in the private companion
+     repo, built against the public interface.
+
+### Why this doesn't require new design work today
+
+Spec 012 (cost-aware entry rule, confirmed unblocked 2026-09-08) already
+implements this boundary correctly on its own terms, independent of this
+amendment: it consumes a prediction series, does not import
+`backtest_harness.py` or `estimators.py`, and is scoped estimator-agnostic
+(FR-012). The module-boundary table already in `CLAUDE.md` (signal layer
+must not know about fills/sizing/accounting) is the same discipline this
+amendment asks for — this addendum formalizes an existing practice into an
+explicit repo-split requirement, it does not introduce a new one.
+
+**No plug-in scaffolding (abstract base class, private stub package) is
+being built yet.** Nothing downstream requires it before spec 013 lands and
+the shape of the real signal logic is known. Building that scaffolding now,
+ahead of the wall that makes it necessary, would be sequencing out of order
+per this project's own project-first principle. What starts now is
+discipline only: no tuned parameter, trained checkpoint, or the eventual
+production signal implementation gets committed to this tree, even before
+the physical two-repo split exists.
+
+### Sequencing
+
+The physical split (second git remote, package versioning, private CI) is
+not on the critical path for 012 → 015 → 013 and should not be pulled
+forward — doing so now would add two-repo coordination overhead while the
+framework itself is still moving fast, for no protective benefit, since
+nothing edge-bearing exists in the tree yet (confirmed by the 2026-09-08
+grep check: no tracked secrets, no tracked tuned configs). The physical
+split happens once `signals.py`'s real implementation is about to be
+written — i.e., after spec 013, when multi-ticker signal logic starts
+turning into something worth protecting.
