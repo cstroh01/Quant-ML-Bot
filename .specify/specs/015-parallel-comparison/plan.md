@@ -103,3 +103,52 @@ After `ProcessPoolExecutor.as_completed()` yields all 8 tasks:
 
 Because results are sorted by `(name, task)` before reporting, the output order is
 strictly deterministic and identical to the serial script.
+
+---
+
+## Implementation Correction (2026-09-09)
+
+Design Constraint 2 above (`_worker_init()` setting thread-limit env vars inside
+the worker) does not achieve its stated goal on Windows. This section records
+why, and what actually ships instead, so the next agent reading this plan does
+not re-derive the same bug from scratch.
+
+**What was wrong.** On Windows, `ProcessPoolExecutor` workers are created via
+`spawn`, not `fork`. A `spawn`ed child's first act is unpickling the submitted
+task, which imports `numpy`/`scipy`/`sklearn` as a side effect of unpickling
+the task's arguments — and NumPy's BLAS backend and `HistGradientBoosting`'s
+own thread pool are both committed at import time, before `_worker_init()` on
+the executor ever runs. `_worker_init()` arrives too late to matter.
+
+**Measured impact.** With `_worker_init()` alone, workers ran at ~2.8 cores
+each instead of the intended 1.0 — worse than doing nothing. Setting
+`OMP_NUM_THREADS` late, after sklearn has already read the environment, reads
+to sklearn as deliberate operator configuration and disables its own
+core-count heuristic: effective thread count came out at 16 with the
+initializer versus 8 without it. This was caught by measuring actual effective
+thread count during execution, not by reading the env var back afterward
+(the env var reads `"1"` in both the broken and fixed versions — reading it
+back proves nothing).
+
+**The fix.** `_pinned_thread_environment()`, a context manager, sets the five
+thread-limit env vars (`OMP_NUM_THREADS`, `OPENBLAS_NUM_THREADS`,
+`MKL_NUM_THREADS`, `VECLIB_MAXIMUM_THREADS`, `NUMEXPR_NUM_THREADS`) in the
+**parent** process before `ProcessPoolExecutor` is constructed, and restores
+the parent's original environment on exit. A `spawn`ed child inherits the
+parent's environment at spawn time — ahead of its own first import — so the
+limits are in place before NumPy/sklearn ever read them. `_worker_init()` is
+retained as-is and still runs; it is now the fallback for the `fork` start
+method (Linux/macOS default), where it was never actually broken. Design
+Constraint 2's code above is superseded by this context manager wrapping the
+pool's lifetime; `_worker_init()` is not removed.
+
+**Verification.** Five new tests in `tests/test_feature_set_comparison.py`
+guard this specifically: effective thread count under the pool matches the
+pin (not just the env var string), and parent environment is provably
+restored after the pool exits.
+
+**Status.** Implemented and tested by Claude Code during spec 015 work,
+ratified as a clearly-correct fix (not a tradeoff) rather than a spec
+deviation requiring a new round of Camden review — the spec's literal
+mechanism defeated its own SC-001 goal, so following it literally would have
+shipped a regression. Not yet committed to git (Rule 10 — Camden commits).

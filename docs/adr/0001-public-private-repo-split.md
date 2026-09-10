@@ -1,7 +1,7 @@
 # ADR 0001: Split into Public Framework and Private Strategy/Execution Repository
 
 ## Status
-Proposed (amended 2026-09-08; see Addendum below — reverted from an erroneous "Accepted" mark, pending Camden's sign-off)
+Accepted (2026-09-09) — amended scope per the 2026-09-08 Addendum below, reviewed and formally accepted by Camden on 2026-09-09.
 
 ## Date
 2026-09-06
