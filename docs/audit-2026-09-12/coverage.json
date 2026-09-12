@@ -1,0 +1,1388 @@
+[
+  {
+    "path": ".claude/.headroom_wrap_settings.lock",
+    "bytes": "1",
+    "lines": "1",
+    "sha256": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/agents/quant-reviewer.md",
+    "bytes": "1100",
+    "lines": "42",
+    "sha256": "71b257fa2def92f2d9af2f5dbddd437530a3e155b9776ca6453179f3b19fe9d5",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/commands/spec-status.md",
+    "bytes": "648",
+    "lines": "24",
+    "sha256": "4076a9535db2d160d5460392dd768ae94f915a10d1382d874c8651babc745d91",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/hooks/run-tests.ps1",
+    "bytes": "111",
+    "lines": "2",
+    "sha256": "5aa8ba98210aa3df71b25690aba375292aca02229ab43f674d089c00fdc84ef8",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/settings.json",
+    "bytes": "0",
+    "lines": "0",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-analyze/SKILL.md",
+    "bytes": "11769",
+    "lines": "262",
+    "sha256": "72a6e6ff794e3099debe70e492433b94e6c8da57e49e03e8711b506ecfc3e608",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-checklist/SKILL.md",
+    "bytes": "22391",
+    "lines": "386",
+    "sha256": "34c8c681f5472f2790d65ac29ca01e23f4f32ab6f06c9dca1b38fc89e2cfba86",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-clarify/SKILL.md",
+    "bytes": "19326",
+    "lines": "294",
+    "sha256": "f4b3f2c95087ac2343c0b67faff67f7223d34213ca1816aa25908db5b9aff0ac",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-constitution/SKILL.md",
+    "bytes": "10083",
+    "lines": "180",
+    "sha256": "a93047917a5fefeefff7aa35991109ce8f9938c4890e52206408b511bf756eb5",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-converge/SKILL.md",
+    "bytes": "12715",
+    "lines": "279",
+    "sha256": "6eca60f035306017d43afefd3a7a23ae448484b584080aa404ff65e3e3fdec0a",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-implement/SKILL.md",
+    "bytes": "12829",
+    "lines": "229",
+    "sha256": "51bd89322e0258ae377ea66a6af41a159b0e1a05304d5a17ea0f9a9baa6640a9",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-plan/SKILL.md",
+    "bytes": "7974",
+    "lines": "169",
+    "sha256": "dce71b7e40c61f57d3f2bbb9b3b452336bc9fa331f6ab12dbe36a475849f8cba",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-specify/SKILL.md",
+    "bytes": "18379",
+    "lines": "348",
+    "sha256": "42fe016b9183bb8fa7ce7c65e04ea8d382f7f2abfc94849aeead999247675886",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-tasks/SKILL.md",
+    "bytes": "11089",
+    "lines": "217",
+    "sha256": "597853362a0a770fe967c5d56136e2db38de1aa7b97b89552db667b70ac493c1",
+    "review": "source and design review"
+  },
+  {
+    "path": ".claude/skills/speckit-taskstoissues/SKILL.md",
+    "bytes": "7807",
+    "lines": "112",
+    "sha256": "76a6ec1fcc2d4f2f4ae4d1a70e59eca034fd9a3f97c5454094b023ed3da65151",
+    "review": "source and design review"
+  },
+  {
+    "path": ".gitattributes",
+    "bytes": "176",
+    "lines": "5",
+    "sha256": "dfabc803c5f7b1bdcb2bd122449cee78e4b2764e66722f3bc1abc5840df1b150",
+    "review": "source and design review"
+  },
+  {
+    "path": ".github/workflows/claude.yml",
+    "bytes": "2143",
+    "lines": "65",
+    "sha256": "a16681bf9dbe515fe7c652409ed42ed1b5335504e41e8b2a8e3ffc71b4d05a03",
+    "review": "source and design review"
+  },
+  {
+    "path": ".github/workflows/test.yml",
+    "bytes": "329",
+    "lines": "17",
+    "sha256": "7bb5fe4879fe8b4aa6c3230bb366906d96984d83150737dcfc897ed917b2a87b",
+    "review": "source and design review"
+  },
+  {
+    "path": ".gitignore",
+    "bytes": "651",
+    "lines": "29",
+    "sha256": "738796092e695cca3c7a524ee03c737a988c41b5a0f23dd72910640789894559",
+    "review": "source and design review"
+  },
+  {
+    "path": ".serena/.gitignore",
+    "bytes": "28",
+    "lines": "2",
+    "sha256": "441f89b8bba2252c9f7797ebc2fca741b760712e1c8261a7ad5c282175dd52f2",
+    "review": "source and design review"
+  },
+  {
+    "path": ".serena/project.yml",
+    "bytes": "9955",
+    "lines": "169",
+    "sha256": "a0602ff778b93d0140cf64bb561aeb95883c3e0d8a78e4089836753819b13d06",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/.gitignore",
+    "bytes": "384",
+    "lines": "9",
+    "sha256": "8c908410d177a1ef3d0dee16d7ad55f2ac3333df3104c4d4adee1c9b82f1dbc1",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/init-options.json",
+    "bytes": "175",
+    "lines": "9",
+    "sha256": "e8efba0c4b4682e3d8fa8bc6a50c5a748a748823ff540b85ec54347f07de3113",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/integration.json",
+    "bytes": "280",
+    "lines": "15",
+    "sha256": "b51b64e22eafb9202755920e83cf3ad63f94354312e97694dd5fce6bdc52644e",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/integrations/claude.manifest.json",
+    "bytes": "1289",
+    "lines": "17",
+    "sha256": "f26c6167fc0d6fa69e61947f6817b76dc64533f77bd3f16f0e5098b497a37dc6",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/integrations/speckit.manifest.json",
+    "bytes": "1479",
+    "lines": "19",
+    "sha256": "642fd8e61dc38485d546f889e9e826e817dee9d59784fd5c39fbb4a5997cdcaa",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/memory/constitution.md",
+    "bytes": "9024",
+    "lines": "218",
+    "sha256": "8e4fd2751169465d29e17562b2882632f82d28203c8ae0705b448a5a12b1e0a8",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/scripts/bash/check-prerequisites.sh",
+    "bytes": "8193",
+    "lines": "243",
+    "sha256": "daa377146db4fb69912f42611a7b91c5d55873b3e3e27ed33bd8d67505826344",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/scripts/bash/common.sh",
+    "bytes": "38444",
+    "lines": "926",
+    "sha256": "170e91ece502b88d83c715e427473843e0b358f550e86e3ff524546df405a9ca",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/scripts/bash/create-new-feature.sh",
+    "bytes": "16466",
+    "lines": "420",
+    "sha256": "9f7a741d9766a6c1c5d5e44368f2c6bea6026b399ff6f0055870f760afdb8726",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/scripts/bash/resolve-template.sh",
+    "bytes": "1547",
+    "lines": "57",
+    "sha256": "829e227096abc8bf0889889ec9f792f503ca5d395b7836a8a7eb739ee75214e7",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/scripts/bash/setup-plan.sh",
+    "bytes": "2540",
+    "lines": "85",
+    "sha256": "d0bd298c026446f3c63167130d65e49e4aa4485de6bef18bcdfd57b19aa0de96",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/scripts/bash/setup-tasks.sh",
+    "bytes": "3549",
+    "lines": "94",
+    "sha256": "4a33dd1e6c32ddc7d570f4b538572c54069192573eed0ec654d9fb826e31a4fe",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/001-data-ingestion/contracts/data-module.md",
+    "bytes": "3825",
+    "lines": "98",
+    "sha256": "44a0263a584cf81a0a4bef3f2e41e27df88a665805ce2cb0912dfa3f128079cc",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/001-data-ingestion/data-model.md",
+    "bytes": "3916",
+    "lines": "101",
+    "sha256": "6091ea9b5196d77f6464780275f98d276b988c2cc9be03492497ebe314069d76",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/001-data-ingestion/plan.md",
+    "bytes": "5586",
+    "lines": "119",
+    "sha256": "3270e16b0e442c8a692e2f1ad89d097e0d5701aa335aa7c5352c38de4c0a701a",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/001-data-ingestion/quickstart.md",
+    "bytes": "1894",
+    "lines": "73",
+    "sha256": "dacd7d465e9a0390e9f89888235fdcadb6236503ec0db4a429b38bf0fded9142",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/001-data-ingestion/research.md",
+    "bytes": "9371",
+    "lines": "195",
+    "sha256": "c9a80688b6b660860aeae5d16da965b7a210c9e9103cda6da5a4e2452e9ac785",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/001-data-ingestion/spec.md",
+    "bytes": "9314",
+    "lines": "211",
+    "sha256": "90075449d2cfa39b03d94cc2cb34713fff70b9dccb92c302d4c1f011a1b2dde9",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/001-data-ingestion/tasks.md",
+    "bytes": "3205",
+    "lines": "70",
+    "sha256": "d55dc6ddf76677328d614ff48c1d7850ceeefaeb9be0724472cc0c27ba86b8b7",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/002-backtest-costs-baselines/plan.md",
+    "bytes": "6944",
+    "lines": "140",
+    "sha256": "74b18418e17310b2c89fbcecffdf3a20d16e1829073b1837109779ec1207c915",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/002-backtest-costs-baselines/spec.md",
+    "bytes": "11379",
+    "lines": "246",
+    "sha256": "0940e38c84303f122099a7d0017d0334008bf4f50ada363c50635a0ec3d7b740",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/002-backtest-costs-baselines/tasks.md",
+    "bytes": "4041",
+    "lines": "88",
+    "sha256": "5b424806f78162a7b70c558ee15c98bebb44a05f1851234ddad3e0a22570e7d6",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/003-cv-purge-embargo/plan.md",
+    "bytes": "7003",
+    "lines": "150",
+    "sha256": "147185fdbf7a38ac82ea248bf5c70f8830e7a43e6044a2fae7335ee639df21e9",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/003-cv-purge-embargo/spec.md",
+    "bytes": "11660",
+    "lines": "233",
+    "sha256": "6b5f7596bc2f8b0b968998b5775a3b9fdba4cb2b2e9b1b4e6c8f158dd60efffd",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/003-cv-purge-embargo/tasks.md",
+    "bytes": "3030",
+    "lines": "69",
+    "sha256": "07fa7e66364521ed9ef24c9801d25fa501d085b5e341fcd493d8dbad3a7da856",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/004-test-ci-workflow/plan.md",
+    "bytes": "2858",
+    "lines": "90",
+    "sha256": "34eef3cafcc8f3f565d72fb69567801a9050878a5194ea946039397e19f414ae",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/004-test-ci-workflow/spec.md",
+    "bytes": "4611",
+    "lines": "117",
+    "sha256": "dc491e79aba43b18bae8d78f890b9c64b794a97a6e0d62e2287a466f6ddcec71",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/004-test-ci-workflow/tasks.md",
+    "bytes": "1192",
+    "lines": "32",
+    "sha256": "158681095b8dabaf3b8b88471da57fdca7fedf95826d3611bfb0b4a9a56e6e9e",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/005-ml-signal-wiring/plan.md",
+    "bytes": "6955",
+    "lines": "125",
+    "sha256": "f1d4f1967486bacc546cdc76e203576a980e3a0895bb02b1732943d8882b59a2",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/005-ml-signal-wiring/spec.md",
+    "bytes": "8805",
+    "lines": "172",
+    "sha256": "3f38948baf578013d223ca12f3a505145742db83daca6c39f5250ec218d72efd",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/005-ml-signal-wiring/tasks.md",
+    "bytes": "3220",
+    "lines": "70",
+    "sha256": "9c985b530798f51c64af3be50acc7a17a62f1553261f68b363d694fe9a52d82d",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/006-embargo-window-semantics/plan.md",
+    "bytes": "8242",
+    "lines": "194",
+    "sha256": "fb6155dddc355119c030eba8c767cc6a13c54ea996b413f1e036afc329d3246d",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/006-embargo-window-semantics/spec.md",
+    "bytes": "11655",
+    "lines": "256",
+    "sha256": "6a39d85da99c6a24f125dde0b46939dd61c69f267f7ce75b579dd1d60b19ed9c",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/006-embargo-window-semantics/tasks.md",
+    "bytes": "2748",
+    "lines": "60",
+    "sha256": "8c366fe6eb3f5048c2bcb7a3ce96579ce2590c6320b776cf2f93e40af155971f",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/007-oos-coverage-index/plan.md",
+    "bytes": "7105",
+    "lines": "177",
+    "sha256": "0922a1bac79e7a11bd3ada61ceea8605ec6ee9bce755420bf549c08bab70174a",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/007-oos-coverage-index/spec.md",
+    "bytes": "7609",
+    "lines": "184",
+    "sha256": "e655e8f5f80a25f0a59f8149374b2db2e780111a48b4bff9627e66fa4a95e660",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/007-oos-coverage-index/tasks.md",
+    "bytes": "2061",
+    "lines": "45",
+    "sha256": "2b38635513a22ed96c1e324bb6a0b14b9bdcf30683d3a69be6c7074ba81fc7d7",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/008-metrics-reporting/plan.md",
+    "bytes": "7544",
+    "lines": "161",
+    "sha256": "03882db50aaf783b3cb7db3326d1b64b38954fd988b2ae807c3069cbc3fa74af",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/008-metrics-reporting/spec.md",
+    "bytes": "12370",
+    "lines": "259",
+    "sha256": "0692a11ae67e1f4eef832368b1ce1b36aca22690de6ccc46b6a7d47bc5fd4a3d",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/008-metrics-reporting/tasks.md",
+    "bytes": "3468",
+    "lines": "74",
+    "sha256": "ad3478b8a725b8d3f38f68410066ad3f7edaf3b045ecc89714c8a7af22fcf9ea",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/009-selectable-target/plan.md",
+    "bytes": "6619",
+    "lines": "136",
+    "sha256": "60ea242e42a76347607e98877bcb500eb22f3e12e4d64f6aa12159cb5e963f39",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/009-selectable-target/spec.md",
+    "bytes": "11642",
+    "lines": "250",
+    "sha256": "99ca369f170c188d9879374493c0d2394b2476fe1f8a1653b4476e53d5311493",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/009-selectable-target/tasks.md",
+    "bytes": "2941",
+    "lines": "62",
+    "sha256": "15becd5b705d3a5c16e50df417c9bbdf601e8687f19d6d8a6039442304087670",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/010-estimator-registry/plan.md",
+    "bytes": "7011",
+    "lines": "140",
+    "sha256": "99104801dd7a8e6d5d537552de06fa48bfadce22483158d65b5c886b4a940248",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/010-estimator-registry/spec.md",
+    "bytes": "14300",
+    "lines": "271",
+    "sha256": "14a8bc085451ba4200bbb8b19567302427669e590801a9edfd90cf8679602381",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/010-estimator-registry/tasks.md",
+    "bytes": "3135",
+    "lines": "64",
+    "sha256": "7837cda034966670f717c92a2d01968ce4e6704c44c347c9e446fce8e0182b67",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/011-nested-cv-tuning/plan.md",
+    "bytes": "11305",
+    "lines": "217",
+    "sha256": "1f7e6713667d8cdba7a6a5a229a77824d29091f650013c5aaaab0042e4e61162",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/011-nested-cv-tuning/spec.md",
+    "bytes": "14204",
+    "lines": "277",
+    "sha256": "08bc98cdd8a8e07ec19776d7c27f5fc3fd253dee4039aeca6799a44bf1aa5525",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/011-nested-cv-tuning/tasks.md",
+    "bytes": "3234",
+    "lines": "65",
+    "sha256": "3de1d53fce4a8d6d18ece04c49ac8415af93c0b773a20162ccedb766fd9820eb",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/012-cost-aware-entry-rule/spec.md",
+    "bytes": "15867",
+    "lines": "311",
+    "sha256": "6d3e464724166af9b1c0b41e7f733fb662c7109a7f3375f9ad52e339bb134bad",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/012-cost-aware-entry-rule/tasks.md",
+    "bytes": "5143",
+    "lines": "101",
+    "sha256": "3d1199792ad99401239ddc261d27683d95fe2eae9e9e62eb09d80e31dc5450db",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/013-multi-ticker-comparison/plan.md",
+    "bytes": "10488",
+    "lines": "189",
+    "sha256": "1b79bb2457b91f572233f13e7ada87c84aec4e0d0bdd6b463b55da2723998b35",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/013-multi-ticker-comparison/spec.md",
+    "bytes": "11244",
+    "lines": "217",
+    "sha256": "c5db6891e9ea067635857b9fc017baae7afa1da06c0c46b97a4a4ff3c1749b07",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/013-multi-ticker-comparison/tasks.md",
+    "bytes": "3529",
+    "lines": "69",
+    "sha256": "616bbc0fe8d5e7570c0e501c9ddbd6e8e65269bae392be7ac228db337be299ac",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/014-scale-free-features/plan.md",
+    "bytes": "8633",
+    "lines": "143",
+    "sha256": "7634a01a0fbf2b71d8df43b476cbdb0c4e7d330efb0024ebed9a49e54e99ff51",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/014-scale-free-features/spec.md",
+    "bytes": "16874",
+    "lines": "310",
+    "sha256": "ee82e1997b0ebe28138e9b0b5fceaeb13f6656878adfe2317303160ae1146c40",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/014-scale-free-features/tasks.md",
+    "bytes": "9728",
+    "lines": "167",
+    "sha256": "fdda47c10ff4287c51e90fd8bf920ad9bc81322bcd2d0a27b219c2ab7d2d2d8c",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/015-parallel-comparison/plan.md",
+    "bytes": "7365",
+    "lines": "154",
+    "sha256": "50a46c010eaa5ca6946c5388611b1ee947e5bee391f31e7a2703224e35460e8c",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/015-parallel-comparison/spec.md",
+    "bytes": "9361",
+    "lines": "195",
+    "sha256": "18d5dcfed970bd2f3707ce79717fff0c7c4db085306e07a53f7b0e4fa2809a7b",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/015-parallel-comparison/tasks.md",
+    "bytes": "2308",
+    "lines": "29",
+    "sha256": "e26a1f1a5c40e7a23ff2fbb857b2663c81056423596a5bc8dc24b4946a98e954",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/016-quant-terminal-ui/plan.md",
+    "bytes": "4594",
+    "lines": "83",
+    "sha256": "7113e8ac801922c5c91c10943a1924dd938d9412445d7abb27df5b3efcd6271b",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/016-quant-terminal-ui/spec.md",
+    "bytes": "5145",
+    "lines": "66",
+    "sha256": "6e65b90146bae75d358b83c0a98715fa4b5cf263dfda11b60917149766b7385e",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/016-quant-terminal-ui/tasks.md",
+    "bytes": "3056",
+    "lines": "41",
+    "sha256": "39af18ec6a4c066e18d16a6ce38aa56332570344d3dc7dc33f8bd8964d41e8cb",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/017-position-sizing-risk/checklists/requirements.md",
+    "bytes": "1905",
+    "lines": "44",
+    "sha256": "1233399d82ce309905796b57b0d80fefbf5a3949496ea83b934b90d1a556a2ec",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/017-position-sizing-risk/contracts/portfolio-risk-module.md",
+    "bytes": "4853",
+    "lines": "171",
+    "sha256": "6350158fe0c8fa413e0959dedabf4b4d550fbe4ede2b83c43975d186f00a8a8d",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/017-position-sizing-risk/data-model.md",
+    "bytes": "5164",
+    "lines": "148",
+    "sha256": "f2dde98c9db8196b2aea6492653d4586568901819e9bc5053ff3db2506f2e0bf",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/017-position-sizing-risk/plan.md",
+    "bytes": "11584",
+    "lines": "222",
+    "sha256": "233a76fff7bae537d5f012ba8bdcf020dc657d5a27194a60f8aead7a222d9926",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/017-position-sizing-risk/quickstart.md",
+    "bytes": "3303",
+    "lines": "99",
+    "sha256": "999051491a280bff9d8e471af9756f8e93b30074663ec5f89cda4dcce42ef7e5",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/017-position-sizing-risk/research.md",
+    "bytes": "9634",
+    "lines": "228",
+    "sha256": "7f130852edde941c3a9cb3b3ab9f53ce6a6f9d0d818d19da66c7ea5962702e7f",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/017-position-sizing-risk/spec.md",
+    "bytes": "27175",
+    "lines": "493",
+    "sha256": "eaff06c8fccc4d0b5f02c6068c5e57249ff671c38c26082facdfb9938dd5edb8",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/specs/017-position-sizing-risk/tasks.md",
+    "bytes": "17621",
+    "lines": "286",
+    "sha256": "626fe986db7c02cff578c8d44e7524c5666dff9dac5846e021af59351090e488",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/templates/checklist-template.md",
+    "bytes": "2033",
+    "lines": "45",
+    "sha256": "856532b3cb66171c662cc16f16b31a5856e4655a8666aad1e545bbfc7f603ca1",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/templates/constitution-template.md",
+    "bytes": "2346",
+    "lines": "50",
+    "sha256": "ce7549540fa45543cca797a150201d868e64495fdff39dc38246fb17bd4024b3",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/templates/plan-template.md",
+    "bytes": "3682",
+    "lines": "113",
+    "sha256": "7e637502d41eccf0ca672496636365691fdca62ef37b27ec07fcb412dbfa90d4",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/templates/spec-template.md",
+    "bytes": "4556",
+    "lines": "131",
+    "sha256": "3945437fc35cd30a5b2bf7beea680337c3516826d3efa5a6b92c4a7eca1ba28e",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/templates/tasks-template.md",
+    "bytes": "9171",
+    "lines": "252",
+    "sha256": "fc29a233f6f5a27ca31f1aa46b596af6500c627441c6e62b2bc4a1d721525842",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/workflows/speckit/workflow.yml",
+    "bytes": "2118",
+    "lines": "74",
+    "sha256": "177761c5e7df28126beea043b5cb45aeaf7958090c022dc11ac71399422fcfbc",
+    "review": "source and design review"
+  },
+  {
+    "path": ".specify/workflows/workflow-registry.json",
+    "bytes": "369",
+    "lines": "13",
+    "sha256": "3d561f5f109aa48b0e99594f4030da65df6566d86c52a1be5a170d2c6867667a",
+    "review": "source and design review"
+  },
+  {
+    "path": "CLAUDE.md",
+    "bytes": "7410",
+    "lines": "158",
+    "sha256": "71924c5e552e068dca54c3344b8ee12a2bcd3675320c5f1b25c4f735a4ea7a17",
+    "review": "source and design review"
+  },
+  {
+    "path": "docs/adr/0001-public-private-repo-split.md",
+    "bytes": "10074",
+    "lines": "172",
+    "sha256": "99809eeecbe6563cda078d8953b95db468fd96008763c4811fc0ef33f77b5945",
+    "review": "source and design review"
+  },
+  {
+    "path": "docs/PROJECT_CONTEXT.md",
+    "bytes": "37640",
+    "lines": "679",
+    "sha256": "17a18d40370c33ab16bfdb287337398457dc4b9d46a1cbf2b069a861f0ea602f",
+    "review": "source and design review"
+  },
+  {
+    "path": "NIGHT_RUN_SUMMARY.md",
+    "bytes": "13829",
+    "lines": "212",
+    "sha256": "e9022c53e374a5ecbd065eb35b0d0601d28faf2c18e47b184dd28a386e209484",
+    "review": "source and design review"
+  },
+  {
+    "path": "plots/AAPL_acf.png",
+    "bytes": "16714",
+    "lines": "",
+    "sha256": "08248520f57d1dd590a95475db3d1d1dfc95ecee7ec7171db666056d62cb446a",
+    "review": "image inspection"
+  },
+  {
+    "path": "plots/aapl_log_returns_acf.png",
+    "bytes": "16714",
+    "lines": "",
+    "sha256": "08248520f57d1dd590a95475db3d1d1dfc95ecee7ec7171db666056d62cb446a",
+    "review": "image inspection"
+  },
+  {
+    "path": "plots/GOOGL_acf.png",
+    "bytes": "16762",
+    "lines": "",
+    "sha256": "18a54bd0e6e1f8c4cdcc6d76dcf8e00254c84bd34aff0c7d7fcf8f75c1ce5e77",
+    "review": "image inspection"
+  },
+  {
+    "path": "plots/googl_log_returns_acf.png",
+    "bytes": "16762",
+    "lines": "",
+    "sha256": "18a54bd0e6e1f8c4cdcc6d76dcf8e00254c84bd34aff0c7d7fcf8f75c1ce5e77",
+    "review": "image inspection"
+  },
+  {
+    "path": "plots/MSFT_acf.png",
+    "bytes": "16582",
+    "lines": "",
+    "sha256": "90b787e111674d0c2e12486f218077c2753d831d0b3eb7d8877f88acd5f072ec",
+    "review": "image inspection"
+  },
+  {
+    "path": "plots/msft_log_returns_acf.png",
+    "bytes": "16582",
+    "lines": "",
+    "sha256": "90b787e111674d0c2e12486f218077c2753d831d0b3eb7d8877f88acd5f072ec",
+    "review": "image inspection"
+  },
+  {
+    "path": "README.md",
+    "bytes": "6862",
+    "lines": "152",
+    "sha256": "aee0d2cc085d371bd8065dfafad6040feed278862cda55cbe82cafc3986f6d0e",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/__init__.py",
+    "bytes": "52",
+    "lines": "1",
+    "sha256": "a8b3de1df48b3e2ac07670d7a612bbbda2ba5e3b8377757b3490baca7a1d081e",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/api/__init__.py",
+    "bytes": "56",
+    "lines": "1",
+    "sha256": "146bde4e980025e16a70cbb62f441cd16df26c2ec7d68ae6040b688bf8d34168",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/api/main.py",
+    "bytes": "2134",
+    "lines": "66",
+    "sha256": "1164710a0c91d998fdedacb9db522e8d76ffb741dcd43f81cd5a43225d016280",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/api/routes/__init__.py",
+    "bytes": "43",
+    "lines": "1",
+    "sha256": "6596bf757e40e5db472d2b3e8b4c7f5bd23062d8d5abe365ee5bd7b9ffa7a67d",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/api/routes/backtest.py",
+    "bytes": "6634",
+    "lines": "172",
+    "sha256": "c70573e29d89d056250f8e1dd922334ce38d921017473945aab3ec4a6b4df48b",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/api/routes/capital_gate.py",
+    "bytes": "3104",
+    "lines": "60",
+    "sha256": "0cea238da38fb1c5f7873d08d311df480518899f3c8ae2a7feacfef512b799c8",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/api/routes/data.py",
+    "bytes": "5777",
+    "lines": "156",
+    "sha256": "f3c67ed791feadb617913fe58d85d1afe631223d501c1ec38ac5b3fffd5f1d3c",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/api/routes/diagnostics.py",
+    "bytes": "4258",
+    "lines": "126",
+    "sha256": "07cdc5014bcd3e9ae5e01a8b530f84ef1db6d45ed83fba72f450834707abbc58",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/api/routes/ml_rundown.py",
+    "bytes": "11236",
+    "lines": "237",
+    "sha256": "6002417b90151fbd2375eb96ab7ac3d71e7831df9dab85a98c5fe54398f94d93",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/api/schemas.py",
+    "bytes": "3210",
+    "lines": "144",
+    "sha256": "e4212061e1d4332626b276e7441ff216c443f1d3a1b32e80aa60c891d5f4b4b7",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/requirements-ui.txt",
+    "bytes": "471",
+    "lines": "9",
+    "sha256": "84c25c414f9973a18b61f54e83cccf83dcb8ae84decb8b642b0f6d492283276c",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/.gitignore",
+    "bytes": "253",
+    "lines": "24",
+    "sha256": "fe718e7babb14f3cbad2d97f08889b9ce5215ed3fe0e43b2b8cfbfb3b9b844e8",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/.oxlintrc.json",
+    "bytes": "245",
+    "lines": "8",
+    "sha256": "b4d344818a1e1bf43997e4744a9153c8eef770c98b58229cd86363dabb85ded4",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/index.html",
+    "bytes": "407",
+    "lines": "13",
+    "sha256": "76421c79e60e46ce8a6a5c36b4fb2f318574c5c7fb6c97592dad0f7eb6fb1d11",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/package-lock.json",
+    "bytes": "64872",
+    "lines": "1995",
+    "sha256": "2f18b9b9afdc617aae2b063baf26ad51f117088624c5739810cfb5e3450ea1de",
+    "review": "structured dependency lock review and npm audit"
+  },
+  {
+    "path": "reports/web/package.json",
+    "bytes": "695",
+    "lines": "30",
+    "sha256": "ac5065e974cc78f0c9365a27ecb71aa8e3ac3a77b20d8ac33099fd12af360c97",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/public/favicon.svg",
+    "bytes": "9522",
+    "lines": "1",
+    "sha256": "61bc9a161de58248288e6905425d7180f0624c2865007b97d763fdac12043a66",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/public/icons.svg",
+    "bytes": "5031",
+    "lines": "24",
+    "sha256": "b45fa506195cfcdef406ba9f0c77b36ddc1a7c224040926ec70abc2fdea7b93a",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/README.md",
+    "bytes": "1278",
+    "lines": "32",
+    "sha256": "fa8aac78b8be1993010b57f41000a243ecba006f6731513fe4ec91e788bf2517",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/App.css",
+    "bytes": "2891",
+    "lines": "184",
+    "sha256": "6e25a776d3e8102da5bacb3cb99f4a5fc662a2e01e6143140671a556d28c3d5c",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/App.tsx",
+    "bytes": "8574",
+    "lines": "257",
+    "sha256": "a59e932efd38973933da0912671cecb216c4d20b4d191440a0b2833a62788ec2",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/assets/hero.png",
+    "bytes": "13057",
+    "lines": "",
+    "sha256": "881ffbcaafc212e49addad08846a5b82761355fa20624253af3477ba33262c5c",
+    "review": "image inspection"
+  },
+  {
+    "path": "reports/web/src/assets/react.svg",
+    "bytes": "4126",
+    "lines": "1",
+    "sha256": "35ef61ed53b323ae94a16a8ec659b3d0af3880698791133f23b084085ab1c2e5",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/assets/vite.svg",
+    "bytes": "8709",
+    "lines": "1",
+    "sha256": "5be21acd42eb7b896e517f4e0f0f11eb5c5d9e54fbbcebe9453f033008fcca6f",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/charts/CandlestickChart.tsx",
+    "bytes": "9769",
+    "lines": "315",
+    "sha256": "702db1952c7afe1dd7c0b441cc2b347f95c3d71b9a5b92cedb78232f586eee08",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/charts/DrawdownChart.tsx",
+    "bytes": "2250",
+    "lines": "82",
+    "sha256": "5249f567b6f8dd4d120be21447c62c0832c85aebd99ea9bebb6edc7107ca7033",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/charts/EquityCurveChart.tsx",
+    "bytes": "2399",
+    "lines": "87",
+    "sha256": "ebf1a4d9282715705e7de05cb1d66ddecda55e68fe330c61dadbc94a003b5a03",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/common/KeyboardShortcutsModal.tsx",
+    "bytes": "2150",
+    "lines": "57",
+    "sha256": "58faa5788c13cd32543216180a5d45fe5b7d6d852e5ab14416ed26c277e39b1c",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/common/TutorCard.tsx",
+    "bytes": "5765",
+    "lines": "153",
+    "sha256": "c348ea64c74cf3866198657b67044ff4e8fbb69e7e0b82a2206708bdd3e75031",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/layout/Header.tsx",
+    "bytes": "5182",
+    "lines": "135",
+    "sha256": "c20ec8e1ae1bc5a1105d60c3e16be814340b9b77e092debd746346000e3577d5",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/layout/MLRundownPane.tsx",
+    "bytes": "8462",
+    "lines": "187",
+    "sha256": "b7d0946b8b96a45dd1bac697567d1564e564edb36d1f0cf2b9d5060cb5b106b9",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/layout/TabNavigation.tsx",
+    "bytes": "2279",
+    "lines": "77",
+    "sha256": "251b2bb55443089af7c5fe36503a00f40e308d0468c6f14cb5954bf278dfbafd",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/views/BacktestTearsheetView.tsx",
+    "bytes": "24773",
+    "lines": "521",
+    "sha256": "7dd84ae898867f937b911aa18d401957ff4aef71a8e0cbe13f0839e3d0a9e412",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/views/CapitalGateView.tsx",
+    "bytes": "7996",
+    "lines": "159",
+    "sha256": "646f0501032cd072c4a7c8d7ed6b691822a12704a3b17b7a62d9a3f63bc1bc7d",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/views/CrossValidationView.tsx",
+    "bytes": "8224",
+    "lines": "139",
+    "sha256": "a4ab369c9727d7e2c8be7991d3153995e90e6369a4a2f2bdc3ec8ae50700027c",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/views/FeatureDiagnosticsView.tsx",
+    "bytes": "13053",
+    "lines": "252",
+    "sha256": "94c16bd8bbf4f50f5c0b3ac5a906a0bbe6edcfdaf4d05c8a67a87c52cf3f7346",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/components/views/MarketDataView.tsx",
+    "bytes": "7707",
+    "lines": "160",
+    "sha256": "4751a02d5b19ada8d8609e60db98c954d977aaa8b502f7055302dd5e9a1db885",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/index.css",
+    "bytes": "1283",
+    "lines": "57",
+    "sha256": "744f46fe4f8dee81d4c30672a1201320e13c26ca9bf007d26b25954dcd26a436",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/main.tsx",
+    "bytes": "230",
+    "lines": "10",
+    "sha256": "6e9e5807fcbd48b75a96db5cbef36c996262196be42e6d4760dc86babbe61ad2",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/services/api.ts",
+    "bytes": "2954",
+    "lines": "73",
+    "sha256": "0ffdea462769ba53b55469759157622ece51ff56b81ade5026ff93d9f92a22d9",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/src/types/api.ts",
+    "bytes": "2923",
+    "lines": "136",
+    "sha256": "509941f1e8a56394d67e839914c2800f1e76e40198b1f376a86b5e7720edfde5",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/tsconfig.app.json",
+    "bytes": "655",
+    "lines": "26",
+    "sha256": "8e5d12ba330e7d86409edec74b95451e0db22ee09b9426c94b5bf817571eddb0",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/tsconfig.json",
+    "bytes": "119",
+    "lines": "7",
+    "sha256": "770b4140bbb581e2dfd9ea9946ffc9c75a1d86ba7d2db5f77c83e37cbdf9d808",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/tsconfig.node.json",
+    "bytes": "558",
+    "lines": "23",
+    "sha256": "d366cc0827139db39c61815f22491bbfda56c654354a42ad7795143d314e45e8",
+    "review": "source and design review"
+  },
+  {
+    "path": "reports/web/vite.config.ts",
+    "bytes": "380",
+    "lines": "20",
+    "sha256": "9c53a87d6ca1d075ee8c71b70a00c4ef8ed530532474ba1c3b65932658996656",
+    "review": "source and design review"
+  },
+  {
+    "path": "requirements.txt",
+    "bytes": "643",
+    "lines": "35",
+    "sha256": "816ab9586ad6f1452dde76e77071773e1a07c796fe5bdc2066a18761098287bd",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/autocorrelation_check.py",
+    "bytes": "2165",
+    "lines": "64",
+    "sha256": "7b0b07b57609c07f6b3182edc3eb0851a0959035115becdf0281dc8d5e2ee0aa",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/backtest_harness.py",
+    "bytes": "5976",
+    "lines": "135",
+    "sha256": "b729591c8f5c66c17611ce373ccce73a191cdae18b63b7f262946b47e7bbbfd0",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/constants.py",
+    "bytes": "879",
+    "lines": "19",
+    "sha256": "f6622ccea561e388713fa8ab2b82426d202cc0cb8f3aa4d6928458e7d575b6a2",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/data.py",
+    "bytes": "15473",
+    "lines": "385",
+    "sha256": "7975ead93f4f8bb81cad102bd359c2f3fe3e5f882329a9bcaebe20b326cfc3a7",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/data_pipeline_sanity_check.py",
+    "bytes": "3702",
+    "lines": "92",
+    "sha256": "e4f9223d7facd4dc3ccf70a12a7102d19ea9752bcfdca3cd3e553b43caf2020c",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/estimators.py",
+    "bytes": "14600",
+    "lines": "357",
+    "sha256": "5cd794e0184120444d182e6f229b1572930a9effdd1e5e83d92438e5b0449a9b",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/feature_diagnostics.py",
+    "bytes": "9684",
+    "lines": "225",
+    "sha256": "bc9a9d537fb4c1870f3c3ba31f8638dde89c1c0601864ff0be157436e78ee5be",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/feature_set_comparison.py",
+    "bytes": "40758",
+    "lines": "963",
+    "sha256": "1aa585bd07f0216361d5032056687a76bcc8f355eae40163b758b4019f0e2e3b",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/features.py",
+    "bytes": "8829",
+    "lines": "196",
+    "sha256": "bff77d7770eefc84cab6cbb2adb300df0eea3bf9a06c11c9d75ef604f379709b",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/logistic_baseline.py",
+    "bytes": "14863",
+    "lines": "347",
+    "sha256": "29b010dac6c186e9b58784cdcecc8147c9c195b0c3a6d9088556b0a04094e268",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/ma_crossover_backtest.py",
+    "bytes": "9443",
+    "lines": "239",
+    "sha256": "02e6a3e0bcc62caa5613db32b2be23175b3784ef59528023a28f51a9f5b6fb3a",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/metrics.py",
+    "bytes": "12301",
+    "lines": "296",
+    "sha256": "db5cebb12e80681bf8a8e0a03b1afb2409f4f2042e32b78596e37e2cfcebceb7",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/ml_signal.py",
+    "bytes": "12997",
+    "lines": "287",
+    "sha256": "ef362d45198c1de74b9d62b8d798ac00c8141acc53300d5aed7cabd07ab3a8d9",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/model_cv.py",
+    "bytes": "19991",
+    "lines": "506",
+    "sha256": "8e11e5ab724b118e5e6afdeaab2f1d6139e0db2ca4a861f1e8bda14b37fbff3e",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/multi_ticker_comparison.py",
+    "bytes": "15405",
+    "lines": "385",
+    "sha256": "26734fdce522ceed40fd20abb8563af15594f223309b69642429f0abb45cac75",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/plotting.py",
+    "bytes": "1333",
+    "lines": "34",
+    "sha256": "ffbdb8b41587a7ca221603b48fbe2ee7ce1431e9956eb4af5cc06bb2e85f9c6c",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/portfolio_risk.py",
+    "bytes": "31263",
+    "lines": "745",
+    "sha256": "a6b9818dcc9056c91608ba2c20716e9acd497d8962cf1240e4e5881e495f0914",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/return_stats.py",
+    "bytes": "5914",
+    "lines": "152",
+    "sha256": "8de317985940542fdf946574a760abed04e937fc5d548fd1a69fc27223588b9e",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/scratch_aapl_correlations.py",
+    "bytes": "4081",
+    "lines": "117",
+    "sha256": "156f14e09b91b551caa9628cc56d97d50bb588d568e21f2f5ae158c06e07cbea",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/scratch_multiticker_collinearity.py",
+    "bytes": "8606",
+    "lines": "238",
+    "sha256": "14a3522bcc8fb0012fcb18f81c89c3ef62642d7b86835314e047aca1348d322e",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/signals.py",
+    "bytes": "6331",
+    "lines": "145",
+    "sha256": "138f057591768f19f93ff4639abdb0d12826cae189447a77cc8c26312b688de5",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/stationarity_check.py",
+    "bytes": "2647",
+    "lines": "80",
+    "sha256": "fc327ca2eac5404b112e1a6f2a023b6ee273b502223935895ec236a7fff1b1b0",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/targets.py",
+    "bytes": "6083",
+    "lines": "140",
+    "sha256": "fd8bb35c8c19b0d749e6c3dc4297785c7e4241d906e7c31d8e1bdaecf50c6d8c",
+    "review": "source and design review"
+  },
+  {
+    "path": "scripts/walk_forward_cv.py",
+    "bytes": "5734",
+    "lines": "138",
+    "sha256": "2744be2e971947cdab839923a2a64b6ea9eef818d21cbb0ce558dc5aa1cee9d6",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/context.py",
+    "bytes": "467",
+    "lines": "13",
+    "sha256": "edd069a9c464d569876cb73d20b322ab315e9189db25bb743f4a5f98d85394e1",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_backtest_harness.py",
+    "bytes": "11410",
+    "lines": "276",
+    "sha256": "d6bf5d3201af5cdc431b2ac0908de18c12ef1997b2107dbe12fff2d3cba17705",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_data.py",
+    "bytes": "27811",
+    "lines": "595",
+    "sha256": "be8701d28213a2df1515cc89324deebb8a4de8ad4abfc3ca5aeea6e7a3ecfa57",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_data_pipeline_sanity_check.py",
+    "bytes": "3945",
+    "lines": "96",
+    "sha256": "e05ca41efd0328d7cfec0a7e8b6942b4f3781ec23a3f8b1ced6483974a2ab131",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_estimators.py",
+    "bytes": "21152",
+    "lines": "543",
+    "sha256": "6948ad148d40041d26776ecbeecab0028e3245cf456b83a5e5d1f62fda3ece05",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_feature_scaling.py",
+    "bytes": "38990",
+    "lines": "936",
+    "sha256": "ca8c5c6f8e8ca84467e3717f93b6d59492d780df301059538ea49c59239f6110",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_feature_set_comparison.py",
+    "bytes": "31902",
+    "lines": "700",
+    "sha256": "f3a7ef6f79b76175120588341267a4d56fd18853c12f01aa574ed8fb773308ff",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_logistic_baseline.py",
+    "bytes": "8876",
+    "lines": "212",
+    "sha256": "fddca383a9ec7a0f1ad72353413424ef5ca9b1c68ffc09cc7a50783f98847036",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_ma_crossover_backtest.py",
+    "bytes": "6827",
+    "lines": "165",
+    "sha256": "fc66b29d11d6caaef2c3398420090f3fb6c0d4238568408ec57f0d5afb00af0c",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_metrics.py",
+    "bytes": "17811",
+    "lines": "469",
+    "sha256": "61a71a4b8a60a84b4b6deba4265c68575deab08e45fa2715c45f0e8a25068ed6",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_ml_signal.py",
+    "bytes": "32181",
+    "lines": "802",
+    "sha256": "ff4c2651096bdd0fc122bf165fc94e911a74209f40da6c618a28c60ce6eeece3",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_model_cv.py",
+    "bytes": "40926",
+    "lines": "1016",
+    "sha256": "7d0a5f063e2ef8ca457ab1bb6513d7aa31a55c46119513fa627417777df76d4f",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_multi_ticker_comparison.py",
+    "bytes": "11563",
+    "lines": "271",
+    "sha256": "3aa0320083bf39d03b607b6c796383b7b493ef401f2e9f00c053665d6c86ccbe",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_portfolio_risk.py",
+    "bytes": "59162",
+    "lines": "1391",
+    "sha256": "dd61b5e969278065b868af9e1ef189fb7b207bec8a5a877d30dde58a039bd250",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_reports_api.py",
+    "bytes": "5287",
+    "lines": "132",
+    "sha256": "8741214cb5edb44e4f64689e639f8371f118e15656dba0a7e777711bcc501d84",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_signals.py",
+    "bytes": "10349",
+    "lines": "230",
+    "sha256": "24f5c6448272ac084eca0c90179c7775fd23bf015504aee3d89abde9b16c91e9",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_targets.py",
+    "bytes": "17947",
+    "lines": "434",
+    "sha256": "9ba7db3f75af668a71439642bd76a1b087e88c4ab814f465742c96ad1398c9d5",
+    "review": "source and design review"
+  },
+  {
+    "path": "tests/test_walk_forward_cv.py",
+    "bytes": "11923",
+    "lines": "308",
+    "sha256": "9e6830f98ff68d406696bc9d1f0ee19d7df8712dad616dc213cf5bae74902742",
+    "review": "source and design review"
+  }
+]

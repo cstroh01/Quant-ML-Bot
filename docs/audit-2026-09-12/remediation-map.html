@@ -1,0 +1,855 @@
+<title>Quant-ML-Bot Remediation Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#F1F4F8; --surface:#FFFFFF; --surface-2:#F6F8FB; --line:#D6DDE7; --line-strong:#B4BFCE;
+  --ink:#0E1522; --ink-2:#435066; --muted:#667389;
+  --accent:#0369A1; --accent-ink:#FFFFFF; --accent-soft:#E3EFF7;
+  --p0:#A3173A; --p1:#C27C0E; --p2:#5B6B80; --done:#047857;
+  --shadow:0 1px 2px rgba(14,21,34,.06),0 4px 16px rgba(14,21,34,.05);
+  --sans:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --cond:"IBM Plex Sans Condensed","Arial Narrow","IBM Plex Sans",-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#080A0E; --surface:#0F131A; --surface-2:#141922; --line:#1C2331; --line-strong:#2E384D;
+    --ink:#F0F4FC; --ink-2:#A6B1C3; --muted:#7D899C;
+    --accent:#38A8E0; --accent-ink:#04121C; --accent-soft:#0D2130;
+    --p0:#E6406A; --p1:#C4821F; --p2:#7F8CA1; --done:#22C08A;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#080A0E; --surface:#0F131A; --surface-2:#141922; --line:#1C2331; --line-strong:#2E384D;
+  --ink:#F0F4FC; --ink-2:#A6B1C3; --muted:#7D899C;
+  --accent:#38A8E0; --accent-ink:#04121C; --accent-soft:#0D2130;
+  --p0:#E6406A; --p1:#C4821F; --p2:#7F8CA1; --done:#22C08A;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding-inline:clamp(16px,3vw,32px);padding-block:28px 64px;display:flex;flex-direction:column;gap:28px}
+h1,h2,h3{font-family:var(--cond);text-wrap:balance;margin:0;letter-spacing:.005em}
+h1{font-size:clamp(30px,4.2vw,44px);line-height:1.05;font-weight:700}
+h2{font-size:22px;line-height:1.2;font-weight:600}
+h3{font-size:17px;line-height:1.25;font-weight:600}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase}
+.mono{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+a{color:var(--accent)}
+
+/* Masthead */
+.masthead{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;align-items:end}
+.masthead .lede{color:var(--ink-2);max-width:62ch;margin-top:10px}
+.progress{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow)}
+.prog-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:baseline}
+.prog-row .label{font-size:13px;color:var(--ink-2)}
+.prog-row .value{font-family:var(--mono);font-size:13px}
+.prog-row .value b{font-size:18px;font-weight:500;color:var(--ink)}
+.meter{grid-column:1/-1;height:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:99px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--done);width:0;transition:width .3s ease}
+.meter.p0 i{background:var(--p0)}
+.sync{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
+.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--line-strong);flex:none}
+.sync[data-state="shared"]::before{background:var(--done)}
+.sync[data-state="error"]::before{background:var(--p0)}
+
+/* Section frame */
+.sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap;margin-bottom:12px}
+.sec-head p{color:var(--ink-2);font-size:14px;max-width:70ch}
+
+/* Phase split */
+.split-bar{display:flex;height:34px;border-radius:6px;overflow:hidden;gap:2px;background:var(--ground)}
+.split-bar span{display:block;height:100%}
+.split-legend{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.split-legend div{display:flex;flex-direction:column;gap:2px;padding-left:12px;border-left:3px solid var(--sw)}
+.split-legend b{font-family:var(--mono);font-weight:500;font-size:22px;line-height:1.1}
+.split-legend .t{font-family:var(--cond);font-weight:600;font-size:15px}
+.split-legend .s{font-size:12.5px;color:var(--muted)}
+
+/* Critical path */
+.path-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.track{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:0}
+.track li{position:relative;display:flex}
+.track li + li::before{content:"";position:absolute;left:-7px;top:26px;width:14px;height:2px;background:var(--line-strong)}
+.node{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:6px;width:100%;margin-inline:6px;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:8px;min-height:152px;transition:border-color .15s,background .15s}
+.node:hover{border-color:var(--line-strong)}
+.node:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.node[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.node .code{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:500}
+.node .nm{font-family:var(--cond);font-weight:600;font-size:16px;line-height:1.15}
+.node .ct{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.node .ct .p0n{color:var(--p0)}
+.node .bar{height:4px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-top:auto;border:1px solid var(--line)}
+.node .bar i{display:block;height:100%;background:var(--done);width:0}
+.milestone{display:flex;align-items:center;margin-inline:6px;width:100%}
+.milestone div{width:100%;border:1px dashed var(--line-strong);border-radius:8px;padding:12px;min-height:152px;display:flex;flex-direction:column;gap:6px;justify-content:center;background:transparent}
+.milestone .code{font-family:var(--mono);font-size:12px;color:var(--p1)}
+.milestone .nm{font-family:var(--cond);font-weight:600;font-size:16px;line-height:1.15}
+.milestone .ct{font-size:12.5px;color:var(--muted)}
+.lane{margin-top:12px;display:grid;grid-template-columns:minmax(0,1fr) 1fr;gap:12px}
+.lane .node{margin:0;min-height:0;flex-direction:row;align-items:center;gap:12px;flex-wrap:wrap}
+.lane .node .bar{flex:1 1 80px;margin-top:0}
+.later-lbl{margin-top:16px;margin-bottom:8px}
+.later{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.later .node{margin:0;min-height:0}
+.gate{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.gate .eyebrow{color:var(--accent)}
+.gate p{font-size:14px;color:var(--ink-2)}
+
+/* Decisions */
+.decide{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--shadow)}
+.decide ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.decide li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:start;font-size:13.5px;line-height:1.4}
+.decide li .k{font-family:var(--mono);font-size:11.5px;color:var(--muted);display:block}
+.decide li.is-done span.txt{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--line-strong)}
+input[type="checkbox"]{width:17px;height:17px;margin:2px 0 0;accent-color:var(--done);cursor:pointer}
+
+/* Heatmap */
+.heat-wrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+table.heat{border-collapse:separate;border-spacing:2px;width:100%;min-width:760px;padding:10px}
+.heat th{font-family:var(--mono);font-weight:500;font-size:12px;color:var(--muted);padding:6px 4px;text-align:center;white-space:nowrap}
+.heat th.row{font-family:var(--sans);font-size:13px;font-weight:500;color:var(--ink);text-align:left;padding-right:12px}
+.heat th.phase-edge{border-left:1px solid var(--line-strong)}
+.heat td{padding:0;height:38px}
+.heat td.tot{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);text-align:center;width:48px}
+.cell{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:center;position:relative;width:100%;height:38px;border-radius:4px;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;background:color-mix(in oklab,var(--accent) var(--mix),var(--surface));color:var(--ink)}
+.cell.strong{color:var(--accent-ink)}
+.cell:hover{outline:2px solid var(--ink);outline-offset:-2px}
+.cell:focus-visible{outline:2px solid var(--ink);outline-offset:-2px}
+.cell .dot{position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:var(--p0);box-shadow:0 0 0 2px var(--surface)}
+.empty{display:flex;align-items:center;justify-content:center;height:38px;color:var(--line-strong);font-family:var(--mono);font-size:12px}
+.heat-legend{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:12.5px;color:var(--ink-2);margin-top:10px}
+.heat-legend .sw{display:inline-block;width:18px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:6px;background:color-mix(in oklab,var(--accent) var(--mix),var(--surface));border:1px solid var(--line)}
+.heat-legend .pd{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--p0);margin-right:6px}
+.tip{position:fixed;z-index:10;pointer-events:none;max-width:280px;background:var(--ink);color:var(--ground);font-size:12.5px;line-height:1.4;padding:8px 10px;border-radius:6px;box-shadow:var(--shadow)}
+.tip b{font-weight:600}
+.tip .mono{font-size:12px}
+
+/* Register */
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;position:sticky;top:0;z-index:5;box-shadow:var(--shadow)}
+.filters input[type="search"],.filters select{font:inherit;font-size:14px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;min-height:34px}
+.filters input[type="search"]{flex:1 1 220px;min-width:0}
+.filters select{flex:0 1 auto;max-width:100%}
+.chipset{display:flex;gap:4px}
+.fchip{cursor:pointer;border:1px solid var(--line);background:var(--surface-2);border-radius:6px;padding:5px 9px;font-family:var(--mono);font-size:12.5px;min-height:34px;display:inline-flex;align-items:center;gap:6px}
+.fchip::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--c)}
+.fchip[aria-pressed="true"]{border-color:var(--ink);background:var(--surface);box-shadow:inset 0 0 0 1px var(--ink)}
+.toggle{display:inline-flex;gap:6px;align-items:center;font-size:13.5px;color:var(--ink-2);cursor:pointer}
+.linkbtn{all:unset;cursor:pointer;font-size:13px;color:var(--accent);padding:4px 2px}
+.linkbtn:focus-visible{outline:2px solid var(--accent)}
+.result{font-size:13px;color:var(--muted);margin-left:auto}
+
+.reg{display:flex;flex-direction:column;gap:22px;margin-top:14px}
+.stage-block{display:flex;flex-direction:column;gap:10px}
+.stage-head{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;align-items:baseline;padding-bottom:8px;border-bottom:2px solid var(--ink)}
+.stage-head .code{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:500}
+.stage-head .gatet{grid-column:2;font-size:13.5px;color:var(--ink-2)}
+.spec{background:var(--surface);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.spec-head{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.spec-head .sn{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.spec-head h3{font-size:16px}
+.spec-head .note{font-size:12.5px;color:var(--ink-2)}
+.spec-head .sd{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.row{display:grid;grid-template-columns:26px 34px 42px 44px minmax(0,1fr) minmax(0,.62fr);gap:10px;align-items:start;padding:10px 14px;border-top:1px solid var(--line)}
+.row:first-of-type{border-top:0}
+.row .fid{font-family:var(--mono);font-size:13.5px;font-weight:500;padding-top:1px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:12px;padding:1px 6px;border-radius:4px;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:2px;background:var(--c)}
+.pill.P0{border-color:var(--p0);background:color-mix(in oklab,var(--p0) 10%,var(--surface))}
+.tcode{font-family:var(--mono);font-size:12px;color:var(--ink-2);padding-top:2px;white-space:nowrap}
+.row details summary{cursor:pointer;list-style:none;font-weight:500;line-height:1.4}
+.row details summary::-webkit-details-marker{display:none}
+.row details summary::after{content:" +";font-family:var(--mono);color:var(--muted);font-weight:400}
+.row details[open] summary::after{content:" −"}
+.row details .body{display:flex;flex-direction:column;gap:8px;margin-top:8px;font-size:14px;color:var(--ink-2);max-width:72ch}
+.ev{font-family:var(--mono);font-size:12.5px;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:6px 9px}
+.ev::before{content:"Evidence  ";color:var(--muted)}
+.lt{font-size:13px;color:var(--ink-2)}
+.lt::before{content:"↪ ";color:var(--accent);font-family:var(--mono)}
+.hint-later{font-family:var(--mono);font-size:11.5px;color:var(--accent);margin-left:6px;font-weight:400}
+.where{display:flex;flex-direction:column;gap:2px;font-family:var(--mono);font-size:12px;color:var(--ink-2);word-break:break-word}
+.row.is-done .fid,.row.is-done summary{color:var(--muted)}
+.row.is-done summary{text-decoration:line-through;text-decoration-color:var(--line-strong)}
+.noresult{padding:28px;text-align:center;color:var(--muted);background:var(--surface);border:1px dashed var(--line-strong);border-radius:8px}
+
+/* Reference panels */
+.refs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.panel.wide{grid-column:span 2}
+.panel ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:14px;color:var(--ink-2)}
+.panel ul b{color:var(--ink);font-weight:600}
+.research{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.research div{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:4px}
+.research .rk{font-family:var(--mono);font-size:12px;color:var(--accent)}
+.research .rt{font-family:var(--cond);font-weight:600;font-size:15.5px;line-height:1.2}
+.research p{font-size:13.5px;color:var(--ink-2)}
+footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+
+@media (max-width:1020px){
+  .masthead{grid-template-columns:1fr}
+  .path-grid{grid-template-columns:1fr}
+  .track{grid-template-columns:1fr;gap:10px}
+  .track li + li::before{left:22px;top:-10px;width:2px;height:10px}
+  .node,.milestone{margin-inline:0}
+  .node,.milestone div{min-height:0}
+  .refs{grid-template-columns:1fr}
+  .panel.wide{grid-column:auto}
+}
+@media (max-width:680px){
+  .lane,.later,.split-legend,.research{grid-template-columns:1fr}
+  .row{grid-template-columns:24px 30px 40px minmax(0,1fr)}
+  .row .tcode{display:none}
+  .row details{grid-column:2/-1}
+  .row .where{grid-column:2/-1}
+  .result{margin-left:0;width:100%}
+  .filters{position:static}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">Codex audit · 2026-09-12 · docs/audit-2026-09-12</p>
+      <h1>Quant-ML-Bot Remediation Map</h1>
+      <p class="lede">Every one of the audit’s 70 findings, placed in the phase and proposed spec where it gets fixed. Tick findings off as their specs pass the Merge Gate. Spec numbers 018+ are proposed groupings; you assign the real ones.</p>
+    </div>
+    <aside class="progress" aria-label="Progress">
+      <div class="prog-row"><span class="label">Findings fixed</span><span class="value num"><b id="pg-all">0</b> / 70</span><span class="meter"><i id="pm-all"></i></span></div>
+      <div class="prog-row"><span class="label">P0 findings fixed</span><span class="value num"><b id="pg-p0">0</b> / 14</span><span class="meter p0"><i id="pm-p0"></i></span></div>
+      <div class="prog-row"><span class="label">Stage 0 decisions made</span><span class="value num"><b id="pg-dec">0</b> / 6</span><span class="meter"><i id="pm-dec"></i></span></div>
+      <p class="sync" id="sync" data-state="local">Progress saves in this browser only.</p>
+    </aside>
+  </header>
+
+  <section aria-labelledby="split-h">
+    <div class="sec-head">
+      <h2 id="split-h">This phase vs later</h2>
+      <p>Phase 3 is the backtest/research phase you are in now. Nearly all of the audit has to be fixed before paper trading starts.</p>
+    </div>
+    <div class="split-bar" id="split-bar" role="img"></div>
+    <div class="split-legend" id="split-legend"></div>
+  </section>
+
+  <section aria-labelledby="path-h">
+    <div class="sec-head">
+      <h2 id="path-h">Critical path</h2>
+      <p>Stages run in order; each ends at a gate. Select a stage to filter the register below to it.</p>
+    </div>
+    <div class="path-grid">
+      <div>
+        <p class="eyebrow" style="margin-bottom:8px">Phase 3 — now</p>
+        <ol class="track" id="track"></ol>
+        <div class="lane" id="lane"></div>
+        <p class="eyebrow later-lbl">After Phase 3 exits</p>
+        <ol class="later" id="later"></ol>
+        <div class="gate" id="gate" hidden>
+          <span class="eyebrow" id="gate-k">Gate</span>
+          <p id="gate-t"></p>
+        </div>
+      </div>
+      <aside class="decide" aria-labelledby="dec-h">
+        <div>
+          <p class="eyebrow">Stage 0</p>
+          <h3 id="dec-h">Decide before the next spec</h3>
+        </div>
+        <ol id="decisions"></ol>
+      </aside>
+    </div>
+  </section>
+
+  <section aria-labelledby="heat-h">
+    <div class="sec-head">
+      <h2 id="heat-h">Where the fixes land</h2>
+      <p>Findings per module and stage. Select a cell to filter the register to it.</p>
+    </div>
+    <div class="heat-wrap"><table class="heat" id="heat"></table></div>
+    <div class="heat-legend" id="heat-legend"></div>
+  </section>
+
+  <section aria-labelledby="reg-h" id="register">
+    <div class="sec-head">
+      <h2 id="reg-h">Finding register</h2>
+      <p>Grouped by stage, then proposed spec. Open a finding for the full change, the audit’s evidence and any later-phase part.</p>
+    </div>
+    <div class="filters" role="search">
+      <label class="sr" for="q" hidden>Search findings</label>
+      <input type="search" id="q" placeholder="Search IDs, files, text…" aria-label="Search findings">
+      <div class="chipset" role="group" aria-label="Priority">
+        <button type="button" class="fchip" id="f-P0" data-p="P0" aria-pressed="false" style="--c:var(--p0)">P0</button>
+        <button type="button" class="fchip" id="f-P1" data-p="P1" aria-pressed="false" style="--c:var(--p1)">P1</button>
+        <button type="button" class="fchip" id="f-P2" data-p="P2" aria-pressed="false" style="--c:var(--p2)">P2</button>
+      </div>
+      <select id="fs" aria-label="Stage"></select>
+      <select id="fm" aria-label="Module"></select>
+      <select id="ft" aria-label="Finding type">
+        <option value="">Any type</option>
+        <option value="D">D — defect</option>
+        <option value="G">G — missing capability</option>
+        <option value="R">R — reconsider design</option>
+      </select>
+      <label class="toggle" for="hd"><input type="checkbox" id="hd"> Hide fixed</label>
+      <button type="button" class="linkbtn" id="reset">Clear filters</button>
+      <span class="result num" id="result" aria-live="polite"></span>
+    </div>
+    <div class="reg" id="reg"></div>
+  </section>
+
+  <section aria-labelledby="ref-h">
+    <div class="sec-head">
+      <h2 id="ref-h">Also from the audit</h2>
+    </div>
+    <div class="refs">
+      <div class="panel wide">
+        <h3>Research directions, mapped to specs</h3>
+        <div class="research">
+          <div><span class="rk">A → spec 034</span><span class="rt">Execution-aligned, uncertainty-aware decision policy</span><p>Predict the distribution of a tradable return; trade only when expected gain beats costs, risk and uncertainty. Maximize μ′w − (λ/2)w′Σw − cost(w − w<sub>prev</sub>) with a no-trade region. Start with a calibrated baseline and a small quantile tree, not a transformer.</p></div>
+          <div><span class="rk">B → spec 036</span><span class="rt">One narrow point-in-time cross-sectional hypothesis</span><p>A reason returns are predictable after costs, e.g. relative trend/reversal conditional on volatility and liquidity, on a broad predefined panel. Residualize market and sector. Split by global date. Costly external data only after this works.</p></div>
+          <div><span class="rk">C → spec 032</span><span class="rt">Covariance-aware risk with turnover-aware execution</span><p>Shrinkage covariance plus sector/factor limits vs the current overlap rule, with a no-trade band. Must improve a preregistered net objective and survive doubled costs and correlation shocks.</p></div>
+          <div><span class="rk">D → Phase 4, P4-d</span><span class="rt">Replayable, auditable research-to-paper pipeline</span><p>Immutable snapshots → causal features → run store → approved model/policy → targets → order intents → fill/cash/risk journal → read-only UI. Same decision code for history and paper via adapters.</p></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Keep — don’t rewrite</h3>
+        <ul>
+          <li>Signal / fill separation</li>
+          <li>Explicit purge and horizon parameters</li>
+          <li>Chronological outer CV, training-only inner tuning</li>
+          <li>Fold-local preprocessing pipelines</li>
+          <li>Seeded stochastic controls</li>
+          <li>The careful cost-hurdle derivation</li>
+          <li>Adversarial risk tests; 017’s boundary validation</li>
+          <li>The measured serial/parallel speedup</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>Not now</h3>
+        <ul>
+          <li>GPU training, reinforcement learning</li>
+          <li>Broad hyperparameter sweeps</li>
+          <li>High-frequency trading</li>
+          <li>Kubernetes, Kafka</li>
+          <li>Additional dashboards</li>
+        </ul>
+        <p class="muted" style="font-size:13px">Revisit only when a measured bottleneck or edge justifies it.</p>
+      </div>
+      <div class="panel">
+        <h3>Only you can answer</h3>
+        <ul>
+          <li>Intended capital and income target</li>
+          <li>Broker and account constraints</li>
+          <li>Data commercialization rights</li>
+          <li>Private-repo state (ADR 0001)</li>
+          <li>Remote CI branch protection</li>
+          <li>Recovery under real outages</li>
+          <li>Genuinely unseen forward performance</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3>What today’s results show</h3>
+        <ul>
+          <li>Logistic, scale-free: <b class="mono">52.99%</b> accuracy — below always-up at <b class="mono">53.54%</b></li>
+          <li>Ridge MSE gain: <b class="mono">0.0844%</b> relative, no economic value shown</li>
+          <li>Screening run: 113 folds, 2,359 pairs, purge 1, embargo 1, seed 42 — prediction quality, not a costed backtest</li>
+          <li>SMA tearsheet’s 233.64% return uses a <b class="mono">$24.63</b> one-share denominator</li>
+          <li>Clean: 541 tests, web build, pip check, npm audit (0 advisories), main cache integrity</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>Source: AUDIT.md, probe-results.json, clean-checkout-api.log, artifact-inventory.json and direction-baseline.json in docs/audit-2026-09-12. The same register lives in REMEDIATION_PLAN.md beside it.</footer>
+</div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function(){
+"use strict";
+
+const STAGES = [
+  {k:"s31", code:"3.1", phase:3, name:"Honest terminal", sub:"Adversarial regressions", gate:"No fabricated forecast, p-value or pass badge. Malformed input cannot produce a successful result. API tests pass on a clean checkout."},
+  {k:"s32", code:"3.2", phase:3, name:"Funded ledger & timing", sub:"Execution-timing contract", gate:"An independent cash/position oracle agrees at every event. Initial costs are counted. The actionable label and next-session alignment are verified."},
+  {k:"s33", code:"3.3", phase:3, name:"Reproducible data & runs", sub:"Dataset manifest, run store", gate:"An offline run works on the combined cache. Run hash, config, folds, predictions and baselines are persisted. Failures are machine-visible."},
+  {k:"s34", code:"3.4", phase:3, name:"Portfolio simulation", sub:"Weights → ledger", gate:"Quantities, cash, risk and costs agree. A restart preserves halts. Same-period baselines and exposure attribution exist."},
+  {k:"s35", code:"3.5", phase:3, name:"Frozen experiment", sub:"Phase 3 exit", gate:"Beats an appropriate simple benchmark net of realistic costs, at acceptable risk, on untouched data, with uncertainty and trial correction reported. Failure is a valid outcome."},
+  {k:"s36", code:"3.6", phase:3, name:"Engineering & workflow lane", sub:"Runs alongside 3.1–3.5", gate:"Runs in parallel with the critical path; no stage waits on it."},
+  {k:"p4", code:"P4", phase:4, name:"Paper trading", sub:"Unattended paper system", gate:"No duplicate orders, unexplained positions or stale-data trading. Durable restart and reconciliation demonstrated. Judged by enough independent decisions and failure scenarios, not “1–2 months elapsed”."},
+  {k:"p5", code:"P5", phase:5, name:"Capped live capital", sub:"Consider live", gate:"Explicit risk budget, valid broker and data rights, operational gates, forward evidence, actual live friction monitored, human approval (Rule 7)."}
+];
+const STAGE = Object.fromEntries(STAGES.map(s=>[s.k,s]));
+
+const SPECS = [
+  {k:"018", st:"s31", name:"Terminal truthfulness"},
+  {k:"019", st:"s31", name:"Boundary validation"},
+  {k:"020", st:"s31", name:"Diagnostics correctness"},
+  {k:"021", st:"s31", name:"Clean CI & oracles", note:"Every later spec adds its own oracle."},
+  {k:"022", st:"s32", name:"Timing contract", note:"Runs in parallel with 025."},
+  {k:"025", st:"s32", name:"Corporate actions", note:"Needed by 023 to reconcile splits and dividends."},
+  {k:"023", st:"s32", name:"Funded ledger", note:"After 022 and 025."},
+  {k:"024", st:"s32", name:"Metrics conventions", note:"Finding 02 is small enough to ship first."},
+  {k:"026", st:"s33", name:"Data integrity"},
+  {k:"027", st:"s33", name:"Dataset manifest", note:"Must land before the spec 013 real run."},
+  {k:"028", st:"s33", name:"Run store & trial ledger"},
+  {k:"029", st:"s33", name:"Fair comparison protocol"},
+  {k:"030", st:"s33", name:"CV & model contract"},
+  {k:"031", st:"s34", name:"Weight-based execution", note:"Includes a replay-restore test for finding 06."},
+  {k:"032", st:"s34", name:"Portfolio risk v2", note:"Carries research C and defines finding 07’s policies for simulation."},
+  {k:"033", st:"s35", name:"Cost scenarios"},
+  {k:"034", st:"s35", name:"Decision policy", note:"Carries research A."},
+  {k:"035", st:"s35", name:"Inference & multiple testing"},
+  {k:"036", st:"s35", name:"Point-in-time universe", note:"Carries research B."},
+  {k:"037", st:"s35", name:"Strategy freeze & forward holdout", note:"The freeze half of finding 27: freeze, then evaluate on new forward dates only."},
+  {k:"038", st:"s36", name:"Terminal reliability"},
+  {k:"039", st:"s36", name:"Packaging & contracts"},
+  {k:"040", st:"s36", name:"CI & agent hardening"},
+  {k:"041", st:"s36", name:"Workflow & governance", note:"Constitution edits stay in your own dedicated commit."},
+  {k:"P4-a", st:"p4", name:"Durable risk state"},
+  {k:"P4-b", st:"p4", name:"Order lifecycle & broker adapter", note:"Rule 7: once credentials exist, exec/ changes go through the reviewed lane only."},
+  {k:"P4-c", st:"p4", name:"Safety interlocks"},
+  {k:"P4-d", st:"p4", name:"Replayable research-to-paper pipeline", note:"Research D; also carries the later parts of 15, 43, 51, 53 and 61, plus paper-vs-simulation attribution."},
+  {k:"P4-e", st:"p4", name:"Operations & monitoring"},
+  {k:"P5", st:"p5", name:"Rights & business case", note:"Also: revalidate 06–09 live, all-time drawdown kill switch with operator reset."}
+];
+const SPEC = Object.fromEntries(SPECS.map(s=>[s.k,s]));
+
+const MODULES = [
+  {k:"data", name:"Data & calendar"},
+  {k:"tgt", name:"Targets & features"},
+  {k:"model", name:"Models & decision policy"},
+  {k:"ledger", name:"Harness, ledger & metrics"},
+  {k:"risk", name:"Portfolio risk"},
+  {k:"stats", name:"Validation & statistics"},
+  {k:"runs", name:"Experiments & runners"},
+  {k:"api", name:"Reports API"},
+  {k:"web", name:"Web terminal"},
+  {k:"exec", name:"Execution & operations"},
+  {k:"eng", name:"Engineering & CI"},
+  {k:"proc", name:"Process & docs"},
+  {k:"biz", name:"Business & legal"}
+];
+const MODULE = Object.fromEntries(MODULES.map(m=>[m.k,m]));
+
+const DECISIONS = [
+  {k:"0.1", t:"Hold the spec 013 real run until stages 3.1–3.3 land — otherwise it scores the wrong target on a non-funded ledger and gets rerun.", src:"01 17 22 23"},
+  {k:"0.2", t:"Decide on spec 017: merge as a pure decision component (split for size, 40–44 and 06 recorded as known limits) or hold.", src:"05"},
+  {k:"0.3", t:"Take spec 012 through the Merge Gate.", src:"67"},
+  {k:"0.4", t:"Define the own-capital objective: capital, max tolerable loss, benchmark, holding period, budget and time.", src:"70"},
+  {k:"0.5", t:"Point Spec Kit at .specify/specs/ before creating the next spec.", src:"65"},
+  {k:"0.6", t:"Clean up doc drift: 012 wording, conflicting test counts, stale Rule 10 note, portfolio_risk row in CLAUDE.md, stale caches, duplicate ACF plots.", src:"67"}
+];
+
+const F = [
+ {id:"01",p:"P0",t:"G+D",st:"s32",sp:"023",m:"ledger",h:"Replace the one-share P&L harness with a funded cash ledger",c:"Add explicit starting cash, filled quantities, cash reservations, positions, fees, corporate actions, financing if allowed, and mark-to-market equity. Reject or resize unaffordable orders. Acceptance: cash + marked positions reconciles on every event; no unauthorized borrowing; a split and a dividend reconcile by hand.",w:["scripts/backtest_harness.py:13","scripts/metrics.py:63"],ev:"$100 account accepted an entry needing $201.10."},
+ {id:"02",p:"P0",t:"D",st:"s32",sp:"024",m:"ledger",h:"Count starting capital in return and drawdown",c:"Anchor the metric series to pre-trade equity with unambiguous timestamps; the first return is currently omitted too. Acceptance: first-bar loss, first-bar profit, all-flat and terminal loss match an independent cash ledger.",w:["scripts/metrics.py:176","scripts/metrics.py:226"],ev:"Equity [95, 95, 90] → reported −5.26%; true drawdown −10.0%."},
+ {id:"03",p:"P0",t:"D",st:"s31",sp:"019",m:"ledger",h:"Reject invalid fills instead of summarizing them",c:"Validate finite positive prices, finite costs and exact boolean signal types before simulating. Reject missing fill prices or apply a documented unavailable-market policy. Never use NaN-skipping sums as proof of reconciliation. Acceptance: corrupt input fails explicitly and cannot receive a successful tearsheet.",w:["scripts/backtest_harness.py:13","scripts/backtest_harness.py:108"],ev:"NaN opening fill → 1 trade, total P&L 0.00, while trade P&L was NaN."},
+ {id:"04",p:"P0",t:"D",st:"s31",sp:"019",m:"ledger",h:"Enforce cost domains at every entry point",c:"Centralize finite non-negative commission, finite slippage in [0, 10000), supported quantities and valid thresholds. Test both the library and HTTP boundaries. Zero-cost research controls stay explicit; production runs carry an explicit cost configuration.",w:["scripts/ml_signal.py:47","scripts/backtest_harness.py:13","reports/api/routes/backtest.py"],ev:"commission=nan → 200 OK; slippage_bps=10000 → 200 OK (zero/negative sale prices possible)."},
+ {id:"05",p:"P0",t:"G",st:"s34",sp:"031",m:"risk",h:"Wire sizing and risk into the costed execution path",c:"Add a portfolio runner and order-sizing adapter; keep portfolio_risk a pure decision component. Acceptance: an end-to-end replay shows a drawdown triggering the guard, blocking new or increased exposure, permitting reductions, and charging every resulting trade.",w:["scripts/portfolio_risk.py:482","scripts/multi_ticker_comparison.py:212"],ev:"Spec 017 stops at target weights; no costed backtest uses them."},
+ {id:"06",p:"P0",t:"G",st:"p4",sp:"P4-a",m:"risk",h:"Persist risk state and reconcile it after a restart",c:"Persist anchors, high-water marks, latch reasons, last observation and configuration; restore through deterministic event replay. Treat deposits and withdrawals separately from trading P&L. Acceptance: crash at every state transition and restart without relaxing limits.",w:["scripts/portfolio_risk.py:611"],ev:"Weekly latch True on 2024-01-09 → fresh guard reports False on 01-10 at the same equity."},
+ {id:"07",p:"P0",t:"G",st:"p4",sp:"P4-c",m:"risk",h:"Separate loss triggers from guaranteed loss limits",c:"Define halt-new-orders, cancel-open-orders and reduce/flatten as separate policies with failure behaviour. Add stale-data, broker-disconnect and buying-power checks and an account-level emergency stop. Decide explicitly on an all-time drawdown latch with operator reset; a calendar-week reset is not capital protection.",w:["scripts/portfolio_risk.py:611","reports/api/routes/capital_gate.py"],ev:"The guard reads daily closes only — it cannot stop overnight gaps, intraday losses or failed exits.",lt:"Spec 032 defines the policies for simulation; Phase 5 adds the all-time kill switch."},
+ {id:"08",p:"P0",t:"G",st:"p4",sp:"P4-b",m:"exec",h:"Build an order lifecycle and recovery protocol",c:"Client order IDs; acknowledged/rejected/partial/cancelled states; timeout-after-submit reconciliation; duplicate-event handling; broker-vs-local position checks. Use durable intent IDs and reconcile uncertain outcomes before retrying — a network timeout never proves no order exists. Acceptance: replay partial fills, reordered/duplicate events, disconnect after accepted submission, restart with outstanding orders.",w:["exec/ (future)"],ev:"No broker or OMS adapter exists yet."},
+ {id:"09",p:"P1",t:"G",st:"s35",sp:"033",m:"ledger",h:"Model realistic costs and report break-even cost",c:"Include bid/ask spread, opening-auction behaviour, order size, minimum commissions, partial fills, liquidity/participation caps and applicable fees; financing only if enabled. Keep a simple model for unit tests. Compare base and adverse scenarios and report break-even cost. A zero-commission broker still has execution costs.",w:["scripts/backtest_harness.py"],ev:"Fixed $1 per fill + 5 bps slippage today.",lt:"Phases 4–5: calibrate from actual paper and live fills."},
+ {id:"10",p:"P1",t:"D+R",st:"s32",sp:"023",m:"ledger",h:"Separate final marking from liquidation and live exits",c:"Separate open-position valuation, optional benchmark liquidation and real exit orders. The streaming signal must not flatten because its batch ended. Record liquidation assumptions in metrics.",w:["scripts/backtest_harness.py:13","scripts/ml_signal.py:160"],ev:"Open positions close at the dataset’s last close; the signal forces its last position flat — adding a row changes a past decision."},
+ {id:"11",p:"P1",t:"G",st:"s32",sp:"023",m:"ledger",h:"Validate the ledger event by event, not one total",c:"Validate unique ordered sessions, permitted position transitions, trade/fill IDs, quantities, fee attribution and per-event balances. Handle zero and negative equity explicitly — log returns and drawdown stop behaving at insolvency.",w:["scripts/metrics.py:63"],ev:"Only one aggregate P&L equality is checked; reversed dates or overlaps can pass."},
+ {id:"12",p:"P1",t:"R",st:"s32",sp:"024",m:"ledger",h:"Align Sharpe, compounding and cash conventions",c:"State the Sharpe convention, use consistent period units, distinguish annualized mean log return from CAGR, and model cash interest separately from the benchmark hurdle with historical or labeled rates. Report autocorrelation-aware uncertainty; sqrt(252) is not automatic.",w:["scripts/metrics.py:195","scripts/return_stats.py:35","scripts/constants.py"],ev:"Log-return Sharpe with a fixed RISK_FREE_RATE_ANNUAL = 0.0378."},
+ {id:"13",p:"P0",t:"G",st:"s32",sp:"025",m:"data",h:"Keep unadjusted prices and corporate actions for the ledger",c:"Store unadjusted prices and explicit split/dividend events for accounting; derive clearly identified adjusted return series for features. Archive vendor snapshots and adjustment conventions. Not proof ratio features leak — a cash-accounting and provenance gap.",w:["scripts/data.py:315"],ev:"Data is pulled with auto_adjust=True; fixed-dollar commissions and quantities mix with retro-adjusted prices."},
+ {id:"14",p:"P1",t:"D",st:"s33",sp:"026",m:"data",h:"Validate downloaded and cached data, not just ticker presence",c:"Canonicalize ticker input; validate schema, finite positive prices, non-negative volume, OHLC bounds, ordered unique ticker/session keys and minimum coverage. Quarantine failures with reasons; validate cache hits too.",w:["scripts/data.py:286","scripts/data.py:315"],ev:"An all-NaN ticker was accepted; duplicate symbols can duplicate records. Current main cache passes all checks."},
+ {id:"15",p:"P1",t:"G",st:"s33",sp:"026",m:"data",h:"Define freshness against the expected last session",c:"Record requested interval, expected last completed session, fetched-at time, provider and source version, so a truncated tail can’t look complete.",w:["scripts/data.py:209","reports/api/routes/data.py:27"],ev:"Cache ends 2026-09-04, four completed sessions before 09-12; internal gap count still reads 0.",lt:"Phase 4: stale or incomplete input returns an explicit ‘unavailable’, never a current-looking recommendation."},
+ {id:"16",p:"P1",t:"R",st:"s33",sp:"026",m:"data",h:"Use a tested exchange calendar and reindex to sessions",c:"Choose a maintained calendar or version an authoritative session schedule with fixtures (early closes, exceptional closures). Reindex panels to expected sessions before daily returns.",w:["scripts/data.py:143"],ev:"Hand-coded holidays; a missing panel session vanishes and becomes a multi-day return treated as one day."},
+ {id:"17",p:"P1",t:"D",st:"s33",sp:"027",m:"runs",h:"Fix the combined-cache vs per-ticker-cache mismatch",c:"Load the verified combined panel once and pass slices, or build a canonical ticker-partitioned store. Acceptance: network disabled, only the combined cache present, all five runners get the same immutable snapshot.",w:["scripts/multi_ticker_comparison.py:357","scripts/multi_ticker_comparison.py:212"],ev:"Combined 10y file exists; all 5 per-ticker files the runners request are absent — a ‘cache-ready’ run can download."},
+ {id:"18",p:"P1",t:"D+G",st:"s33",sp:"027",m:"api",h:"One data manifest for scripts and the API",c:"Resolve datasets through a typed manifest with explicit ticker, interval and snapshot ID. Drop the API’s own filename list and arbitrary-CSV fallback. Return unavailable tickers as unavailable.",w:["reports/api/routes/data.py:27"],ev:"With an empty cache the API still lists AAPL, AMZN, GOOGL, MSFT, NVDA; OHLCV returns 404."},
+ {id:"19",p:"P1",t:"G",st:"s33",sp:"026",m:"data",h:"Make cache writes safe under concurrent runs",c:"Unique temporary files in the target directory, validation before publish, atomic replacement, failure cleanup and a single-writer lock. Research checkpoints get a run namespace.",w:["scripts/data.py:303"],ev:"A fixed .tmp sibling is shared by every writer."},
+ {id:"20",p:"P2",t:"D",st:"s33",sp:"026",m:"data",h:"Keep cache paths inside the cache directory",c:"Accept structured artifact names or verify the resolved path sits under the cache root. Apply a ticker allowlist at HTTP boundaries.",w:["scripts/data.py:78"],ev:"cache_path('../outside.csv') resolves outside the cache. No remote exploit shown."},
+ {id:"21",p:"P1",t:"G",st:"s35",sp:"036",m:"runs",h:"Validate on a point-in-time universe, not five winners",c:"Predefine a tradable universe with membership as known at each date, including failed and delisted names, lifecycle events, realistic liquidity and an appropriate benchmark. Hold out time and, where useful, whole assets or sectors. Don’t broaden only until a profitable subgroup appears.",w:["scripts/multi_ticker_comparison.py","docs/adr/0001-public-private-repo-split.md"],ev:"AAPL/MSFT/GOOGL/NVDA/AMZN — correlated growth names chosen in hindsight."},
+ {id:"22",p:"P0",t:"D+R",st:"s32",sp:"022",m:"tgt",h:"Predict the return the strategy can actually capture",c:"Define feature_available_at, decision_at, entry_at, exit_at and label_available_at together. For next-open entry and h-session holding, e.g. log(Open[t+h+1]/Open[t+1]); change label availability and purge horizon to match. Test that a synthetic overnight-only move yields no pre-entry profit.",w:["scripts/targets.py:88","scripts/ml_signal.py:75"],ev:"Label is log(Close[t+h]/Close[t]) but fills happen at the next open; the cost hurdle assumes open-to-open."},
+ {id:"23",p:"P0",t:"D",st:"s32",sp:"022",m:"tgt",h:"Compute features on every session; mask labels separately",c:"Causal features on all sessions, a separate training mask for known labels, and OOS predictions aligned by ticker/session. Shift decisions on the original trading calendar; missing features must not change what ‘next open’ means.",w:["scripts/features.py:106"],ev:"build_features drops label-less rows and resets the index; the API turns 09-04 data into a 09-03 ML rundown."},
+ {id:"24",p:"P1",t:"D",st:"s32",sp:"022",m:"tgt",h:"Missing current prices must not become down labels",c:"Mask both current and future observations, reject nonfinite or non-positive prices, keep unavailable labels missing. Test NaN and infinity at both endpoints.",w:["scripts/targets.py:65"],ev:"Close [NaN, 101, 102] → first label 0."},
+ {id:"25",p:"P1",t:"R",st:"s35",sp:"034",m:"model",h:"Define the prediction-to-utility contract",c:"exp(E[log r]) ≠ E[simple r], and accuracy ignores win/loss size. Estimate an actionable conditional payoff or payoff distribution with uncertainty and costs; select the trade policy inside training/validation only. Keep MSE and log loss as diagnostics.",w:["scripts/ml_signal.py:125","scripts/model_cv.py:193"],ev:"Ridge MSE 0.0003560 → 0.0003557 (0.0844% relative) — economic value unestablished."},
+ {id:"26",p:"P1",t:"G",st:"s35",sp:"034",m:"model",h:"Stop describing the classification path as cost-aware",c:"Preserve class probabilities, calibrate chronologically and combine with conditional up/down payoffs — or keep classification only as a benchmark. A 54% up probability is not sizing-grade confidence.",w:["scripts/ml_signal.py:236"],ev:"Holds on hard class 1 with no magnitude or cost threshold.",lt:"Now, in spec 018: correct the ‘cost-aware’ wording in docs and UI."},
+ {id:"27",p:"P1",t:"G",st:"s33",sp:"028",m:"runs",h:"Keep a trial ledger and an untouched final evaluation",c:"Register every material trial, including failed variants and manual changes. Repeated outer-test inspection has turned that history into selection data; renaming inspected dates doesn’t make them unseen.",w:["scripts/feature_set_comparison.py:745","docs/PROJECT_CONTEXT.md"],ev:"The same outer-test results guided features, model families, windows and policy.",lt:"Spec 037: freeze the strategy, then evaluate on new forward observations only."},
+ {id:"28",p:"P1",t:"G",st:"s35",sp:"035",m:"stats",h:"Use time-aware inference, not per-row independence",c:"Paired block bootstrap or suitable dependent-data tests, date-block resampling across the panel, confidence intervals and effect sizes. Validate the inference on simulated nulls. Signed-rank tests carry symmetry assumptions.",w:["scripts/feature_set_comparison.py:348","scripts/feature_set_comparison.py:410"],ev:"Adjacent errors share regimes and fitted models; h>1 labels overlap directly."},
+ {id:"29",p:"P1",t:"D",st:"s31",sp:"020",m:"stats",h:"Fix the unfavourable one-sided McNemar tail",c:"Call the exact binomial test with the intended alternative directly; cover both directions and ties. The saved favourable logistic result is not invalidated by this branch.",w:["scripts/feature_set_comparison.py:348"],ev:"0 favourable of 2 discordant → reported p 0.75; exact binomial 1.0."},
+ {id:"30",p:"P1",t:"G",st:"s35",sp:"035",m:"stats",h:"Correct selection claims for the full search",c:"Specify the test family and correction in advance. Calculate PSR/DSR on valid net returns, accounting for search history and effective independent trials. Use a justified probability threshold, minimum sample and economic effect.",w:["reports/api/routes/capital_gate.py"],ev:"Any of 4 tests at p<0.10 passes; gate 3 says ‘DSR remains positive’ — nearly vacuous for a probability.",lt:"Now, in spec 018: fix the gate text."},
+ {id:"31",p:"P1",t:"G",st:"s33",sp:"029",m:"runs",h:"Evaluate strategy and baselines on one investable interval",c:"Precompute features with prior history, then start every funded portfolio on the same evaluation session with the same cash, tradability and cost rules. Save the exact covered-session mask.",w:["scripts/multi_ticker_comparison.py:212"],ev:"ML sits flat through initial training while baselines are evaluated over the full feature frame."},
+ {id:"32",p:"P1",t:"G",st:"s33",sp:"029",m:"runs",h:"Strengthen baselines and keep their full distributions",c:"Add always-up / rolling-prior classification, zero-return and training-mean regression, cash, buy-and-hold, simple momentum and volatility-managed exposure. Compare turnover and exposure, keep every random path, use uncertainty instead of ‘mean + 2σ’. Never average Sharpe or drawdown into a fictional strategy.",w:["scripts/ma_crossover_backtest.py:59","scripts/multi_ticker_comparison.py:112"],ev:"Always-up accuracy 53.54% vs logistic scale-free 52.99% on the same 2,359 test rows."},
+ {id:"33",p:"P1",t:"D+G",st:"s33",sp:"029",m:"runs",h:"Make comparison artifacts complete and machine-readable",c:"Persist per-ticker success/failure, exception type, configuration, per-seed records and aggregation semantics. Exit nonzero for an unusable run. Expose estimator choice explicitly.",w:["scripts/multi_ticker_comparison.py:112","scripts/multi_ticker_comparison.py:357"],ev:"An all-failed run writes an empty CSV and exits 0; some random fields keep first-seed metadata; ridge is hard-coded."},
+ {id:"34",p:"P1",t:"R",st:"s33",sp:"029",m:"runs",h:"Separate the feature redesign from the preprocessing change",c:"Run a small predeclared factorial ablation — levels/raw, levels/scaled, ratios/raw, ratios/scaled — holding folds and policy fixed. Share date-based fold geometry across warm-up masks and report eligibility differences.",w:["scripts/estimators.py:203","scripts/feature_set_comparison.py:129","scripts/logistic_baseline.py"],ev:"The old logistic control was unscaled; the comparison’s levels model uses the new scaled pipeline."},
+ {id:"35",p:"P1",t:"D",st:"s31",sp:"020",m:"stats",h:"Singular-matrix VIF must not report reassurance",c:"Detect zero variance and rank deficiency, or regress each feature on the others with an explicit degeneracy policy. Acceptance: exact duplicate, linear combination, constant and nearly singular cases match an independent oracle.",w:["scripts/feature_diagnostics.py:76","scripts/scratch_multiticker_collinearity.py:112"],ev:"Two identical columns → VIF 0.25 each; a constant column → LinAlgError: SVD did not converge."},
+ {id:"36",p:"P1",t:"R",st:"s31",sp:"018",m:"web",h:"Treat good conditioning as numerics, not alpha",c:"Scale-free ratios and fold-local scaling stay, but they don’t guarantee stationarity, causal relevance or profitability, and low pairwise correlation doesn’t rule out multivariate redundancy. Only predeclared OOS economic ablation supports an improvement claim.",w:["scripts/features.py","reports/web/src/components/views/FeatureDiagnosticsView.tsx",".specify/specs/014-scale-free-features/spec.md"],ev:"Condition number 36.17 → 2.15 and max VIF 268 → 1.60 are shown as proof in the UI."},
+ {id:"37",p:"P2",t:"R",st:"s33",sp:"030",m:"stats",h:"Reconsider permanent post-test embargo exclusions",c:"Model event information intervals explicitly, purge labels unavailable at fit time, and keep extra embargo only for a stated dependence concern. Validate calendar boundaries, zero/negative periods, duplicate dates and horizon domains. Don’t delete safeguards without proving the replacement’s timing contract.",w:["scripts/walk_forward_cv.py:21"],ev:"Every old post-test embargo gap accumulates forever — conservative, not a leak."},
+ {id:"38",p:"P2",t:"G",st:"s33",sp:"028",m:"runs",h:"Save probabilities, inner-search records and model identity",c:"Save fold IDs, training bounds, all candidate scores, selected params, scaler state, predictions/probabilities, label definition, seed, elapsed time and source/data hashes. Define fold-score weighting. Replace removable assert statements with explicit errors.",w:["scripts/model_cv.py:245","scripts/model_cv.py:362"],ev:"Only aggregate winning scores are kept."},
+ {id:"39",p:"P2",t:"G",st:"s33",sp:"030",m:"model",h:"Pin model behaviour before the data grows",c:"Specify HGB early stopping for a future pooled panel (it adds a non-chronological validation split past a size threshold). Handle single-class folds per estimator. Freeze or copy mutable registry dictionaries.",w:["scripts/estimators.py:96"],ev:"All-positive HGB fold checked: 0.9999999999999978 vs 1.0 — no material defect; don’t add a speculative bug."},
+ {id:"40",p:"P1",t:"R",st:"s34",sp:"032",m:"risk",h:"Replace presence-based overlap with exposure-sensitive risk",c:"Use a regularized covariance matrix, portfolio variance w′Σw, marginal risk contributions and sector/factor limits — or a clearly specified weighted-overlap alternative. Acceptance: tiny exposures have tiny effects, limits behave continuously, OOS risk and turnover stay acceptable.",w:["scripts/portfolio_risk.py:360"],ev:"A at 0.25 beside B at 1e-12, ρ = 1 → A becomes 0.125."},
+ {id:"41",p:"P1",t:"R",st:"s34",sp:"032",m:"risk",h:"Distinguish per-asset inverse-vol from portfolio vol targeting",c:"confidence × target_vol / asset_vol does not target total portfolio volatility. Compare risk-normalized allocations, cash returns and turnover; Ledoit-Wolf shrinkage is already in scikit-learn.",w:["scripts/portfolio_risk.py:306"],ev:"Real 10y cache, full conviction: median gross 1.22 → 0.38; 69% of exposure removed."},
+ {id:"42",p:"P1",t:"G",st:"s35",sp:"034",m:"model",h:"Define and calibrate conviction before it sizes a position",c:"Specify whether confidence is calibrated win probability, normalized expected utility, uncertainty-adjusted edge or an abstention score. Keep Kelly out until the payoff distribution and estimation error are estimated.",w:["scripts/portfolio_risk.py:306",".specify/specs/017-position-sizing-risk/research.md"],ev:"Confidence is a [0, 1] input with no economic definition."},
+ {id:"43",p:"P1",t:"G",st:"s34",sp:"031",m:"risk",h:"Enforce halts on executable share quantities",c:"Convert targets through a broker-aware sizing layer and enforce no-add against actual and reserved quantities. Validate lot sizes, fractional-share support, price bands and cash reserves.",w:["scripts/portfolio_risk.py:445"],ev:"Clamping weights at the close doesn’t stop share counts growing at the next open after a gap.",lt:"Phase 4: include pending orders in exposure."},
+ {id:"44",p:"P2",t:"R",st:"s34",sp:"032",m:"risk",h:"Stress-test risk defaults instead of assuming them",c:"Compare a small preregistered set under stressed correlation, gaps, volatility jumps and turnover costs. Reject materially asymmetric or invalid correlation matrices. Measure sell-after-loss / rebuy-after-recovery behaviour.",w:["scripts/portfolio_risk.py:167"],ev:"63-session windows, 25% cap and ISO-week reset are plausible defaults, not validated ones."},
+ {id:"45",p:"P0",t:"D",st:"s31",sp:"018",m:"api",h:"Replace invented p-values with real run artifacts",c:"Load validated artifacts keyed by ticker, dataset, model and run. If no experiment exists for a ticker, report unavailable. Acceptance: every displayed value traces to a saved result and changing the run updates it.",w:["reports/api/routes/diagnostics.py:90"],ev:"AAPL and NVDA both get 0.084 / 0.215 / 0.042 / 0.310. The saved run says 0.0122 / 0.4329 / 0.0313 / 0.2633."},
+ {id:"46",p:"P0",t:"D",st:"s31",sp:"018",m:"api",h:"Remove the fabricated forecast and model explanations",c:"Supply actual fitted-model inference with timestamp, feature version, horizon and calibration, or nothing. Label indicator commentary honestly as rules, not the strongest drivers of an ML prediction.",w:["reports/api/routes/ml_rundown.py:61","reports/web/src/components/layout/MLRundownPane.tsx"],ev:"String literal ‘P(Up) = 54.2% | Logit Score = +0.17’, as of 2026-09-03."},
+ {id:"47",p:"P0",t:"D",st:"s31",sp:"018",m:"api",h:"Back capital gates with evidence that can go stale",c:"Store unknown/failed/stale/passed distinctly and invalidate affected gates when data, source, costs or policy change. Remove claims of null-pipeline and cost-stress evidence the badge doesn’t establish.",w:["reports/api/routes/capital_gate.py:13","reports/web/src/components/layout/Header.tsx:107"],ev:"Gate 1 hardcoded ‘passed’ with ‘301 passed in pytest suite’; header shows 311/311; the real suite is 541 under unittest.",lt:"After spec 028: read signed, versioned verification artifacts."},
+ {id:"48",p:"P1",t:"D",st:"s31",sp:"018",m:"api",h:"Report real holding periods and full friction",c:"Compute duration from session IDs; decompose commissions, spread and slippage from actual fills. Export unrounded values and round only for display.",w:["reports/api/routes/backtest.py:154","reports/web/src/components/views/BacktestTearsheetView.tsx:92"],ev:"Every trade reports holding_bars = 1; the first five actually held 93, 33, 43, 36, 27 sessions."},
+ {id:"49",p:"P1",t:"D",st:"s31",sp:"018",m:"web",h:"Fix gate explanations and statistics tutoring",c:"Derive explanatory text from the actual artifact and policy, and review its math: p-values aren’t ‘probability it’s luck’, conditioning isn’t proof, volume narratives aren’t institutional-flow evidence. Remove Kelly teaching. Unknown correlation must not render as zero.",w:["reports/web/src/components/views/CapitalGateView.tsx:64","reports/web/src/components/views/FeatureDiagnosticsView.tsx","reports/web/src/components/views/MarketDataView.tsx"],ev:"The gate decoder describes a different five-gate sequence than the API returns."},
+ {id:"50",p:"P1",t:"D",st:"s31",sp:"019",m:"api",h:"Validate HTTP parameters; return 4xx, not 500",c:"Constrained request models plus cross-field validation with a documented 4xx. Bound workload, reject nonfinite values and unknown tickers, and separate missing/stale artifacts from server faults.",w:["reports/api/routes/backtest.py"],ev:"short_window=30&long_window=10 → 500; commission=-1 → 500; short_window=0 → 200."},
+ {id:"51",p:"P1",t:"G",st:"s31",sp:"019",m:"api",h:"Restrict API access (CORS now, auth before hosting)",c:"For a local tool, bind loopback and allow only intended origins. Routes are read-only today, so this is not an unauthorized-trading exploit.",w:["reports/api/main.py:33"],ev:"allow_origins includes \"*\" with allow_credentials=True; an untrusted origin was echoed back.",lt:"Phase 4: TLS, authentication, authorization, allowed hosts, request limits, and a separate stronger boundary for any execution API."},
+ {id:"52",p:"P1",t:"D",st:"s36",sp:"038",m:"web",h:"Stop stale requests overwriting the selected ticker",c:"Use keyed queries or AbortController/generation IDs, and include run/ticker IDs in responses. Acceptance: delay ticker A, switch to B, deliver A — B’s views stay consistent.",w:["reports/web/src/App.tsx:93"],ev:"Seven requests per state change, no abort; lint warning at App.tsx:93."},
+ {id:"53",p:"P1",t:"D+G",st:"s36",sp:"038",m:"web",h:"Show loading, empty, stale and failed states distinctly",c:"Visible error/retry states, last successful timestamp and data freshness; share current run identity across every pane; refresh capital-gate state.",w:["reports/web/src/App.tsx:94","reports/web/src/services/api.ts"],ev:"Fetch failures become null/empty — indefinite loaders or apparently empty results.",lt:"Phase 4: readiness checks cover data and model availability, not just HTTP liveness."},
+ {id:"54",p:"P1",t:"G",st:"s31",sp:"018",m:"web",h:"Label which algorithm and experiment each pane shows",c:"Mark illustrations as illustrations; display actual folds, costs, evaluation bounds and baseline risk metrics. Never combine different runs into one apparent result.",w:["reports/web/src/components/views/CrossValidationView.tsx","reports/api/routes/backtest.py","reports/api/routes/ml_rundown.py"],ev:"CV view shows 6 illustrative folds (saved run has 113); the tearsheet is SMA beside panes that suggest ML.",lt:"After spec 028: add model and run selectors backed by real results."},
+ {id:"55",p:"P2",t:"G",st:"s36",sp:"038",m:"web",h:"Add frontend tests and accessibility",c:"Browser tests for ticker races, error states, parameter validation, real artifact values and keyboard navigation. Semantic buttons, labelled tabs/panels, modal focus handling, non-colour status cues, container resize observation, preserved zoom, disclosed 100-trade truncation.",w:["reports/web/src/components"],ev:"No frontend test suite exists."},
+ {id:"56",p:"P2",t:"D+G",st:"s36",sp:"039",m:"eng",h:"Package the core library and share typed contracts",c:"Package the core library instead of repeated sys.path mutation. Generate frontend types from OpenAPI or validate a shared contract; enable strict TypeScript incrementally and replace pervasive any.",w:["reports/api/routes/data.py:14","reports/api/schemas.py","reports/web/src/types/api.ts"],ev:"Routes use parents[2] (→ reports/) and try reports/scripts; imports work only because main.py fixes the path."},
+ {id:"57",p:"P1",t:"D",st:"s31",sp:"021",m:"eng",h:"Make CI reproduce a clean install",c:"Install declared test dependencies, inject small deterministic data fixtures, and build frontend assets only in the job that needs them. Verify in a clean directory. Run build, lint and browser checks in CI.",w:[".github/workflows/test.yml","tests/test_reports_api.py"],ev:"CI installs only requirements.txt. Clean checkout: 11 API tests, 7 fail with 404."},
+ {id:"58",p:"P1",t:"G",st:"s31",sp:"021",m:"eng",h:"Add independent financial and pipeline oracles",c:"Hand-calculated funded ledger, planted causal signal vs pure noise, overnight-only signal timing, all-NaN prices, exact singular VIF, whole-pipeline future perturbation. Keep repeatable mutation scripts in the repo. Keep the existing shift, perturbation, purge and risk-boundary tests.",w:["tests/"],ev:"Several tests mirror implementation formulas or check response shape; spec 017’s mutation runner lived outside the repo."},
+ {id:"59",p:"P1",t:"G",st:"s33",sp:"028",m:"runs",h:"Record experiment identity in immutable run folders",c:"Immutable run directories with a manifest (code, dependencies, dataset version, candidates, failed attempts), atomic result publication and resumable task IDs where runtime warrants. Store data snapshots separately; never overwrite evidence when refreshing data.",w:["scripts/feature_set_comparison.py:844","data/cache"],ev:"Results go to one fixed JSON filename; a completed pair checkpoint isn’t fit-level progress."},
+ {id:"60",p:"P2",t:"G",st:"s33",sp:"028",m:"runs",h:"Control parallelism by measurement and runtime context",c:"Verify the OS start method and use runtime thread-pool controls. Add timeouts, cancellation, memory limits and run-specific checkpoints. Promise numerical/statistical reproducibility, not bitwise identity across CPUs. Resolve repeated scikit-learn/joblib warnings.",w:["scripts/feature_set_comparison.py:229"],ev:"Run log 51.6 MB, UTF-16, 83,464 sklearn UserWarnings."},
+ {id:"61",p:"P1",t:"G",st:"s36",sp:"039",m:"eng",h:"Define a repeatable release and runtime environment",c:"pyproject.toml, supported Python and Node versions, runtime/test/UI dependency groups, a reproducible lock and runnable entry points. Separate slow offline research from serving precomputed results.",w:["requirements.txt","reports/requirements-ui.txt","reports/web/package.json"],ev:"Local Python 3.13.14 vs CI 3.12; Node 24.19.0; no declared interpreter version.",lt:"Phase 4: a small reproducible process or container deployment — no distributed systems."},
+ {id:"62",p:"P1",t:"G",st:"p4",sp:"P4-e",m:"exec",h:"Specify unattended operation and monitoring",c:"Data-ready and decision deadlines, maximum staleness, restart policy, single active trader, model rollback, disk/log limits, backup-restore drill, alert routing and a runbook. Monitor coverage, feature drift, calibration, turnover, exposure, slippage and broker reconciliation — SLOs around daily decisions.",w:["(new) operations runbook"],ev:"No service supervision, scheduled lifecycle, recovery or alerting is demonstrated."},
+ {id:"63",p:"P1",t:"G",st:"s36",sp:"040",m:"eng",h:"Harden CI and agent permissions as real controls",c:"Minimize token permissions, pin verified action SHAs, set workflow timeout/concurrency/budget limits, and enforce protected-branch restrictions server-side. A written ‘never push main’ rule is not an access control.",w:[".github/workflows/claude.yml"],ev:"Agent workflow has write permissions and an API key; action refs are mutable tags."},
+ {id:"64",p:"P2",t:"D",st:"s36",sp:"040",m:"eng",h:"Repair local hooks, settings and instruction drift",c:"Make settings valid JSON, unescape frontmatter, and verify tools actually recognize them. The test hook should use the project interpreter, keep a log, return the true exit code and run no git. Configure invocation explicitly.",w:[".claude/hooks/run-tests.ps1:1",".claude/settings.json",".claude/agents/quant-reviewer.md",".claude/commands/spec-status.md"],ev:".claude/settings.json is 0 bytes; frontmatter escaped as \\---; hook runs git and truncates to 5 lines."},
+ {id:"65",p:"P2",t:"D",st:"s36",sp:"041",m:"proc",h:"Point Spec Kit at .specify/specs/",c:"Set one project-specific path via supported configuration and test dry-run resolution. Harmonize template git and review steps with local policy so automation stops rediscovering the conflict.",w:[".specify/scripts/bash/create-new-feature.sh:200",".claude/skills/speckit-specify/SKILL.md"],ev:"Defaults create and scan root specs/; existing specs live under .specify/specs/.",lt:"Stage 0.5: the path fix itself happens before the next spec."},
+ {id:"66",p:"P2",t:"D",st:"s36",sp:"041",m:"proc",h:"Namespace task-to-issue keys by feature",c:"Use a stable composite key such as 017:T001 in issue metadata/title, reconcile checked tasks intentionally, and make reruns idempotent.",w:[".claude/skills/speckit-taskstoissues/SKILL.md"],ev:"Deduplication matches T001 globally — spec 001’s issue can suppress spec 017’s T001."},
+ {id:"67",p:"P2",t:"G",st:"s36",sp:"041",m:"proc",h:"Tie documentation status to evidence",c:"Link present-tense status to evidence; distinguish implementation, verification and research success; preserve history. Don’t call mechanics proven because a model performs poorly.",w:["docs/PROJECT_CONTEXT.md",".specify/specs/017-position-sizing-risk/tasks.md"],ev:"Spec 012 described as committed and as not through its gate; its classification path described as using the hurdle; UI test counts conflict. 017’s T033/T034 already fixed.",lt:"Stage 0.6: the first cleanup happens now."},
+ {id:"68",p:"P2",t:"R",st:"s36",sp:"041",m:"proc",h:"Reward empirical correctness, not spec agreement",c:"Keep architectural boundaries and causal tests, but require independent equation/timing review, falsification experiments and source-backed evidence for high-risk math. Reduce repetitive prose and brittle exact-import AST checks.",w:[".claude/agents/quant-reviewer.md",".specify/memory/constitution.md",".specify/templates"],ev:"A reviewer limited to a few local rules can pass mathematically wrong requirements like singular VIF."},
+ {id:"69",p:"P1",t:"G",st:"p5",sp:"P5",m:"biz",h:"Settle software licence and data rights",c:"Choose the intended software licence, keep third-party notices, and separate proprietary strategy artifacts under ADR 0001. Verify the actual data vendor agreement before charging customers or redistributing feeds.",w:["LICENSE (missing)","docs/adr/0001-public-private-repo-split.md"],ev:"No licence file; yfinance directs users to Yahoo’s terms, which carry personal-use restrictions."},
+ {id:"70",p:"P1",t:"G+R",st:"p5",sp:"P5",m:"biz",h:"Define the business model and economic hurdle",c:"Own capital, licensed software, sold signals and managed money are different products with different costs and legal duties. For own capital, define capital, maximum tolerable loss, benchmark, holding period, budget and time before optimizing; check the dollar opportunity justifies research and data costs.",w:["(new) objectives document"],ev:"$10,000 at 15% is $1,500 before tax and infrastructure — arithmetic, not a forecast.",lt:"Stage 0.4: write down the own-capital objective now."}
+];
+
+/* ---------- state & persistence ---------- */
+const LS_KEY = "qmb-remediation-map-v1";
+const state = {done:{}, dec:{}};
+const ui = {q:"", pr:new Set(), st:"", m:"", t:"", hideDone:false};
+let docRef = null, saveTimer = null;
+
+function loadLocal(){
+  try{ const s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if(s){ state.done = s.done || {}; state.dec = s.dec || {}; } }catch(e){}
+}
+function saveLocal(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify({done:state.done, dec:state.dec})); }catch(e){}
+}
+function setSync(mode){
+  const el = document.getElementById("sync");
+  el.dataset.state = mode;
+  el.textContent = mode === "shared" ? "Progress saves to this page — anyone with access sees the same ticks."
+    : mode === "error" ? "Couldn’t save the last change. Reload the page to retry."
+    : "Progress saves in this browser only.";
+}
+function body(){ return {done:state.done, dec:state.dec, updatedAt:new Date().toISOString()}; }
+function persist(){
+  saveLocal();
+  if(!docRef) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(function(){
+    docRef.set(body()).catch(function(e){
+      if(e && e.code === "unavailable"){
+        setTimeout(function(){ if(docRef) docRef.set(body()).catch(function(){ setSync("error"); }); }, 700 + Math.random()*800);
+      } else { setSync("error"); }
+    });
+  }, 350);
+}
+async function connect(){
+  if(!window.claude || typeof window.claude.use !== "function"){ setSync("local"); return; }
+  let db = null;
+  try{ db = await window.claude.use("db"); }catch(e){ db = null; }
+  if(!db){ setSync("local"); return; }
+  try{ docRef = db.doc("progress/main"); }catch(e){ setSync("local"); return; }
+  docRef.onSnapshot(function(snap){
+    if(snap.exists){
+      const d = snap.data() || {};
+      state.done = Object.assign({}, d.done || {});
+      state.dec = Object.assign({}, d.dec || {});
+      saveLocal();
+      applyState();
+    } else if(Object.keys(state.done).length || Object.keys(state.dec).length){
+      persist();
+    }
+    setSync("shared");
+  }, function(){ docRef = null; setSync("local"); });
+}
+
+/* ---------- helpers ---------- */
+function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]; }); }
+const pColor = {P0:"var(--p0)", P1:"var(--p1)", P2:"var(--p2)"};
+function isDone(id){ return !!state.done[id]; }
+function stageFindings(k){ return F.filter(function(f){ return f.st === k; }); }
+
+/* ---------- phase split ---------- */
+function renderSplit(){
+  const phases = [
+    {n:3, label:"Phase 3 · now", sub:"Backtest / research", mix:"100%"},
+    {n:4, label:"Phase 4 · later", sub:"Paper trading", mix:"55%"},
+    {n:5, label:"Phase 5 · later", sub:"Capped live capital", mix:"28%"}
+  ];
+  const bar = document.getElementById("split-bar");
+  const leg = document.getElementById("split-legend");
+  let barHtml = "", legHtml = "", aria = [];
+  phases.forEach(function(ph){
+    const list = F.filter(function(f){ return STAGE[f.st].phase === ph.n; });
+    const p0 = list.filter(function(f){ return f.p === "P0"; }).length;
+    const col = "color-mix(in oklab, var(--accent) " + ph.mix + ", var(--surface))";
+    barHtml += '<span style="flex:' + list.length + ' 0 0;background:' + col + '" title="' + esc(ph.label) + ': ' + list.length + ' findings"></span>';
+    legHtml += '<div style="--sw:' + col + '"><span class="t">' + esc(ph.label) + '</span><b class="num">' + list.length + '</b><span class="s">' + esc(ph.sub) + ' · ' + p0 + ' P0</span></div>';
+    aria.push(ph.label + " " + list.length + " findings, " + p0 + " P0");
+  });
+  bar.innerHTML = barHtml;
+  bar.setAttribute("aria-label", aria.join("; "));
+  leg.innerHTML = legHtml;
+}
+
+/* ---------- critical path ---------- */
+function nodeHtml(s, extraClass){
+  const list = stageFindings(s.k);
+  const p0 = list.filter(function(f){ return f.p === "P0"; }).length;
+  return '<button type="button" class="node ' + (extraClass || "") + '" data-stage="' + s.k + '" aria-pressed="false">' +
+    '<span class="code">' + esc(s.code) + '</span>' +
+    '<span class="nm">' + esc(s.name) + '</span>' +
+    '<span class="ct num"><span data-count="' + s.k + '">0</span>/' + list.length + ' fixed' + (p0 ? ' · <span class="p0n">' + p0 + ' P0</span>' : '') + '</span>' +
+    '<span class="bar"><i data-bar="' + s.k + '"></i></span>' +
+  '</button>';
+}
+function renderPath(){
+  const order = ["s31","s32","s33","m013","s34","s35"];
+  document.getElementById("track").innerHTML = order.map(function(k){
+    if(k === "m013") return '<li><div class="milestone"><div><span class="code">HELD</span><span class="nm">Spec 013 real run</span><span class="ct">Runs once 3.1–3.3 land (decision 0.1).</span></div></div></li>';
+    return '<li>' + nodeHtml(STAGE[k]) + '</li>';
+  }).join("");
+  document.getElementById("lane").innerHTML = nodeHtml(STAGE.s36) + '<p class="muted" style="font-size:13px;align-self:center">Parallel lane: terminal reliability, packaging, CI hardening, workflow. No stage waits on it.</p>';
+  document.getElementById("later").innerHTML = ["p4","p5"].map(function(k){ return '<li>' + nodeHtml(STAGE[k]) + '</li>'; }).join("");
+}
+function renderDecisions(){
+  document.getElementById("decisions").innerHTML = DECISIONS.map(function(d){
+    const id = "dec-" + d.k.replace(".", "-");
+    return '<li data-dec="' + d.k + '"><input type="checkbox" id="' + id + '" data-dec="' + d.k + '"><label for="' + id + '"><span class="k">' + d.k + ' · findings ' + esc(d.src) + '</span><span class="txt">' + esc(d.t) + '</span></label></li>';
+  }).join("");
+}
+
+/* ---------- heatmap ---------- */
+const HEAT_COLS = ["s31","s32","s33","s34","s35","s36","p4","p5"];
+function mixFor(n){ return n >= 6 ? 80 : n >= 4 ? 58 : n >= 2 ? 36 : 18; }
+function renderHeat(){
+  let h = '<thead><tr><th class="row" scope="col">Module</th>';
+  HEAT_COLS.forEach(function(k){ h += '<th scope="col"' + (k === "p4" ? ' class="phase-edge"' : '') + '>' + esc(STAGE[k].code) + '</th>'; });
+  h += '<th scope="col">Total</th></tr></thead><tbody>';
+  MODULES.forEach(function(m){
+    const rowList = F.filter(function(f){ return f.m === m.k; });
+    h += '<tr><th class="row" scope="row">' + esc(m.name) + '</th>';
+    HEAT_COLS.forEach(function(k){
+      const list = rowList.filter(function(f){ return f.st === k; });
+      const edge = k === "p4" ? ' style="border-left:1px solid var(--line-strong);padding-left:2px"' : '';
+      if(!list.length){ h += '<td' + edge + '><span class="empty" aria-hidden="true">·</span></td>'; return; }
+      const n = list.length, mix = mixFor(n);
+      const p0 = list.filter(function(f){ return f.p === "P0"; }).length;
+      const ids = list.map(function(f){ return f.id; }).join(", ");
+      const label = m.name + ", stage " + STAGE[k].code + ": " + n + " finding" + (n > 1 ? "s" : "") + (p0 ? ", " + p0 + " P0" : "") + " — " + ids;
+      h += '<td' + edge + '><button type="button" class="cell' + (mix >= 58 ? ' strong' : '') + '" style="--mix:' + mix + '%" data-m="' + m.k + '" data-st="' + k + '" data-ids="' + ids + '" data-p0="' + p0 + '" aria-label="' + esc(label) + '">' + n + (p0 ? '<span class="dot" aria-hidden="true"></span>' : '') + '</button></td>';
+    });
+    h += '<td class="tot num">' + rowList.length + '</td></tr>';
+  });
+  h += '</tbody>';
+  document.getElementById("heat").innerHTML = h;
+  document.getElementById("heat-legend").innerHTML =
+    '<span><span class="sw" style="--mix:18%"></span>1</span>' +
+    '<span><span class="sw" style="--mix:36%"></span>2–3</span>' +
+    '<span><span class="sw" style="--mix:58%"></span>4–5</span>' +
+    '<span><span class="sw" style="--mix:80%"></span>6+</span>' +
+    '<span><span class="pd"></span>contains a P0</span>' +
+    '<span class="muted">Columns after the divider are later phases.</span>';
+}
+
+/* ---------- register ---------- */
+function renderFilterOptions(){
+  document.getElementById("fs").innerHTML = '<option value="">All stages</option>' + STAGES.map(function(s){ return '<option value="' + s.k + '">' + esc(s.code + " — " + s.name) + '</option>'; }).join("");
+  document.getElementById("fm").innerHTML = '<option value="">All modules</option>' + MODULES.map(function(m){ return '<option value="' + m.k + '">' + esc(m.name) + '</option>'; }).join("");
+}
+function matches(f){
+  if(ui.st && f.st !== ui.st) return false;
+  if(ui.m && f.m !== ui.m) return false;
+  if(ui.t && f.t.indexOf(ui.t) === -1) return false;
+  if(ui.pr.size && !ui.pr.has(f.p)) return false;
+  if(ui.hideDone && isDone(f.id)) return false;
+  if(ui.q){
+    const hay = [f.id, f.p, f.t, f.h, f.c, f.ev || "", f.lt || "", f.w.join(" "), SPEC[f.sp].k, SPEC[f.sp].name, MODULE[f.m].name].join(" ").toLowerCase();
+    const terms = ui.q.toLowerCase().split(/\s+/).filter(Boolean);
+    for(let i = 0; i < terms.length; i++){ if(hay.indexOf(terms[i]) === -1) return false; }
+  }
+  return true;
+}
+function onlyStageFilter(){ return !ui.q && !ui.m && !ui.t && !ui.pr.size && !ui.hideDone; }
+function rowHtml(f){
+  return '<div class="row' + (isDone(f.id) ? ' is-done' : '') + '" data-row="' + f.id + '">' +
+    '<input type="checkbox" id="done-' + f.id + '" data-done="' + f.id + '" aria-label="Mark finding ' + f.id + ' fixed"' + (isDone(f.id) ? ' checked' : '') + '>' +
+    '<span class="fid">' + f.id + '</span>' +
+    '<span><span class="pill ' + f.p + '" style="--c:' + pColor[f.p] + '">' + f.p + '</span></span>' +
+    '<span class="tcode" title="D defect · G missing capability · R reconsider">' + esc(f.t) + '</span>' +
+    '<details><summary>' + esc(f.h) + (f.lt ? '<span class="hint-later">↪ later part</span>' : '') + '</summary><div class="body"><p>' + esc(f.c) + '</p>' +
+      (f.ev ? '<p class="ev">' + esc(f.ev) + '</p>' : '') +
+      (f.lt ? '<p class="lt">' + esc(f.lt) + '</p>' : '') +
+      '<p class="muted" style="font-size:12.5px">' + esc(MODULE[f.m].name) + ' · spec ' + esc(SPEC[f.sp].k) + '</p>' +
+    '</div></details>' +
+    '<span class="where">' + f.w.map(function(x){ return '<span>' + esc(x) + '</span>'; }).join("") + '</span>' +
+  '</div>';
+}
+function renderRegister(){
+  let html = "", shown = 0;
+  STAGES.forEach(function(s){
+    if(ui.st && ui.st !== s.k) return;
+    const specs = SPECS.filter(function(sp){ return sp.st === s.k; });
+    let block = "";
+    specs.forEach(function(sp){
+      const all = F.filter(function(f){ return f.sp === sp.k; });
+      const vis = all.filter(matches);
+      if(!vis.length && !(all.length === 0 && onlyStageFilter())) return;
+      shown += vis.length;
+      const doneN = all.filter(function(f){ return isDone(f.id); }).length;
+      block += '<div class="spec"><div class="spec-head"><span class="sn">' + (/^\d/.test(sp.k) ? 'Spec ' : '') + esc(sp.k) + '</span><h3>' + esc(sp.name) + '</h3>' +
+        (sp.note ? '<span class="note">' + esc(sp.note) + '</span>' : '') +
+        (all.length ? '<span class="sd num" data-spec-count="' + sp.k + '">' + doneN + '/' + all.length + ' fixed</span>' : '<span class="sd">no findings of its own</span>') +
+        '</div>' + vis.map(rowHtml).join("") + '</div>';
+    });
+    if(block){
+      html += '<div class="stage-block"><div class="stage-head"><span class="code">' + esc(s.code) + '</span><h2>' + esc(s.name) + '</h2><p class="gatet"><b>Gate:</b> ' + esc(s.gate) + '</p></div>' + block + '</div>';
+    }
+  });
+  document.getElementById("reg").innerHTML = html || '<p class="noresult">No findings match these filters. Clear filters to see all 70.</p>';
+  document.getElementById("result").textContent = "Showing " + shown + " of " + F.length;
+}
+
+/* ---------- counts ---------- */
+function applyState(){
+  const doneAll = F.filter(function(f){ return isDone(f.id); }).length;
+  const p0All = F.filter(function(f){ return f.p === "P0"; });
+  const p0Done = p0All.filter(function(f){ return isDone(f.id); }).length;
+  const decDone = DECISIONS.filter(function(d){ return state.dec[d.k]; }).length;
+  document.getElementById("pg-all").textContent = doneAll;
+  document.getElementById("pm-all").style.width = (doneAll / F.length * 100) + "%";
+  document.getElementById("pg-p0").textContent = p0Done;
+  document.getElementById("pm-p0").style.width = (p0Done / p0All.length * 100) + "%";
+  document.getElementById("pg-dec").textContent = decDone;
+  document.getElementById("pm-dec").style.width = (decDone / DECISIONS.length * 100) + "%";
+  STAGES.forEach(function(s){
+    const list = stageFindings(s.k), d = list.filter(function(f){ return isDone(f.id); }).length;
+    document.querySelectorAll('[data-count="' + s.k + '"]').forEach(function(el){ el.textContent = d; });
+    document.querySelectorAll('[data-bar="' + s.k + '"]').forEach(function(el){ el.style.width = (list.length ? d / list.length * 100 : 0) + "%"; });
+  });
+  DECISIONS.forEach(function(d){
+    const cb = document.querySelector('input[data-dec="' + d.k + '"]');
+    if(cb){ cb.checked = !!state.dec[d.k]; cb.closest("li").classList.toggle("is-done", !!state.dec[d.k]); }
+  });
+  document.querySelectorAll("[data-row]").forEach(function(row){
+    const id = row.getAttribute("data-row"), on = isDone(id);
+    row.classList.toggle("is-done", on);
+    const cb = row.querySelector("input[data-done]"); if(cb) cb.checked = on;
+  });
+  SPECS.forEach(function(sp){
+    const el = document.querySelector('[data-spec-count="' + sp.k + '"]');
+    if(!el) return;
+    const all = F.filter(function(f){ return f.sp === sp.k; });
+    el.textContent = all.filter(function(f){ return isDone(f.id); }).length + "/" + all.length + " fixed";
+  });
+  if(ui.hideDone) renderRegister();
+}
+
+/* ---------- stage selection ---------- */
+function syncStageUI(){
+  document.querySelectorAll(".node").forEach(function(n){ n.setAttribute("aria-pressed", String(n.dataset.stage === ui.st)); });
+  document.getElementById("fs").value = ui.st;
+  const gate = document.getElementById("gate");
+  if(ui.st){
+    gate.hidden = false;
+    document.getElementById("gate-k").textContent = "Gate out of " + STAGE[ui.st].code + " — " + STAGE[ui.st].name;
+    document.getElementById("gate-t").textContent = STAGE[ui.st].gate;
+  } else { gate.hidden = true; }
+}
+function goRegister(){
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  document.getElementById("register").scrollIntoView({behavior: reduce ? "auto" : "smooth", block:"start"});
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", function(e){
+  const node = e.target.closest(".node");
+  if(node){
+    ui.st = ui.st === node.dataset.stage ? "" : node.dataset.stage;
+    syncStageUI(); renderRegister();
+    return;
+  }
+  const cell = e.target.closest(".cell");
+  if(cell){
+    ui.st = cell.dataset.st; ui.m = cell.dataset.m;
+    document.getElementById("fm").value = ui.m;
+    syncStageUI(); renderRegister(); goRegister();
+    return;
+  }
+  const chip = e.target.closest(".fchip");
+  if(chip){
+    const p = chip.dataset.p;
+    if(ui.pr.has(p)) ui.pr.delete(p); else ui.pr.add(p);
+    chip.setAttribute("aria-pressed", String(ui.pr.has(p)));
+    renderRegister();
+    return;
+  }
+  if(e.target.id === "reset"){
+    ui.q = ""; ui.pr.clear(); ui.st = ""; ui.m = ""; ui.t = ""; ui.hideDone = false;
+    document.getElementById("q").value = "";
+    document.getElementById("fm").value = "";
+    document.getElementById("ft").value = "";
+    document.getElementById("hd").checked = false;
+    document.querySelectorAll(".fchip").forEach(function(c){ c.setAttribute("aria-pressed","false"); });
+    syncStageUI(); renderRegister();
+  }
+});
+document.addEventListener("change", function(e){
+  const t = e.target;
+  if(t.matches("input[data-done]")){
+    const id = t.dataset.done;
+    if(t.checked) state.done[id] = true; else delete state.done[id];
+    persist(); applyState(); return;
+  }
+  if(t.matches("input[data-dec]")){
+    const k = t.dataset.dec;
+    if(t.checked) state.dec[k] = true; else delete state.dec[k];
+    persist(); applyState(); return;
+  }
+  if(t.id === "fs"){ ui.st = t.value; syncStageUI(); renderRegister(); return; }
+  if(t.id === "fm"){ ui.m = t.value; renderRegister(); return; }
+  if(t.id === "ft"){ ui.t = t.value; renderRegister(); return; }
+  if(t.id === "hd"){ ui.hideDone = t.checked; renderRegister(); return; }
+});
+document.getElementById("q").addEventListener("input", function(e){ ui.q = e.target.value.trim(); renderRegister(); });
+
+/* heat tooltip */
+const tip = document.getElementById("tip");
+function showTip(cell, x, y){
+  const m = MODULE[cell.dataset.m], s = STAGE[cell.dataset.st], p0 = +cell.dataset.p0;
+  const ids = cell.dataset.ids.split(", ");
+  tip.innerHTML = '<b>' + esc(m.name) + '</b> · ' + esc(s.code + " " + s.name) + '<br>' + ids.length + ' finding' + (ids.length > 1 ? 's' : '') + (p0 ? ' · ' + p0 + ' P0' : '') + '<br><span class="mono">' + esc(cell.dataset.ids) + '</span>';
+  tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  let left = x + 14, top = y + 14;
+  if(left + r.width > window.innerWidth - 8) left = x - r.width - 14;
+  if(top + r.height > window.innerHeight - 8) top = y - r.height - 14;
+  tip.style.left = Math.max(8, left) + "px"; tip.style.top = Math.max(8, top) + "px";
+}
+document.addEventListener("mousemove", function(e){
+  const cell = e.target.closest && e.target.closest(".cell");
+  if(cell) showTip(cell, e.clientX, e.clientY); else tip.hidden = true;
+});
+document.addEventListener("focusin", function(e){
+  const cell = e.target.closest && e.target.closest(".cell");
+  if(cell){ const r = cell.getBoundingClientRect(); showTip(cell, r.right, r.top); } else tip.hidden = true;
+});
+window.addEventListener("scroll", function(){ tip.hidden = true; }, {passive:true});
+
+/* ---------- boot ---------- */
+loadLocal();
+renderSplit(); renderPath(); renderDecisions(); renderHeat(); renderFilterOptions(); renderRegister();
+syncStageUI(); applyState();
+connect();
+})();
+</script>

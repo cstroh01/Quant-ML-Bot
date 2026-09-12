@@ -1,0 +1,589 @@
+{
+  "AAPL-AMZN-GOOGL-MSFT-NVDA_10y.csv": {
+    "bytes": 1249843,
+    "sha256": "6aedb90c08e3733f074227a10434f713be7232eb7fa5c0f94b11b8a6ba35ec43",
+    "rows": 12570,
+    "columns": [
+      "Date",
+      "Ticker",
+      "Open",
+      "High",
+      "Low",
+      "Close",
+      "Volume"
+    ],
+    "nulls": 0,
+    "duplicates": 0,
+    "dates": [
+      "2016-09-06",
+      "2026-09-04"
+    ],
+    "tickers": [
+      "AAPL",
+      "AMZN",
+      "GOOGL",
+      "MSFT",
+      "NVDA"
+    ]
+  },
+  "AAPL-MSFT-GOOGL_2y.csv": {
+    "bytes": 150333,
+    "sha256": "9cd428b091acd1632ed65fa7c2e4b1144a64e863b21108814cf57b1c392e1735",
+    "rows": 1506,
+    "columns": [
+      "Date",
+      "Open",
+      "High",
+      "Low",
+      "Close",
+      "Volume",
+      "Ticker"
+    ],
+    "nulls": 0,
+    "duplicates": 0,
+    "dates": [
+      "2024-09-04",
+      "2026-09-03"
+    ],
+    "tickers": [
+      "AAPL",
+      "GOOGL",
+      "MSFT"
+    ]
+  },
+  "AAPL_2y.csv": {
+    "bytes": 50214,
+    "sha256": "94052cb251609aaae66da5c5bb1ec9f9ba08db54930fec7572bf670c0dcd63ea",
+    "rows": 502,
+    "columns": [
+      "Date",
+      "Open",
+      "High",
+      "Low",
+      "Close",
+      "Volume",
+      "Ticker"
+    ],
+    "nulls": 0,
+    "duplicates": 0,
+    "dates": [
+      "2024-09-04",
+      "2026-09-03"
+    ],
+    "tickers": [
+      "AAPL"
+    ]
+  },
+  "feature_set_comparison.json": {
+    "bytes": 1765,
+    "sha256": "92f6e49e112dc6f3d102916ae1730ec5f66f2be26ae3ce2d3eb573ed86bbb725"
+  },
+  "feature_set_comparison_run.log": {
+    "bytes": 51585854,
+    "sha256": "4b6a4478ecfa8f81d28602f73c9144b87f7919cfab3c74f4f188d0412618e5ab",
+    "lines": 333918,
+    "warnings": [
+      [
+        "C:\\GitHub\\Quant-ML-Bot\\venv\\Lib\\site-packages\\sklearn\\utils\\parallel.py:144: UserWarning:",
+        83464
+      ],
+      [
+        "python : C:\\GitHub\\Quant-ML-Bot\\venv\\Lib\\site-packages\\sklearn\\utils\\parallel.py:144: UserWarning:",
+        1
+      ]
+    ],
+    "encoding": "utf-16"
+  },
+  "phase0_aapl_close.png": {
+    "bytes": 83843,
+    "sha256": "60b85b7b3ac4083bb1422ac7eb27a614b2dc4bd2bed411659da8b3557e4fd1cb"
+  },
+  "phase0_aapl_ma_crossover.png": {
+    "bytes": 131998,
+    "sha256": "2f8b7f98cca368286eb065ec425e6979cc476f1a65a0ea99610f9371d25b3302"
+  },
+  "phase0_aapl_ma_crossover_trades.csv": {
+    "bytes": 849,
+    "sha256": "024139776756ae5104aa761aaf3783cbed3a22b58bc75a5d85a05957d5279ab7",
+    "rows": 8,
+    "columns": [
+      "Entry Date",
+      "Entry Price",
+      "Exit Date",
+      "Exit Price",
+      "P&L",
+      "Cumulative P&L"
+    ],
+    "nulls": 0,
+    "records": [
+      {
+        "Entry Date": "2024-11-27",
+        "Entry Price": 232.7807036494696,
+        "Exit Date": "2025-01-14",
+        "Exit Price": 233.05871461446367,
+        "P&L": 0.2780109649941664,
+        "Cumulative P&L": 0.2780109649941664
+      },
+      {
+        "Entry Date": "2025-02-19",
+        "Entry Price": 243.16433914739287,
+        "Exit Date": "2025-03-12",
+        "Exit Price": 218.7942505386503,
+        "P&L": -24.370088608742577,
+        "Cumulative P&L": -24.09207764374841
+      },
+      {
+        "Entry Date": "2025-05-05",
+        "Entry Price": 201.85843431656065,
+        "Exit Date": "2025-05-30",
+        "Exit Price": 198.4110493394953,
+        "P&L": -3.4473849770653544,
+        "Cumulative P&L": -27.539462620813765
+      },
+      {
+        "Entry Date": "2025-07-03",
+        "Entry Price": 211.1295823572572,
+        "Exit Date": "2025-08-07",
+        "Exit Price": 217.8272171299369,
+        "P&L": 6.69763477267972,
+        "Cumulative P&L": -20.841827848134045
+      },
+      {
+        "Entry Date": "2025-08-11",
+        "Entry Price": 227.08116933177635,
+        "Exit Date": "2025-12-23",
+        "Exit Price": 270.1048034873943,
+        "P&L": 43.02363415561794,
+        "Cumulative P&L": 22.181806307483896
+      },
+      {
+        "Entry Date": "2026-02-06",
+        "Entry Price": 276.3677049075235,
+        "Exit Date": "2026-03-10",
+        "Exit Price": 257.19102845716964,
+        "P&L": -19.17667645035385,
+        "Cumulative P&L": 3.0051298571300435
+      },
+      {
+        "Entry Date": "2026-04-14",
+        "Entry Price": 258.7881616833941,
+        "Exit Date": "2026-06-17",
+        "Exit Price": 300.59074812548096,
+        "P&L": 41.80258644208686,
+        "Cumulative P&L": 44.80771629921691
+      },
+      {
+        "Entry Date": "2026-07-13",
+        "Entry Price": 316.7468014245228,
+        "Exit Date": "2026-08-12",
+        "Exit Price": 305.1000061035156,
+        "P&L": -11.646795321007176,
+        "Cumulative P&L": 33.16092097820973
+      }
+    ]
+  },
+  "phase0_return_distributions.png": {
+    "bytes": 115447,
+    "sha256": "440520661e0cc67c6a8ca09b5b7f4a02f4745356d4ed6f45c3aa5f7b90130159"
+  },
+  "phase2_logistic_baseline_results.csv": {
+    "bytes": 1039,
+    "sha256": "1d058b0476f5629ebf35edc240254ab91f00c8bc93fe196e9bb3550f1e3e402e",
+    "rows": 17,
+    "columns": [
+      "Fold",
+      "Train_Rows",
+      "Test_Rows",
+      "Train_End",
+      "Test_Start",
+      "Accuracy",
+      "Predicted_Down",
+      "Predicted_Up",
+      "Actual_Down",
+      "Actual_Up"
+    ],
+    "nulls": 0,
+    "records": [
+      {
+        "Fold": 1,
+        "Train_Rows": 123,
+        "Test_Rows": 21,
+        "Train_End": "2025-04-14",
+        "Test_Start": "2025-04-16",
+        "Accuracy": 0.6190476190476191,
+        "Predicted_Down": 4,
+        "Predicted_Up": 17,
+        "Actual_Down": 8,
+        "Actual_Up": 13
+      },
+      {
+        "Fold": 2,
+        "Train_Rows": 124,
+        "Test_Rows": 20,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2025-05-16",
+        "Accuracy": 0.3,
+        "Predicted_Down": 3,
+        "Predicted_Up": 17,
+        "Actual_Down": 11,
+        "Actual_Up": 9
+      },
+      {
+        "Fold": 3,
+        "Train_Rows": 124,
+        "Test_Rows": 20,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2025-06-16",
+        "Accuracy": 0.5,
+        "Predicted_Down": 4,
+        "Predicted_Up": 16,
+        "Actual_Down": 6,
+        "Actual_Up": 14
+      },
+      {
+        "Fold": 4,
+        "Train_Rows": 124,
+        "Test_Rows": 23,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2025-07-16",
+        "Accuracy": 0.4782608695652174,
+        "Predicted_Down": 6,
+        "Predicted_Up": 17,
+        "Actual_Down": 12,
+        "Actual_Up": 11
+      },
+      {
+        "Fold": 5,
+        "Train_Rows": 124,
+        "Test_Rows": 20,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2025-08-18",
+        "Accuracy": 0.45,
+        "Predicted_Down": 1,
+        "Predicted_Up": 19,
+        "Actual_Down": 10,
+        "Actual_Up": 10
+      },
+      {
+        "Fold": 6,
+        "Train_Rows": 124,
+        "Test_Rows": 22,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2025-09-16",
+        "Accuracy": 0.5454545454545454,
+        "Predicted_Down": 2,
+        "Predicted_Up": 20,
+        "Actual_Down": 10,
+        "Actual_Up": 12
+      },
+      {
+        "Fold": 7,
+        "Train_Rows": 124,
+        "Test_Rows": 22,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2025-10-16",
+        "Accuracy": 0.5454545454545454,
+        "Predicted_Down": 1,
+        "Predicted_Up": 21,
+        "Actual_Down": 9,
+        "Actual_Up": 13
+      },
+      {
+        "Fold": 8,
+        "Train_Rows": 124,
+        "Test_Rows": 20,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2025-11-17",
+        "Accuracy": 0.55,
+        "Predicted_Down": 0,
+        "Predicted_Up": 20,
+        "Actual_Down": 9,
+        "Actual_Up": 11
+      },
+      {
+        "Fold": 9,
+        "Train_Rows": 124,
+        "Test_Rows": 21,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2025-12-16",
+        "Accuracy": 0.4285714285714285,
+        "Predicted_Down": 1,
+        "Predicted_Up": 20,
+        "Actual_Down": 13,
+        "Actual_Up": 8
+      },
+      {
+        "Fold": 10,
+        "Train_Rows": 124,
+        "Test_Rows": 20,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2026-01-16",
+        "Accuracy": 0.55,
+        "Predicted_Down": 2,
+        "Predicted_Up": 18,
+        "Actual_Down": 9,
+        "Actual_Up": 11
+      },
+      {
+        "Fold": 11,
+        "Train_Rows": 124,
+        "Test_Rows": 19,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2026-02-17",
+        "Accuracy": 0.4736842105263157,
+        "Predicted_Down": 0,
+        "Predicted_Up": 19,
+        "Actual_Down": 10,
+        "Actual_Up": 9
+      },
+      {
+        "Fold": 12,
+        "Train_Rows": 124,
+        "Test_Rows": 22,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2026-03-16",
+        "Accuracy": 0.5454545454545454,
+        "Predicted_Down": 0,
+        "Predicted_Up": 22,
+        "Actual_Down": 10,
+        "Actual_Up": 12
+      },
+      {
+        "Fold": 13,
+        "Train_Rows": 124,
+        "Test_Rows": 22,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2026-04-16",
+        "Accuracy": 0.5454545454545454,
+        "Predicted_Down": 1,
+        "Predicted_Up": 21,
+        "Actual_Down": 9,
+        "Actual_Up": 13
+      },
+      {
+        "Fold": 14,
+        "Train_Rows": 124,
+        "Test_Rows": 20,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2026-05-18",
+        "Accuracy": 0.6,
+        "Predicted_Down": 0,
+        "Predicted_Up": 20,
+        "Actual_Down": 8,
+        "Actual_Up": 12
+      },
+      {
+        "Fold": 15,
+        "Train_Rows": 124,
+        "Test_Rows": 20,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2026-06-16",
+        "Accuracy": 0.55,
+        "Predicted_Down": 2,
+        "Predicted_Up": 18,
+        "Actual_Down": 9,
+        "Actual_Up": 11
+      },
+      {
+        "Fold": 16,
+        "Train_Rows": 124,
+        "Test_Rows": 22,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2026-07-16",
+        "Accuracy": 0.5454545454545454,
+        "Predicted_Down": 1,
+        "Predicted_Up": 21,
+        "Actual_Down": 11,
+        "Actual_Up": 11
+      },
+      {
+        "Fold": 17,
+        "Train_Rows": 124,
+        "Test_Rows": 13,
+        "Train_End": "2025-04-15",
+        "Test_Start": "2026-08-17",
+        "Accuracy": 0.6153846153846154,
+        "Predicted_Down": 0,
+        "Predicted_Up": 13,
+        "Actual_Down": 5,
+        "Actual_Up": 8
+      }
+    ]
+  },
+  "phase2_logistic_baseline_trades.csv": {
+    "bytes": 2002,
+    "sha256": "9fc362c7acab4f4a90be2977032b6c80687cb0923a0e7303fc24a82266d02cb5",
+    "rows": 20,
+    "columns": [
+      "Entry Date",
+      "Entry Price",
+      "Exit Date",
+      "Exit Price",
+      "P&L",
+      "Cumulative P&L"
+    ],
+    "nulls": 0,
+    "records": [
+      {
+        "Entry Date": "2025-04-17",
+        "Entry Price": 196.09247141770783,
+        "Exit Date": "2025-05-05",
+        "Exit Price": 201.7575050994024,
+        "P&L": 3.665033681694553,
+        "Cumulative P&L": 3.665033681694553
+      },
+      {
+        "Entry Date": "2025-05-07",
+        "Entry Price": 198.05140145769357,
+        "Exit Date": "2025-05-08",
+        "Exit Price": 196.4130336463193,
+        "P&L": -3.638367811374252,
+        "Cumulative P&L": 0.0266658703203006
+      },
+      {
+        "Entry Date": "2025-05-09",
+        "Entry Price": 197.88236496075356,
+        "Exit Date": "2025-05-13",
+        "Exit Price": 209.3131385560986,
+        "P&L": 9.430773595345071,
+        "Cumulative P&L": 9.457439465665374
+      },
+      {
+        "Entry Date": "2025-05-14",
+        "Entry Price": 211.513945105573,
+        "Exit Date": "2025-05-27",
+        "Exit Price": 197.2475346210892,
+        "P&L": -16.2664104844838,
+        "Cumulative P&L": -6.808971018818426
+      },
+      {
+        "Entry Date": "2025-05-28",
+        "Entry Price": 199.72498673046343,
+        "Exit Date": "2025-06-02",
+        "Exit Price": 199.2170166612288,
+        "P&L": -2.507970069234659,
+        "Cumulative P&L": -9.316941088053085
+      },
+      {
+        "Entry Date": "2025-06-03",
+        "Entry Price": 200.48174006881644,
+        "Exit Date": "2025-06-10",
+        "Exit Price": 199.53535218716289,
+        "P&L": -2.94638788165355,
+        "Cumulative P&L": -12.263328969706636
+      },
+      {
+        "Entry Date": "2025-06-11",
+        "Entry Price": 202.62247330164797,
+        "Exit Date": "2025-06-23",
+        "Exit Price": 200.5598722364219,
+        "P&L": -4.062601065226033,
+        "Cumulative P&L": -16.325930034932668
+      },
+      {
+        "Entry Date": "2025-06-24",
+        "Entry Price": 201.71638021660945,
+        "Exit Date": "2025-06-30",
+        "Exit Price": 200.9378277073257,
+        "P&L": -2.7785525092837418,
+        "Cumulative P&L": -19.10448254421641
+      },
+      {
+        "Entry Date": "2025-07-03",
+        "Entry Price": 211.2351471484358,
+        "Exit Date": "2025-08-01",
+        "Exit Price": 209.7508124057879,
+        "P&L": -3.484334742647889,
+        "Cumulative P&L": -22.5888172868643
+      },
+      {
+        "Entry Date": "2025-08-06",
+        "Entry Price": 204.74329514806524,
+        "Exit Date": "2025-08-07",
+        "Exit Price": 217.71830352137195,
+        "P&L": 10.975008373306707,
+        "Cumulative P&L": -11.613808913557593
+      },
+      {
+        "Entry Date": "2025-08-12",
+        "Entry Price": 227.2844313180287,
+        "Exit Date": "2025-09-11",
+        "Exit Price": 225.93198728523984,
+        "P&L": -3.352444032788867,
+        "Cumulative P&L": -14.966252946346458
+      },
+      {
+        "Entry Date": "2025-09-12",
+        "Entry Price": 228.49058875176712,
+        "Exit Date": "2025-09-22",
+        "Exit Price": 247.26246898339852,
+        "P&L": 16.771880231631428,
+        "Cumulative P&L": 1.8056272852849704
+      },
+      {
+        "Entry Date": "2025-09-24",
+        "Entry Price": 254.4078428754794,
+        "Exit Date": "2025-10-21",
+        "Exit Price": 260.78572025191465,
+        "P&L": 4.377877376435265,
+        "Cumulative P&L": 6.183504661720235
+      },
+      {
+        "Entry Date": "2025-10-22",
+        "Entry Price": 261.8142065390072,
+        "Exit Date": "2025-12-22",
+        "Exit Price": 271.98323003985934,
+        "P&L": 8.169023500852177,
+        "Cumulative P&L": 14.352528162572412
+      },
+      {
+        "Entry Date": "2025-12-23",
+        "Entry Price": 270.239855889138,
+        "Exit Date": "2026-02-02",
+        "Exit Price": 259.19445734063567,
+        "P&L": -13.045398548502304,
+        "Cumulative P&L": 1.3071296140701063
+      },
+      {
+        "Entry Date": "2026-02-03",
+        "Entry Price": 268.6035005519903,
+        "Exit Date": "2026-02-05",
+        "Exit Price": 277.2363287412347,
+        "P&L": 6.632828189244378,
+        "Cumulative P&L": 7.939957803314485
+      },
+      {
+        "Entry Date": "2026-02-06",
+        "Entry Price": 276.5058887599772,
+        "Exit Date": "2026-05-01",
+        "Exit Price": 278.2240300920912,
+        "P&L": -0.2818586678860129,
+        "Cumulative P&L": 7.658099135428472
+      },
+      {
+        "Entry Date": "2026-05-04",
+        "Entry Price": 279.30140975563586,
+        "Exit Date": "2026-06-26",
+        "Exit Price": 274.62564698491855,
+        "P&L": -6.675762770717313,
+        "Cumulative P&L": 0.9823363647111591
+      },
+      {
+        "Entry Date": "2026-06-30",
+        "Entry Price": 281.0682056194093,
+        "Exit Date": "2026-08-03",
+        "Exit Price": 309.15857807684193,
+        "P&L": 26.09037245743258,
+        "Cumulative P&L": 27.07270882214374
+      },
+      {
+        "Entry Date": "2026-08-04",
+        "Entry Price": 302.62037448294177,
+        "Exit Date": "2026-09-02",
+        "Exit Price": 324.79751145935063,
+        "P&L": 20.17713697640886,
+        "Cumulative P&L": 47.2498457985526
+      }
+    ]
+  }
+}

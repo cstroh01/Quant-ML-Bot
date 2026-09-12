@@ -1,0 +1,5 @@
+{
+  "n": 2359,
+  "positive_label_fraction": 0.5353963543874523,
+  "interpretation": "Always-up descriptive direction baseline on default CV test rows; no deployable price-return claim"
+}

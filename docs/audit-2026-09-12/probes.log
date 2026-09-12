@@ -1,0 +1,394 @@
+{
+  "duplicate_column_vif": {
+    "a": 0.2499999999999999,
+    "b": 0.2499999999999999
+  },
+  "constant_column_vif_error": "LinAlgError: SVD did not converge",
+  "unfunded_entry": {
+    "capital": 100.0,
+    "entry_fill_plus_commission": 201.1
+  },
+  "nan_fill_summary": {
+    "total_trades": 1,
+    "total_pnl": 0.0,
+    "win_rate": 0.0,
+    "commission_per_trade": 1.0,
+    "slippage_bps": 5.0
+  },
+  "nan_trade_pnl": true,
+  "direction_missing_current": "0",
+  "first_bar_loss_drawdown": {
+    "equity": [
+      95.0,
+      95.0,
+      90.0
+    ],
+    "reported": -0.052631578947368474,
+    "correct_with_initial_capital": -0.1
+  },
+  "hgb_single_positive_class": {
+    "classes": [
+      1.0
+    ],
+    "reported_positive_probability": [
+      0.9999999999999978
+    ],
+    "expected": [
+      1.0
+    ]
+  },
+  "tiny_correlated_position": {
+    "before": {
+      "A": 0.25,
+      "B": 1e-12
+    },
+    "after": {
+      "A": 0.125,
+      "B": 5e-13
+    }
+  },
+  "restart_resets_loss_latch": {
+    "before": true,
+    "after": false
+  },
+  "mcnemar_unfavoured_tail": {
+    "reported": 0.75,
+    "correct_binomial": 1.0
+  },
+  "all_nan_ticker_accepted": 1,
+  "cache_path_escapes_directory": true,
+  "empty_cache_tickers": [
+    "AAPL",
+    "AMZN",
+    "GOOGL",
+    "MSFT",
+    "NVDA"
+  ],
+  "empty_cache_ohlcv_status": 404,
+  "always_up_baseline": {
+    "n": 2359,
+    "positive_label_fraction": 0.5353963543874523,
+    "interpretation": "Always-up descriptive direction baseline on default CV test rows; no deployable price-return claim"
+  },
+  "cache_quality": {
+    "rows": 12570,
+    "duplicates": 0,
+    "nulls": {
+      "Date": 0,
+      "Ticker": 0,
+      "Open": 0,
+      "High": 0,
+      "Low": 0,
+      "Close": 0,
+      "Volume": 0
+    },
+    "nonpositive_prices": 0,
+    "nonfinite_prices": 0,
+    "ohlc_violations": 0,
+    "dates": {
+      "AAPL": [
+        "2016-09-06",
+        "2026-09-04",
+        2514
+      ],
+      "AMZN": [
+        "2016-09-06",
+        "2026-09-04",
+        2514
+      ],
+      "GOOGL": [
+        "2016-09-06",
+        "2026-09-04",
+        2514
+      ],
+      "MSFT": [
+        "2016-09-06",
+        "2026-09-04",
+        2514
+      ],
+      "NVDA": [
+        "2016-09-06",
+        "2026-09-04",
+        2514
+      ]
+    },
+    "missing_sessions": 0
+  },
+  "combined_vs_requested_cache": {
+    "combined_exists": true,
+    "requested": {
+      "AAPL": false,
+      "MSFT": false,
+      "GOOGL": false,
+      "NVDA": false,
+      "AMZN": false
+    }
+  },
+  "invalid_backtest_requests": {
+    "short_window=30&long_window=10": 500,
+    "commission=-1": 500,
+    "commission=nan": 200,
+    "slippage_bps=10000": 200,
+    "short_window=0": 200
+  },
+  "cors_untrusted_origin": {
+    "content-length": "58",
+    "content-type": "application/json",
+    "access-control-allow-origin": "https://audit-untrusted.example",
+    "access-control-allow-credentials": "true",
+    "vary": "Origin"
+  },
+  "significance_aapl": {
+    "ticker": "AAPL",
+    "screening_alpha": 0.1,
+    "entries": [
+      {
+        "estimator": "logistic",
+        "task": "classification",
+        "test_name": "McNemar",
+        "p_value": 0.084,
+        "alpha": 0.1,
+        "passed_screening": true
+      },
+      {
+        "estimator": "hgb",
+        "task": "classification",
+        "test_name": "McNemar",
+        "p_value": 0.215,
+        "alpha": 0.1,
+        "passed_screening": false
+      },
+      {
+        "estimator": "ridge",
+        "task": "regression",
+        "test_name": "Wilcoxon signed-rank",
+        "p_value": 0.042,
+        "alpha": 0.1,
+        "passed_screening": true
+      },
+      {
+        "estimator": "hgb",
+        "task": "regression",
+        "test_name": "Wilcoxon signed-rank",
+        "p_value": 0.31,
+        "alpha": 0.1,
+        "passed_screening": false
+      }
+    ]
+  },
+  "significance_nvda": {
+    "ticker": "NVDA",
+    "screening_alpha": 0.1,
+    "entries": [
+      {
+        "estimator": "logistic",
+        "task": "classification",
+        "test_name": "McNemar",
+        "p_value": 0.084,
+        "alpha": 0.1,
+        "passed_screening": true
+      },
+      {
+        "estimator": "hgb",
+        "task": "classification",
+        "test_name": "McNemar",
+        "p_value": 0.215,
+        "alpha": 0.1,
+        "passed_screening": false
+      },
+      {
+        "estimator": "ridge",
+        "task": "regression",
+        "test_name": "Wilcoxon signed-rank",
+        "p_value": 0.042,
+        "alpha": 0.1,
+        "passed_screening": true
+      },
+      {
+        "estimator": "hgb",
+        "task": "regression",
+        "test_name": "Wilcoxon signed-rank",
+        "p_value": 0.31,
+        "alpha": 0.1,
+        "passed_screening": false
+      }
+    ]
+  },
+  "capital_gate": {
+    "overall_readiness": "Phase 3: Quantitative Model Calibration & Feature Refinement",
+    "gates": [
+      {
+        "gate_number": 1,
+        "title": "Layer 3 Machine Gates",
+        "description": "Automated CI verification: lookahead shift test, null pipeline test on shuffled labels (Sharpe <= 0.3), and 2x cost stress test.",
+        "status": "passed",
+        "details": "All 301 unit tests passing. Anti-lookahead assertions active across scripts/walk_forward_cv.py, scripts/features.py, and scripts/targets.py.",
+        "evidence": "301 passed in pytest suite; purged and embargoed walk-forward test passing."
+      },
+      {
+        "gate_number": 2,
+        "title": "Out-of-Sample Positive Expectancy",
+        "description": "Purged & embargoed walk-forward OOS backtest shows positive expectancy net of realistic transaction costs ($1.00/trade, 5 bps slippage).",
+        "status": "in_progress",
+        "details": "Spec 014 proved scale-free feature matrix is well-conditioned (cond # dropped from 36.17 to 2.15, VIF from 268 to 1.60). Spec 012 cost-hurdle entry rule and Spec 013 multi-ticker evaluation currently in flight.",
+        "evidence": "Spec 014 feature_diagnostics.py verified on 10y AAPL."
+      },
+      {
+        "gate_number": 3,
+        "title": "Deflated Sharpe Ratio (AFML)",
+        "description": "Deflated Sharpe ratio remains positive after adjusting for multiple testing across all hyperparameter grids and strategy variants tried.",
+        "status": "pending",
+        "details": "Scheduled for Phase 3 completion following Spec 013 multi-ticker run.",
+        "evidence": null
+      },
+      {
+        "gate_number": 4,
+        "title": "Paper Trading Verification",
+        "description": "Minimum 1-2 months paper trading (broker paper account or live-data simulation) matching backtest performance within tolerance.",
+        "status": "pending",
+        "details": "Awaits Phase 4 order execution and broker paper account integration.",
+        "evidence": null
+      },
+      {
+        "gate_number": 5,
+        "title": "Capped Real Capital Allocation",
+        "description": "Starts with small, explicitly-capped real capital with automated stop-loss circuit breakers and strict risk limits.",
+        "status": "pending",
+        "details": "Subject to human approval and execution gate (Constitution Rule 7).",
+        "evidence": null
+      }
+    ]
+  },
+  "ml_rundown": {
+    "as_of": "2026-09-03",
+    "forecast": "P(Up) = 54.2% | Logit Score = +0.17 | Forward Horizon = 1 bar"
+  },
+  "holding_bars": [
+    {
+      "reported": 1,
+      "actual": 93
+    },
+    {
+      "reported": 1,
+      "actual": 33
+    },
+    {
+      "reported": 1,
+      "actual": 43
+    },
+    {
+      "reported": 1,
+      "actual": 36
+    },
+    {
+      "reported": 1,
+      "actual": 27
+    }
+  ],
+  "cached_sma_tearsheet": {
+    "capital_base": 24.63,
+    "total_pnl": 57.54,
+    "total_return": 233.64,
+    "sharpe_ratio": 0.17,
+    "max_drawdown": -72.36,
+    "comparison_table": [
+      {
+        "strategy_name": "SMA Crossover (10/30)",
+        "total_trades": 42,
+        "net_pnl": 57.54,
+        "win_rate": 40.5,
+        "sharpe_ratio": 0.17,
+        "max_drawdown": -72.36,
+        "std_pnl": null
+      },
+      {
+        "strategy_name": "Buy & Hold (Baseline 1)",
+        "total_trades": 1,
+        "net_pnl": 293.14,
+        "win_rate": 100.0,
+        "sharpe_ratio": null,
+        "max_drawdown": null,
+        "std_pnl": null
+      },
+      {
+        "strategy_name": "Random Signal (Baseline 2, 20 seeds)",
+        "total_trades": 42,
+        "net_pnl": 95.81,
+        "win_rate": 54.6,
+        "sharpe_ratio": null,
+        "max_drawdown": null,
+        "std_pnl": 37.83
+      }
+    ]
+  },
+  "actual_screening_artifact": [
+    {
+      "test": "mcnemar (exact)",
+      "n": 2359,
+      "discordant": 876,
+      "statistic": 435.0,
+      "p_two_sided": 0.8658605850763893,
+      "p_one_sided": 0.43293029253819465,
+      "accuracy_a": 0.5154726579058924,
+      "accuracy_b": 0.5180161085205596,
+      "favours_b": true,
+      "note": "",
+      "name": "hgb",
+      "task": "classification",
+      "shared_bars": 2359,
+      "outer_folds_a": 113,
+      "outer_folds_b": 113
+    },
+    {
+      "test": "wilcoxon signed-rank",
+      "n": 2359,
+      "discordant": 2359,
+      "statistic": 1370857.0,
+      "p_two_sided": 0.52654024278238,
+      "p_one_sided": 0.26327012139119,
+      "mse_a": 0.0003628177304610572,
+      "mse_b": 0.0003611051137870657,
+      "favours_b": true,
+      "note": "",
+      "name": "hgb",
+      "task": "regression",
+      "shared_bars": 2359,
+      "outer_folds_a": 113,
+      "outer_folds_b": 113
+    },
+    {
+      "test": "mcnemar (exact)",
+      "n": 2359,
+      "discordant": 514,
+      "statistic": 231.0,
+      "p_two_sided": 0.024385596204009076,
+      "p_one_sided": 0.012192798102004538,
+      "accuracy_a": 0.5078423060618906,
+      "accuracy_b": 0.52988554472234,
+      "favours_b": true,
+      "note": "",
+      "name": "logistic",
+      "task": "classification",
+      "shared_bars": 2359,
+      "outer_folds_a": 113,
+      "outer_folds_b": 113
+    },
+    {
+      "test": "wilcoxon signed-rank",
+      "n": 2359,
+      "discordant": 2359,
+      "statistic": 1330227.0,
+      "p_two_sided": 0.06269872342146007,
+      "p_one_sided": 0.031349361710730037,
+      "mse_a": 0.00035600200838074836,
+      "mse_b": 0.0003557016964293186,
+      "favours_b": true,
+      "note": "",
+      "name": "ridge",
+      "task": "regression",
+      "shared_bars": 2359,
+      "outer_folds_a": 113,
+      "outer_folds_b": 113
+    }
+  ]
+}

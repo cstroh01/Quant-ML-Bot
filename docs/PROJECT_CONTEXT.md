@@ -2,6 +2,131 @@
 
 _Last updated: 2026-09-12_
 
+## Project-wide audit, 2026-09-12 — READ BEFORE SEQUENCING THE NEXT SPEC
+
+`docs/audit-2026-09-12/` holds a full-project audit written by a separate
+agent session (not part of spec 017's run). It covers specs 001–017, the
+Python, the API, the React UI, CI, the ADR and the project instructions:
+198 files, 37,180 lines inventoried in `coverage.csv`, with offline
+adversarial probes in `probes.py` / `probe-results.json`.
+
+**Verdict:** a substantial research prototype with useful foundations, but
+neither a production trading system nor evidence of a profitable strategy.
+
+**70 findings**, tagged D (demonstrated defect), G (missing
+capability/evidence), R (design choice to reconsider), prioritised P0/P1/P2.
+Twelve are P0. The ones that change what is safe to believe:
+
+- **45/46/47 — the terminal displays fabricated numbers.** `diagnostics.py`
+  hardcodes p-values `0.084, 0.215, 0.042, 0.310` (they contradict the saved
+  experiment and are returned unchanged for AAPL *and* NVDA).
+  `ml_rundown.py` returns `P(Up)=54.2%` and `Logit Score=+0.17` as string
+  literals, not model inference. `capital_gate.py` hardcodes Gate 1 as
+  passed citing "301 passed in pytest suite" — the project uses unittest and
+  the real count is 541; the header separately claims 311/311. **Nothing in
+  the UI is currently evidence.**
+- **01/02/03 — the accounting is not an account.** The harness has no cash,
+  quantity, buying-power or position ledger. A probe with $100 starting
+  capital accepted an entry requiring $201.10. Drawdown omits pre-trade
+  capital (recorded −5.263% where the true figure is −10%).
+- **22/23 — the label is not the return the strategy can capture.**
+  `log(Close[t+h]/Close[t])` includes overnight movement that happens before
+  a next-open entry. Separately, `build_features` drops rows lacking a label,
+  which deletes the freshest inference rows and compresses the calendar —
+  September 4 raw data renders as a September 3 ML rundown.
+- **13 — `auto_adjust=True` prices are not executable dollar prices**, so
+  fixed-dollar commissions and share counts are inconsistent with them.
+- **05/06 — spec 017 is not wired in,** and its weekly halt latch lives only
+  in memory (a guard rebuilt mid-week forgets it).
+- **57 — a clean checkout does not reproduce:** 11 API tests run, 7 failed.
+
+Audit findings that are spec 017 design questions, not bugs: **40** (binary
+active-name overlap → use `w'Σw` / marginal risk contributions, Ledoit-Wolf
+shrinkage is already in the dependency stack) and **41** (`confidence ×
+target_vol / asset_vol` is per-asset inverse-vol sizing, not 10% *portfolio*
+vol targeting). These are the same questions NIGHT_RUN_SUMMARY items 4 and 11
+raise; settle them together.
+
+**The audit's recommended work order** (its finding IDs in brackets) — note
+that it puts the honest-dashboard work *first*, ahead of any new modelling:
+
+1. Honest dashboard + adversarial regressions [03–04, 45–50, 57–58]
+2. Funded ledger + execution-timing contract [01–02, 10–13, 22–25]
+3. Reproducible dataset + experiment store [14–21, 27, 31–34, 38, 59]
+4. Integrated portfolio simulation [05–07, 40–44]
+5. Frozen economic experiment [25–30, 32]
+6. Unattended paper system [08–09, 51–63]
+7. Only then: capped live capital [06–09, 69–70]
+
+This reorders the roadmap. The previously-declared next step (spec 018,
+weight-based execution) is the audit's milestone 4, behind the dashboard and
+ledger work. Camden's call.
+
+**Status:** nothing from the audit has been fixed. `docs/audit-2026-09-12/`
+is uncommitted, as is all of spec 017. Last commit is still
+`98db0a8 Spec0013 Implemented`; local `main` = `origin/main`.
+
+## Spec 013 — Multi-ticker comparison: implemented, real run not yet published
+
+T001–T013 done, 416 tests at the time. **T014 is satisfied** — the 10-year
+5-ticker cache exists and the audit validated it (12,570 rows, 5 × 2,514
+sessions, 2016-09-06 → 2026-09-04; no duplicate rows, nulls, nonfinite or
+nonpositive prices, OHLC violations or internal missing sessions). **T015 is
+still open**: this document's spec-005 AAPL figures have not been replaced
+with the real 5-ticker result. Given audit findings 22/23 and 31, publishing
+those figures now would publish numbers the audit disputes — do T015 after
+milestone 2, or publish it with the timing caveat stated.
+
+## Spec 017 — Position sizing and portfolio risk layer: BUILT, not through the Merge Gate
+
+New `scripts/portfolio_risk.py`: the risk layer between signal and execution
+that spec 012 named as the follow-up to its one-share root cause. Night run,
+agent lane; details in `NIGHT_RUN_SUMMARY.md`.
+
+- **Sizing:** volatility targeting — `confidence × 10% / realized vol`, capped
+  at 25% per name. **No Kelly path.** On spec 014's best AAPL classifier
+  (52.99%), half Kelly is 1.65× leverage from an unvalidated edge (spec
+  Clarifications Q1).
+- **Correlation:** each held weight ÷ its *overlap* (its non-negative
+  correlations with every held name, summed). Three identical names = one
+  bet; an uncorrelated name is untouched. The per-name cap runs *before* this
+  step, or the cap undoes it.
+- **Loss caps:** `LossCapGuard` reads equity at each close.
+  - Daily −2% halts that close's decision.
+  - Weekly −4% loss, or −5% from the week's high, latches for the rest of the
+    ISO week.
+  - A halt blocks opening **and adding**; exits and reductions still go
+    through.
+- **Boundary:** reads equity and holdings, imports no signal, accounting, or
+  data module (AST test). No harness wiring, no P&L — a weight-based
+  execution path is its own spec.
+- **Real 10y cache, full conviction, no P&L:**
+
+  | | median |
+  |---|---|
+  | overlap per held name | 3.24 (five names ≈ 1.5 independent bets) |
+  | gross before → after overlap step | 1.22 → 0.38 |
+  | exposure the overlap step removes | 69% |
+
+  Overlap peaked March–May 2020 — the sell-off correlation spike, visible.
+- **Mutation-tested:** 21 of 21 injected defects caught; 8 by exactly one
+  test.
+- **Full suite: 541 passed** (416 → 541). No network, no new dependency.
+- **Flags:**
+  - Built ahead of spec 013's real run — out of declared order, like 016.
+  - 745 module + 1,391 test lines, ~2.6× spec 012 — a CLAUDE.md
+    reviewability flag; split seams are in the plan.
+  - The request cited a "Rule on adversarial coverage"; the constitution has
+    no rule by that name.
+  - A dust-size position halves its correlated neighbours: 0.25 beside a
+    1e-12 name at ρ = 1 becomes 0.125. FR-005 counts held names by presence,
+    not size — a spec question, not an implementation bug.
+  - The weekly latch lives in memory; a guard rebuilt empty mid-week forgets
+    it. Replaying equity through `loss_cap_history` restores it. The wiring
+    spec must require replay (or persistence) before paper trading.
+  - Both re-verified on resumption 2026-09-12: 541 tests OK; mutation check
+    rebuilt and re-run, 21 of 21 caught.
+
 ## Spec 015 — Parallel comparison (T011/T012): DONE — all success criteria met
 
 `feature_set_comparison.py` now supports `--workers`, verified against all
