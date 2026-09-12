@@ -1,6 +1,79 @@
 # Quant-ML-Bot — Project Context
 
-_Last updated: 2026-09-08_
+_Last updated: 2026-09-12_
+
+## Spec 015 — Parallel comparison (T011/T012): DONE — all success criteria met
+
+`feature_set_comparison.py` now supports `--workers`, verified against all
+three success criteria on real cached 10y AAPL data, serial vs. default
+(all-core):
+
+| criterion | requirement | result |
+|---|---|---|
+| SC-001 (speedup) | ≥3.0x, serial vs. default | **4.68x** (5394.82s → 1153.66s) |
+| SC-002 (equivalence) | default output bit-identical to serial | **confirmed** — identical JSON, byte for byte |
+| SC-003 (correctness) | p-values match known-good AAPL values | **confirmed** — hgb/classification 0.4329, hgb/regression 0.2633, logistic/classification 0.0122, ridge/regression 0.0313, all exact |
+
+The serial rerun needed to establish this (2026-09-11) took 89.9 minutes of
+real, legitimate compute — not a hang — after the prior attempt died
+silently mid-run with no error. `data/cache/feature_set_comparison_PREVIOUS.json`
+and `_STALE_PARTIAL.json` are now safe to delete.
+
+**Spec 013 (multi-ticker comparison) is unblocked.** It still requires a
+real run on Camden's machine (agent lane cannot reach Yahoo Finance).
+
+## Spec 012 — Cost-aware entry rule: DONE
+
+Turns a continuous or classification prediction into a position only when it
+clears the round-trip cost hurdle, estimator-agnostic across the whole
+`ESTIMATOR_REGISTRY`. Committed (`Spec012`) after 014's screening evidence
+released the hold noted below.
+
+- New `scripts/ml_signal.py`: `cost_hurdle` (simple-return break-even,
+  `(2s + 2c/(shares·P))/(1-s)`) and `log_hurdle` (`ln(1+g*)`, matching the
+  spec 009 log-return target) derive the entry threshold from the harness's
+  own fill costs — no magic number.
+- `positions_from_predicted_return` (regression) and `positions_from_direction`
+  (classification) both use hysteresis: strict entry above the hurdle, hold
+  until below `exit_threshold`, null reads as flat (never as `0.0`), forced
+  flat at the end. `signal_from_positions` is a documented copy of the
+  transition-detector-then-shift pattern from spec 005, not an import.
+- Import set is exactly `{__future__, numpy, pandas}` — no
+  `backtest_harness`, `logistic_baseline`, or `estimators` import, enforced
+  by an AST-based test (Rule 1/8 module boundary, FR-009/FR-012).
+- **Mutation-tested**: all seven defects the spec calls out (inclusive
+  boundary, dropped slippage term, dropped `1/(1-s)` divisor, `ln(1+g)`→`g`,
+  null-as-zero, hysteresis→per-bar gate, shift-before-compare) were injected
+  one at a time and every one is caught by `tests/test_ml_signal.py`. Thinnest
+  margin: the shift-before-compare mutant, caught by exactly one test
+  (`OrderingTests`) — recorded as the number a reviewer should see, not
+  smoothed over.
+- Full suite at merge: **366 passed**, no network, no new dependency.
+- **End-to-end wiring (the three-way comparison) deliberately deferred to
+  spec 013** — building a single-ticker runner here and replacing it one
+  spec later would be duplicated work and a second reporting path to keep
+  honest. This spec ships the rule and its tests; 013 runs it.
+- **Not yet through the Merge Gate** (the three-sentence what/why/what-would-
+  break-it) as of this update — flagged here so it doesn't get lost.
+
+## Spec 016 — Quant-ML-Bot research/trading terminal (UI): built ahead of
+sequence, unverified
+
+`reports/api/` (FastAPI) and `reports/web/` (React 19 + TypeScript +
+Tailwind + `lightweight-charts`) exist in the repo (`UI Build Rd 1`,
+`UI Updates` commits) with every task in `.specify/specs/016-quant-terminal-ui/tasks.md`
+checked off, including T023 "end-to-end manual verification."
+
+- **This was explicitly meant to wait until after 012, 015, and 013** — the
+  UI commits predate the `Spec012` commit, so it was started out of the
+  declared dependency order. Not reverted; noted so it's a conscious
+  decision going forward, not silent drift.
+- **T023's "manual verification" has not actually been confirmed by
+  Camden.** A checked box on a UI verification task is exactly the kind of
+  claim to distrust until someone opens the terminal and looks — same
+  principle CLAUDE.md applies to a too-good Sharpe ratio. Treat as unverified
+  until run locally (`npm run dev` in `reports/web`, backend via
+  `uvicorn reports.api.main:app`) and confirmed against real data.
 
 ## Spec 014 - Scale-free features and fold-fit standardization: DONE
 
@@ -522,17 +595,9 @@ compared a simple return against a log-return target.
   AAPL, on `logistic`/classification (p = 0.0122) and `ridge`/regression
   (p = 0.0313). Inserted ahead of 012 and 013 on the reasoning below; that
   evidence is now in, so the hold it justified is released.
-- **Spec 012 — Cost-aware entry rule. Unheld — 014's evidence is in.**
-  Turns a continuous return prediction into a trade only when it clears the
-  actual round-trip cost hurdle. It was held because building an entry rule
-  on predictions from a matrix with a condition number of 36 and a max VIF
-  of 268 spends real work on a known bug; that matrix is fixed and the
-  screening bar is met, so the reason no longer applies. To be built
-  **estimator-agnostic** — it must work with any `ESTIMATOR_REGISTRY` entry,
-  not only the two that cleared on AAPL. `hgb` not clearing on one ticker is
-  not evidence it will not clear elsewhere, and narrowing the rule to the
-  entries that happened to pass tonight would only mean rebuilding it when
-  spec 013's multi-ticker run reports.
+- **Spec 012 — Cost-aware entry rule. DONE** (see top of doc). Built
+  estimator-agnostic per plan, mutation-tested, 366 tests passing. Not yet
+  through the Merge Gate.
 - **Spec 013 — Multi-ticker comparison table. Unheld — 014's evidence is
   in.** Runs the full pipeline per ticker and produces the risk-adjusted
   table that replaces this doc's stale AAPL figures. Run before 014, that
