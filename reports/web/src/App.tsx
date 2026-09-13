@@ -182,6 +182,7 @@ export const App: React.FC = () => {
         onToggleTutorMode={() => setTutorMode((prev) => !prev)}
         isMLPaneOpen={isMLPaneOpen}
         onToggleMLPane={() => setIsMLPaneOpen((prev) => !prev)}
+        testRun={capitalGate?.test_run ?? null}
       />
 
       {/* Tab Navigation */}

@@ -1,3 +1,9 @@
+/** A quantity no computation produced, and why (spec 018). Never rendered as zero. */
+export interface NotComputed {
+  status: 'not_computed';
+  reason: string;
+}
+
 export interface BarData {
   time: string;
   open: number;
@@ -43,19 +49,9 @@ export interface FeatureDiagnosticsResponse {
   correlation_matrix: Record<string, Record<string, number>>;
 }
 
-export interface SignificanceEntry {
-  estimator: string;
-  task: string;
-  test_name: string;
-  p_value: number;
-  alpha: number;
-  passed_screening: boolean;
-}
-
-export interface SignificanceResponse {
+/** Not computed for any ticker until saved runs exist (finding 45). */
+export interface SignificanceResponse extends NotComputed {
   ticker: string;
-  screening_alpha: number;
-  entries: SignificanceEntry[];
 }
 
 export interface TradeRecord {
@@ -102,17 +98,21 @@ export interface BacktestTearsheetResponse {
   comparison_table: BaselineComparisonRow[];
 }
 
+/** Distinct evidence states; only 'unknown' may lack evidence (finding 47). */
+export type GateEvidenceStatus = 'passed' | 'failed' | 'stale' | 'unknown';
+
 export interface CapitalGateItem {
   gate_number: number;
   title: string;
   description: string;
-  status: 'passed' | 'in_progress' | 'pending';
+  status: GateEvidenceStatus;
   details: string;
   evidence: string | null;
 }
 
 export interface CapitalGateStatusResponse {
   overall_readiness: string;
+  test_run: NotComputed;
   gates: CapitalGateItem[];
 }
 
@@ -127,9 +127,11 @@ export interface MLInsightItem {
   importance: 'Critical' | 'High' | 'Medium';
 }
 
+/** Indicator rule readings; the model forecast is not computed (finding 46). */
 export interface MLRundownResponse {
   ticker: string;
   as_of_date: string;
+  model_forecast: NotComputed;
   summary_verdict: string;
   verdict_status: string;
   insights: MLInsightItem[];

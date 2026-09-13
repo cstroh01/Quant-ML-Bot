@@ -49,63 +49,50 @@ def _validate_horizon(horizon: int) -> None:
         raise ValueError(f"horizon must be >= 1; got {horizon}")
 
 
-def _future_close(prices: pd.DataFrame, horizon: int) -> pd.Series:
-    """`Close` shifted back by `horizon` **rows**, not calendar days.
-
-    The positional convention matches the purge in `walk_forward_cv.py`
-    (spec 003 FR-005). If a label were sized in calendar days and the purge
-    in rows, the two would disagree across every holiday and halt — and the
-    purge exists to cover exactly this label.
-    """
-    if "Close" not in prices.columns:
-        raise ValueError("prices must contain a 'Close' column.")
-    return prices["Close"].shift(-horizon)
+def _executable_endpoints(prices: pd.DataFrame, horizon: int) -> tuple[pd.Series, pd.Series]:
+    """Entry next open, exit h sessions later; no cross-instrument shifts."""
+    _validate_horizon(horizon)
+    if "Open" not in prices:
+        raise ValueError("prices must contain executable 'Open' prices")
+    if "Ticker" in prices and prices.Ticker.nunique() != 1:
+        raise ValueError("targets require one instrument")
+    if "Date" in prices:
+        dates = pd.to_datetime(prices.Date)
+        if dates.isna().any() or dates.duplicated().any() or not dates.is_monotonic_increasing:
+            raise ValueError("target sessions must be unique and ordered")
+    return prices.Open.shift(-1), prices.Open.shift(-(horizon + 1))
 
 
 def direction_label(prices: pd.DataFrame, *, horizon: int) -> pd.Series:
-    """Whether the close `horizon` bars ahead is higher than this one.
+    """Direction of the executable open-to-open return; invalid endpoints unknown.
 
-    Returns a nullable `Int64` series: `1` for up, `0` for down-or-flat, and
-    `<NA>` for the final `horizon` rows, whose future close does not exist
-    yet.
-
-    The dtype is deliberate. A plain `bool` or `int64` column cannot hold a
-    null, so the unobservable tail would silently become `False`/`0` — a
-    fabricated target, which is a lookahead bug that makes results look
-    better rather than crashing (Rule 1).
-
-    A flat close counts as down. That is arbitrary but must be stated: it is
-    the same convention `logistic_baseline.build_features:47` uses, and
-    changing it would move the committed AAPL control result.
+    Flat is class zero. Final h+1 rows are unobservable, never fabricated down.
     """
-    _validate_horizon(horizon)
-    future = _future_close(prices, horizon)
-    label = (future > prices["Close"]).astype("Int64")
-    label[future.isna()] = pd.NA
+    returns = forward_log_return_label(prices, horizon=horizon)
+    label = (returns > 0).astype("Int64")
+    label[returns.isna()] = pd.NA
     return label.rename(LABEL_COLUMN)
 
 
 def forward_log_return_label(prices: pd.DataFrame, *, horizon: int) -> pd.Series:
-    """The log return over the next `horizon` bars.
+    """log(Open[t+h+1]/Open[t+1]), observed at the exit open.
 
-    Returns a float series, `NaN` for the final `horizon` rows and anywhere
-    either close is non-positive (where the log is undefined). Log rather
-    than simple returns, to match `return_stats.daily_log_returns` and
-    because log returns add across time.
-
-    This is the target a cost-aware entry rule needs: a direction label can
-    say "up" but cannot say whether "up" clears the round-trip cost of
-    acting on it.
+    These future outcomes are legal only as targets. Expected log return is
+    not expected dollar profit; changing timing does not solve audit 25.
     """
-    _validate_horizon(horizon)
-    future = _future_close(prices, horizon)
-    current = prices["Close"]
-
+    current, future = _executable_endpoints(prices, horizon)
     future_values = future.to_numpy(dtype=float)
     current_values = current.to_numpy(dtype=float)
     label = np.full(len(prices), np.nan, dtype=float)
-    defined = (future_values > 0) & (current_values > 0)
-    label[defined] = np.log(future_values[defined] / current_values[defined])
+    defined = (np.isfinite(future_values) & np.isfinite(current_values)
+               & (future_values > 0) & (current_values > 0))
+    # A plain price ratio is not a total payoff across an action. Abstain;
+    # corporate-action total-payoff labels require a separate target contract.
+    action = prices.get("Split", pd.Series(1., index=prices.index)).ne(1)
+    action |= prices.get("Dividend", pd.Series(0., index=prices.index)).ne(0)
+    for offset in range(2, horizon + 2):
+        defined &= ~action.shift(-offset, fill_value=False).to_numpy()
+    label[defined] = np.log(future_values[defined]) - np.log(current_values[defined])
     return pd.Series(label, index=prices.index, name=LABEL_COLUMN)
 
 
@@ -137,4 +124,4 @@ def build_target(
         DIRECTION: direction_label,
         FORWARD_RETURN: forward_log_return_label,
     }[kind]
-    return builder(prices, horizon=horizon), _TASK_FOR_KIND[kind], horizon
+    return builder(prices, horizon=horizon), _TASK_FOR_KIND[kind], horizon + 1

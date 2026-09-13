@@ -43,6 +43,7 @@ from estimators import (
     TASKS,
     build_estimator,
     get_spec,
+    model_row_masks,
     param_grid_points,
 )
 from walk_forward_cv import (
@@ -296,6 +297,8 @@ def tune_on_fold(
     spec = get_spec(name, task=task)
     grid = param_grid_points(name, task=task)
 
+    train_ok, _ = model_row_masks(features, feature_columns, label_column,
+                                  label_horizon, embargo_bars)
     inner_folds = list(
         inner_splits_over(
             features,
@@ -307,6 +310,8 @@ def tune_on_fold(
             date_column=date_column,
         )
     )
+    inner_folds = [(tr[train_ok[tr]], va[train_ok[va]]) for tr, va in inner_folds]
+    inner_folds = [(tr, va) for tr, va in inner_folds if len(tr) and len(va)]
     if not inner_folds:
         return (
             dict(spec.default_params),
@@ -431,6 +436,8 @@ def nested_walk_forward(
     if test_months is not None:
         outer_kwargs["test_months"] = test_months
 
+    train_ok, infer_ok = model_row_masks(frame, feature_columns, label_column,
+                                        label_horizon, embargo_bars)
     grid_size = len(param_grid_points(name, task=task))
     covered: list[np.ndarray] = []
     fold_rows: list[dict[str, Any]] = []
@@ -438,6 +445,11 @@ def nested_walk_forward(
     for fold, (train_indices, test_indices) in enumerate(
         walk_forward_splits(frame, **outer_kwargs), start=1
     ):
+        raw_train_indices = train_indices
+        train_indices = train_indices[train_ok[train_indices]]
+        test_indices = test_indices[infer_ok[test_indices]]
+        if not len(train_indices) or not len(test_indices):
+            continue
         train_dates = pd.to_datetime(frame.iloc[train_indices][date_column])
         test_dates = pd.to_datetime(frame.iloc[test_indices][date_column])
         assert (
@@ -446,7 +458,7 @@ def nested_walk_forward(
 
         params, tuned, inner_scores = tune_on_fold(
             frame,
-            train_indices,
+            raw_train_indices,
             name=name,
             task=task,
             feature_columns=feature_columns,

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from scipy.stats import kurtosis, skew
 
 # Ensure repo root and scripts are in path
@@ -23,8 +23,18 @@ from reports.api.schemas import BarData, GapsResponse, MarketStatsResponse
 router = APIRouter(prefix="/api/data", tags=["data"])
 
 
-def get_cached_ticker_data(ticker: str) -> pd.DataFrame:
-    """Load cached OHLCV data for a ticker without network access."""
+def get_cache_dir() -> Path:
+    """The directory every route reads market-data CSVs from.
+
+    A FastAPI dependency, so tests can inject a directory of generated
+    fixtures through `app.dependency_overrides` instead of reading the
+    developer's gitignored cache (spec 018, finding 57).
+    """
+    return CACHE_DIR
+
+
+def get_cached_ticker_data(ticker: str, cache_dir: Path) -> pd.DataFrame:
+    """Load cached OHLCV data for a ticker from `cache_dir`, without network access."""
     # Priority: 10y file, then 2y files
     preferred_files = [
         "AAPL-AMZN-GOOGL-MSFT-NVDA_10y.csv",
@@ -33,7 +43,7 @@ def get_cached_ticker_data(ticker: str) -> pd.DataFrame:
     ]
 
     for filename in preferred_files:
-        path = CACHE_DIR / filename
+        path = cache_dir / filename
         if path.exists():
             df = pd.read_csv(path, parse_dates=["Date"])
             if "Ticker" in df.columns:
@@ -44,7 +54,7 @@ def get_cached_ticker_data(ticker: str) -> pd.DataFrame:
                 return df.sort_values("Date").reset_index(drop=True)
 
     # Search all csv files in cache
-    for path in CACHE_DIR.glob("*.csv"):
+    for path in cache_dir.glob("*.csv"):
         try:
             df = pd.read_csv(path, parse_dates=["Date"])
             if "Ticker" in df.columns:
@@ -58,10 +68,10 @@ def get_cached_ticker_data(ticker: str) -> pd.DataFrame:
 
 
 @router.get("/tickers", response_model=list[str])
-def list_available_tickers() -> list[str]:
+def list_available_tickers(cache_dir: Path = Depends(get_cache_dir)) -> list[str]:
     """List tickers present in local cache."""
     tickers = set()
-    for path in CACHE_DIR.glob("*.csv"):
+    for path in cache_dir.glob("*.csv"):
         try:
             df = pd.read_csv(path, nrows=50)
             if "Ticker" in df.columns:
@@ -76,9 +86,12 @@ def list_available_tickers() -> list[str]:
 
 
 @router.get("/ohlcv", response_model=list[BarData])
-def get_ohlcv(ticker: str = Query("AAPL", description="Ticker symbol")) -> list[BarData]:
+def get_ohlcv(
+    ticker: str = Query("AAPL", description="Ticker symbol"),
+    cache_dir: Path = Depends(get_cache_dir),
+) -> list[BarData]:
     """Return OHLCV candlestick bars formatted for Lightweight Charts."""
-    df = get_cached_ticker_data(ticker.upper())
+    df = get_cached_ticker_data(ticker.upper(), cache_dir)
     bars = []
     for _, row in df.iterrows():
         # Ensure session date format YYYY-MM-DD
@@ -97,9 +110,12 @@ def get_ohlcv(ticker: str = Query("AAPL", description="Ticker symbol")) -> list[
 
 
 @router.get("/stats", response_model=MarketStatsResponse)
-def get_market_stats(ticker: str = Query("AAPL", description="Ticker symbol")) -> MarketStatsResponse:
+def get_market_stats(
+    ticker: str = Query("AAPL", description="Ticker symbol"),
+    cache_dir: Path = Depends(get_cache_dir),
+) -> MarketStatsResponse:
     """Return statistical distribution and drawdown metrics matching return_stats.py."""
-    df = get_cached_ticker_data(ticker.upper())
+    df = get_cached_ticker_data(ticker.upper(), cache_dir)
     closes = df["Close"]
     log_returns = np.log(closes / closes.shift(1)).dropna()
 
@@ -140,9 +156,12 @@ def get_market_stats(ticker: str = Query("AAPL", description="Ticker symbol")) -
 
 
 @router.get("/gaps", response_model=GapsResponse)
-def get_missing_bars(ticker: str = Query("AAPL", description="Ticker symbol")) -> GapsResponse:
+def get_missing_bars(
+    ticker: str = Query("AAPL", description="Ticker symbol"),
+    cache_dir: Path = Depends(get_cache_dir),
+) -> GapsResponse:
     """Report NYSE calendar sessions missing a bar (FR-009)."""
-    df = get_cached_ticker_data(ticker.upper())
+    df = get_cached_ticker_data(ticker.upper(), cache_dir)
     if "Ticker" not in df.columns:
         df["Ticker"] = ticker.upper()
 

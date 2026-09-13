@@ -1,11 +1,10 @@
 import React from 'react';
 import {
   CheckCircle2,
-  Clock,
   Lock,
   Shield,
 } from 'lucide-react';
-import type { CapitalGateStatusResponse } from '../../types/api';
+import type { CapitalGateStatusResponse, GateEvidenceStatus } from '../../types/api';
 import { TutorCard } from '../common/TutorCard';
 
 interface CapitalGateViewProps {
@@ -13,6 +12,14 @@ interface CapitalGateViewProps {
   loading: boolean;
   tutorMode?: boolean;
 }
+
+// Each evidence state keeps its own chip; `unknown` means no evidence is recorded (spec 018, finding 47).
+const STATUS_CHIPS: Record<GateEvidenceStatus, { label: string; className: string }> = {
+  passed: { label: 'PASSED', className: 'bg-emerald-950/60 text-emerald-400 border-emerald-800/40 font-semibold' },
+  failed: { label: 'FAILED', className: 'bg-rose-950/60 text-rose-400 border-rose-800/40 font-semibold' },
+  stale: { label: 'STALE', className: 'bg-amber-950/60 text-amber-300 border-amber-700/40 font-semibold' },
+  unknown: { label: 'UNKNOWN', className: 'bg-gray-900 text-gray-500 border-gray-800 font-medium' },
+};
 
 export const CapitalGateView: React.FC<CapitalGateViewProps> = ({ gateStatus, loading, tutorMode = true }) => {
   if (loading || !gateStatus) {
@@ -38,7 +45,7 @@ export const CapitalGateView: React.FC<CapitalGateViewProps> = ({ gateStatus, lo
             </span>
           </div>
           <span className="text-xs font-mono px-2.5 py-1 rounded bg-[#161D29] border border-[#263145] text-white">
-            {passedCount} of 5 Gates Passed
+            {passedCount} of {gateStatus.gates.length} Gates Passed
           </span>
         </div>
 
@@ -72,17 +79,13 @@ export const CapitalGateView: React.FC<CapitalGateViewProps> = ({ gateStatus, lo
       <div className="space-y-3 font-mono text-xs">
         {gateStatus.gates.map((gate) => {
           const isPassed = gate.status === 'passed';
-          const isInProgress = gate.status === 'in_progress';
+          const chip = STATUS_CHIPS[gate.status];
 
           return (
             <div
               key={gate.gate_number}
               className={`p-5 rounded-lg border transition-all ${
-                isPassed
-                  ? 'bg-[#0E1520] border-emerald-900/40'
-                  : isInProgress
-                  ? 'bg-[#121620] border-cyan-800/50 shadow-lg shadow-cyan-950/20'
-                  : 'bg-[#0C0F16] border-[#1C2331] opacity-75'
+                isPassed ? 'bg-[#0E1520] border-emerald-900/40' : 'bg-[#0C0F16] border-[#1C2331]'
               }`}
             >
               <div className="flex items-start justify-between gap-3">
@@ -91,10 +94,6 @@ export const CapitalGateView: React.FC<CapitalGateViewProps> = ({ gateStatus, lo
                     {isPassed ? (
                       <div className="h-6 w-6 rounded-full bg-emerald-950/60 border border-emerald-500/50 flex items-center justify-center text-emerald-400">
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                      </div>
-                    ) : isInProgress ? (
-                      <div className="h-6 w-6 rounded-full bg-cyan-950/60 border border-cyan-500/50 flex items-center justify-center text-cyan-400">
-                        <Clock className="w-3.5 h-3.5 animate-spin" />
                       </div>
                     ) : (
                       <div className="h-6 w-6 rounded-full bg-gray-900 border border-gray-700 flex items-center justify-center text-gray-500">
@@ -119,19 +118,9 @@ export const CapitalGateView: React.FC<CapitalGateViewProps> = ({ gateStatus, lo
                 </div>
 
                 <div>
-                  {isPassed ? (
-                    <span className="px-2.5 py-1 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 font-semibold text-[11px]">
-                      PASSED
-                    </span>
-                  ) : isInProgress ? (
-                    <span className="px-2.5 py-1 rounded bg-cyan-950/60 text-cyan-300 border border-cyan-700/40 font-semibold text-[11px]">
-                      IN PROGRESS
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded bg-gray-900 text-gray-500 border border-gray-800 font-medium text-[11px]">
-                      PENDING
-                    </span>
-                  )}
+                  <span className={`px-2.5 py-1 rounded border text-[11px] ${chip.className}`}>
+                    {chip.label}
+                  </span>
                 </div>
               </div>
 

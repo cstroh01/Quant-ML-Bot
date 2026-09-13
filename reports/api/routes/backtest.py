@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 # Ensure repo root and scripts are in path
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -19,7 +19,7 @@ if str(SCRIPTS_DIR) not in sys.path:
 from backtest_harness import run_backtest, summarize_trades
 from ma_crossover_backtest import baseline_results, mean_holding_bars
 from metrics import equity_curve, performance_summary
-from reports.api.routes.data import get_cached_ticker_data
+from reports.api.routes.data import get_cache_dir, get_cached_ticker_data
 from reports.api.schemas import (
     BacktestTearsheetResponse,
     BaselineComparisonRow,
@@ -38,9 +38,10 @@ def get_backtest_tearsheet(
     long_window: int = Query(30, description="Long MA window"),
     commission: float = Query(1.0, description="Commission per trade in dollars"),
     slippage_bps: float = Query(5.0, description="Slippage in basis points"),
+    cache_dir: Path = Depends(get_cache_dir),
 ) -> BacktestTearsheetResponse:
     """Run baseline backtest with 3-way baseline comparisons and reconciled equity curve."""
-    raw_df = get_cached_ticker_data(ticker.upper())
+    raw_df = get_cached_ticker_data(ticker.upper(), cache_dir)
 
     # Ensure price frame has required columns and 0-based RangeIndex
     prices = raw_df[["Date", "Open", "High", "Low", "Close", "Volume"]].copy().reset_index(drop=True)

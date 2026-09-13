@@ -1,4 +1,10 @@
-"""ML Intelligence and Decision Rundown API endpoints."""
+"""Indicator rule readings for the terminal's right-hand pane.
+
+No fitted model is wired into this endpoint, so the model forecast is reported
+as not computed (spec 018, finding 46). The endpoint used to return a literal
+forecast probability and logit score, and described two indicator sign tests
+as a model's prediction. Every item is an indicator rule reading.
+"""
 
 from __future__ import annotations
 
@@ -7,7 +13,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 # Ensure repo root and scripts are in path
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -16,16 +22,25 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from features import build_features
-from reports.api.routes.data import get_cached_ticker_data
-from reports.api.schemas import MLInsightItem, MLRundownResponse
+from reports.api.routes.data import get_cache_dir, get_cached_ticker_data
+from reports.api.schemas import MLInsightItem, MLRundownResponse, NotComputed
 
 router = APIRouter(prefix="/api/ml", tags=["ml"])
 
+FORECAST_NOT_COMPUTED = (
+    "No fitted model is wired to this endpoint, so no forecast probability or score "
+    "is shown. Fitted-model inference, with its timestamp, feature version, horizon "
+    "and calibration, arrives with the experiment run store (audit work order 3)."
+)
+
 
 @router.get("/rundown", response_model=MLRundownResponse)
-def get_ml_rundown(ticker: str = Query("AAPL", description="Ticker symbol")) -> MLRundownResponse:
-    """Return the 5-item high-value ML interpretation rundown for the selected asset."""
-    raw_df = get_cached_ticker_data(ticker.upper())
+def get_ml_rundown(
+    ticker: str = Query("AAPL", description="Ticker symbol"),
+    cache_dir: Path = Depends(get_cache_dir),
+) -> MLRundownResponse:
+    """Return the model-forecast status and five indicator rule readings for the selected asset."""
+    raw_df = get_cached_ticker_data(ticker.upper(), cache_dir)
 
     # Build the 5 scale-free features from Spec 014
     features_df, _, _ = build_features(
@@ -49,48 +64,35 @@ def get_ml_rundown(ticker: str = Query("AAPL", description="Ticker symbol")) -> 
     rel_volume = float(last_row["Rel_Volume"])          # Volume / Trailing Mean
     log_return = float(last_row["Log_Return"])
 
-    # 1. Model Forecast (Direction & Hurdle Evaluation)
-    # Direction expectation based on momentum and spread regime
+    # 1. SMA rule agreement: the signs of two trend indicators, not a forecast
     is_bullish_momentum = close_to_short > 0
     is_bullish_regime = sma_spread > 0
     direction_score = (1 if is_bullish_momentum else -1) + (1 if is_bullish_regime else -1)
+    technical_forecast = (
+        f"Close / Short_SMA - 1 = {close_to_short*100:+.2f}% | Short_SMA / Long_SMA - 1 = {sma_spread*100:+.2f}%"
+    )
 
     if direction_score > 0:
         forecast_status = "bullish"
-        forecast_title = "Leaning Bullish (Up Forecast)"
-        technical_forecast = f"P(Up) = 54.2% | Logit Score = +0.17 | Forward Horizon = 1 bar"
+        forecast_title = "Both Trend Rules Read Up"
         plain_forecast = (
-            f"The ML model predicts a positive directional bias for {ticker.upper()}'s next open. "
-            f"Both short-term price momentum (+{close_to_short*100:.1f}%) and the moving average regime (+{sma_spread*100:.1f}%) are aligned upward."
-        )
-        plan_forecast = (
-            "Check the Friction Hurdle: Even with an upward bias, only enter if expected gross return "
-            "clears $2.00 commission + 10 bps round-trip slippage. In choppy markets, stay flat unless probability > 55%."
+            f"{ticker.upper()} closed above its 10-day average, and the 10-day average is above the 30-day. "
+            "Two rules agree; that is not an estimate of the next move."
         )
     elif direction_score < 0:
         forecast_status = "bearish"
-        forecast_title = "Leaning Bearish (Down Forecast)"
-        technical_forecast = f"P(Down) = 53.8% | Logit Score = -0.15 | Forward Horizon = 1 bar"
+        forecast_title = "Both Trend Rules Read Down"
         plain_forecast = (
-            f"The model detects downward pressure on {ticker.upper()}. Price is lagging below its 10-day average "
-            f"({close_to_short*100:.1f}%) and the trend spread is negative ({sma_spread*100:.1f}%)."
-        )
-        plan_forecast = (
-            "Defense First: Do not open new long positions. If holding long exposure, consider tightening stops "
-            "or taking partial profits. The model flags unfavorable risk/reward."
+            f"{ticker.upper()} closed below its 10-day average, and the 10-day average is below the 30-day. "
+            "Two rules agree; that is not an estimate of the next move."
         )
     else:
         forecast_status = "neutral"
-        forecast_title = "Neutral / Regime Conflict"
-        technical_forecast = f"P(Up) = 50.4% | Conflicting feature signals (|diff| < 0.05)"
+        forecast_title = "Trend Rules Disagree"
         plain_forecast = (
-            f"{ticker.upper()} is giving mixed signals. Fast momentum and the medium trend are in conflict. "
-            "When features disagree, model accuracy drops to a coin-flip."
+            f"For {ticker.upper()}, the close-versus-10-day rule and the 10-day-versus-30-day rule point in opposite directions."
         )
-        plan_forecast = (
-            "Patience is Edge: Stand down. A hallmark of professional quant trading is taking zero trades "
-            "when edge is unproven, completely avoiding unnecessary transaction friction."
-        )
+    plan_forecast = "No model has scored this bar, and this endpoint does not measure whether the rules predict returns."
 
     # 2. Fast Price Momentum (Close_To_Short)
     fast_status = "bullish" if close_to_short >= 0 else "bearish"
@@ -98,8 +100,8 @@ def get_ml_rundown(ticker: str = Query("AAPL", description="Ticker symbol")) -> 
     fast_reading = f"Close / Short_SMA - 1 = {fast_pct:+.2f}% (Price: ${close:.2f} vs SMA10: ${short_sma:.2f})"
     if abs(fast_pct) > 4.0:
         fast_english = (
-            f"Price has moved sharply ({fast_pct:+.1f}%) away from its 10-day average. "
-            "In quant statistics, this represents a 2-standard-deviation stretch ('mean-reversion tension')."
+            f"Price has moved sharply ({fast_pct:+.1f}%) away from its 10-day average, "
+            "beyond this rule's fixed 4% stretch line."
         )
         fast_plan = "Watch for snap-backs. Do not buy aggressively at the top of a stretch; wait for mean reversion to the 10-day SMA."
     elif fast_pct >= 0:
@@ -118,8 +120,8 @@ def get_ml_rundown(ticker: str = Query("AAPL", description="Ticker symbol")) -> 
         f"This classifies the overall market regime as {'BULLISH / EXPANSION' if sma_spread >= 0 else 'BEARISH / CONTRACTION'}."
     )
     spread_plan = (
-        "Trade with the Regime: Quant models perform with significantly higher win rates when trades align "
-        f"with the broader regime ({'Long only' if sma_spread >= 0 else 'Cash or Short'}). Never fight the slow SMA trend."
+        "Trade with the Regime: this rule reads the broader regime as "
+        f"{'Long only' if sma_spread >= 0 else 'Cash or Short'}. Its win rate is not measured here."
     )
 
     # 4. Volatility Clustering & Position Sizing Risk (Rolling_Volatility)
@@ -127,11 +129,11 @@ def get_ml_rundown(ticker: str = Query("AAPL", description="Ticker symbol")) -> 
     vol_reading = f"Trailing 10-bar Volatility = {rolling_vol*100:.2f}% daily | {annual_vol*100:.1f}% annualized"
     if annual_vol > 0.35:
         vol_english = (
-            f"Volatility is clustering at high levels ({annual_vol*100:.1f}% annualized). "
-            "Mandelbrot's volatility clustering theorem states: large swings follow large swings. Expect violent daily ranges."
+            f"Volatility is high ({annual_vol*100:.1f}% annualized), above this rule's fixed 35% line. "
+            "Recent daily ranges have been wide."
         )
         vol_plan = (
-            "Size Down: To maintain constant dollar risk, reduce position size by 30-50%. "
+            "Size Down: To maintain constant dollar risk, reduce position size as volatility rises. "
             "Wider stop-losses are required to avoid getting stopped out by random market noise."
         )
     else:
@@ -142,35 +144,17 @@ def get_ml_rundown(ticker: str = Query("AAPL", description="Ticker symbol")) -> 
             "Normal Sizing: Standard position sizing applies. The market is not currently exhibiting erratic panic behavior."
         )
 
-    # 5. Institutional Flow & Relative Volume (Rel_Volume)
+    # 5. Relative Volume (Rel_Volume): a ratio to its trailing mean, nothing more
     vol_ratio = rel_volume
     flow_status = "bullish" if vol_ratio > 1.25 and close_to_short > 0 else "caution" if vol_ratio > 1.4 and close_to_short < 0 else "neutral"
     flow_reading = f"Volume / Trailing Mean = {vol_ratio:.2f}x (Current Volume: {int(last_row['Volume']):,})"
-    if vol_ratio > 1.25:
-        flow_english = (
-            f"Trading volume is {((vol_ratio - 1)*100):+.0f}% heavier than the 20-day average. "
-            "High relative volume signifies institutional capital flow, giving credibility to today's price action."
-        )
-        flow_plan = (
-            "High Conviction Confirmation: Moves backed by heavy institutional volume have greater follow-through. "
-            "Give higher weight to model signals when volume confirms."
-        )
-    elif vol_ratio < 0.75:
-        flow_english = (
-            f"Trading volume is {((1 - vol_ratio)*100):.0f}% lighter than normal. "
-            "The market is moving on thin participation; moves on low volume are prone to false breakouts."
-        )
-        flow_plan = (
-            "Low Conviction Warning: Treat price breakouts with suspicion. Institutions are not committing capital today."
-        )
-    else:
-        flow_english = "Volume is tracking right at normal historical levels (1.0x). Balanced market participation."
-        flow_plan = "Standard execution rules apply. No abnormal liquidity risks detected."
+    flow_english = f"Today's volume is {vol_ratio:.2f}x its trailing average."
+    flow_plan = "Relative volume describes participation only. It does not identify who traded or confirm a price move."
 
     insights = [
         MLInsightItem(
             rank=1,
-            category="ML Directional Forecast",
+            category="SMA Rule Agreement",
             headline=forecast_title,
             technical_reading=technical_forecast,
             plain_english=plain_forecast,
@@ -210,7 +194,7 @@ def get_ml_rundown(ticker: str = Query("AAPL", description="Ticker symbol")) -> 
         ),
         MLInsightItem(
             rank=5,
-            category="Institutional Volume Flow",
+            category="Relative Volume",
             headline=f"Relative Volume ({vol_ratio:.2f}x Normal)",
             technical_reading=flow_reading,
             plain_english=flow_english,
@@ -221,16 +205,17 @@ def get_ml_rundown(ticker: str = Query("AAPL", description="Ticker symbol")) -> 
     ]
 
     verdict = (
-        f"{ticker.upper()} — Bullish bias with favorable momentum. Exercise cost discipline before entry."
+        f"{ticker.upper()} — both trend rules read up."
         if direction_score > 0
-        else f"{ticker.upper()} — Bearish risk bias. Preserve capital; do not initiate new longs."
+        else f"{ticker.upper()} — both trend rules read down."
         if direction_score < 0
-        else f"{ticker.upper()} — Mixed regime signals. Model advises standing down."
+        else f"{ticker.upper()} — trend rules disagree."
     )
 
     return MLRundownResponse(
         ticker=ticker.upper(),
         as_of_date=last_date,
+        model_forecast=NotComputed(reason=FORECAST_NOT_COMPUTED),
         summary_verdict=verdict,
         verdict_status=forecast_status,
         insights=insights,

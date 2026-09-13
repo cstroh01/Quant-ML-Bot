@@ -35,6 +35,7 @@ from __future__ import annotations
 from datetime import date, timedelta
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import yfinance as yf
 
@@ -293,11 +294,14 @@ def _tidy(frame: pd.DataFrame, tickers: list[str]) -> pd.DataFrame:
     requested = set(tickers)
     tidy = frame[frame["Ticker"].isin(requested)]
     tidy = _normalize_dates(tidy)
-    return (
+    result = (
         tidy[TIDY_COLUMNS]
         .sort_values(["Ticker", "Date"])
         .reset_index(drop=True)
     )
+    result.attrs["price_basis"] = "research_adjusted"
+    return result
+
 
 
 def _write_atomic(frame: pd.DataFrame, path: Path) -> None:
@@ -383,3 +387,40 @@ def download_market_data(
     market_data = _tidy(pd.concat(tidy_frames, ignore_index=True), tickers)
     _write_atomic(market_data, path)
     return market_data
+
+
+def execution_price_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Validate declared historical-dollar bars; derive causal research units.
+
+    No downloads, cache migration, or inference of dollar units from adjusted
+    values. The caller must supply verified unadjusted OHLCV and action data.
+    Split is new shares per old share (1 means none). Dividend is dollars per
+    post-split share on the ex-date, with an explicit payment session.
+    Research_Close chains total returns forward, never adjusts past rows.
+    """
+    if frame.attrs.get("price_basis") != "unadjusted_dollars":
+        raise ValueError("verified unadjusted dollar prices required")
+    missing = set(TIDY_COLUMNS + ["Split", "Dividend", "Dividend_Pay_Date"]) - set(frame)
+    if missing or frame.empty:
+        raise ValueError(f"raw snapshot missing columns or rows: {sorted(missing)}")
+    result = frame.copy()
+    dates = pd.to_datetime(result.Date)
+    if (dates.isna().any() or dates.duplicated().any() or not dates.is_monotonic_increasing
+            or dates.dt.tz is not None or not dates.equals(dates.dt.normalize())
+            or result.Ticker.nunique() != 1):
+        raise ValueError("one instrument with ordered unique session labels required")
+    values = result[OHLCV_COLUMNS + ["Split", "Dividend"]].to_numpy(dtype=float)
+    if (not np.isfinite(values).all() or (values[:, :4] <= 0).any()
+            or (result.Volume < 0).any() or (result.Split <= 0).any() or (result.Dividend < 0).any()
+            or (result.High < result[["Open", "Close", "Low"]].max(axis=1)).any()
+            or (result.Low > result[["Open", "Close", "High"]].min(axis=1)).any()):
+        raise ValueError("invalid raw OHLCV or action values")
+    pay = pd.to_datetime(result.Dividend_Pay_Date)
+    if pay.dt.tz is not None or (result.Dividend.gt(0) & (pay.isna() | (pay < dates))).any():
+        raise ValueError("dividend requires a payment session on or after ex-date")
+    gross = result.Split * (result.Close + result.Dividend) / result.Close.shift(1)
+    gross.iloc[0] = 1.
+    result["Research_Close"] = result.Close.iloc[0] * gross.cumprod()
+    result["Research_Volume"] = result.Volume / result.Split.cumprod()
+    result.attrs["research_basis"] = "causal_total_return_index"
+    return result

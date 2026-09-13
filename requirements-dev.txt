@@ -1,0 +1,9 @@
+# Test-only dependencies (spec 018, finding 57). CI installs this file next to
+# requirements.txt; the research scripts do not need it.
+#
+# tests/test_reports_api.py imports fastapi.testclient, which needs both
+# packages below. They are not new: spec 016 declared them, with their Rule 6
+# justification, in reports/requirements-ui.txt. The pins must match that file;
+# tests/test_reports_api.py fails if they drift apart.
+fastapi==0.141.1
+httpx==0.28.1

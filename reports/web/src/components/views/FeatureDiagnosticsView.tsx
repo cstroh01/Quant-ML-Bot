@@ -1,8 +1,6 @@
 import React from 'react';
-import {
-  CheckCircle2,
-} from 'lucide-react';
 import type { FeatureDiagnosticsResponse, SignificanceResponse } from '../../types/api';
+import { NotComputedNotice } from '../common/NotComputedNotice';
 import { TutorCard } from '../common/TutorCard';
 
 interface FeatureDiagnosticsViewProps {
@@ -137,59 +135,13 @@ export const FeatureDiagnosticsView: React.FC<FeatureDiagnosticsViewProps> = ({
         </div>
       </div>
 
-      {/* Paired Significance Screening Table */}
+      {/* Paired Significance Screening: not computed until saved runs exist (spec 018, finding 45) */}
       {significance && (
         <div className="bg-[#0F131A] border border-[#1C2331] rounded-lg p-5">
-          <div className="mb-3">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold tracking-wide text-white uppercase font-mono">
-                Spec 014 Paired Significance Screening
-              </h3>
-              <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-950/50 border border-emerald-600/40 text-emerald-400">
-                Screening Alpha = 0.10
-              </span>
-            </div>
-            <p className="text-xs text-gray-400 mt-0.5">
-              McNemar's test on discordant classification outcomes; Wilcoxon signed-rank test on paired per-bar regression squared errors.
-            </p>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="bg-[#141A24] text-gray-400 uppercase tracking-wider text-[11px]">
-                <tr>
-                  <th className="py-2.5 px-4 border-b border-[#1C2331]">Estimator</th>
-                  <th className="py-2.5 px-4 border-b border-[#1C2331]">Task</th>
-                  <th className="py-2.5 px-4 border-b border-[#1C2331]">Statistical Test</th>
-                  <th className="py-2.5 px-4 border-b border-[#1C2331] text-right">P-Value</th>
-                  <th className="py-2.5 px-4 border-b border-[#1C2331] text-center">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[#1C2331] text-gray-300">
-                {significance.entries.map((entry, idx) => (
-                  <tr key={idx} className="hover:bg-[#141A24]/40">
-                    <td className="py-2.5 px-4 font-semibold text-white">{entry.estimator}</td>
-                    <td className="py-2.5 px-4 capitalize text-gray-400">{entry.task}</td>
-                    <td className="py-2.5 px-4 text-gray-300">{entry.test_name}</td>
-                    <td className="py-2.5 px-4 text-right tabular-nums font-bold">
-                      {entry.p_value.toFixed(3)}
-                    </td>
-                    <td className="py-2.5 px-4 text-center">
-                      {entry.passed_screening ? (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-semibold px-2 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/40">
-                          <CheckCircle2 className="w-3 h-3" /> PASSED (p &lt; 0.10)
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[11px] text-gray-500 px-2 py-0.5 rounded bg-gray-900 border border-gray-800">
-                          NEUTRAL
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <h3 className="text-sm font-semibold tracking-wide text-white uppercase font-mono mb-3">
+            Paired Significance Screening
+          </h3>
+          <NotComputedNotice label="Significance screening" reason={significance.reason} />
         </div>
       )}
 

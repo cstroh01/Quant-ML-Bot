@@ -29,7 +29,8 @@ exit and re-enter repeatedly, paying that round trip each time -- the opposite
 of what the rule is for. So entry is strict against the hurdle and the exit is
 a separate, looser threshold.
 
-Signal layer (Rule 8): numpy and pandas only. This module reasons about the
+Signal layer (Rule 8): uses the pure cost-domain validator in metrics;
+no account state or fill implementation is imported. This module reasons about the
 *size* of a cost; `backtest_harness.py` remains the only module that *applies*
 one to a fill, and neither imports the other. It does not import
 `estimators.py` either (FR-012): it needs the predictions, not the registry,
@@ -43,6 +44,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from metrics import validate_costs
+
 
 def _validate_costs(
     commission_per_trade: float, slippage_bps: float, shares: int
@@ -55,17 +58,7 @@ def _validate_costs(
     case where `1 - s` reaches zero or flips sign -- a 100% haircut on every
     fill, for which no finite break-even return exists.
     """
-    if commission_per_trade < 0:
-        raise ValueError(
-            f"commission_per_trade must be >= 0; got {commission_per_trade}"
-        )
-    if slippage_bps < 0:
-        raise ValueError(f"slippage_bps must be >= 0; got {slippage_bps}")
-    if slippage_bps >= 10_000:
-        raise ValueError(
-            "slippage_bps must be < 10_000; at or above a 100% haircut the "
-            f"round trip has no finite break-even. Got {slippage_bps}"
-        )
+    validate_costs(commission_per_trade, slippage_bps)
     if not isinstance(shares, (int, np.integer)) or isinstance(shares, bool):
         raise TypeError(f"shares must be an int; got {type(shares).__name__}")
     if shares < 1:
@@ -131,7 +124,7 @@ def log_hurdle(
 ) -> pd.Series:
     """`ln(1 + g*)` -- the hurdle in the units a spec 009 prediction is in.
 
-    `targets.forward_log_return_label` produces `log(P[t+h]/P[t])`. Comparing
+    `targets.forward_log_return_label` produces `log(Open[t+h+1]/Open[t+1])`. Comparing
     that against `cost_hurdle`'s simple return compares two different
     quantities that merely agree to first order, which is the whole reason
     this repo works in log returns rather than assuming they are
@@ -165,6 +158,10 @@ def positions_from_predicted_return(
 ) -> pd.Series:
     """The desired-long mask, with hysteresis: strict entry, looser exit.
 
+    Research heuristic only: E[log return] clearing a log hurdle does not
+    establish positive expected dollar payoff (audit 25). The forecast horizon
+    also does not impose a fixed holding period on this hysteresis policy.
+
     Enter when `predicted_return[t] > entry_hurdle[t]` -- strictly, so a
     prediction exactly equal to the hurdle does **not** enter. A trade that
     breaks even exactly is not a reason to take on execution risk for nothing,
@@ -181,10 +178,8 @@ def positions_from_predicted_return(
     semantics, and is distinct from a prediction of `0.0`: a null exits a
     position, while `0.0` under a negative `exit_threshold` holds it.
 
-    The final bar is forced flat if still long. That is a *decision*, not an
-    end-of-data fill: the harness already marks an open position to the final
-    close, and this only ensures the decision series ends where the accounting
-    does.
+    Ending a batch never changes its last decision. Valuation and optional
+    liquidation belong to the accounting layer.
 
     Returns a plain `bool` series on `predicted_return`'s index. Nothing is
     shifted here -- see `signal_from_positions`, which must run after this and
@@ -203,10 +198,14 @@ def positions_from_predicted_return(
     else:
         hurdle_values = np.full(len(predictions), float(entry_hurdle))
 
-    if np.isnan(float(exit_threshold)):
-        raise ValueError("exit_threshold must not be NaN.")
+    if not np.isfinite(float(exit_threshold)):
+        raise ValueError("exit_threshold must be finite.")
+    if not np.isfinite(hurdle_values).all():
+        raise ValueError("entry hurdle must be finite")
 
     predicted = predictions.to_numpy(dtype=float)
+    if np.isinf(predicted).any():
+        raise ValueError("predictions must be finite or missing")
     known = ~np.isnan(predicted)
 
     # A stateful forward scan, which is why this function is a Rule 5 target
@@ -226,9 +225,6 @@ def positions_from_predicted_return(
         elif predicted[i] > hurdle_values[i]:
             long = True
         desired[i] = long
-
-    if len(desired):
-        desired[-1] = False
 
     return pd.Series(desired, index=predictions.index, name="Desired_Long")
 

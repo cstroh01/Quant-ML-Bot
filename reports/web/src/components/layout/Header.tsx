@@ -5,6 +5,7 @@ import {
   GraduationCap,
   Keyboard,
 } from 'lucide-react';
+import type { NotComputed } from '../../types/api';
 
 interface HeaderProps {
   currentTicker: string;
@@ -17,6 +18,7 @@ interface HeaderProps {
   onToggleTutorMode: () => void;
   isMLPaneOpen: boolean;
   onToggleMLPane: () => void;
+  testRun: NotComputed | null;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -30,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTutorMode,
   isMLPaneOpen,
   onToggleMLPane,
+  testRun,
 }) => {
   return (
     <header className="border-b border-[#1C2331] bg-[#0A0D12] px-6 py-3 flex flex-wrap items-center justify-between gap-4 select-none">
@@ -87,10 +90,10 @@ export const Header: React.FC<HeaderProps> = ({
           <span>{tutorMode ? '🎓 TUTOR MODE: ON' : '🎓 Tutor Mode'}</span>
         </button>
 
-        {/* ML Decision Pane Toggle */}
+        {/* Indicator Readings Pane Toggle (rule readings, not model output: spec 018, finding 46) */}
         <button
           onClick={onToggleMLPane}
-          title="Toggle Right-Side ML Model Decision Pane"
+          title="Toggle Right-Side Indicator Readings Pane"
           className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-bold border transition-all ${
             isMLPaneOpen
               ? 'bg-purple-950/60 border-purple-500/60 text-purple-300 shadow-lg shadow-purple-900/20'
@@ -101,10 +104,13 @@ export const Header: React.FC<HeaderProps> = ({
           <span>ML Rundown</span>
         </button>
 
-        {/* Engine Status Badge */}
-        <div className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded bg-[#121721] border border-[#1C2331] text-[11px] font-mono">
-          <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-gray-300">CORE: 311/311 PASS</span>
+        {/* Test status: the API reads no CI result, so no count or pass state is shown (spec 018, finding 47) */}
+        <div
+          title={testRun?.reason ?? 'Test status not reported'}
+          className="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded bg-[#121721] border border-[#1C2331] text-[11px] font-mono"
+        >
+          <span className="h-2 w-2 rounded-full bg-gray-600" />
+          <span className="text-gray-400">TESTS: NOT REPORTED</span>
         </div>
 
         {/* Colorblind Palette Toggle */}

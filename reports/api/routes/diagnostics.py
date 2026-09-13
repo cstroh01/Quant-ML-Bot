@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Query
 
 # Ensure repo root and scripts are in path
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -15,11 +15,10 @@ if str(SCRIPTS_DIR) not in sys.path:
 
 from feature_diagnostics import diagnose
 from features import build_features, feature_columns
-from reports.api.routes.data import get_cached_ticker_data
+from reports.api.routes.data import get_cache_dir, get_cached_ticker_data
 from reports.api.schemas import (
     CollinearityEntry,
     FeatureDiagnosticsResponse,
-    SignificanceEntry,
     SignificanceResponse,
 )
 
@@ -28,10 +27,11 @@ router = APIRouter(prefix="/api/diagnostics", tags=["diagnostics"])
 
 @router.get("/collinearity", response_model=FeatureDiagnosticsResponse)
 def get_collinearity_diagnostics(
-    ticker: str = Query("AAPL", description="Ticker symbol")
+    ticker: str = Query("AAPL", description="Ticker symbol"),
+    cache_dir: Path = Depends(get_cache_dir),
 ) -> FeatureDiagnosticsResponse:
     """Return condition numbers, VIFs, and correlations comparing levels vs scale-free."""
-    raw_df = get_cached_ticker_data(ticker.upper())
+    raw_df = get_cached_ticker_data(ticker.upper(), cache_dir)
 
     # Build features under both sets with label_horizon=1
     df_levels, _, _ = build_features(
@@ -41,11 +41,14 @@ def get_collinearity_diagnostics(
         raw_df, target_kind="direction", label_horizon=1, feature_set="scale_free"
     )
 
-    diag_levels = diagnose(df_levels, "levels")
-    diag_scale_free = diagnose(df_scale_free, "scale_free")
-
     cols_levels = feature_columns("levels")
     cols_scale_free = feature_columns("scale_free")
+
+    # Diagnose complete rows only: build_features may keep warm-up sessions
+    # whose features are not yet defined, and one NaN row breaks the matrix
+    # algebra instead of describing the design matrix.
+    diag_levels = diagnose(df_levels.dropna(subset=cols_levels), "levels")
+    diag_scale_free = diagnose(df_scale_free.dropna(subset=cols_scale_free), "scale_free")
 
     entries = [
         CollinearityEntry(
@@ -78,49 +81,21 @@ def get_collinearity_diagnostics(
     )
 
 
+SIGNIFICANCE_NOT_COMPUTED = (
+    "No saved experiment run is wired to this endpoint, so no p-value is shown for "
+    "any ticker. Paired significance results arrive with the experiment run store "
+    "(audit work order 3)."
+)
+
+
 @router.get("/significance", response_model=SignificanceResponse)
 def get_significance_screening(
     ticker: str = Query("AAPL", description="Ticker symbol")
 ) -> SignificanceResponse:
-    """Return paired significance test screening results (Spec 014 FR-012)."""
-    # Reported AAPL screening results from Spec 014
-    entries = [
-        SignificanceEntry(
-            estimator="logistic",
-            task="classification",
-            test_name="McNemar",
-            p_value=0.084,
-            alpha=0.10,
-            passed_screening=True,
-        ),
-        SignificanceEntry(
-            estimator="hgb",
-            task="classification",
-            test_name="McNemar",
-            p_value=0.215,
-            alpha=0.10,
-            passed_screening=False,
-        ),
-        SignificanceEntry(
-            estimator="ridge",
-            task="regression",
-            test_name="Wilcoxon signed-rank",
-            p_value=0.042,
-            alpha=0.10,
-            passed_screening=True,
-        ),
-        SignificanceEntry(
-            estimator="hgb",
-            task="regression",
-            test_name="Wilcoxon signed-rank",
-            p_value=0.310,
-            alpha=0.10,
-            passed_screening=False,
-        ),
-    ]
+    """Paired significance screening: not computed, for every ticker (spec 018, finding 45).
 
-    return SignificanceResponse(
-        ticker=ticker.upper(),
-        screening_alpha=0.10,
-        entries=entries,
-    )
+    This endpoint used to return four literal p-values, the same for every
+    ticker and different from the saved run. Real values need validated run
+    artifacts keyed by ticker and run.
+    """
+    return SignificanceResponse(ticker=ticker.upper(), reason=SIGNIFICANCE_NOT_COMPUTED)

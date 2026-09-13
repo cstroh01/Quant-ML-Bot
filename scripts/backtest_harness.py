@@ -1,6 +1,9 @@
 """Reusable execution, accounting, and reporting helpers."""
 
+import numpy as np
 import pandas as pd
+
+from metrics import validate_costs
 
 # The trade log's shape is fixed here so an empty result still has the same
 # columns as a populated one. Downstream code can then treat "no trades" as a
@@ -15,94 +18,138 @@ def run_backtest(
     *,
     commission_per_trade: float = 0.0,
     slippage_bps: float = 0.0,
+    starting_capital: float | None = None,
+    shares: int = 1,
+    liquidate: bool = False,
 ) -> pd.DataFrame:
-    """Run a long-only, one-share backtest on already-shifted signals.
+    """Fund already-shifted orders; return closed trades with an event ledger.
 
-    Costs are charged the way a broker bills them: `commission_per_trade`
-    dollars on every fill, so a completed round trip pays it twice, and
-    `slippage_bps` basis points of notional against the trade's direction on
-    every fill — a buy is filled higher than the quoted open, a sell lower.
-    Slippage therefore never improves a fill.
-
-    Both parameters default to `0.0`, which multiplies every price by exactly
-    `1.0` and subtracts exactly `0.0`, so the uncosted arithmetic is reproduced
-    bit for bit rather than approximately.
-
-    The recorded `Entry Price` and `Exit Price` are the effective (slipped)
-    fill prices — the prices the position was actually put on and taken off at.
-    Commission is not a price, so it is subtracted from `P&L` instead.
+    Long-only, immediate fills, no borrowing or pending orders. Buying power
+    equals cash. An unaffordable entry is recorded as rejected, never resized.
+    Starting capital must be chosen explicitly before the first open.
+    Open positions are marked unless terminal liquidation is requested.
+    Dates identify sessions; Phase identifies initial/open/close events.
     """
-    # This layer deliberately knows nothing about how the signals were made.
-    # Checking for the columns it does depend on keeps the contract explicit,
-    # so a future ML signal that forgets to shift fails loudly and early
-    # rather than producing a plausible-looking but wrong trade log.
-    missing = [name for name in REQUIRED_PRICE_COLUMNS if name not in prices.columns]
-    if missing:
-        raise ValueError(f"prices is missing required columns: {missing}")
+    missing = [c for c in REQUIRED_PRICE_COLUMNS if c not in prices]
+    if missing or prices.empty:
+        raise ValueError(f"nonempty prices required; missing columns: {missing}")
+    validate_costs(commission_per_trade, slippage_bps)
+    if prices.attrs.get("price_basis") != "unadjusted_dollars":
+        raise ValueError("funded ledger requires declared unadjusted dollar prices")
+    prices = prices.copy()
+    for column, default in (("Split", 1.), ("Dividend", 0.), ("Dividend_Pay_Date", pd.NaT)):
+        if column not in prices:
+            prices[column] = default
+    actions = prices[["Split", "Dividend"]].to_numpy(dtype=float)
+    pay_dates = pd.to_datetime(prices.Dividend_Pay_Date)
+    if (not np.isfinite(actions).all() or (prices.Split <= 0).any()
+            or (prices.Dividend < 0).any() or pay_dates.dt.tz is not None
+            or (prices.Dividend.gt(0) & (pay_dates.isna() | (pay_dates < prices.Date))).any()):
+        raise ValueError("invalid split/dividend or missing payment session")
+    prices["Dividend_Pay_Date"] = pay_dates
+    dates = pd.to_datetime(prices["Date"])
+    if (dates.isna().any() or dates.duplicated().any()
+            or not dates.is_monotonic_increasing or dates.dt.tz is not None
+            or not dates.equals(dates.dt.normalize())):
+        raise ValueError("Date must contain unique ordered naive session labels")
+    if "Ticker" in prices and prices.Ticker.nunique() != 1:
+        raise ValueError("one instrument per account simulation required")
+    values = prices[["Open", "Close"]].to_numpy(dtype=float)
+    if not np.isfinite(values).all() or (values <= 0).any():
+        raise ValueError("prices must be finite and positive")
+    for c in ("Buy_Next_Open", "Sell_Next_Open"):
+        if not prices[c].map(lambda v: isinstance(v, (bool, np.bool_))).all():
+            raise ValueError("signals must be exact booleans")
+    if (prices.Buy_Next_Open & prices.Sell_Next_Open).any():
+        raise ValueError("conflicting buy and sell signals")
+    if (isinstance(shares, (bool, np.bool_)) or not isinstance(shares, (int, np.integer))
+            or shares < 1):
+        raise ValueError("shares must be a positive integer")
+    if starting_capital is None:
+        raise ValueError("starting_capital is required before the first open")
+    cash = float(starting_capital)
+    if not np.isfinite(cash) or cash <= 0:
+        raise ValueError("starting_capital must be finite and positive")
+    capital = cash
+    quantity = 0.0
+    entry = None
+    receivable = 0.
+    payments = []
+    trades, events = [], []
+    rate = slippage_bps / 10000.
 
-    # A negative cost is a fill that improved, which is the one thing Rule 3's
-    # slippage model exists to forbid. Rejecting it here means the sign
-    # convention cannot be inverted by a caller's typo.
-    if commission_per_trade < 0:
-        raise ValueError(f"commission_per_trade must be >= 0; got {commission_per_trade}")
-    if slippage_bps < 0:
-        raise ValueError(f"slippage_bps must be >= 0; got {slippage_bps}")
+    def record(date, phase, event, price, fee=0., action=0.):
+        if not np.isfinite(cash + quantity * price + receivable):
+            raise ValueError("nonfinite account equity")
+        events.append(dict(Event_ID=len(events), Date=date, Phase=phase,
+                           Event=event, Price=price, Fee=fee, Cash=cash,
+                           Buying_Power=cash, Reserved_Cash=0., Quantity=quantity,
+                           Receivable=receivable, Action=action,
+                           Equity=cash + quantity * price + receivable))
 
-    # Basis points are hundredths of a percent, so 5 bps is 0.0005 of notional.
-    slippage_rate = slippage_bps / 10_000.0
-    # Charged once on the entry fill and once on the exit fill.
-    round_trip_commission = 2 * commission_per_trade
+    def sell(date, phase, quote, event):
+        nonlocal cash, quantity, entry
+        fill = quote * (1 - rate)
+        proceeds = quantity * fill - commission_per_trade
+        if cash + proceeds < 0:
+            raise ValueError("exit fee would require unauthorized borrowing")
+        cash += proceeds
+        trades.append({"Entry Date": entry[0], "Entry Price": entry[1],
+                       "Exit Date": date, "Exit Price": fill,
+                       "P&L": proceeds - entry[2] + entry[3], "Quantity": quantity,
+                       "Entry Quantity": entry[4], "Entry Cost": entry[2],
+                       "Dividend Income": entry[3]})
+        quantity = 0.0
+        entry = None
+        record(date, phase, event, quote, commission_per_trade)
 
-    # We go flat below the long average rather than shorting. That keeps this
-    # first test focused on long-entry/exit accounting and avoids borrowing and
-    # short-sale assumptions before the plumbing is trusted.
-    trades = []
-    entry_date = None
-    entry_price = None
-
-    # This small state machine represents one share: either we hold it or we
-    # do not. Checking exits before entries makes the intended order explicit
-    # if the signal rules are expanded later.
+    record(dates.iloc[0], "initial", "initial", values[0, 0])
     for row in prices.itertuples(index=False):
-        if entry_price is not None and row.Sell_Next_Open:
-            exit_price = float(row.Open) * (1 - slippage_rate)
-            trades.append(
-                {
-                    "Entry Date": entry_date,
-                    "Entry Price": entry_price,
-                    "Exit Date": row.Date,
-                    "Exit Price": exit_price,
-                    "P&L": exit_price - entry_price - round_trip_commission,
-                }
-            )
-            entry_date = None
-            entry_price = None
-
-        if entry_price is None and row.Buy_Next_Open:
-            entry_date = row.Date
-            entry_price = float(row.Open) * (1 + slippage_rate)
-
-    # If the final position is still open, mark it to the final known close.
-    # This is an end-of-data bookkeeping exit, not a future prediction.
-    if entry_price is not None:
-        final_row = prices.iloc[-1]
-        exit_price = float(final_row["Close"]) * (1 - slippage_rate)
-        trades.append(
-            {
-                "Entry Date": entry_date,
-                "Entry Price": entry_price,
-                "Exit Date": final_row["Date"],
-                "Exit Price": exit_price,
-                "P&L": exit_price - entry_price - round_trip_commission,
-            }
-        )
-
-    trade_log = pd.DataFrame(trades, columns=TRADE_LOG_COLUMNS)
-    # An empty frame's P&L column has no dtype of its own, so cast before the
-    # cumulative sum to keep "Cumulative P&L" numeric in both cases.
-    trade_log["P&L"] = trade_log["P&L"].astype(float)
-    trade_log["Cumulative P&L"] = trade_log["P&L"].cumsum()
-    return trade_log
+        due = sum(amount for date, amount in payments if date <= row.Date)
+        if due:
+            cash += due
+            receivable -= due
+            payments = [(date, amount) for date, amount in payments if date > row.Date]
+            record(row.Date, "open", "payment", row.Open, action=due)
+        if quantity and row.Split != 1:
+            quantity *= row.Split
+            record(row.Date, "open", "split", row.Open, action=row.Split)
+        if quantity and row.Dividend:
+            income = quantity * row.Dividend
+            entry = (*entry[:3], entry[3] + income, entry[4])
+            receivable += income
+            payments.append((row.Dividend_Pay_Date, income))
+            record(row.Date, "open", "dividend", row.Open, action=income)
+            if row.Dividend_Pay_Date == row.Date:
+                cash += income
+                receivable -= income
+                payments.pop()
+                record(row.Date, "open", "payment", row.Open, action=income)
+        if quantity and row.Sell_Next_Open:
+            sell(row.Date, "open", row.Open, "sell")
+        if not quantity and row.Buy_Next_Open:
+            fill = row.Open * (1 + rate)
+            required = shares * fill + commission_per_trade
+            if not np.isfinite(required):
+                raise ValueError("nonfinite order notional")
+            if required > cash:
+                record(row.Date, "open", "rejected", row.Open)
+            else:
+                cash -= required
+                quantity = float(shares)
+                entry = (row.Date, fill, required, 0., shares)
+                record(row.Date, "open", "buy", row.Open, commission_per_trade)
+        record(row.Date, "close", "mark", row.Close)
+    if quantity and liquidate:
+        sell(row.Date, "close", row.Close, "liquidation")
+    log = pd.DataFrame(trades, columns=TRADE_LOG_COLUMNS + ["Quantity", "Entry Quantity", "Entry Cost", "Dividend Income"])
+    log["Trade_ID"] = np.arange(len(log))
+    log["P&L"] = log["P&L"].astype(float)
+    log["Cumulative P&L"] = log["P&L"].cumsum()
+    log.attrs.update(ledger=pd.DataFrame(events), capital_base=capital,
+                     commission_per_trade=float(commission_per_trade),
+                     slippage_bps=float(slippage_bps), liquidate=liquidate)
+    return log
 
 
 def summarize_trades(
@@ -119,6 +166,9 @@ def summarize_trades(
     printed or saved summary can never state a number without the cost
     assumptions behind it, which is what Rule 3 requires of a results artifact.
     """
+    validate_costs(commission_per_trade, slippage_bps)
+    if not np.isfinite(trade_log["P&L"].to_numpy(dtype=float)).all():
+        raise ValueError("trade P&L must be finite")
     total_trades = len(trade_log)
     # Summing an empty column already yields 0.0, so no empty-case branch is
     # needed here. A trade that breaks exactly even counts as a loss, which is

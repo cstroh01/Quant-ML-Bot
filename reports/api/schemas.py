@@ -2,8 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Any
-from pydantic import BaseModel, Field
+from typing import Any, Literal
+from pydantic import BaseModel, Field, model_validator
+
+
+class NotComputed(BaseModel):
+    """A quantity no computation produced, and why (spec 018).
+
+    Distinct from missing data, which keeps its 404: the input exists, but
+    nothing is wired to compute this value from it. Never rendered as zero.
+    """
+
+    status: Literal["not_computed"] = "not_computed"
+    reason: str = Field(min_length=1)
 
 
 class BarData(BaseModel):
@@ -52,19 +63,10 @@ class FeatureDiagnosticsResponse(BaseModel):
     correlation_matrix: dict[str, dict[str, float]]
 
 
-class SignificanceEntry(BaseModel):
-    estimator: str
-    task: str
-    test_name: str
-    p_value: float
-    alpha: float
-    passed_screening: bool
+class SignificanceResponse(NotComputed):
+    """Paired significance screening: not computed for any ticker until saved runs exist (finding 45)."""
 
-
-class SignificanceResponse(BaseModel):
     ticker: str
-    screening_alpha: float
-    entries: list[SignificanceEntry]
 
 
 class TradeRecord(BaseModel):
@@ -111,17 +113,28 @@ class BacktestTearsheetResponse(BaseModel):
     comparison_table: list[BaselineComparisonRow]
 
 
+GateEvidenceStatus = Literal["passed", "failed", "stale", "unknown"]
+
+
 class CapitalGateItem(BaseModel):
     gate_number: int
     title: str
     description: str
-    status: str  # "passed" | "in_progress" | "pending"
+    status: GateEvidenceStatus
     details: str
     evidence: str | None = None
+
+    @model_validator(mode="after")
+    def _evidence_backs_every_known_state(self) -> CapitalGateItem:
+        """Only `unknown` may stand without an evidence reference (finding 47)."""
+        if self.status != "unknown" and not self.evidence:
+            raise ValueError(f"gate status {self.status!r} requires an evidence reference")
+        return self
 
 
 class CapitalGateStatusResponse(BaseModel):
     overall_readiness: str
+    test_run: NotComputed
     gates: list[CapitalGateItem]
 
 
@@ -137,8 +150,10 @@ class MLInsightItem(BaseModel):
 
 
 class MLRundownResponse(BaseModel):
+    """Indicator rule readings; the model forecast is not computed (finding 46)."""
     ticker: str
     as_of_date: str
+    model_forecast: NotComputed
     summary_verdict: str
     verdict_status: str
     insights: list[MLInsightItem]

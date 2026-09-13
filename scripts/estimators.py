@@ -272,6 +272,19 @@ def fitted_scaler(model):
     return None
 
 
+def model_row_masks(frame: pd.DataFrame, columns: list[str], label: str,
+                    horizon: int, embargo: int) -> tuple[np.ndarray, np.ndarray]:
+    """Eligibility on the intact calendar; never permit a shorter label purge."""
+    required = frame.attrs.get("label_horizon", horizon)
+    if horizon < required or embargo < required:
+        raise ValueError("purge/embargo shorter than label availability horizon")
+    if not frame.index.is_unique or ("Ticker" in frame and frame.Ticker.nunique() != 1):
+        raise ValueError("unique index and one instrument required for aligned predictions")
+    inference = np.isfinite(frame[columns].to_numpy(dtype=float)).all(axis=1)
+    known = np.isfinite(frame[label].to_numpy(dtype=float, na_value=np.nan))
+    return inference & known, inference
+
+
 def fit_predict_walk_forward(
     frame: pd.DataFrame,
     *,
@@ -327,10 +340,16 @@ def fit_predict_walk_forward(
     if test_months is not None:
         split_kwargs["test_months"] = test_months
 
+    train_ok, infer_ok = model_row_masks(frame, feature_columns, label_column,
+                                        label_horizon, embargo_bars)
     folds = 0
     for fold, (train_indices, test_indices) in enumerate(
         walk_forward_splits(frame, **split_kwargs), start=1
     ):
+        train_indices = train_indices[train_ok[train_indices]]
+        test_indices = test_indices[infer_ok[test_indices]]
+        if not len(train_indices) or not len(test_indices):
+            continue
         folds += 1
         train_dates = pd.to_datetime(frame.iloc[train_indices]["Date"])
         test_dates = pd.to_datetime(frame.iloc[test_indices]["Date"])

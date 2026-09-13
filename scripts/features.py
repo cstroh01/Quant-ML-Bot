@@ -118,9 +118,8 @@ def build_features(
 
     Returns `(frame, task, label_horizon)`. The frame carries the input's
     columns plus the SMA/crossover columns, `Log_Return`,
-    `Rolling_Volatility`, the three ratio columns, and `Label`, with warm-up
-    rows and rows lacking an observable label removed, on a 0-based
-    `RangeIndex`. Call `feature_columns(feature_set)` for the names a model
+    `Rolling_Volatility`, the three ratio columns, and `Label`, retaining every input session and its index.
+    Inference_Eligible checks features; Train_Eligible also requires a label. Call `feature_columns(feature_set)` for the names a model
     should actually be handed.
 
     `task` and `label_horizon` are passed straight through from
@@ -129,12 +128,8 @@ def build_features(
     units, and the surest way to guarantee that is to never write the number
     twice.
 
-    `feature_set` selects which columns the row-completeness drop is judged
-    against, and nothing else: all columns are computed either way. Judging
-    the drop against the *selected* set is what keeps `feature_set="levels"`
-    reproducing `logistic_baseline.build_features` row for row — dropping on
-    the union would discard the extra volume warm-up rows there too, and move
-    the committed control result.
+    `feature_set` selects the columns used for eligibility. No row is dropped:
+    fit/scoring masks are applied only after calendar-based splits.
 
     `volume_window` defaults to `long_window`. Every feature is computed from
     data at or before its own row (Rule 1): the SMAs, the rolling volatility
@@ -154,7 +149,11 @@ def build_features(
     if volume_window < 1:
         raise ValueError(f"volume_window must be >= 1; got {volume_window}")
 
-    features = sma_crossover_signal(prices, short_window, long_window)
+    research = prices.copy()
+    if "Research_Close" in prices:
+        research["Close"] = prices.Research_Close
+        research["Volume"] = prices.Research_Volume
+    features = sma_crossover_signal(research, short_window, long_window)
     features["Log_Return"] = np.log(features["Close"] / features["Close"].shift(1))
     features["Rolling_Volatility"] = (
         features["Log_Return"].rolling(volatility_window).std()
@@ -170,27 +169,20 @@ def build_features(
 
     # A halted ticker gives a zero rolling volume, and a zero denominator
     # gives an infinity that no estimator errors on and every estimator is
-    # wrecked by. Send it to NaN so the drop below removes the row, which is
+    # wrecked by. Send it to NaN so the eligibility mask excludes it from fits, which is
     # the honest reading: the feature is not defined there.
     for column in DERIVED_RATIO_COLUMNS:
         features[column] = features[column].replace([np.inf, -np.inf], np.nan)
 
     # The label is the prediction target only. It is never a feature — see
     # FEATURE_SETS above, which this column is deliberately absent from.
+    features["Close"], features["Volume"] = prices.Close, prices.Volume
     label, task, horizon = build_target(
         features, kind=target_kind, horizon=label_horizon
     )
     features[LABEL_COLUMN] = label
 
-    # Drop the SMA/volatility warm-up rows, then any row whose *selected*
-    # features or label are not fully observable — which removes the final
-    # `horizon` rows, whose label reaches past the end of the data. Same
-    # sequence as logistic_baseline.build_features:51-55. A `volume_window`
-    # longer than `long_window` needs no wider slice here: its warm-up is a
-    # leading run of NaN, which the drop removes.
-    frame = (
-        features.iloc[long_window:]
-        .dropna(subset=columns + [LABEL_COLUMN])
-        .reset_index(drop=True)
-    )
-    return frame, task, horizon
+    features["Inference_Eligible"] = np.isfinite(features[columns].to_numpy(dtype=float)).all(axis=1)
+    features["Train_Eligible"] = features.Inference_Eligible & features.Label.notna()
+    features.attrs["label_horizon"] = horizon
+    return features, task, horizon
