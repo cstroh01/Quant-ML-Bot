@@ -26,7 +26,7 @@ def test_audit_first_fee_drawdown():
 def test_funded_open_mark_and_quantity_metrics():
     p = bars().assign(Open=20., Close=[20., 21., 22.], Sell_Next_Open=False)
     log = bt.run_backtest(p, starting_capital=100., shares=3, commission_per_trade=1.)
-    summary = mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0.)
+    summary = mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0., horizon=1)
     assert summary['total_pnl'] == 5.
     assert summary['total_return'] == .05
     assert summary['capital_base'] == 100.

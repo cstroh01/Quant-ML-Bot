@@ -126,8 +126,10 @@ module downstream inherits it.
 **Data.** Everything under `data/cache/` is regenerable output and gitignored.
 Never commit market data. Never read from a path outside the repo root.
 
-**Tests.** `python -m unittest discover -s tests`. No network access, no test
-dependencies. A test that requires a download is not a test.
+**Tests.** `python -m unittest discover -s tests`. No network access. No test
+dependencies in `requirements.txt` — test-only libraries belong in
+`requirements-dev.txt`, which is not installed by the runtime path. A test that
+requires a download is not a test.
 
 **Secrets.** Gitignored `.env` only. Never in code, never in a spec, never in a
 log line, never echoed into agent context.

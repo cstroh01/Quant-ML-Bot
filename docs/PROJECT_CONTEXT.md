@@ -752,3 +752,22 @@ compared a simple return against a log-return target.
 2. The agent lane cannot reach Yahoo Finance. Every real multi-ticker run
    (spec 013) and any other real-data run happens on Camden's machine,
    not in an agent session or CI.
+
+
+## Decision log — parallel-lane override (2026-09-13)
+
+Project instructions §12 states the project does not run parallel execution
+lanes and is single-threaded through Spec Kit. On 2026-09-13 that was
+deliberately overridden: two agent lanes (Codex → spec 019, Claude Code →
+spec 018) ran concurrently on disjoint module ownership.
+
+- **Split rule used:** by module ownership, never by task. Verified afterwards
+  by diffing both handoffs — zero file overlap.
+- **Why it held:** each lane owned whole files. A task-level split would have
+  put two writers in one file.
+- **Standing rule going forward:** parallel lanes are permitted only under
+  module-ownership partitioning, with the partition written down before either
+  lane starts. Any other split reverts to §12 single-threading.
+- **Known gap:** "read-only" in an agent prompt is an instruction, not an
+  enforcement — `acceptEdits` plus `Write` lets an agent write anywhere. Lane
+  isolation is currently a convention, not a mechanism.

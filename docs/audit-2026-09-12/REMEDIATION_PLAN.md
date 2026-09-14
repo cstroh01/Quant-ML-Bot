@@ -1,3 +1,11 @@
+> **DERIVED DOCUMENT — NOT AUTHORITATIVE.**
+> This plan is derived from `AUDIT.md`. `AUDIT.md` is the source of truth for
+> every finding's existence, number, severity and description. Where this plan
+> and the audit disagree, the audit wins and this file is wrong.
+> It has contradicted the audit in two independent review runs. Do not cite it
+> as evidence for a finding; cite `AUDIT.md`.
+> _Header added 2026-09-14._
+
 # Audit Remediation Plan
 
 _Source: [AUDIT.md](AUDIT.md) (Codex, 2026-09-12). Written 2026-09-12._

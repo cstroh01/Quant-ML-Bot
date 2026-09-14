@@ -27,3 +27,7 @@ Thumbs.db
 # Local wrapper-tool runtime state (PID, port, env-var lock). Machine-specific
 # and stale the moment the process exits - never meaningful to another checkout.
 .claude/.headroom_wrap_*
+
+# Detached agent-run logs (machine-local, never meaningful to another checkout)
+review_*.log
+*.log

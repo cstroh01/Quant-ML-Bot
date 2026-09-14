@@ -253,7 +253,7 @@ def sharpe_ratio(
     return float((annualized_return - np.log1p(risk_free_rate_annual)) / annualized_volatility)
 
 
-def mean_log_return_se(returns: pd.Series, *, lags: int) -> float:
+def mean_log_return_se(returns: pd.Series, *, lags: int, min_lags: int = 0) -> float:
     """Bartlett/Newey-West standard error of the mean log return, per session.
 
     Fixed user-selected bandwidth; no independence claim or confidence badge.
@@ -263,6 +263,10 @@ def mean_log_return_se(returns: pd.Series, *, lags: int) -> float:
     n = len(values)
     if isinstance(lags, bool) or not isinstance(lags, int) or lags < 0:
         raise ValueError("lags must be a nonnegative integer")
+    if isinstance(min_lags, bool) or not isinstance(min_lags, int) or min_lags < 0:
+        raise ValueError("min_lags must be a nonnegative integer")
+    if lags < min_lags:
+        raise ValueError(f"lags ({lags}) cannot be less than min_lags ({min_lags})")
     if n < 2 or not np.isfinite(values).all() or lags >= n:
         return float("nan")
     centered = values - values.mean()
@@ -312,6 +316,8 @@ def performance_summary(
     commission_per_trade: float,
     slippage_bps: float,
     starting_capital: float | None = None,
+    horizon: int = 1,
+    nw_bandwidth: int | None = None,
 ) -> dict[str, float | int | str]:
     """Risk-adjusted summary of one backtest, as a flat printable dict.
 
@@ -322,7 +328,17 @@ def performance_summary(
 
     The cost parameters and the capital base are echoed back so no figure
     here can be quoted without the assumptions that produced it (Rule 3).
+    HAC standard error requires bandwidth covering at least horizon - 1 lags
+    (Rule 11).
     """
+    if isinstance(horizon, bool) or not isinstance(horizon, int) or horizon < 1:
+        raise ValueError("horizon must be a positive integer")
+    if nw_bandwidth is not None:
+        if isinstance(nw_bandwidth, bool) or not isinstance(nw_bandwidth, int) or nw_bandwidth < 0:
+            raise ValueError("nw_bandwidth must be a nonnegative integer")
+        if nw_bandwidth < horizon - 1:
+            raise ValueError(f"nw_bandwidth ({nw_bandwidth}) cannot be less than horizon - 1 ({horizon - 1})")
+
     curve = equity_curve(
         prices,
         trade_log,
@@ -335,13 +351,17 @@ def performance_summary(
     capital_base = curve.attrs["capital_base"]
     total_pnl = float(curve["Bar P&L"].sum())
 
+    min_lags = max(horizon - 1, 0)
+    effective_bw = 5 if nw_bandwidth is None else nw_bandwidth
+    hac_lags = max(horizon - 1, min(len(returns) - 1, effective_bw))
+
     return {
         "annualized_mean_log_return": float(returns.mean() * TRADING_DAYS_PER_YEAR)
             if np.isfinite(returns).all() else float("nan"),
         "cagr_252_sessions": float(np.expm1(returns.sum() * TRADING_DAYS_PER_YEAR / len(returns)))
             if np.isfinite(returns).all() else float("nan"),
-        "mean_log_return_se_hac": mean_log_return_se(returns, lags=min(5, len(returns)-1)),
-        "hac_lags": min(5, len(returns)-1),
+        "mean_log_return_se_hac": mean_log_return_se(returns, lags=hac_lags, min_lags=min_lags),
+        "hac_lags": hac_lags,
         "cash_interest_rate_annual": 0.,
         "risk_free_rate_annual": RISK_FREE_RATE_ANNUAL,
         "interpretation": "research: log Sharpe and CAGR assume 252 complete sessions/year; fixed hurdle, zero cash interest",

@@ -209,6 +209,24 @@ pending a dedicated amendment here per this file's own Amendment clause. That
 CLAUDE.md section now records history rather than an open question — this
 rule's text is the current authority._
 
+## Rule 11 — No unsourced figures in any UI, report, or document
+
+Every number rendered to a human — terminal output, `reports/`, a tearsheet, a
+README table, a spec's results section — carries provenance: the artifact it
+was computed from, the commit or run id that produced it, and the date. A
+figure that cannot name its source is deleted, not footnoted.
+
+Illustrative or placeholder numbers are forbidden outright in any surface a
+reader could mistake for results. If an example value is genuinely needed, it
+is labelled `EXAMPLE — NOT A RESULT` on the same line.
+
+A figure whose source artifact no longer exists in the tree is stale by
+definition and must be regenerated or removed before the PR that touches that
+surface can merge.
+
+_Added 2026-09-14. Findings 45, 46 and 47 of the 2026-09-12 audit all trace to
+the absence of this rule._
+
 ---
 
 ## Amendment
