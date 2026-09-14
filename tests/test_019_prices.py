@@ -72,7 +72,7 @@ def test_missing_pay_date_and_invalid_split_fail():
 
 
 def test_price_action_mutants():
-    from test_019_mutation_support import killed
+    from mutation_support_019 import killed
     killed(bt, 'quantity *= row.Split', 'quantity *= 1.', test_split_and_dividend_oracle)
     killed(bt, 'receivable += income', 'cash += income; receivable += 0.',
            test_split_and_dividend_oracle)

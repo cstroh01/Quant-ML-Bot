@@ -36,7 +36,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run Claude Code
         id: claude
@@ -51,10 +51,10 @@ jobs:
           # assignee_trigger: "claude-bot"
 
           # Allow Claude to actually run this repo's test suite (CLAUDE.md:
-          # `python -m unittest discover -s tests`). Without this, tests get
+          # `python -m pytest tests`). Without this, tests get
           # written but never executed before a PR is opened.
           claude_args: |
-            --allowedTools "Bash(python -m unittest discover -s tests:*),Bash(python3 -m unittest discover -s tests:*)"
+            --allowedTools "Bash(python -m pytest tests:*)"
 
           # Optional: Advanced settings configuration
           # settings: |

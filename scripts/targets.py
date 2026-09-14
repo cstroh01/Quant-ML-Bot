@@ -1,14 +1,17 @@
 """Prediction targets, and the horizons that define them.
 
 A target is chosen by the caller, never assumed. Both public label functions
-take an explicit `horizon`, and `build_target` hands that horizon back
-alongside the label so a caller can pass the *same* number to
-`walk_forward_splits` rather than restating a literal.
+take an explicit `horizon`. `build_target` returns
+`(label, task, label_availability_span)`, where `label_availability_span = horizon + 1`
+is handed back so a caller can size purge and embargo windows (e.g. for
+`walk_forward_splits`) to match the label's true availability instant.
+`label_availability_span` is a span (h + 1), never a horizon; callers must
+never pass it back as `horizon`.
 
 That handback is the point of this module's shape. `walk_forward_cv` purges
 training rows whose label reaches into a test window, and it sizes the purge
-from the `label_horizon` its caller supplies (`walk_forward_cv.py:26-28`). If
-a label's horizon and the purge's horizon are two independently written
+from the availability span its caller supplies (`walk_forward_cv.py:26-28`). If
+a label's availability span and the purge's horizon are two independently written
 numbers, they can disagree — and a 5-bar label under a 1-bar purge leaks the
 test window into training, raises nothing, and improves the reported score.
 Today they agree only by coincidence: `logistic_baseline.py` hardcodes
@@ -101,14 +104,15 @@ def build_target(
 ) -> tuple[pd.Series, str, int]:
     """Build the selected target and report what it implies.
 
-    Returns `(label, task, label_horizon)`:
+    Returns `(label, task, label_availability_span)`:
 
     - `label` — the target column.
     - `task` — `"classification"` or `"regression"`, derived from `kind`.
       This is what tells an estimator registry which model family applies.
-    - `label_horizon` — the horizon that was used, handed back so the caller
-      can pass the same value to `walk_forward_splits` instead of restating
-      a literal that could drift from this one.
+    - `label_availability_span` — the availability span (`horizon + 1`), handed
+      back so the caller can size purge and embargo intervals (e.g. for
+      `walk_forward_splits`) instead of restating a literal that could drift.
+      Guaranteed to be `horizon + 1`; never pass it as `horizon`.
 
     Raises:
         ValueError: for an unknown `kind`. There is deliberately no default:

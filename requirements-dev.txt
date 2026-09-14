@@ -1,4 +1,4 @@
-# Test-only dependencies (spec 018, finding 57). CI installs this file next to
+# Test-only dependencies (finding 57). CI installs this file next to
 # requirements.txt; the research scripts do not need it.
 #
 # tests/test_reports_api.py imports fastapi.testclient, which needs both
@@ -7,3 +7,5 @@
 # tests/test_reports_api.py fails if they drift apart.
 fastapi==0.141.1
 httpx==0.28.1
+# Rule 6: pytest collects unittest classes and parametrized function tests together; stdlib unittest cannot collect the existing pytest cases.
+pytest==9.1.1

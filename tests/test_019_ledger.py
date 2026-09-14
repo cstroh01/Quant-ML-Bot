@@ -69,7 +69,7 @@ def test_invalid_chronology_and_conflicting_signals():
 
 
 def test_ledger_mutants():
-    from test_019_mutation_support import killed
+    from mutation_support_019 import killed
     killed(bt, 'if required > cash:', 'if False:', test_audit_100_cannot_fund_201_10)
     killed(bt, 'cash -= required', 'cash -= required - commission_per_trade',
            test_cash_and_quantity_oracle)

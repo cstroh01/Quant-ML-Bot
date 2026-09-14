@@ -11,12 +11,12 @@ from __future__ import annotations
 
 import hashlib
 import os
-import re
 import shutil
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from xml.etree import ElementTree
 
 REPO = Path(__file__).resolve().parents[2]
 COPIED = (
@@ -105,15 +105,26 @@ def failing_tests(mutant: tuple | None) -> tuple[int, set[str]]:
 
         ran, failing = 0, set()
         for module in TEST_MODULES:
+            junit_path = root / "mutation-results.xml"
+            junit_path.unlink(missing_ok=True)
             result = subprocess.run(
-                [sys.executable, "-B", "-W", "ignore", "-m", "unittest", "discover", "-s", "tests", "-p", module],
+                [sys.executable, "-B", "-W", "ignore", "-m", "pytest", f"tests/{module}",
+                 f"--junitxml={junit_path}"],
                 cwd=root, capture_output=True, encoding="utf-8", errors="replace",
                 env={**os.environ, "PYTHONIOENCODING": "utf-8"},
             )
-            summary = re.search(r"^Ran (\d+) tests?", result.stderr, flags=re.MULTILINE)
-            ran += int(summary.group(1)) if summary else 0
-            failing |= set(re.findall(r"^(?:FAIL|ERROR): (\S+ \(\S+\))", result.stderr, flags=re.MULTILINE))
-            if result.returncode and not summary:
+            if not junit_path.is_file():
+                failing.add(f"{module} did not run")
+                continue
+            cases = ElementTree.parse(junit_path).findall(".//testcase")
+            ran += len(cases)
+            module_failures = {
+                f"{case.get('classname')}.{case.get('name')}"
+                for case in cases
+                if case.find("failure") is not None or case.find("error") is not None
+            }
+            failing |= module_failures
+            if not cases or (result.returncode and not module_failures):
                 failing.add(f"{module} did not run")
         return ran, failing
 

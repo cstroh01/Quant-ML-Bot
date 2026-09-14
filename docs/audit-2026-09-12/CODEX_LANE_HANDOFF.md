@@ -70,34 +70,7 @@ the audit. No other Stage-3.2/work-order-2 disagreement was found.
 
 ## Frozen timing and price contract
 
-- `feature_available_at` and `decision_at`: after session t's close.
-- `entry_at`: Open[t+1]. `exit_at`: Open[t+h+1], for an h-session forecast.
-- Target: log(Open[t+h+1]/Open[t+1]); `label_available_at`: exit open.
-  Both endpoints must be finite and positive. Final h+1 labels are missing.
-  Labels crossing a split/dividend are unavailable, not misleading price
-  ratios. A total-payoff target across actions is future work.
-- Purge/embargo span is h+1. `build_target`/`build_features` return that
-  availability span. CV refuses a shorter span than feature-frame metadata.
-- Preserve source sessions and index. Filter training and validation after
-  calendar splitting; inference does not require a known outcome. Multi-asset
-  callers must split by ticker; these CV/target paths reject mixed tickers.
-- No final-row flatten. Default accounting marks open positions; optional
-  `liquidate=True` records a terminal-close liquidation and charges its fee.
-- Capital must be explicit before the first open. Entry notional plus fee is
-  consumed atomically; rejected orders incur no fee. Buying power is cash;
-  Reserved_Cash is zero because there are no outstanding orders or financing.
-- `price_basis='unadjusted_dollars'` means verified historical dollar prices.
-  Never apply this tag to old adjusted caches to bypass the boundary.
-  `execution_price_frame` validates OHLCV/actions and derives Research_Close
-  and Research_Volume forward without rewriting earlier research values.
-- Split is new shares per old share, 1 for no action, before the open.
-  Dividend is dollars per post-split share: entitlement before ex-date opening
-  trades; cash only on the stated payment session (or first observed session
-  thereafter). Receivables contribute equity but never buying power.
-- Dates are naive session labels. Phase distinguishes initial/open/close;
-  these are not broker execution timestamps. Initial peak position is -1,
-  with no invented previous trading day. Split fractions are retained;
-  broker cash-in-lieu, withholding and settlement restrictions are unmodeled.
+See normative authority in [.specify/specs/019-funded-ledger-and-timing/spec.md](../../.specify/specs/019-funded-ledger-and-timing/spec.md#timing-and-price-contract-normative).
 
 ## Red evidence, mutation evidence, lookahead answers
 

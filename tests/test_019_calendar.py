@@ -111,7 +111,7 @@ def test_future_perturbation_does_not_change_earlier_oos_predictions():
 
 
 def test_calendar_mutants():
-    from test_019_mutation_support import killed
+    from mutation_support_019 import killed
     killed(ft, 'return features, task, horizon',
            'return features.dropna(subset=[LABEL_COLUMN]), task, horizon',
            test_freshest_row_and_internal_gap_preserved)

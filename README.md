@@ -64,10 +64,12 @@ python scripts/logistic_baseline.py            # Phase 2 logistic walk-forward b
 
 ## Tests
 
-No test dependencies and no network access required:
+Install the development dependencies, then run the full offline Python suite
+with pytest (including existing unittest classes):
 
 ```bash
-python -m unittest discover -s tests
+python -m pip install -r requirements.txt -r requirements-dev.txt
+python -m pytest tests
 ```
 
 ## Data and caching

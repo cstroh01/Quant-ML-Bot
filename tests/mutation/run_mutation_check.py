@@ -8,8 +8,8 @@ import subprocess
 import sys
 import tempfile
 
-REPO = Path(__file__).resolve().parents[3]
-TEST_RELATIVE = Path(".specify/specs/020-unadjusted-price-data/test_unadjusted_price_data.py")
+REPO = Path(__file__).resolve().parents[2]
+TEST_RELATIVE = Path("tests/test_020_unadjusted_price_data.py")
 
 ORIGINAL = """    bundle = _validate_manifest_bundle(Path(manifest_path))
     result = _merge_actions_for_execution(bundle.prices, bundle.corporate_actions)
@@ -36,7 +36,7 @@ MUTANT = """    # MUTANT: trust filenames in JSON and stamp without validating t
 
 def run(root: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-B", str(root / TEST_RELATIVE)],
+        [sys.executable, "-B", "-m", "pytest", str(TEST_RELATIVE)],
         cwd=root,
         text=True,
         capture_output=True,

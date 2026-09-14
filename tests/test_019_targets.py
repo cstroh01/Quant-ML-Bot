@@ -48,7 +48,7 @@ def test_panel_cannot_shift_across_tickers():
 
 
 def test_target_mutants():
-    from test_019_mutation_support import killed
+    from mutation_support_019 import killed
     killed(tg, 'prices.Open.shift(-1)', 'prices.Open',
            test_overnight_move_is_not_earned_before_entry)
     killed(tg, '_TASK_FOR_KIND[kind], horizon + 1', '_TASK_FOR_KIND[kind], horizon',

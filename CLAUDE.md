@@ -126,10 +126,22 @@ module downstream inherits it.
 **Data.** Everything under `data/cache/` is regenerable output and gitignored.
 Never commit market data. Never read from a path outside the repo root.
 
-**Tests.** `python -m unittest discover -s tests`. No network access. No test
-dependencies in `requirements.txt` — test-only libraries belong in
-`requirements-dev.txt`, which is not installed by the runtime path. A test that
-requires a download is not a test.
+**Tests.** From the repository root, install with
+`python -m pip install -r requirements.txt -r requirements-dev.txt`, then run
+the entire Python suite with **`python -m pytest tests`**. Pytest is the single
+runner for both unittest classes and parametrized function tests. No network
+access. Test-only libraries belong in `requirements-dev.txt`, never runtime
+`requirements.txt`. A test that requires a download is not a test.
+
+Python test modules (`test*.py` or `*_test.py`) belong under `tests/`, including
+spec acceptance tests. Helpers must not use test-module names; mutation drivers
+belong under `tests/mutation/` and invoke pytest. The full-suite collection
+guards reject misplaced test files and test modules with zero collected cases,
+including files ignored by collection configuration. Dependency environments,
+third-party packages, and tool caches are excluded from the repository scan.
+Focused pytest selections are useful during development; the full command above
+is the required verification gate. Older spec plans and audit logs record the
+runner used at that time; this section defines the current command.
 
 **Secrets.** Gitignored `.env` only. Never in code, never in a spec, never in a
 log line, never echoed into agent context.

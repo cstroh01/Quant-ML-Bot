@@ -180,7 +180,12 @@ class TestCleanCheckoutSeams(unittest.TestCase):
 
         dev, ui = pins("requirements-dev.txt"), pins("reports/requirements-ui.txt")
         self.assertTrue(dev)
-        self.assertEqual(dev, {name: ui.get(name) for name in dev})
+        api_dependencies = ("fastapi", "httpx")
+        self.assertTrue(all(name in dev for name in api_dependencies))
+        self.assertEqual(
+            {name: dev[name] for name in api_dependencies},
+            {name: ui.get(name) for name in api_dependencies},
+        )
 
 
 if __name__ == "__main__":

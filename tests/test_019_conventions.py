@@ -162,7 +162,7 @@ def test_hac_bandwidth_guards_raise():
 
 
 def test_metric_convention_mutants():
-    from test_019_mutation_support import killed
+    from mutation_support_019 import killed
     killed(mt, '(annualized_return - np.log1p(risk_free_rate_annual))',
            '(annualized_return - risk_free_rate_annual)',
            test_effective_annual_hurdle_uses_log_units)

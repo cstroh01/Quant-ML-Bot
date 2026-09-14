@@ -1,0 +1,193 @@
+# Unified Python suite verification
+
+Run date: 2026-09-14. Sources: `quant-tests-before-collection.txt` (before collection) and `quant-tests-unified-run.txt` (full execution) in the same directory. Interpreter: Python 3.13.14; pytest 9.1.1. No git commands were run.
+
+Command: `python -m pytest tests`
+
+Before: 560 unittest cases + 67 pytest-only 019 cases + 15 misplaced 020 cases = 642 existing collected items.
+
+After: 651 collected items (642 existing + 9 guard checks).
+
+Pytest summary: 161 failed, 526 passed, 9 errors in 37.54s. The failed count includes 45 unittest subtest failures; parent items can report a passing call while subtests fail, so these outcome totals are not the collection count.
+
+All 67 spec 019 cases, all 15 spec 020 cases, and all 9 guard checks passed. Failures below are in legacy suites; their assertions and production behavior were not repaired in this task.
+
+## Complete failure and error list
+
+```text
+FAILED tests/test_backtest_harness.py::RunBacktestTests::test_cumulative_pnl_accumulates_across_trades
+FAILED tests/test_backtest_harness.py::RunBacktestTests::test_empty_result_keeps_the_full_column_layout
+FAILED tests/test_backtest_harness.py::RunBacktestTests::test_open_position_is_marked_to_the_final_close
+FAILED tests/test_backtest_harness.py::RunBacktestTests::test_repeated_buy_signals_do_not_stack_a_position
+FAILED tests/test_backtest_harness.py::RunBacktestTests::test_round_trip_is_filled_at_the_open_on_both_sides
+FAILED tests/test_backtest_harness.py::RunBacktestTests::test_sell_while_flat_does_nothing
+FAILED tests/test_backtest_harness.py::CostTests::test_commission_is_charged_once_per_fill_not_once_per_round_trip
+FAILED tests/test_backtest_harness.py::CostTests::test_costs_apply_to_the_end_of_data_close_exit
+FAILED tests/test_backtest_harness.py::CostTests::test_defaults_reproduce_the_uncosted_arithmetic_exactly
+FAILED tests/test_backtest_harness.py::CostTests::test_enough_slippage_turns_a_winner_into_a_loser
+FAILED tests/test_backtest_harness.py::CostTests::test_hand_computed_costs_match_exactly
+FAILED tests/test_backtest_harness.py::CostTests::test_slippage_worsens_both_sides_of_a_losing_trade_too
+FAILED tests/test_estimators.py::TestOneFitPerFold::test_each_fold_sees_a_freshly_fitted_model
+FAILED tests/test_estimators.py::TestRegressionPath::test_predictions_are_finite_floats_where_covered
+FAILED tests/test_estimators.py::TestRegressionPath::test_rows_before_the_first_fold_are_null
+FAILED tests/test_estimators.py::TestRegressionPath::test_task_and_horizon_come_through_from_build_features
+FAILED tests/test_estimators.py::TestGradientBoosting::test_hgb_classification_runs_and_predicts_labels
+FAILED tests/test_estimators.py::TestGradientBoosting::test_hgb_regression_runs_and_differs_from_ridge
+FAILED tests/test_estimators.py::TestDeterminism::test_different_params_change_the_answer
+FAILED tests/test_estimators.py::TestDeterminism::test_repeated_runs_agree - ...
+FAILED tests/test_feature_scaling.py::TestRatioDefinitions::test_rel_volume_is_volume_over_its_trailing_mean
+FAILED tests/test_feature_scaling.py::TestRatioDefinitions::test_volume_window_is_configurable_and_defaults_to_long_window
+FAILED tests/test_feature_scaling.py::TestCollinearity::test_no_scale_free_column_is_badly_collinear
+FAILED tests/test_feature_scaling.py::TestCollinearity::test_the_two_ratios_have_acceptable_vif
+FAILED tests/test_feature_scaling.py::TestCollinearity::test_the_worst_scale_free_pair_beats_the_worst_level_pair
+FAILED tests/test_feature_scaling.py::TestConditioning::test_max_vif_drops - ...
+FAILED tests/test_feature_scaling.py::TestConditioning::test_standardizing_alone_does_not_fix_the_level_set
+FAILED tests/test_feature_scaling.py::TestConditioning::test_the_scale_free_matrix_is_better_conditioned
+FAILED tests/test_feature_scaling.py::TestNonFiniteGuard::test_a_level_run_keeps_those_rows
+FAILED tests/test_feature_scaling.py::TestNonFiniteGuard::test_zero_volume_rows_are_dropped_rather_than_infinite
+FAILED tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_later_folds_see_different_statistics
+SUBFAILED(fold=1) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=2) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=3) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=4) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=5) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=6) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=7) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=8) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=9) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=10) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=11) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=12) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=13) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=14) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=15) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=16) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=17) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=18) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=19) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=20) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=21) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+SUBFAILED(fold=22) tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_are_the_training_slice_statistics
+FAILED tests/test_feature_scaling.py::TestScalerIsFitOnTrainingRowsOnly::test_scaler_statistics_differ_from_the_whole_frame
+FAILED tests/test_feature_scaling.py::TestScalingChangesTheAnswer::test_hgb_predictions_do_not_move
+FAILED tests/test_feature_scaling.py::TestScalingChangesTheAnswer::test_ridge_predictions_move_when_the_scaler_is_applied
+SUBFAILED(scale=True) tests/test_feature_scaling.py::TestScaleReachesEveryFit::test_every_fit_receives_the_same_scale
+SUBFAILED(scale=False) tests/test_feature_scaling.py::TestScaleReachesEveryFit::test_every_fit_receives_the_same_scale
+FAILED tests/test_feature_scaling.py::TestScaleReachesEveryFit::test_the_default_reaches_every_fit_as_none
+FAILED tests/test_feature_set_comparison.py::TestParentSideThreadPinning::test_the_orchestrator_leaves_this_process_unpinned
+FAILED tests/test_feature_set_comparison.py::TestWorkUnitConstruction::test_the_unit_seed_reaches_the_walk_forward_not_the_module_constant
+FAILED tests/test_feature_set_comparison.py::TestSynchronousPathCreatesNoProcesses::test_no_executor_is_constructed
+FAILED tests/test_feature_set_comparison.py::TestSynchronousPathCreatesNoProcesses::test_the_synchronous_path_runs_in_the_calling_process
+FAILED tests/test_logistic_baseline.py::TestBuildMlSignalEndToEnd::test_runs_without_error_and_pnl_is_finite
+FAILED tests/test_ma_crossover_backtest.py::MeanHoldingBarsTests::test_holding_period_is_counted_in_rows_not_calendar_days
+FAILED tests/test_ma_crossover_backtest.py::BaselineResultsTests::test_an_infeasible_random_baseline_is_reported_not_swallowed
+FAILED tests/test_ma_crossover_backtest.py::BaselineResultsTests::test_both_baselines_report_the_costs_they_were_run_with
+FAILED tests/test_ma_crossover_backtest.py::BaselineResultsTests::test_buy_and_hold_holds_exactly_one_position
+FAILED tests/test_ma_crossover_backtest.py::BaselineResultsTests::test_seeds_produce_a_spread_rather_than_one_repeated_number
+FAILED tests/test_ma_crossover_backtest.py::BaselineResultsTests::test_the_random_baseline_matches_the_strategys_trade_count
+FAILED tests/test_ma_crossover_backtest.py::FormatComparisonTests::test_a_strategy_with_no_trades_still_produces_a_report
+FAILED tests/test_ma_crossover_backtest.py::FormatComparisonTests::test_an_infeasible_random_baseline_says_so_in_the_report
+FAILED tests/test_ma_crossover_backtest.py::FormatComparisonTests::test_cost_parameters_are_stated_once_not_per_row
+FAILED tests/test_ma_crossover_backtest.py::FormatComparisonTests::test_the_random_row_reports_dispersion_beside_the_mean
+FAILED tests/test_ma_crossover_backtest.py::FormatComparisonTests::test_three_rows_are_reported_side_by_side
+FAILED tests/test_metrics.py::TestReconciliation::test_bar_pnl_sums_to_trade_log_pnl
+FAILED tests/test_metrics.py::TestReconciliation::test_curve_has_one_row_per_bar
+FAILED tests/test_metrics.py::TestReconciliation::test_reconciliation_holds_without_costs_too
+FAILED tests/test_metrics.py::TestAttributionOffByOne::test_commission_is_charged_on_the_entry_and_exit_bars
+FAILED tests/test_metrics.py::TestAttributionOffByOne::test_one_bar_hold_puts_pnl_on_exactly_two_bars
+FAILED tests/test_metrics.py::TestAttributionOffByOne::test_position_is_one_from_entry_up_to_but_not_including_exit
+FAILED tests/test_metrics.py::TestBoundaries::test_entry_on_bar_zero - ValueE...
+FAILED tests/test_metrics.py::TestBoundaries::test_equity_is_anchored_so_a_bar_zero_drawdown_is_captured
+FAILED tests/test_metrics.py::TestBoundaries::test_position_still_open_on_the_final_bar_marks_to_its_close
+FAILED tests/test_metrics.py::TestBoundaries::test_same_bar_round_trip - Valu...
+FAILED tests/test_metrics.py::TestEmptyTradeLog::test_curve_is_flat_at_the_capital_base
+FAILED tests/test_metrics.py::TestEmptyTradeLog::test_drawdown_is_a_genuine_zero
+FAILED tests/test_metrics.py::TestEmptyTradeLog::test_performance_summary_has_every_key
+FAILED tests/test_metrics.py::TestEmptyTradeLog::test_sharpe_is_nan_not_zero
+FAILED tests/test_metrics.py::TestSharpeConventions::test_costs_reach_the_metric
+FAILED tests/test_metrics.py::TestSharpeConventions::test_matches_return_stats_annualization_arithmetic
+FAILED tests/test_metrics.py::TestValidation::test_a_trade_date_absent_from_prices_raises
+FAILED tests/test_metrics.py::TestValidation::test_duplicate_dates_raise - Va...
+FAILED tests/test_metrics.py::TestValidation::test_empty_price_frame_raises
+FAILED tests/test_metrics.py::TestValidation::test_negative_costs_raise - Val...
+FAILED tests/test_metrics.py::TestValidation::test_non_range_index_raises - V...
+FAILED tests/test_metrics.py::TestValidation::test_unsorted_dates_raise - Val...
+FAILED tests/test_metrics.py::TestGapCase::test_a_missing_session_does_not_change_the_bar_count
+FAILED tests/test_ml_signal.py::NullPredictionTests::test_a_null_exits_an_open_position
+FAILED tests/test_ml_signal.py::HysteresisTests::test_a_still_long_final_bar_is_forced_flat
+FAILED tests/test_ml_signal.py::OrderingTests::test_the_decision_pairs_each_prediction_with_its_own_rows_hurdle
+FAILED tests/test_ml_signal.py::HarnessReconciliationTests::test_break_even_reconciles_within_floating_point_tolerance
+SUBFAILED(commission=0.0, slippage=0.0) tests/test_ml_signal.py::HarnessReconciliationTests::test_it_reconciles_across_several_cost_settings
+SUBFAILED(commission=0.0, slippage=25.0) tests/test_ml_signal.py::HarnessReconciliationTests::test_it_reconciles_across_several_cost_settings
+SUBFAILED(commission=1.0, slippage=0.0) tests/test_ml_signal.py::HarnessReconciliationTests::test_it_reconciles_across_several_cost_settings
+SUBFAILED(commission=0.65, slippage=5.0) tests/test_ml_signal.py::HarnessReconciliationTests::test_it_reconciles_across_several_cost_settings
+SUBFAILED(commission=5.0, slippage=50.0) tests/test_ml_signal.py::HarnessReconciliationTests::test_it_reconciles_across_several_cost_settings
+FAILED tests/test_ml_signal.py::HarnessReconciliationTests::test_the_first_order_hurdle_would_not_have_reconciled
+FAILED tests/test_ml_signal.py::ModuleBoundaryTests::test_ml_signal_imports_only_numpy_and_pandas
+SUBFAILED(name='hgb', task='classification') tests/test_ml_signal.py::EstimatorAgnosticTests::test_every_registry_entry_produces_a_signal_through_one_path
+SUBFAILED(name='hgb', task='regression') tests/test_ml_signal.py::EstimatorAgnosticTests::test_every_registry_entry_produces_a_signal_through_one_path
+SUBFAILED(name='logistic', task='classification') tests/test_ml_signal.py::EstimatorAgnosticTests::test_every_registry_entry_produces_a_signal_through_one_path
+SUBFAILED(name='ridge', task='regression') tests/test_ml_signal.py::EstimatorAgnosticTests::test_every_registry_entry_produces_a_signal_through_one_path
+FAILED tests/test_model_cv.py::TestTuneOnFoldIsolation::test_selection_is_unchanged_by_corrupting_every_outside_row
+FAILED tests/test_model_cv.py::TestTuneOnFoldIsolation::test_the_corruption_would_be_visible_if_it_leaked
+FAILED tests/test_model_cv.py::TestSelectionActuallySelects::test_scores_differ_across_candidates
+FAILED tests/test_model_cv.py::TestSelectionActuallySelects::test_the_winner_has_the_lowest_mean_inner_score
+FAILED tests/test_model_cv.py::TestNestedWalkForward::test_regression_path_produces_finite_floats
+FAILED tests/test_model_cv.py::TestDeterminism::test_repeated_nested_runs_agree
+FAILED tests/test_model_cv.py::TestDeterminism::test_repeated_tuning_selects_the_same_candidate
+FAILED tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline::test_null_placement_matches_too
+FAILED tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline::test_one_outer_fit_per_fold_on_top_of_the_tuning_fits
+FAILED tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline::test_single_point_grid_reproduces_the_baseline_element_for_element
+FAILED tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline::test_the_fixture_discriminates_between_folds
+FAILED tests/test_multi_ticker_comparison.py::TestIsolatedFailure::test_the_short_ticker_fails_by_name_and_the_others_complete
+FAILED tests/test_multi_ticker_comparison.py::TestAllSucceed::test_every_ticker_produces_exactly_three_rows
+FAILED tests/test_multi_ticker_comparison.py::TestCostParameterConsistency::test_commission_and_slippage_match_across_tickers_and_strategies
+FAILED tests/test_multi_ticker_comparison.py::TestCostParameterConsistency::test_isolated_failure_still_matches_costs_for_completed_tickers
+FAILED tests/test_multi_ticker_comparison.py::TestHonestyColumns::test_baseline_rows_carry_nan_for_the_ml_only_columns
+FAILED tests/test_multi_ticker_comparison.py::TestHonestyColumns::test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry
+FAILED tests/test_multi_ticker_comparison.py::TestCsvRoundTrip::test_round_trip_preserves_shape
+FAILED tests/test_multi_ticker_comparison.py::TestMutations::test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion
+FAILED tests/test_reports_api.py::TestReportsApi::test_backtest_tearsheet - V...
+FAILED tests/test_signals.py::BuyAndHoldSignalTests::test_a_single_row_frame_produces_no_trade_rather_than_crashing
+FAILED tests/test_signals.py::BuyAndHoldSignalTests::test_an_empty_frame_produces_no_trade_rather_than_crashing
+FAILED tests/test_signals.py::BuyAndHoldSignalTests::test_the_harness_closes_the_position_at_the_final_close
+FAILED tests/test_signals.py::RandomSignalTests::test_the_harness_records_exactly_the_requested_number_of_trades
+FAILED tests/test_signals.py::RandomSignalTests::test_zero_trades_is_a_valid_request_not_a_division_by_zero
+FAILED tests/test_targets.py::TestDirectionLabel::test_dtype_is_nullable_so_the_tail_cannot_become_false
+FAILED tests/test_targets.py::TestDirectionLabel::test_label_at_t_compares_against_close_at_t_plus_horizon
+FAILED tests/test_targets.py::TestForwardLogReturnLabel::test_non_positive_close_is_nan_not_negative_infinity
+FAILED tests/test_targets.py::TestForwardLogReturnLabel::test_value_is_the_log_ratio_over_the_horizon
+SUBFAILED(builder='direction_label') tests/test_targets.py::TestOffByOne::test_perturbing_the_bar_at_the_horizon_does_change_it
+SUBFAILED(builder='forward_log_return_label') tests/test_targets.py::TestOffByOne::test_perturbing_the_bar_at_the_horizon_does_change_it
+SUBFAILED(horizon=1) tests/test_targets.py::TestBoundaries::test_exactly_the_last_horizon_rows_are_null
+SUBFAILED(horizon=2) tests/test_targets.py::TestBoundaries::test_exactly_the_last_horizon_rows_are_null
+SUBFAILED(horizon=3) tests/test_targets.py::TestBoundaries::test_exactly_the_last_horizon_rows_are_null
+SUBFAILED(horizon=7) tests/test_targets.py::TestBoundaries::test_exactly_the_last_horizon_rows_are_null
+FAILED tests/test_targets.py::TestBoundaries::test_over_long_horizon_yields_an_empty_feature_frame_not_an_error
+FAILED tests/test_targets.py::TestValidation::test_missing_close_column_raises
+FAILED tests/test_targets.py::TestBuildTargetContract::test_direction_is_a_classification_task
+FAILED tests/test_targets.py::TestBuildTargetContract::test_return_is_a_regression_task
+SUBFAILED(kind='direction', horizon=1) tests/test_targets.py::TestBuildTargetContract::test_the_returned_horizon_is_what_was_asked_for
+SUBFAILED(kind='return', horizon=1) tests/test_targets.py::TestBuildTargetContract::test_the_returned_horizon_is_what_was_asked_for
+SUBFAILED(kind='direction', horizon=2) tests/test_targets.py::TestBuildTargetContract::test_the_returned_horizon_is_what_was_asked_for
+SUBFAILED(kind='return', horizon=2) tests/test_targets.py::TestBuildTargetContract::test_the_returned_horizon_is_what_was_asked_for
+SUBFAILED(kind='direction', horizon=5) tests/test_targets.py::TestBuildTargetContract::test_the_returned_horizon_is_what_was_asked_for
+SUBFAILED(kind='return', horizon=5) tests/test_targets.py::TestBuildTargetContract::test_the_returned_horizon_is_what_was_asked_for
+FAILED tests/test_targets.py::TestGapCase::test_label_spans_rows_not_calendar_days
+FAILED tests/test_targets.py::TestEquivalenceWithLogisticBaseline::test_build_features_reproduces_the_baseline_frame
+FAILED tests/test_targets.py::TestEquivalenceWithLogisticBaseline::test_direction_label_matches_the_baseline_label
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_discordant_counts_and_p_values_are_equal
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_formatted_reports_match_character_for_character
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_on_pair_reports_completed_comparisons_in_report_order
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_orchestrator_results_match_key_for_key_and_bit_for_bit
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_pairing_the_two_unit_sets_gives_identical_statistics
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_prediction_dtypes_and_index_survive_the_process_boundary
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_prediction_series_are_identical
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_result_order_is_the_registry_order_in_both_modes
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_the_fr_007_alias_produces_the_same_results
+```
+
+## Mutation-driver verification
+
+- Relocated spec 020 driver: intended unvalidated-stamp mutant killed; exit 0.
+- Spec 018 driver, now using pytest: all 14 mutants caught; source hashes unchanged. Exit 1 because the unmutated control already fails `tests.test_reports_api.TestReportsApi.test_backtest_tearsheet`. Full evidence: `quant-tests-mutation-018.txt`. No production sources or files under spec 018 were edited.
