@@ -10,7 +10,7 @@ from backtest_harness import run_backtest, summarize_trades
 
 def make_signalled_prices(rows: list[tuple]) -> pd.DataFrame:
     """Build a price frame from (day, open, close, buy, sell) tuples."""
-    return pd.DataFrame(
+    prices = pd.DataFrame(
         [
             {
                 "Date": pd.Timestamp("2024-01-01") + pd.Timedelta(days=day),
@@ -22,6 +22,8 @@ def make_signalled_prices(rows: list[tuple]) -> pd.DataFrame:
             for day, open_price, close_price, buy, sell in rows
         ]
     )
+    prices.attrs["price_basis"] = "unadjusted_dollars"
+    return prices
 
 
 class RunBacktestTests(unittest.TestCase):

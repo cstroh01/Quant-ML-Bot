@@ -106,62 +106,178 @@ class TestForwardLogReturnLabel(unittest.TestCase):
         self.assertFalse(np.isinf(label.to_numpy()).any())
 
 
-class TestOffByOne(unittest.TestCase):
-    """SC-004 (Rule 1) — the label reaches exactly `horizon` bars ahead.
+def _leaky_forward_log_return(prices: pd.DataFrame, *, horizon: int) -> pd.Series:
+    """A deliberately wrong label that reads one bar past its exit open.
 
-    A label that reached one bar further would still look plausible and
-    would raise nothing; it would just score better.
+    Not production code and never imported by it: this exists so the guards
+    below can be shown firing (Rule 12). It is the exact bug they exist to
+    catch — `Open[t + h + 2]` instead of `Open[t + h + 1]` — and it is the
+    kind of bug that raises nothing, produces a plausible column, and simply
+    scores better.
     """
+    entry = prices.Open.shift(-1)
+    exit_open = prices.Open.shift(-(horizon + 2))  # the planted defect
+    return pd.Series(
+        np.log(exit_open.to_numpy(dtype=float) / entry.to_numpy(dtype=float)),
+        index=prices.index,
+        name=LABEL_COLUMN,
+    )
 
-    HORIZON = 2
-    ROW = 5
 
-    def _perturbed_at(self, offset: int) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """`(base, perturbed)` where `perturbed` triples one close."""
-        base = _walk(20)
+def _leaky_direction(prices: pd.DataFrame, *, horizon: int) -> pd.Series:
+    """The direction half of the same planted defect."""
+    returns = _leaky_forward_log_return(prices, horizon=horizon)
+    label = (returns > 0).astype("Int64")
+    label[returns.isna()] = pd.NA
+    return label.rename(LABEL_COLUMN)
+
+
+#: The horizon and the row the two guards below are written around.
+_GUARD_HORIZON = 2
+_GUARD_ROW = 5
+#: The exit open the label is allowed to read, as an offset from the row.
+_EXIT_OFFSET = _GUARD_HORIZON + 1
+#: One bar past it — the first bar the label must be blind to.
+_PAST_EXIT_OFFSET = _GUARD_HORIZON + 2
+
+
+def _straddling_perturbations(offset: int) -> tuple[pd.DataFrame, list[pd.DataFrame]]:
+    """`(base, [below, above])`, each moving one **open** across the entry open.
+
+    `Open`, not `Close`: under spec 019 the label is built from the
+    executable open, so perturbing `Close` would touch nothing the label
+    reads and every assertion built on it would hold vacuously.
+
+    Two perturbations, not one, and absolute rather than scaled. A single
+    upward scaling cannot flip a direction label that already read "up", so
+    a leaky *direction* label can absorb it and look blind. Placing the bar
+    once below and once above the entry open removes that escape: any label
+    that reads this bar returns opposite directions in the two frames, so it
+    cannot match an unperturbed original in both.
+    """
+    base = _walk(20)
+    entry_open = base.loc[_GUARD_ROW + 1, "Open"]
+    frames = []
+    for factor in (0.5, 2.0):
         perturbed = base.copy()
-        perturbed.loc[self.ROW + offset, "Close"] *= 3.0
-        return base, perturbed
+        perturbed.loc[_GUARD_ROW + offset, "Open"] = entry_open * factor
+        frames.append(perturbed)
+    return base, frames
 
-    def test_perturbing_the_bar_just_past_the_horizon_changes_nothing(self):
-        """`Close[t + h + 1]` is one bar too far to be part of the label."""
-        base, perturbed = self._perturbed_at(self.HORIZON + 1)
 
-        for builder in (direction_label, forward_log_return_label):
-            with self.subTest(builder=builder.__name__):
-                original = builder(base, horizon=self.HORIZON)
-                changed = builder(perturbed, horizon=self.HORIZON)
-                pd.testing.assert_series_equal(
-                    original.iloc[: self.ROW + 1], changed.iloc[: self.ROW + 1]
-                )
+def assert_blind_past_the_exit_open(builder) -> None:
+    """Raise `AssertionError` unless `builder` ignores `Open[t + h + 2]`.
 
-    def test_perturbing_the_bar_at_the_horizon_does_change_it(self):
-        """The other half: without this, a label that ignored the future
-        entirely would pass the test above.
-
-        The future close is moved to the far side of `Close[t]` rather than
-        merely scaled — scaling an already-up bar further up leaves a
-        direction label unchanged, which would make this assertion vacuous
-        for one of the two builders.
-        """
-        base = _walk(20)
-        current = base.loc[self.ROW, "Close"]
-        original_direction = direction_label(base, horizon=self.HORIZON).iloc[self.ROW]
-
-        perturbed = base.copy()
-        # If the label read "up", force the future close below Close[t]; if
-        # it read "down", force it above.
-        perturbed.loc[self.ROW + self.HORIZON, "Close"] = (
-            current * 0.5 if original_direction == 1 else current * 2.0
+    Written as a module-level assertion rather than a test method so the
+    red-evidence class can run this exact code against a known-leaky label
+    (Rule 12) instead of a re-implementation of it that could drift.
+    """
+    base, perturbations = _straddling_perturbations(_PAST_EXIT_OFFSET)
+    original = builder(base, horizon=_GUARD_HORIZON)
+    for perturbed in perturbations:
+        changed = builder(perturbed, horizon=_GUARD_HORIZON)
+        pd.testing.assert_series_equal(
+            original.iloc[: _GUARD_ROW + 1], changed.iloc[: _GUARD_ROW + 1]
         )
 
+
+def assert_reads_the_exit_open(builder) -> None:
+    """Raise `AssertionError` unless `builder` reads `Open[t + h + 1]`.
+
+    The other half: without it, a label that ignored the future entirely
+    would pass the blindness check above.
+
+    The exit open is moved to the far side of the *entry* open rather than
+    merely scaled — scaling an already-up bar further up leaves a direction
+    label unchanged, which would make this assertion vacuous for one of the
+    two builders.
+    """
+    base = _walk(20)
+    entry_open = base.loc[_GUARD_ROW + 1, "Open"]
+    original = builder(base, horizon=_GUARD_HORIZON)
+
+    perturbed = base.copy()
+    # If the label read "up", force the exit open below the entry open; if
+    # it read "down", force it above.
+    went_up = direction_label(base, horizon=_GUARD_HORIZON).iloc[_GUARD_ROW] == 1
+    perturbed.loc[_GUARD_ROW + _EXIT_OFFSET, "Open"] = (
+        entry_open * 0.5 if went_up else entry_open * 2.0
+    )
+
+    changed = builder(perturbed, horizon=_GUARD_HORIZON)
+    assert original.iloc[_GUARD_ROW] != changed.iloc[_GUARD_ROW], (
+        f"{builder.__name__} ignored its own exit open at "
+        f"row {_GUARD_ROW + _EXIT_OFFSET}"
+    )
+
+
+class TestOffByOne(unittest.TestCase):
+    """SC-004 (Rule 1) — the label reaches exactly its two executable opens.
+
+    Spec 019 (`spec.md:40,46`) makes the label
+    `log(Open[t + h + 1] / Open[t + 1])`. It therefore reads exactly two
+    bars: the entry open at `t + 1` and the exit open at `t + h + 1`. Nothing
+    between them enters it, so "one bar too far" is `t + h + 2` — not
+    `t + h + 1`, which is the exit open itself.
+
+    A label that reached one bar further would still look plausible and
+    would raise nothing; it would just score better. These two tests are the
+    only thing standing between that bug and a green suite, so
+    `TestOffByOneGuardsFireOnARealBug` below proves they can go red.
+    """
+
+    def test_perturbing_the_bar_just_past_the_exit_open_changes_nothing(self):
         for builder in (direction_label, forward_log_return_label):
             with self.subTest(builder=builder.__name__):
-                original = builder(base, horizon=self.HORIZON)
-                changed = builder(perturbed, horizon=self.HORIZON)
-                self.assertNotEqual(
-                    original.iloc[self.ROW], changed.iloc[self.ROW]
-                )
+                assert_blind_past_the_exit_open(builder)
+
+    def test_perturbing_the_exit_open_does_change_it(self):
+        for builder in (direction_label, forward_log_return_label):
+            with self.subTest(builder=builder.__name__):
+                assert_reads_the_exit_open(builder)
+
+
+class TestOffByOneGuardsFireOnARealBug(unittest.TestCase):
+    """Rule 12 — the red evidence for the two guards above.
+
+    These run the *same* assertion helpers `TestOffByOne` runs, against a
+    label carrying the planted one-bar-too-far defect, and assert they
+    raise. If a future edit weakens a helper into something a leaky label
+    can satisfy, this class fails and says so. A guard that has never been
+    seen failing is not evidence that the thing it guards holds.
+    """
+
+    def test_the_blindness_guard_catches_a_label_that_reads_too_far(self):
+        for builder in (_leaky_direction, _leaky_forward_log_return):
+            with self.subTest(builder=builder.__name__):
+                with self.assertRaises(AssertionError):
+                    assert_blind_past_the_exit_open(builder)
+
+    def test_the_planted_bug_is_otherwise_a_plausible_label(self):
+        """The defect is invisible to everything except the guard.
+
+        If the leaky label were obviously broken — all null, all one class —
+        the guard above would prove nothing: any check at all would catch
+        it. It reads a real future open and produces a real column; only its
+        reach is wrong.
+        """
+        leaky = _leaky_forward_log_return(_walk(20), horizon=_GUARD_HORIZON)
+        self.assertTrue(np.isfinite(leaky.iloc[:_GUARD_ROW + 1]).all())
+        self.assertGreater(
+            _leaky_direction(_walk(20), horizon=_GUARD_HORIZON).nunique(), 1
+        )
+
+    def test_the_other_half_of_the_pair_also_catches_it(self):
+        """A one-bar-too-far label does not read the exit open it should.
+
+        Recorded because it is not obvious: the leaky label reads
+        `Open[t + h + 2]`, so moving `Open[t + h + 1]` leaves it untouched
+        and `assert_reads_the_exit_open` fires too. Both halves catch this
+        particular defect; they are kept separate because they fail on
+        different ones (reaching too far vs. not reaching at all).
+        """
+        with self.assertRaises(AssertionError):
+            assert_reads_the_exit_open(_leaky_forward_log_return)
 
 
 class TestBoundaries(unittest.TestCase):

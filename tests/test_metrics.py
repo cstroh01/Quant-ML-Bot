@@ -23,8 +23,15 @@ from metrics import (
     performance_summary,
     sharpe_ratio,
 )
-from test_backtest_harness import make_signalled_prices
+from test_backtest_harness import make_signalled_prices as _make_signalled_prices
 from test_ma_crossover_backtest import COSTS, sawtooth_prices
+
+
+def make_signalled_prices(rows: list[tuple]) -> pd.DataFrame:
+    """Build synthetic nominal-dollar bars for funded-ledger metric tests."""
+    prices = _make_signalled_prices(rows)
+    prices.attrs["price_basis"] = "unadjusted_dollars"
+    return prices
 
 
 class TestReconciliation(unittest.TestCase):

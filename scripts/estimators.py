@@ -275,9 +275,9 @@ def fitted_scaler(model):
 def model_row_masks(frame: pd.DataFrame, columns: list[str], label: str,
                     horizon: int, embargo: int) -> tuple[np.ndarray, np.ndarray]:
     """Eligibility on the intact calendar; never permit a shorter label purge."""
-    required = frame.attrs.get("label_horizon", horizon)
+    required = frame.attrs.get("label_availability_span", frame.attrs.get("label_horizon", horizon))
     if horizon < required or embargo < required:
-        raise ValueError("purge/embargo shorter than label availability horizon")
+        raise ValueError("purge/embargo shorter than label availability span")
     if not frame.index.is_unique or ("Ticker" in frame and frame.Ticker.nunique() != 1):
         raise ValueError("unique index and one instrument required for aligned predictions")
     inference = np.isfinite(frame[columns].to_numpy(dtype=float)).all(axis=1)

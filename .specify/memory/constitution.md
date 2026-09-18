@@ -227,6 +227,43 @@ surface can merge.
 _Added 2026-09-14. Findings 45, 46 and 47 of the 2026-09-12 audit all trace to
 the absence of this rule._
 
+## Rule 12 — No green signal without proof it can go red
+
+Every gate needs a test that deliberately breaks the gated thing and confirms
+the gate fires. A gate that has never been observed failing is not evidence
+that the property it guards holds — it is an untested claim that happens to be
+printing the word `passed`.
+
+"Gate" means anything whose passing is read as permission: an anti-lookahead
+assertion, a collection guard, a purge/embargo check, a leakage or determinism
+test, a CI step, a schema or bounds validation. The proof obligation falls on
+whoever adds or changes the gate, in the same PR.
+
+`tests/test_collection_guards.py` is the reference shape. It does not describe
+its own reliability; it plants each defect it claims to catch — a test file
+outside `tests/`, a module collecting zero cases, a module hidden by
+`collect_ignore` — runs the real gate against that planted defect in an
+isolated tree, and asserts both the failure **and** the specific message
+naming the offending path. It carries a `control` scenario that must pass
+clean, so a gate stuck in the failing position is caught too. Red evidence
+without a green control proves only that something is broken.
+
+The planted defect must be plausible: the bug a tired reviewer would actually
+ship, not a strawman any assertion would catch. A guard proven only against an
+obviously broken input has been proven against nothing. The defect is planted
+in a copy or an isolated tree and never committed to the module it mimics.
+
+A perturbation test states which field it perturbs and why that field is the
+one the gated code reads. A gate aimed at a field its target no longer reads
+passes vacuously, which is worse than no gate: it reports safety it is not
+checking. The 2026-09-12 audit found exactly this in `TestOffByOne`, where the
+spec 019 open-basis migration left an anti-lookahead guard perturbing `Close`
+against a label built from `Open`. It would have passed against a label
+reading arbitrarily far into the future.
+
+_Added 2026-09-18. Rule 1 is only as good as the tests that detect its
+violation; this rule is what keeps those tests honest._
+
 ---
 
 ## Amendment

@@ -31,6 +31,7 @@ def _synthetic_features(start: str, end: str, seed: int = 42) -> pd.DataFrame:
     for column in FEATURE_COLUMNS:
         features[column] = rng.normal(size=n)
     features["Label"] = (np.arange(n) % 2).astype(int)
+    features.attrs["price_basis"] = "unadjusted_dollars"
     return features
 
 

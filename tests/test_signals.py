@@ -16,13 +16,15 @@ def make_prices(closes: list[float]) -> pd.DataFrame:
     a fill actually used.
     """
     dates = pd.date_range("2024-01-01", periods=len(closes), freq="B")
-    return pd.DataFrame(
+    prices = pd.DataFrame(
         {
             "Date": dates,
             "Open": [close + 100 for close in closes],
             "Close": closes,
         }
     )
+    prices.attrs["price_basis"] = "unadjusted_dollars"
+    return prices
 
 
 class SmaCrossoverSignalTests(unittest.TestCase):

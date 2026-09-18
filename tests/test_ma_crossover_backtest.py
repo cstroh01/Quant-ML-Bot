@@ -25,13 +25,15 @@ COSTS = {"commission_per_trade": 1.00, "slippage_bps": 5.0}
 def make_prices(closes: list[float]) -> pd.DataFrame:
     """Build a minimal one-ticker price frame with Open offset from Close."""
     dates = pd.date_range("2024-01-01", periods=len(closes), freq="B")
-    return pd.DataFrame(
+    prices = pd.DataFrame(
         {
             "Date": dates,
             "Open": [close + 1 for close in closes],
             "Close": closes,
         }
     )
+    prices.attrs["price_basis"] = "unadjusted_dollars"
+    return prices
 
 
 def sawtooth_prices(n_bars: int = 200) -> pd.DataFrame:

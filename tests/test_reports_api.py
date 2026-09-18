@@ -25,6 +25,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 class TestReportsApi(unittest.TestCase):
     def setUp(self):
         self.panel = synthetic_panel(**FIXTURE_A)
+        self.panel.attrs["price_basis"] = "unadjusted_dollars"
         self.client = fixture_client(self, self.panel)
 
     def test_health_check(self):
@@ -168,6 +169,7 @@ class TestCleanCheckoutSeams(unittest.TestCase):
         client = fixture_client(self, None)
         with tempfile.TemporaryDirectory() as other:
             panel = synthetic_panel(seed=9, sessions=60, drift=0.0, tickers=("SENTINEL",))
+            panel.attrs["price_basis"] = "unadjusted_dollars"
             panel.to_csv(Path(other) / "panel.csv", index=False)
             with patch.object(data_routes, "CACHE_DIR", Path(other)):
                 response = client.get("/api/data/ohlcv?ticker=SENTINEL")

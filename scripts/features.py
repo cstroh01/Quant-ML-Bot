@@ -116,13 +116,13 @@ def build_features(
 ) -> tuple[pd.DataFrame, str, int]:
     """Build causal features and the selected label.
 
-    Returns `(frame, task, label_horizon)`. The frame carries the input's
+    Returns `(frame, task, label_availability_span)`. The frame carries the input's
     columns plus the SMA/crossover columns, `Log_Return`,
     `Rolling_Volatility`, the three ratio columns, and `Label`, retaining every input session and its index.
     Inference_Eligible checks features; Train_Eligible also requires a label. Call `feature_columns(feature_set)` for the names a model
     should actually be handed.
 
-    `task` and `label_horizon` are passed straight through from
+    `task` and `label_availability_span` are passed straight through from
     `targets.build_target` so a caller can hand the same horizon to
     `walk_forward_splits` — the label and its purge must be sized in the same
     units, and the surest way to guarantee that is to never write the number
@@ -177,12 +177,12 @@ def build_features(
     # The label is the prediction target only. It is never a feature — see
     # FEATURE_SETS above, which this column is deliberately absent from.
     features["Close"], features["Volume"] = prices.Close, prices.Volume
-    label, task, horizon = build_target(
+    label, task, label_availability_span = build_target(
         features, kind=target_kind, horizon=label_horizon
     )
     features[LABEL_COLUMN] = label
 
     features["Inference_Eligible"] = np.isfinite(features[columns].to_numpy(dtype=float)).all(axis=1)
     features["Train_Eligible"] = features.Inference_Eligible & features.Label.notna()
-    features.attrs["label_horizon"] = horizon
-    return features, task, horizon
+    features.attrs["label_availability_span"] = label_availability_span
+    return features, task, label_availability_span

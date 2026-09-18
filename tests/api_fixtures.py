@@ -59,7 +59,9 @@ def synthetic_panel(
                 }
             )
         )
-    return pd.concat(frames, ignore_index=True)
+    panel = pd.concat(frames, ignore_index=True)
+    panel.attrs["price_basis"] = "unadjusted_dollars"
+    return panel
 
 
 def fixture_client(

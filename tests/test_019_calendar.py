@@ -85,7 +85,7 @@ def test_cv_masks_after_splitting_and_keeps_unknown_tail(nested):
 
 def test_short_purge_cannot_override_target_metadata():
     frame, task, _ = build(panel())
-    with pytest.raises(ValueError, match='horizon'):
+    with pytest.raises(ValueError, match='shorter than label availability span'):
         es.fit_predict_walk_forward(frame, name='ridge', task=task,
                                     feature_columns=ft.feature_columns(), label_column='Label',
                                     label_horizon=1, embargo_bars=1, random_state=42)
@@ -112,8 +112,8 @@ def test_future_perturbation_does_not_change_earlier_oos_predictions():
 
 def test_calendar_mutants():
     from mutation_support_019 import killed
-    killed(ft, 'return features, task, horizon',
-           'return features.dropna(subset=[LABEL_COLUMN]), task, horizon',
+    killed(ft, 'return features, task, label_availability_span',
+           'return features.dropna(subset=[LABEL_COLUMN]), task, label_availability_span',
            test_freshest_row_and_internal_gap_preserved)
     killed(ms, 'desired[i] = long', 'desired[i] = long if i < len(predicted)-1 else False',
            test_batch_end_is_not_a_decision)
