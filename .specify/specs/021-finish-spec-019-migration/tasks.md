@@ -41,19 +41,19 @@ The story view is rebuilt in [Story → task map](#story--task-map).
 
 ## Phase 1: Setup (shared, before any lane)
 
-- [ ] T001 Re-baseline the suite, following quickstart.md §1: `python -m pytest tests -q --tb=no --junitxml=<scratch>/baseline.xml`. Extract the unique failing test IDs and diff them against research.md R-1, which lists 128 IDs. Record in [Evidence → T001](#t001-re-baseline):
+- [x] T001 Re-baseline the suite, following quickstart.md §1: `python -m pytest tests -q --tb=no --junitxml=<scratch>/baseline.xml`. Extract the unique failing test IDs and diff them against research.md R-1, which lists 128 IDs. Record in [Evidence → T001](#t001-re-baseline):
   - the summary line;
   - the unique-failure count;
   - every ID added or removed, with the cause.
 
   An ID not in R-1 is *not* 021's to fix. Record it and name the lane or spec that introduced it.
-- [ ] T002 Record four preconditions in [Evidence → T002](#t002-preconditions):
+- [x] T002 Record four preconditions in [Evidence → T002](#t002-preconditions):
   - **(a) The concurrent cost_utils lane has landed or been abandoned.** Ask Camden; do not infer it. `scripts/backtest_harness.py:6` still importing `validate_costs` from `metrics` suggests that lane is unfinished. **Lane A is blocked until (a) holds.**
   - **(b) D-2's sign-off status** in spec.md. **Lane G is blocked until it is signed.**
   - **(c) D-3 and D-4** accepted as written, or amended in spec.md. **Lane B is blocked until one of those holds.**
   - **(d) Spec 018 T024's state** (open or not). This matters because of the shared `tests/test_reports_api.py`.
-- [ ] T003 [P] For each lane about to start, copy every file it owns (plan.md → Lanes) to `<scratch>/snap-<lane>/`, keeping relative paths. Do this before the lane's first edit (quickstart.md §2). Lane G snapshots only after PR-C and PR-E merge.
-- [ ] T004 [P] Write a scratch-only fingerprint script (never in the repository) and record its output in [Evidence → T004](#t004-frozen-fingerprints). It takes the SHA-256 of two kinds of thing:
+- [x] T003 [P] For each lane about to start, copy every file it owns (plan.md → Lanes) to `<scratch>/snap-<lane>/`, keeping relative paths. Do this before the lane's first edit (quickstart.md §2). Lane G snapshots only after PR-C and PR-E merge.
+- [x] T004 [P] Write a scratch-only fingerprint script (never in the repository) and record its output in [Evidence → T004](#t004-frozen-fingerprints). It takes the SHA-256 of two kinds of thing:
   - **(i) The exact source text of every frozen region**, obtained with `ast.get_source_segment`:
     - `tests/test_backtest_harness.py::make_signalled_prices`;
     - `tests/test_ma_crossover_backtest.py::{COSTS, make_prices, sawtooth_prices}`;
@@ -110,7 +110,7 @@ passes, and SC-004 holds (quickstart.md §4).
 
 ### New gate first (Rules 5 and 12)
 
-- [ ] T005 [P] [US3] In `tests/test_signals.py`, add a class `RandomSignalSpacingTests` with the three tests research.md R-4 describes. Build frames with the file's local `make_prices` over **strictly positive** closes (`range(1, n + 1)`). All three are row-positional.
+- [x] T005 [P] [US3] In `tests/test_signals.py`, add a class `RandomSignalSpacingTests` with the three tests research.md R-4 describes. Build frames with the file's local `make_prices` over **strictly positive** closes (`range(1, n + 1)`). All three are row-positional.
   - **`test_no_row_carries_both_flags_for_any_seed`**:
     - a 200-row frame, `n_trades=8`, `avg_holding_days=10`, seeds 0–49;
     - assert `not (Buy_Next_Open & Sell_Next_Open).any()`;
@@ -121,7 +121,7 @@ passes, and SC-004 holds (quickstart.md §4).
   - **`test_calendar_holes_do_not_move_row_positions`**: two frames with the same row count, one with a missing business day, give identical signal columns.
 
   Run the class on the **current** `scripts/signals.py`. The first two tests must FAIL. Paste both failures into [Evidence → PR-B](#pr-b-lane-b).
-- [ ] T006 [US3] In `scripts/signals.py::random_signal`, implement contracts §3, G4 and G7. Keep everything else as it is.
+- [x] T006 [US3] In `scripts/signals.py::random_signal`, implement contracts §3, G4 and G7. Keep everything else as it is.
   - **Change:**
     - `spread = avg_holding_days` (was `avg_holding_days - 1`, at `:126`);
     - the capacity check;
@@ -129,12 +129,12 @@ passes, and SC-004 holds (quickstart.md §4).
     - the docstring explains the one-row gap: the 019 harness rejects a row with both flags, and a same-open sell-then-buy is two costed fills with no position change.
   - **Keep:** the signature, determinism, `n_trades == 0`, and exact `bool` dtype.
   - **Then:** T005 passes, and the existing `RandomSignalTests` determinism and seed tests still pass.
-- [ ] T007 [US4] Red evidence for T005. Use `mutation_support_019.killed(signals, 'spread = avg_holding_days', 'spread = avg_holding_days - 1', <test_no_row_carries_both_flags_for_any_seed>)`. The mutant must be killed and the control must pass. Record in [Evidence → PR-B](#pr-b-lane-b).
-- [ ] T008 [US5] In `scripts/signals.py::buy_and_hold_signal`, fix the docstring at `:47-53`. The harness *marks* a still-open position at the final close. A closed round trip exists only when the accounting caller passes `liquidate=True` (019 C5). Keep the rationale for emitting no exit signal. Depends on T006, same file.
+- [x] T007 [US4] Red evidence for T005. Use `mutation_support_019.killed(signals, 'spread = avg_holding_days', 'spread = avg_holding_days - 1', <test_no_row_carries_both_flags_for_any_seed>)`. The mutant must be killed and the control must pass. Record in [Evidence → PR-B](#pr-b-lane-b).
+- [x] T008 [US5] In `scripts/signals.py::buy_and_hold_signal`, fix the docstring at `:47-53`. The harness *marks* a still-open position at the final close. A closed round trip exists only when the accounting caller passes `liquidate=True` (019 C5). Keep the rationale for emitting no exit signal. Depends on T006, same file.
 
 ### Production: the report consumers
 
-- [ ] T009 [P] [US3] In `scripts/ma_crossover_backtest.py`, implement contracts §1 and §2.
+- [x] T009 [P] [US3] In `scripts/ma_crossover_backtest.py`, implement contracts §1 and §2.
   - **Constants, beside the cost model (`:20-24`):**
     - `STARTING_CAPITAL = 10_000.0`, commented as a D-4 *assumption* whose value Camden sets;
     - `LIQUIDATE_AT_END = True`, commented with D-3's reason.
@@ -142,7 +142,7 @@ passes, and SC-004 holds (quickstart.md §4).
   - **`main()`:** passes both to `run_backtest` (`:186`) and to `baseline_results` (`:206-212`).
   - **`format_comparison`:** prints capital once and the end-of-data policy once, inside the cost-model block, read from the same module constants.
   - Do not change `mean_holding_bars`.
-- [ ] T010 [US3] In `scripts/logistic_baseline.py`, reporting hunks only:
+- [x] T010 [US3] In `scripts/logistic_baseline.py`, reporting hunks only:
   - restate `STARTING_CAPITAL` and `LIQUIDATE_AT_END` in the cost-model block (`:26-33`), with the same restatement comment the block already carries;
   - `main()` passes both to `run_backtest` (`:314`) and to `baseline_results` (`:334-340`);
   - `_format_ml_comparison` states both once in its cost block.
@@ -152,7 +152,7 @@ passes, and SC-004 holds (quickstart.md §4).
 
 ### Tests
 
-- [ ] T011 [US3] In `tests/test_ma_crossover_backtest.py`, outside `:22-42`:
+- [x] T011 [US3] In `tests/test_ma_crossover_backtest.py`, outside `:22-42`:
   - Add module constants `STARTING_CAPITAL = 1_000_000.0` and `LIQUIDATE = True`, commented.
   - Pass them to every `run_backtest` call (`:54`, `:109`, `:158`) and every `baseline_results` call (7).
   - In `test_holding_period_is_counted_in_rows_not_calendar_days`, use closes `range(1, 11)` at the call site. The expected value is still 5: entry row 1, exit row 6.
@@ -161,18 +161,18 @@ passes, and SC-004 holds (quickstart.md §4).
   - Extend `test_cost_parameters_are_stated_once_not_per_row` so the capital line and the end-of-data line each appear exactly once.
 
   Depends on T006 and T009.
-- [ ] T012 [US4] Red evidence, recorded in [Evidence → PR-B](#pr-b-lane-b):
+- [x] T012 [US4] Red evidence, recorded in [Evidence → PR-B](#pr-b-lane-b):
   - **(a) Count guard.** Mutant: in `ma_crossover_backtest.baseline_results`, replace `random_signal(prices, n_trades, holding_bars, seed)` with `random_signal(prices, n_trades, len(prices), seed)`. Every seed then becomes infeasible. The FR-012 test must fail on the count, and the control must pass.
   - **(b) Stated once.** Mutant: duplicate the capital line in `format_comparison`. The extended test must fail.
-- [ ] T013 [US3] In `tests/test_signals.py`, after T005:
+- [x] T013 [US3] In `tests/test_signals.py`, after T005:
   - Add a module `STARTING_CAPITAL` constant and pass it on every `run_backtest` call.
   - `RandomSignalTests.price_frame` uses `range(1, n_bars + 1)`.
   - Rename `test_the_harness_closes_the_position_at_the_final_close` to `test_liquidation_closes_the_position_at_the_final_close` and pass `liquidate=True`. The hand-derived values: entry fill 120.0, exit fill 40.0, with Open = Close + 100 and zero costs.
   - Add `test_without_liquidation_the_position_is_marked_not_closed`: the trade log is empty, and the ledger's last `mark` event has `Quantity == 1` and `Price == 40.0`.
   - Rename `test_an_empty_frame_produces_no_trade_rather_than_crashing` to `test_an_empty_frame_yields_no_entry_and_the_harness_refuses_it`. Assert no entry signal, and `assertRaisesRegex(ValueError, "nonempty")`.
   - Fix the comment at `:98-99`.
-- [ ] T014 [P] [US3] In `tests/test_logistic_baseline.py`, `TestBuildMlSignalEndToEnd` (`:139`) passes `starting_capital` and `liquidate`. Do not touch `:19-35`.
-- [ ] T015 [US3] **PR-B close-out.**
+- [x] T014 [P] [US3] In `tests/test_logistic_baseline.py`, `TestBuildMlSignalEndToEnd` (`:139`) passes `starting_capital` and `liquidate`. Do not touch `:19-35`.
+- [x] T015 [US3] **PR-B close-out.**
   - Run quickstart.md §3 for lane B, which must be green.
   - Run the full suite (quickstart.md §5). The failing IDs must be the T001 baseline minus lane B's 17 R-1 rows, and nothing new.
   - The T004 fingerprints must be unchanged.
@@ -201,11 +201,11 @@ and C7.
 
 **Precondition:** T002(a). **Can run in parallel with B, C, D and E.**
 
-- [ ] T016 [P] [US1] In `tests/test_backtest_harness.py`:
+- [x] T016 [P] [US1] In `tests/test_backtest_harness.py`:
   - Add a module `STARTING_CAPITAL` and pass it on every `run_backtest` call.
   - `test_missing_signal_columns_fail_loudly`: use `assertRaisesRegex(ValueError, "missing columns")`.
   - The negative-cost asserts at `:229-231`: pin `commission_per_trade` and `slippage_bps` respectively.
-- [ ] T017 [US1] In `tests/test_backtest_harness.py`, the C5 tests. Hand-derive every value in comments.
+- [x] T017 [US1] In `tests/test_backtest_harness.py`, the C5 tests. Hand-derive every value in comments.
   - **Split `test_open_position_is_marked_to_the_final_close` into two tests:**
     - `test_an_open_position_is_marked_not_closed`: default, empty trade log. The final ledger `mark` has `Price == 25.0` and `Quantity == 1`.
     - `test_liquidation_closes_it_at_the_final_close`: `liquidate=True`. One trade with `Exit Price == 25.0`, and exactly one ledger event named `liquidation`, on the final date.
@@ -215,12 +215,12 @@ and C7.
     - assert the commission is charged on that event.
 
   Depends on T016, same file.
-- [ ] T018 [P] [US1] In `tests/test_metrics.py`, C1:
+- [x] T018 [P] [US1] In `tests/test_metrics.py`, C1:
   - Add a module `STARTING_CAPITAL` and a local `RUN = {**COSTS, "starting_capital": STARTING_CAPITAL}`. `COSTS` is imported and frozen.
   - Use `RUN` on every `run_backtest` call. `equity_curve` and `performance_summary` keep `**COSTS`.
   - `test_equity_is_anchored_so_a_bar_zero_drawdown_is_captured`: `run_backtest(..., starting_capital=100.0)`, matching `:230`.
   - The `TestValidation` asserts: pin each expected message with `assertRaisesRegex`.
-- [ ] T019 [US1] In `tests/test_metrics.py`, the C5 tests. Depends on T018.
+- [x] T019 [US1] In `tests/test_metrics.py`, the C5 tests. Depends on T018.
   - `test_bar_pnl_sums_to_trade_log_pnl` and `test_reconciliation_holds_without_costs_too`:
     - pass `liquidate=True`;
     - the docstring says Σ Bar P&L = Σ closed P&L holds only for a run that ends flat.
@@ -229,7 +229,7 @@ and C7.
     - The final curve `Equity` equals cash plus the marked close.
     - Σ Bar P&L equals final equity minus capital.
   - `test_same_bar_round_trip`: read its intent, choose mark-only or liquidation, and say which in the docstring.
-- [ ] T020 [US1] In `tests/test_metrics.py`, the semantic tests. Depends on T019.
+- [x] T020 [US1] In `tests/test_metrics.py`, the semantic tests. Depends on T019.
   - `test_curve_is_flat_at_the_capital_base`: `Equity == STARTING_CAPITAL`. The old `11.0` was the price-derived capital that 019 removed.
   - `test_performance_summary_has_every_key`: the expected set is the 20 keys at `scripts/metrics.py:351-374`, namely:
     - `annualized_mean_log_return`, `cagr_252_sessions`, `mean_log_return_se_hac`, `hac_lags`;
@@ -238,19 +238,19 @@ and C7.
     - `drawdown_peak_bar`, `drawdown_trough_bar`, `bars`, `bars_in_market`;
     - `capital_base`, `commission_per_trade`, `slippage_bps`.
   - Rename `test_non_range_index_raises` to `test_a_non_range_index_is_preserved_and_changes_nothing`. The same prices with an offset index (for example `index*3+7`, as in `test_019_calendar.py:16`) give `Equity` values equal to the `RangeIndex` twin.
-- [ ] T021 [P] [US1] In `tests/test_ml_signal.py`, the C5 tests.
+- [x] T021 [P] [US1] In `tests/test_ml_signal.py`, the C5 tests.
   - `NullPredictionTests.test_a_null_exits_an_open_position`: expect `[True, True, False, True, True]`, with the comment "0.0 is not < exit 0.0; the batch end is not a decision". The null exit at index 2 is still asserted.
   - Rename `HysteresisTests.test_a_still_long_final_bar_is_forced_flat` to `test_a_still_long_final_bar_keeps_its_decision`, and `assertTrue`.
   - `OrderingTests.test_the_decision_pairs_each_prediction_with_its_own_rows_hurdle`: re-derive the final element from its own row's decision.
-- [ ] T022 [US1] In `tests/test_ml_signal.py`, the C6 tests. The two synthetic frames in `HarnessReconciliationTests` (around `:496-503` and `:537-544`) set `attrs["price_basis"] = "unadjusted_dollars"`, and their `run_backtest` calls pass `STARTING_CAPITAL`. This is test-only, per 019 R-04. Depends on T021.
-- [ ] T023 [US2] In `tests/test_ml_signal.py::EstimatorAgnosticTests`, which is FR-004 and not exempt (research.md R-9):
+- [x] T022 [US1] In `tests/test_ml_signal.py`, the C6 tests. The two synthetic frames in `HarnessReconciliationTests` (around `:496-503` and `:537-544`) set `attrs["price_basis"] = "unadjusted_dollars"`, and their `run_backtest` calls pass `STARTING_CAPITAL`. This is test-only, per 019 R-04. Depends on T021.
+- [x] T023 [US2] In `tests/test_ml_signal.py::EstimatorAgnosticTests`, which is FR-004 and not exempt (research.md R-9):
   - `_synthetic_frame` gains a strictly positive `Open` column.
   - `_predictions` takes `span = build_target(self.frame, kind=..., horizon=1)[2]` and passes `label_horizon=span, embargo_bars=span`.
   - Drop both `dropna` calls. `model_row_masks` masks after splitting (FR-007).
   - Assert that the prediction index equals the frame index.
 
   Depends on T022.
-- [ ] T024 [US1] **PR-A close-out.** Same checks as T015, with lane A's 41 R-1 rows. Also confirm that the cost_utils lane's hunks in `test_metrics.py` and `test_ml_signal.py` are untouched: diff the T003 snapshot, and every hunk must be yours.
+- [x] T024 [US1] **PR-A close-out.** Same checks as T015, with lane A's 41 R-1 rows. Also confirm that the cost_utils lane's hunks in `test_metrics.py` and `test_ml_signal.py` are untouched: diff the T003 snapshot, and every hunk must be yours.
 
 **Checkpoint**: lane A's 41 rows are green.
 
@@ -267,18 +267,18 @@ hand-derived values.
 
 **Precondition:** none. `make_prices` is imported from lane B's file and is frozen.
 
-- [ ] T025 [P] [US2] In `tests/test_targets.py`, the span tests:
+- [x] T025 [P] [US2] In `tests/test_targets.py`, the span tests:
   - The three `TestBuildTargetContract` tests assert the third value is `h+1`. Rename `test_the_returned_horizon_is_what_was_asked_for` to `test_the_third_value_is_the_availability_span`.
   - `test_dtype_is_nullable_so_the_tail_cannot_become_false`: 4 nulls at h = 3.
   - `test_exactly_the_last_horizon_rows_are_null`: `h+1` rows. Rename it to match.
   - Add `test_passing_the_span_back_as_horizon_builds_a_different_label` (REVIEW_019 R-10): `build_target(p, kind=k, horizon=span)[0]` differs from the `horizon=1` label on at least one known row, for both kinds.
-- [ ] T026 [US2] In `tests/test_targets.py`, rename `test_over_long_horizon_yields_an_empty_feature_frame_not_an_error` to `test_an_over_long_horizon_keeps_every_row_and_trains_on_none`. Assert:
+- [x] T026 [US2] In `tests/test_targets.py`, rename `test_over_long_horizon_yields_an_empty_feature_frame_not_an_error` to `test_an_over_long_horizon_keeps_every_row_and_trains_on_none`. Assert:
   - `len(frame) == 60`;
   - `not frame.Train_Eligible.any()`;
   - `(task, span) == ("classification", 301)`.
 
   Depends on T025.
-- [ ] T027 [US1] In `tests/test_targets.py`, the C3 re-derivations. `make_prices` gives Open = Close + 1. Put every value's arithmetic in a comment. Depends on T026.
+- [x] T027 [US1] In `tests/test_targets.py`, the C3 re-derivations. `make_prices` gives Open = Close + 1. Put every value's arithmetic in a comment. Depends on T026.
   - **(a)** Rename `test_label_at_t_compares_against_close_at_t_plus_horizon` to `test_label_compares_the_exit_open_against_the_entry_open`. For closes `[10, 12, 11, 15, 14]` the opens are `[11, 13, 12, 16, 15]`.
     - h = 1: `[0, 1, 0, <NA>, <NA>]`, from 12 > 13, 16 > 12, 15 > 16.
     - h = 2: `[1, 1, <NA>, <NA>, <NA>]`, from 16 > 13 and 15 > 12.
@@ -288,9 +288,9 @@ hand-derived values.
   - **(c)** Rename `test_non_positive_close_is_nan_not_negative_infinity` to `test_a_non_positive_open_endpoint_is_nan_not_infinite`. Zero an entry-endpoint *Open*.
   - **(d)** Rename `test_missing_close_column_raises` to `test_missing_open_column_raises`. Use `pd.DataFrame({"Close": [1., 2.]})` and `assertRaisesRegex(ValueError, "Open")`.
   - **(e)** `TestGapCase`: choose opens so that a calendar-day reading and a row reading give different signs. Assert the row reading: `label[0] = log(Open[2]/Open[1])` across the five-day gap.
-- [ ] T028 [US4] Run `TestOffByOne` and `TestOffByOneGuardsFireOnARealBug` (`:214-280`, already re-armed to `Open`), and confirm both pass. Then kill the target mutant `killed(targets, 'prices.Open.shift(-(horizon + 1))', 'prices.Open.shift(-(horizon + 2))', <TestOffByOne blindness test>)`. Record in [Evidence → PR-C](#pr-c-lane-c). This proves research.md R-10's "do not regress".
-- [ ] T029 [US5] In `tests/test_targets.py`, fix the `_walk` docstring (`:37-38`, "`build_features` drops on it") and the class docstrings of every test T025–T027 renamed.
-- [ ] T030 [US2] **PR-C close-out.** Same checks as T015, with lane C's 11 non-gated R-1 rows.
+- [x] T028 [US4] Run `TestOffByOne` and `TestOffByOneGuardsFireOnARealBug` (`:214-280`, already re-armed to `Open`), and confirm both pass. Then kill the target mutant `killed(targets, 'prices.Open.shift(-(horizon + 1))', 'prices.Open.shift(-(horizon + 2))', <TestOffByOne blindness test>)`. Record in [Evidence → PR-C](#pr-c-lane-c). This proves research.md R-10's "do not regress".
+- [x] T029 [US5] In `tests/test_targets.py`, fix the `_walk` docstring (`:37-38`, "`build_features` drops on it") and the class docstrings of every test T025–T027 renamed.
+- [x] T030 [US2] **PR-C close-out.** Same checks as T015, with lane C's 11 non-gated R-1 rows.
 
 ---
 
@@ -313,16 +313,16 @@ hand-derived values.
 
 **Precondition:** none.
 
-- [ ] T031 [P] [US1] In `tests/test_feature_scaling.py`, add `test_a_non_finite_row_is_refused_by_name`. Put one NaN in a scale-free column, then call `condition_number` and `variance_inflation_factors`. Each must raise `ValueError` matching both the column name and `complete rows`. Run it on the current code: it must FAIL, because today the error is LinAlgError or a `nan`. Record the failure.
-- [ ] T032 [US1] In `scripts/feature_diagnostics.py`, implement contracts §4:
+- [x] T031 [P] [US1] In `tests/test_feature_scaling.py`, add `test_a_non_finite_row_is_refused_by_name`. Put one NaN in a scale-free column, then call `condition_number` and `variance_inflation_factors`. Each must raise `ValueError` matching both the column name and `complete rows`. Run it on the current code: it must FAIL, because today the error is LinAlgError or a `nan`. Record the failure.
+- [x] T032 [US1] In `scripts/feature_diagnostics.py`, implement contracts §4:
   - `standardized_matrix` refuses non-finite input with the named `ValueError`;
   - `diagnose` masks to the set's complete rows and returns `rows` (measured) and `rows_excluded`;
   - `format_report` prints both;
   - fix the `main()` comment at `:206-210`.
 
   Then T031 passes. Depends on T031.
-- [ ] T033 [US4] Red evidence for T031, recorded in [Evidence → PR-D](#pr-d-lane-d). An in-memory mutant removes the refusal from `standardized_matrix`. The test must fail. The control, complete rows, must measure without error.
-- [ ] T034 [US1] In `tests/test_feature_scaling.py`, the C4 tests. Depends on T031, same file.
+- [x] T033 [US4] Red evidence for T031, recorded in [Evidence → PR-D](#pr-d-lane-d). An in-memory mutant removes the refusal from `standardized_matrix`. The test must fail. The control, complete rows, must measure without error.
+- [x] T034 [US1] In `tests/test_feature_scaling.py`, the C4 tests. Depends on T031, same file.
   - **The `_complete(frame, columns)` helper.** Add it to return rows where `columns` are all finite. `TestCollinearity` and `TestConditioning` measure on `_complete(frame, set_columns)`.
   - **`TestNonFiniteGuard`** (FR-008). Rename `test_zero_volume_rows_are_dropped_rather_than_infinite` to `test_zero_volume_rows_are_nan_and_ineligible_not_infinite`. On the zero-volume rows:
     - `Rel_Volume` is NaN and never ±inf;
@@ -333,14 +333,14 @@ hand-derived values.
     - Splits are sized by the span.
     - Each fold's scaler is fitted on that fold's train-eligible rows.
     - `test_scaler_statistics_differ_from_the_whole_frame` stays as the internal control.
-- [ ] T035 [US2] In `tests/test_feature_scaling.py`, the C2 tests: the four in `TestScalingChangesTheAnswer` and `TestScaleReachesEveryFit`. Take the span from `frame.attrs["label_availability_span"]`; the local `_frame` helper may also return it. Pass it as purge and embargo. Depends on T034.
-- [ ] T036 [US4] Red evidence, recorded in [Evidence → PR-D](#pr-d-lane-d):
+- [x] T035 [US2] In `tests/test_feature_scaling.py`, the C2 tests: the four in `TestScalingChangesTheAnswer` and `TestScaleReachesEveryFit`. Take the span from `frame.attrs["label_availability_span"]`; the local `_frame` helper may also return it. Pass it as purge and embargo. Depends on T034.
+- [ ] T036 [US4] **(a) open, see Evidence → PR-D: the mutant as specified survives.** Red evidence, recorded in [Evidence → PR-D](#pr-d-lane-d):
   - **(a) `TestNonFiniteGuard`.** An in-memory mutant of `features.py` drops the ±inf → NaN replacement at `:174-175`. The guard fails and the `levels` control passes.
   - **(b) `TestScalerIsFitOnTrainingRowsOnly`.** The planted defect fits the scaler on the whole frame. The gate fails.
-- [ ] T037 [US1] In `tests/test_reports_api.py::test_ml_rundown` only, closing finding 23's consumer half (FR-018):
+- [x] T037 [US1] In `tests/test_reports_api.py::test_ml_rundown` only, closing finding 23's consumer half (FR-018):
   - Assert `data["as_of_date"]` equals the last `Date` of the fixture panel's AAPL rows, formatted `YYYY-MM-DD`.
   - Red evidence: an in-memory mutant of `reports/api/routes/ml_rundown.py` reads `features_df.iloc[-2]`. The assertion fails. The route source is not edited.
-- [ ] T038 [US1] **PR-D close-out.** Same checks as T015, with lane D's 17 R-1 rows. Also confirm the `test_reports_api.py` diff contains only `test_ml_rundown` lines. If 018 T024 landed in the meantime, re-snapshot and re-diff.
+- [x] T038 [US1] **PR-D close-out.** Same checks as T015, with lane D's 17 R-1 rows. Also confirm the `test_reports_api.py` diff contains only `test_ml_rundown` lines. If 018 T024 landed in the meantime, re-snapshot and re-diff.
 
 ---
 
@@ -355,21 +355,21 @@ from the span. The isolation gate corrupts only rows whose labels exist.
 
 **Precondition:** none.
 
-- [ ] T039 [P] [US2] In `tests/test_estimators.py`, the 8 failing tests (R-1):
+- [x] T039 [P] [US2] In `tests/test_estimators.py`, the 8 failing tests (R-1):
   - Take `span` from `build_features(...)[2]` and pass `label_horizon=span, embargo_bars=span`.
   - The direct splitter call at `:302` becomes `embargo_bars=horizon`, where `horizon` is the span variable.
   - Rename `test_task_and_horizon_come_through_from_build_features` to `test_task_and_span_come_through_from_build_features`, asserting span == 2 at h = 1.
   - Tests on `_synthetic_features` are exempt (research.md R-9) and not edited.
-- [ ] T040 [P] [US2] In `tests/test_model_cv.py`, the 7 failing C2 tests outside the equivalence class:
+- [x] T040 [P] [US2] In `tests/test_model_cv.py`, the 7 failing C2 tests outside the equivalence class:
   - `TestSelectionActuallySelects` ×2;
   - `TestNestedWalkForward` ×1;
   - `TestDeterminism` ×2;
   - `TestTuneOnFoldIsolation` ×2.
 
   Where the frame comes from `_learnable_frame`, pass `frame.attrs["label_availability_span"]` as purge and embargo. Tests on `_synthetic_features` are exempt and not edited.
-- [ ] T041 [US1] In `tests/test_model_cv.py::TestTuneOnFoldIsolation._corrupted` (`:460-473`), the label flip applies only to outside rows whose label is known (`notna`). Feature corruption still covers every outside row. `test_the_corruption_would_be_visible_if_it_leaked` stays as the control. Depends on T040.
-- [ ] T042 [US4] Red evidence, recorded in [Evidence → PR-E](#pr-e-lane-e). An in-memory mutant of `model_cv._inner_splits` adds one position outside `positions` to each inner training set. `test_selection_is_unchanged_by_corrupting_every_outside_row` must fail, and the visibility control must pass.
-- [ ] T043 [US2] **PR-E close-out.** Same checks as T015, with lane E's 15 non-gated R-1 rows.
+- [x] T041 [US1] In `tests/test_model_cv.py::TestTuneOnFoldIsolation._corrupted` (`:460-473`), the label flip applies only to outside rows whose label is known (`notna`). Feature corruption still covers every outside row. `test_the_corruption_would_be_visible_if_it_leaked` stays as the control. Depends on T040.
+- [x] T042 [US4] Red evidence, recorded in [Evidence → PR-E](#pr-e-lane-e). An in-memory mutant of `model_cv._inner_splits` adds one position outside `positions` to each inner training set. `test_selection_is_unchanged_by_corrupting_every_outside_row` must fail, and the visibility control must pass.
+- [x] T043 [US2] **PR-E close-out.** Same checks as T015, with lane E's 15 non-gated R-1 rows.
 
 ---
 
@@ -527,50 +527,103 @@ real output; never summarize a run you did not make.
 
 | Field | Value |
 |---|---|
-| Date/time | |
-| Summary line | |
-| Unique failing | |
-| IDs added vs R-1 (cause) | |
-| IDs removed vs R-1 (cause) | |
+| Date/time | 2026-09-18 ~20:23–20:25 EDT, before any lane edit |
+| Summary line | `156 failed, 558 passed, 2 warnings, 9 errors, 1275 subtests passed in 104.91s` |
+| Unique failing | 128 (test_metrics 22, test_feature_scaling 17, test_targets 13, test_backtest_harness 12, test_feature_set_comparison 12, test_ma_crossover_backtest 11, test_model_cv 11, test_estimators 8, test_multi_ticker_comparison 8, test_ml_signal 7, test_signals 5, test_logistic_baseline 1, test_reports_api 1) |
+| IDs added vs R-1 (cause) | none |
+| IDs removed vs R-1 (cause) | none |
 
 ### T002 preconditions
 
 | Precondition | State | Recorded by / date |
 |---|---|---|
-| (a) cost_utils lane landed or abandoned | | |
-| (b) D-2 signed | | |
-| (c) D-3 / D-4 accepted or amended | | |
-| (d) 018 T024 state | | |
+| (a) cost_utils lane landed or abandoned | Landed and committed (E1/3f: `cost_utils.py`, `ml_signal.py`, `metrics.py`, `return_stats.py`, `feature_diagnostics.py` docstrings, `test_ml_signal.py:671` whitelist). Lane A unblocked. | Camden, 2026-09-18 |
+| (b) D-2 signed | Approved as written: re-anchor both equivalence classes; SC-001/SC-002 of spec 009 retired; `logistic_baseline.py` stays frozen. Lane G still waits on PR-C and PR-E merging. | Camden, 2026-09-18 |
+| (c) D-3 / D-4 accepted or amended | Accepted as written: explicit terminal liquidation on all three report rows; `STARTING_CAPITAL = 10_000.0` is a report/fixture assumption, not a capital-gate figure. | Camden, 2026-09-18 |
+| (d) 018 T024 state | Open (`018/tasks.md:95` unchecked). Lane D edits only `test_ml_rundown` in `test_reports_api.py`. | read from tree, 2026-09-18 |
 
 ### T004 frozen fingerprints
 
 | Region / file | SHA-256 at T004 | SHA-256 at T052 |
 |---|---|---|
+| `tests/test_backtest_harness.py::make_signalled_prices` | `6cb623eef88bff4b…` | |
+| `tests/test_ma_crossover_backtest.py::COSTS` | `2e09810d01cef672…` | |
+| `tests/test_ma_crossover_backtest.py::make_prices` | `a27c4a368df05181…` | |
+| `tests/test_ma_crossover_backtest.py::sawtooth_prices` | `8b12175087a46c59…` | |
+| `tests/test_logistic_baseline.py::_synthetic_features` | `3ee48868c980dd7f…` | |
+| `scripts/logistic_baseline.py::FEATURE_COLUMNS` | `7f16a355f78ed532…` | |
+| `scripts/logistic_baseline.py::SHORT_WINDOW` | `0bdc96b33acbafad…` | |
+| `scripts/logistic_baseline.py::LONG_WINDOW` | `88273bfff5ea5c01…` | |
+| `scripts/logistic_baseline.py::VOLATILITY_WINDOW` | `a781d06afac1adcb…` | |
+| `scripts/logistic_baseline.py::build_features` | `591d1dc1842879e4…` | |
+| `scripts/logistic_baseline.py::evaluate_walk_forward` | `0c8cc808f9b1e3e2…` | |
+| `scripts/logistic_baseline.py::walk_forward_predictions` | `1dfb952abb624e73…` | |
+| `scripts/logistic_baseline.py::_signal_from_predictions` | `86958020aa3369fd…` | |
+| `scripts/logistic_baseline.py::build_ml_signal` | `27e37b4c09919ce4…` | |
+| `scripts/backtest_harness.py` | `84dce49de93fd03b…` | |
+| `scripts/targets.py` | `2b455778e3b150e5…` | |
+| `scripts/features.py` | `3aea331409667b1b…` | |
+| `scripts/estimators.py` | `884ec1c1c0c3b72a…` | |
+| `scripts/model_cv.py` | `ece3ce1b4a6cf0e7…` | |
+| `scripts/walk_forward_cv.py` | `2744be2e971947cd…` | |
+| `scripts/metrics.py` | `af42f6074cb4ea99…` | |
+| `scripts/ml_signal.py` | `aeb766e8b15bf219…` | |
+| `scripts/feature_set_comparison.py` | `de1e53acb2382074…` | |
+| `scripts/multi_ticker_comparison.py` | `5ef8d26d2245e30a…` | |
+| `reports/api/routes/backtest.py` | `c7c8a3d164d5ef7c…` | |
+| `requirements.txt` | `816ab9586ad6f145…` | |
+| `requirements-dev.txt` | `39a274047a205e6e…` | |
+| `docs/PROJECT_CONTEXT.md` | `b3aea859acb06db5…` | |
 
 ### PR-B (lane B)
 
 | Gate / check | Red (planted defect → outcome) | Green control | Lines |
 |---|---|---|---|
+| T005 on pre-fix `signals.py` | `test_no_row_carries_both_flags_for_any_seed` failed on 15 seeds (seed 2: `rows with both flags: [164]`); `test_the_tightest_feasible_frame_…` failed, `ValueError not raised` | gap test passed (positional) | |
+| T007 same-row guard | `spread = avg_holding_days` → `- 1`: KILLED, `rows with both flags: [164]` | pass | |
+| T012(a) count guard | `random_signal(prices, n_trades, len(prices), seed)`: KILLED, `0 != 20` | pass | |
+| T012(b) stated once | `Capital:` line duplicated: KILLED, `2 != 1` | pass | |
+| Unlisted test changed | `RandomSignalTests::test_a_frame_sized_to_the_exact_minimum_still_works` re-pinned to the new bound 2·13+1 = 27 (T006 invalidated the old 26) | | |
+| Focused run | `45 passed, 103 subtests passed`; 17/17 R-1 rows pass | | signals 42, ma_crossover 37, logistic_baseline 19, test_signals 136, test_ma_crossover 56, test_logistic_baseline 17 = **307** |
 
 ### PR-A (lane A)
 
 | Check | Result | Lines |
 |---|---|---|
+| Focused run | `94 passed, 21 subtests passed`; 41/41 R-1 rows pass; `test_019_*` + `test_cost_utils` 89 passed | harness 116, metrics 144, ml_signal 62 = **322** |
+| cost_utils hunks | untouched (whitelist now at `test_ml_signal.py:700`, no hunk) | |
+| Second layer R-1 missed | `test_equity_is_anchored_…`: 019 reports the capital anchor as peak position −1; hand-derived [100, 90, 80] → worst −0.2, peak −1, trough 1 | |
+| FR-015 reading | `equity_curve` returns a positional curve, so "index preserved" is asserted as: offset frame accepted un-reindexed, Dates align, Equity equals the RangeIndex twin | |
+| Optional red (no R-10 gate mandated) | pre-019 always-close, no-liquidation, zero liquidation fee, pre-019 forced flat: all KILLED, controls pass | |
 
 ### PR-C (lane C)
 
 | Gate / check | Red | Green control | Lines |
 |---|---|---|---|
+| T028 `TestOffByOne` pair | `prices.Open.shift(-(horizon + 1))` → `+ 2`: KILLED (blindness oracle and the real test method) | unmutated passes; both classes unedited, 5 passed | **170** |
+| Focused run | `2 failed, 45 passed` with `test_019_targets`; the 2 are the gated equivalence tests | | |
+| T027(e) interpretation | "calendar-day reading" = last open on or before entry date + 1 day → log(11/11) = 0 (class 0) vs row reading log(14/11) (class 1) | | |
 
 ### PR-D (lane D)
 
 | Gate / check | Red | Green control | Lines |
 |---|---|---|---|
+| T031 on pre-fix code | both measures: `does not match "SVD did not converge"` | | |
+| T033 non-finite refusal | refusal disabled (`if False:`): KILLED | complete rows measure: pass | |
+| **T036(a) as specified** | drop ±inf→NaN at `features.py:174-175`: **SURVIVED**. On non-negative data every ratio is 0/0 = NaN (trailing mean includes the current row), so inf is unreachable and the replacement is dead code | `levels` control pass | |
+| T036(a) substitute (not yet accepted) | impute undefined ratio as 0.0: KILLED, `rel_volume.isna().all()` false | pass | |
+| T036(b) scaler fit | fit on the whole eligible frame in `estimators`: KILLED, assert_allclose mismatch. Test now reads the production fit site via `fit_predict_walk_forward` (deviation from T034) | `…_differ_from_the_whole_frame` pass | |
+| T037 rundown | `features_df.iloc[-2]`: KILLED, `'2024-03-22' != '2024-03-25'` | | |
+| Focused run | `69 passed, 1 deselected, 58 subtests`; 17/17 R-1 rows pass; `test_reports_api.py` single hunk `@@ -136,6 +136,13 @@` in `test_ml_rundown` | | diagnostics 42, feature_scaling 241, reports_api 7 = **290** |
 
 ### PR-E (lane E)
 
 | Gate / check | Red | Green control | Lines |
 |---|---|---|---|
+| T042 isolation | `_inner_splits` yields one position past `positions`: KILLED, Score column 100 % different | `…_would_be_visible_if_it_leaked` pass | estimators 73, model_cv 62 = **135** |
+| Focused run | `4 failed, 82 passed, 87 subtests`; the 4 are the gated equivalence tests; `test_walk_forward_cv` all pass | | |
+| Second layer R-1 missed | `test_each_fold_sees_a_freshly_fitted_model`: C4 warm-up NaN into Ridge; fixed by masking train indices to `Train_Eligible` after the split | | |
+| Vacuous pass found (not in R-1) | `test_a_continuous_label_would_break_the_classification_path` was satisfied by the span guard; now span-sized and pinned to `"only one class"` | | |
 
 ### PR-G (lane G)
 
@@ -591,4 +644,23 @@ real output; never summarize a run you did not make.
 
 ### Handoff
 
-(T055)
+(T055; partial. Recorded 2026-09-18 on Camden's instruction, ahead of the gate.)
+
+**TODO(spec-NNN, not yet numbered; Camden assigns): frozen-file follow-on.**
+It carries a **Rule 4 compliance blocker**, not a known limitation:
+
+- Since spec 019, every comparison table produced through
+  `ma_crossover_backtest.baseline_results` or
+  `multi_ticker_comparison._baseline_rows` has been missing its required
+  random-signal baseline, silently. `random_signal` put exit *i* and entry
+  *i+1* on one row. The 019 harness rejects that, and both callers catch the
+  error and print a reason instead of a baseline.
+- 021 lane B fixes the cause in `signals.py` and restores the baseline for
+  `ma_crossover_backtest`.
+- `multi_ticker_comparison.py` is frozen. Until the follow-on passes capital
+  (`:133`, `:141`, `:269`), an end-of-data policy, and 020 data (`:230`)
+  through it, none of its tables may be read as Rule 4 compliant.
+- Separate defect, same follow-on: `feature_set_comparison.py:367` (and
+  `:428`) cast `<NA>` labels to int over covered rows. Not fixed in 021: the
+  file is frozen, and a test-side fix would hide it. Recommended fix: score
+  only rows with a known label, and report the unscored count.

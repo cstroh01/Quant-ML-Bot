@@ -1,6 +1,107 @@
 # Quant-ML-Bot — Project Context
 
-_Last updated: 2026-09-12_
+_Last updated: 2026-09-18_
+
+## Spec 032 — Live-trading safety layer: BUILT, not through the Merge Gate
+
+The #4 Capital Gate requirement ("A live-trading safety layer exists and is
+tested: max position size, max daily loss / drawdown circuit breaker, and a
+manual kill switch. Non-negotiable before any capital gate progress."). New
+`scripts/live_safety_gate.py` — an execution-side authority, independent of
+spec 017's `portfolio_risk.py` (which the spec itself says "is not a live
+safety boundary"). Full reasoning in
+`.specify/specs/032-live-trading-safety-layer/plan.md`.
+
+**Built:**
+
+- **Max position / gross size.** Equity-relative, inclusive boundaries
+  (reaching a cap exactly denies). Worst-case exposure = current
+  broker-confirmed position + every non-terminal reservation for that
+  instrument + the candidate order, at a conservative executable price. No
+  dollar-based limit can even be expressed in `SafetyConfig`.
+- **Daily loss / rolling drawdown circuit breaker.** Updates on every
+  trusted observation, not just at a close. A daily breach latches for the
+  rest of the trading day even if equity recovers intraday (spec 032's own
+  text, a deliberate divergence from spec 017's per-decision granularity).
+  A rolling drawdown breach latches across days until an operator resets
+  it, and reset is rejected if the drawdown still breaches. External
+  deposits/withdrawals are excluded from both.
+- **Manual kill switch.** A durable latch, requested first and checked
+  before every order; the full confirmation-state vocabulary
+  (`REQUESTED`/`LOCAL_BLOCKED`/`BROKER_CANCEL_PENDING`/`RECONCILING`/
+  `KILL_CONFIRMED`/`BROKER_DISABLE_UNVERIFIED`) from spec 032's
+  Confirmation contract.
+- **Durable state (the exact audit finding this closes).** Everything —
+  kill latch, both halts, configuration, every order reservation — lives in
+  a SQLite file and is read back on restart, not reconstructed in memory.
+  Audit findings 05/06 said spec 017's weekly halt "lives only in memory
+  (a guard rebuilt mid-week forgets it)"; `RestartDurabilityTests` proves
+  the kill latch, a rolling halt, and pending reservations all survive a
+  simulated process restart (a second `SafetyGate` opened on the same
+  file).
+- **Atomic reservation.** Every check-and-reserve runs inside one SQLite
+  `BEGIN IMMEDIATE` transaction, so two orders that each pass alone cannot
+  jointly exceed a cap because they were evaluated concurrently.
+- **Evidence trail.** Every allow, deny, kill event, reset, and
+  configuration change is appended to an evidence log with full context.
+- **No numeric defaults, anywhere (REQ-009).** `SafetyConfig` has no
+  default for any percentage, window, or tolerance — unlike spec 017's
+  `RECOMMENDED_CONFIG`, this module ships no recommended numbers. Camden
+  has not yet chosen the real values (spec 032's Open Questions 1–6 remain
+  open); the module refuses to be useful until he does.
+- **Rule 12: five planted defects, each with a passing control and a
+  caught mutant** — inclusive-boundary flip, kill-latch bypass, pending-
+  order aggregation dropped, reduce-only-during-halt carve-out dropped,
+  and (the one that matters most) a simulated restart that forgets the
+  durable kill latch. `tests/mutation_support_032.py` reuses the existing
+  `killed()` technique from spec 019.
+- **61/61 new tests pass** (`tests/test_live_safety_gate.py`), no network,
+  no new dependency (`sqlite3`/`dataclasses`/`json`/`zoneinfo`, all
+  standard library).
+
+**Flagged, not resolved (see plan.md for full detail):**
+
+- **The cited research report does not exist in this repository.**
+  `claude/research-solo-quant-edge-and-survival.md` was not found anywhere
+  in the tree, and this session has no OneDrive access, so its numeric
+  suggestions (target-vol formula, 10%/20% drawdown thresholds) could not
+  be reconciled against spec 032's REQ list as asked. What can be said
+  without the document: those numbers are the same category of thing
+  REQ-009 already forbids shipping as a default — a reasonable discussion
+  starting point, not evidence calibrated on this account's funded
+  history. Camden should supply the report or the numbers directly.
+- **Spec 032 contradicts itself on reduce-only-during-kill.** Its Kill
+  Switch section says all submissions are denied, no exception; its own
+  acceptance-evidence list and failure-mode table say reductions remain
+  possible during a kill. This implementation added a second, explicit,
+  operator-authenticated entry point (`evaluate_operator_override_reduce`)
+  for exactly the reduce-during-kill case the spec's own text describes,
+  while the automated path (`evaluate_order`) denies everything during a
+  kill. This is a judgment call, not a verified fact — Camden should
+  confirm or override it.
+- **No broker adapter.** No network call, no credential, anywhere in this
+  module (Rule 7) — it is the decision engine an `exec/` adapter would
+  call, not the adapter. Wiring a real broker's submission/fill/kill API to
+  it is reviewed-lane work with real credentials, not something an
+  autonomous agent should do, and was out of scope here regardless.
+- **No price collar and no order-rate limit.** Both are part of what
+  actually failed at Knight Capital (the reference failure mode cited in
+  plan.md) and neither is named by spec 032's own REQ list. Worth adding
+  once a broker adapter exists to supply a reference price and a clock.
+- **Multi-process aggregation is partial.** Two processes pointed at the
+  same SQLite file get real atomicity; spec 032's Open Question 8 (is the
+  deployment strictly one account/process/strategy?) is still open, and
+  nothing aggregates exposure across different SQLite files or accounts.
+
+**Full suite note:** the full `python -m pytest tests` run at this spec's
+completion shows 18 failed / 9 errored / 723 passed, entirely in
+`test_feature_set_comparison.py`, `test_model_cv.py`,
+`test_multi_ticker_comparison.py`, `test_reports_api.py`, and
+`test_targets.py` — none of them touched by this spec, several already
+uncommitted/in-flight from spec 021's migration, and `test_reports_api.py`
+matches the audit's already-documented finding 57 ("a clean checkout does
+not reproduce: 11 API tests run, 7 failed"). `tests/test_live_safety_gate.py`
+passes 61/61 standalone and does not appear in that failure list.
 
 ## Project-wide audit, 2026-09-12 — READ BEFORE SEQUENCING THE NEXT SPEC
 

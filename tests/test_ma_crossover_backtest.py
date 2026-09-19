@@ -42,16 +42,29 @@ def sawtooth_prices(n_bars: int = 200) -> pd.DataFrame:
     return sma_crossover_signal(make_prices(closes), 5, 15)
 
 
+# Spec 019 C1: the harness requires declared capital. Large enough that no
+# fixture's one-share entry is ever rejected (spec 021 D-4 test convention).
+STARTING_CAPITAL = 1_000_000.0
+# Spec 021 D-3: reports liquidate at end of data, so these tests use the same
+# policy the report uses, identically on the strategy and both baselines.
+LIQUIDATE = True
+ACCOUNT = {"starting_capital": STARTING_CAPITAL, "liquidate": LIQUIDATE}
+
+
 class MeanHoldingBarsTests(unittest.TestCase):
     def test_holding_period_is_counted_in_rows_not_calendar_days(self):
         # The fixture's dates are business days, so a 3-row hold spans 3
         # calendar days mid-week but 5 across a weekend. Counting rows is what
         # keeps the baseline's trip length comparable to the strategy's.
-        prices = make_prices([float(bar) for bar in range(10)])
+        # Closes 1..10 are strictly positive, as the 019 harness requires.
+        # Entry fills on row 1, exit on row 6: 6 - 1 = 5 rows, although
+        # 2024-01-02 (Tue) to 2024-01-09 (Tue) is 7 calendar days.
+        prices = make_prices([float(bar) for bar in range(1, 11)])
         prices["Buy_Next_Open"] = [False, True] + [False] * 8
         prices["Sell_Next_Open"] = [False] * 6 + [True] + [False] * 3
 
-        self.assertEqual(mean_holding_bars(prices, run_backtest(prices)), 5)
+        trade_log = run_backtest(prices, **ACCOUNT)
+        self.assertEqual(mean_holding_bars(prices, trade_log), 5)
 
     def test_an_empty_trade_log_does_not_divide_by_zero(self):
         prices = make_prices([1.0, 2.0, 3.0])
@@ -65,7 +78,7 @@ class BaselineResultsTests(unittest.TestCase):
         # baseline run cheaper than the strategy would flatter the strategy.
         prices = sawtooth_prices()
 
-        results = baseline_results(prices, 4, 10, seed_count=20, **COSTS)
+        results = baseline_results(prices, 4, 10, seed_count=20, **COSTS, **ACCOUNT)
 
         summaries = [results["buy_and_hold"], *results["random_summaries"]]
         self.assertEqual(len(results["random_summaries"]), 20)
@@ -74,8 +87,13 @@ class BaselineResultsTests(unittest.TestCase):
             self.assertEqual(summary["slippage_bps"], 5.0)
 
     def test_the_random_baseline_matches_the_strategys_trade_count(self):
-        results = baseline_results(sawtooth_prices(), 4, 10, seed_count=20, **COSTS)
+        # FR-012: count first. Every seed failing would leave an empty list,
+        # and the loop below would then pass having checked nothing.
+        results = baseline_results(
+            sawtooth_prices(), 4, 10, seed_count=20, **COSTS, **ACCOUNT
+        )
 
+        self.assertEqual(len(results["random_summaries"]), 20)
         for summary in results["random_summaries"]:
             self.assertEqual(summary["total_trades"], 4)
 
@@ -83,22 +101,34 @@ class BaselineResultsTests(unittest.TestCase):
         # If every seed returned the same P&L the "± dispersion" Rule 4 asks
         # for would be zero, and the baseline would be one draw wearing a
         # distribution's clothes.
-        results = baseline_results(sawtooth_prices(), 4, 10, seed_count=20, **COSTS)
+        results = baseline_results(
+            sawtooth_prices(), 4, 10, seed_count=20, **COSTS, **ACCOUNT
+        )
 
+        self.assertEqual(len(results["random_summaries"]), 20)  # FR-012
         pnls = {summary["total_pnl"] for summary in results["random_summaries"]}
         self.assertGreater(len(pnls), 1)
 
     def test_buy_and_hold_holds_exactly_one_position(self):
-        results = baseline_results(sawtooth_prices(), 4, 10, seed_count=5, **COSTS)
+        """Terminal liquidation (D-3), not mark-only.
+
+        Buy-and-hold never signals an exit. Its one closed trade exists only
+        because `liquidate=True` sells at the final close; under the 019
+        mark-only default the trade log would be empty.
+        """
+        results = baseline_results(
+            sawtooth_prices(), 4, 10, seed_count=5, **COSTS, **ACCOUNT
+        )
 
         self.assertEqual(results["buy_and_hold"]["total_trades"], 1)
 
     def test_an_infeasible_random_baseline_is_reported_not_swallowed(self):
-        # Too few bars for 4 trips of 10 bars each. The report must say so
-        # rather than quietly compare against a shorter baseline.
+        # Too few bars for 4 trips of 10 bars each: 4 * (10 + 1) + 1 = 45
+        # rows are needed and there are 30. The report must say so rather than
+        # quietly compare against a shorter baseline.
         prices = sawtooth_prices(30)
 
-        results = baseline_results(prices, 4, 10, seed_count=20, **COSTS)
+        results = baseline_results(prices, 4, 10, seed_count=20, **COSTS, **ACCOUNT)
 
         self.assertEqual(results["random_summaries"], [])
         self.assertIsNotNone(results["random_error"])
@@ -106,7 +136,7 @@ class BaselineResultsTests(unittest.TestCase):
 
 class FormatComparisonTests(unittest.TestCase):
     def report(self, prices: pd.DataFrame, seed_count: int = 20) -> str:
-        trade_log = run_backtest(prices, **COSTS)
+        trade_log = run_backtest(prices, **COSTS, **ACCOUNT)
         summary = summarize_trades(trade_log, **COSTS)
         baselines = baseline_results(
             prices,
@@ -114,6 +144,7 @@ class FormatComparisonTests(unittest.TestCase):
             holding_bars=mean_holding_bars(prices, trade_log),
             seed_count=seed_count,
             **COSTS,
+            **ACCOUNT,
         )
         return format_comparison(summary, baselines, seed_count=seed_count)
 
@@ -132,6 +163,10 @@ class FormatComparisonTests(unittest.TestCase):
 
         self.assertEqual(report.count("$1.00 per fill"), 1)
         self.assertEqual(report.count("5.0 bps"), 1)
+        # Capital and end-of-data policy join the same block (spec 021 FR-009,
+        # D-4): one line each, not one per row.
+        self.assertEqual(report.count("Capital:"), 1)
+        self.assertEqual(report.count("End of data:"), 1)
 
     def test_the_random_row_reports_dispersion_beside_the_mean(self):
         report = self.report(sawtooth_prices())
@@ -155,8 +190,8 @@ class FormatComparisonTests(unittest.TestCase):
         # The other zero-row case, and the one that must never be silent: the
         # baseline could not match the strategy's frequency at all.
         prices = sawtooth_prices(30)
-        summary = summarize_trades(run_backtest(prices, **COSTS), **COSTS)
-        baselines = baseline_results(prices, 4, 10, seed_count=20, **COSTS)
+        summary = summarize_trades(run_backtest(prices, **COSTS, **ACCOUNT), **COSTS)
+        baselines = baseline_results(prices, 4, 10, seed_count=20, **COSTS, **ACCOUNT)
 
         report = format_comparison(summary, baselines, seed_count=20)
 

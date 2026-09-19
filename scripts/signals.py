@@ -47,10 +47,11 @@ def buy_and_hold_signal(prices: pd.DataFrame) -> pd.DataFrame:
     The entry decision is taken on the first row and, like every other signal
     here, shifted forward one bar — so the fill lands on row 1's open rather
     than on a bar whose price the decision would have had to see. No exit
-    signal is ever produced: the backtest harness already marks a still-open
-    position to the final close, and duplicating that as an explicit sell would
-    put end-of-data bookkeeping into the signal layer, where it does not
-    belong.
+    signal is ever produced. The harness marks a still-open position at the
+    final close; a closed round trip exists only when the accounting caller
+    passes `liquidate=True` (spec 019 C5). Either way, end of data is an
+    accounting decision, and emitting an explicit sell here would put that
+    bookkeeping into the signal layer, where it does not belong.
 
     A frame with fewer than two rows has no bar to shift the entry onto, so it
     yields no signals rather than an error — "not enough history to trade yet"
@@ -85,10 +86,18 @@ def random_signal(
     `numpy.random.default_rng(seed)`, so the same arguments always produce the
     same trade log and no call disturbs global random state.
 
-    Raises `ValueError` if the frame is too short to hold `n_trades`
-    non-overlapping trips of that length. Silently returning fewer trades than
-    asked for would quietly break the trade-frequency match that makes this a
-    baseline rather than a different strategy.
+    Consecutive trips keep a one-row gap: trip i+1 enters at least one row
+    after trip i exits, so no row ever carries both flags. The spec 019
+    harness refuses such a row, and a same-open sell-then-buy would be two
+    costed fills with no change in position, a cost artifact rather than a
+    baseline trade.
+
+    Raises `ValueError` if the frame is too short to hold `n_trades` gapped
+    trips of that length, i.e. has fewer than
+    `n_trades * (avg_holding_days + 1) + 1` rows; the message names that
+    bound. Silently returning fewer trades than asked for would quietly break
+    the trade-frequency match that makes this a baseline rather than a
+    different strategy.
     """
     if n_trades < 0:
         raise ValueError(f"n_trades must be >= 0; got {n_trades}")
@@ -117,19 +126,19 @@ def random_signal(
     last_entry_row = n_bars - 1 - avg_holding_days
     n_candidate_rows = last_entry_row - first_entry_row + 1
 
-    # Non-overlap is imposed by construction rather than checked afterwards.
-    # Draw n_trades distinct offsets from a range shortened by the room every
-    # trip needs, sort them, then push the i-th one forward by i * (holding -
-    # 1). That spreads consecutive entries at least avg_holding_days apart,
-    # which is exactly the gap one trip occupies — so the earlier trip has
-    # always exited by the time the next one enters.
-    spread = avg_holding_days - 1
+    # Non-overlap and the one-row gap are imposed by construction rather than
+    # checked afterwards. Draw n_trades distinct offsets from a range
+    # shortened by the room every trip needs, sort them, then push the i-th
+    # one forward by i * holding. Distinct sorted offsets differ by at least
+    # 1, so consecutive entries end up at least holding + 1 rows apart: the
+    # earlier trip exits, and the next one enters on a later row.
+    spread = avg_holding_days
     n_offsets = n_candidate_rows - (n_trades - 1) * spread
     if n_candidate_rows < 1 or n_offsets < n_trades:
         raise ValueError(
             f"{n_bars} bars cannot hold {n_trades} non-overlapping trades of "
-            f"{avg_holding_days} bars each; at least "
-            f"{n_trades * avg_holding_days + 2} bars are needed."
+            f"{avg_holding_days} bars each with a one-row gap between them; "
+            f"at least {n_trades * (avg_holding_days + 1) + 1} bars are needed."
         )
 
     rng = np.random.default_rng(seed)

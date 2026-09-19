@@ -136,6 +136,13 @@ class TestReportsApi(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(data["ticker"], "AAPL")
+        # Spec 021 FR-018 (finding 23): 019 keeps every session, so the rundown
+        # reads the final one. FIXTURE_A is 320 weekdays from Tue 2023-01-03:
+        # 64 weeks of 5, each ending on a Monday, so the last is Mon 2023-01-09
+        # + 63 weeks = 2024-03-25.
+        aapl_dates = self.panel.loc[self.panel["Ticker"] == "AAPL", "Date"]
+        self.assertEqual(aapl_dates.max().strftime("%Y-%m-%d"), "2024-03-25")
+        self.assertEqual(data["as_of_date"], "2024-03-25")
         # Spec 018, finding 46: no fitted model is wired in, so the forecast is
         # not computed and the five items are indicator rule readings.
         self.assertEqual(data["model_forecast"]["status"], "not_computed")

@@ -40,9 +40,12 @@ from feature_set_comparison import (
     compare_classification,
     compare_regression,
 )
+import estimators
 import feature_set_comparison
 from feature_diagnostics import (
     condition_number,
+    diagnose,
+    format_report,
     max_abs_offdiagonal_correlation,
     variance_inflation_factors,
 )
@@ -96,10 +99,19 @@ def _rescaled(prices: pd.DataFrame, *, price: float, volume: float) -> pd.DataFr
 
 
 def _frame(prices: pd.DataFrame, *, feature_set: str, kind: str = "return"):
-    frame, _task, _horizon = build_features(
+    frame, _task, _span = build_features(
         prices, target_kind=kind, label_horizon=1, feature_set=feature_set
     )
     return frame
+
+
+def _complete(frame: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
+    """Rows of `frame` where every one of `columns` is finite (spec 021, C4).
+
+    019 keeps every session, so warm-up rows carry NaN. The diagnostics
+    primitives refuse those; this is how a test hands them a set's complete rows.
+    """
+    return frame[np.isfinite(frame[columns].to_numpy(dtype=float)).all(axis=1)]
 
 
 class TestFeatureSetRegistry(unittest.TestCase):
@@ -225,30 +237,36 @@ class TestRatioDefinitions(unittest.TestCase):
         columns look alike.
         """
         prices = _trending_prices()
-        expected = (
-            prices["Volume"] / prices["Volume"].rolling(30).mean()
-        ).to_numpy()
-        # Align by Date: the frame has dropped warm-up and unlabelled rows.
-        offset = len(prices) - len(self.frame) - 1
+        expected = prices["Volume"] / prices["Volume"].rolling(30).mean()
+        # 019 keeps every session on the input's index (C4), so rows align
+        # one-for-one; compare on the rows eligible for inference.
+        eligible = self.frame["Inference_Eligible"].to_numpy()
+        self.assertEqual(len(self.frame), len(prices))
+        self.assertTrue(eligible.any())
         np.testing.assert_allclose(
-            self.frame["Rel_Volume"].to_numpy(),
-            expected[offset : offset + len(self.frame)],
+            self.frame["Rel_Volume"].to_numpy()[eligible],
+            expected.to_numpy()[eligible],
         )
 
     def test_volume_window_is_configurable_and_defaults_to_long_window(self):
         prices = _trending_prices()
         default = _frame(prices, feature_set="scale_free")
-        explicit, _task, _horizon = build_features(
+        explicit, _task, _span = build_features(
             prices, target_kind="return", label_horizon=1, volume_window=30
         )
         np.testing.assert_allclose(
             default["Rel_Volume"].to_numpy(), explicit["Rel_Volume"].to_numpy()
         )
 
-        different, _task, _horizon = build_features(
+        different, _task, _span = build_features(
             prices, target_kind="return", label_horizon=1, volume_window=90
         )
-        self.assertLess(len(different), len(default))
+        # No row is dropped (019 C4), so the longer window shows up in
+        # eligibility, not length. Warm-up is window - 1 rows: 600 - 29 = 571
+        # eligible at the default 30, 600 - 89 = 511 at 90.
+        self.assertEqual(len(different), len(default))
+        self.assertEqual(int(default["Inference_Eligible"].sum()), 571)
+        self.assertEqual(int(different["Inference_Eligible"].sum()), 511)
 
     def test_volume_window_below_one_raises(self):
         with self.assertRaises(ValueError):
@@ -313,8 +331,14 @@ class TestCollinearity(unittest.TestCase):
     """
 
     def setUp(self):
-        self.frame = _frame(_trending_prices(), feature_set="scale_free")
-        self.levels = _frame(_trending_prices(), feature_set="levels")
+        # Complete rows of each set: 019 keeps the warm-up rows as NaN (C4).
+        self.frame = _complete(
+            _frame(_trending_prices(), feature_set="scale_free"),
+            SCALE_FREE_FEATURE_COLUMNS,
+        )
+        self.levels = _complete(
+            _frame(_trending_prices(), feature_set="levels"), LEVEL_FEATURE_COLUMNS
+        )
 
     def test_the_pair_being_replaced_is_as_collinear_as_claimed(self):
         """Without this, the thresholds below have nothing to beat."""
@@ -369,8 +393,13 @@ class TestConditioning(unittest.TestCase):
 
     def setUp(self):
         prices = _trending_prices()
-        self.levels = _frame(prices, feature_set="levels")
-        self.scale_free = _frame(prices, feature_set="scale_free")
+        # Complete rows of each set: 019 keeps the warm-up rows as NaN (C4).
+        self.levels = _complete(
+            _frame(prices, feature_set="levels"), LEVEL_FEATURE_COLUMNS
+        )
+        self.scale_free = _complete(
+            _frame(prices, feature_set="scale_free"), SCALE_FREE_FEATURE_COLUMNS
+        )
 
     def test_the_scale_free_matrix_is_better_conditioned(self):
         levels = condition_number(self.levels, LEVEL_FEATURE_COLUMNS)
@@ -407,29 +436,94 @@ class TestConditioning(unittest.TestCase):
         )
 
 
-class TestNonFiniteGuard(unittest.TestCase):
-    """FR-006 — a zero denominator becomes a dropped row, not an infinity."""
+class TestDiagnosticsRefuseNonFinite(unittest.TestCase):
+    """Spec 021 FR-007 — a primitive names non-finite input instead of dying in LAPACK.
 
-    def test_zero_volume_rows_are_dropped_rather_than_infinite(self):
+    Before 021 a NaN reached `np.linalg` and came back as "SVD did not
+    converge" or a `nan` statistic, neither of which says which column or
+    what to do. The refusal is a gate (Rule 12); `_complete` is its control.
+    """
+
+    def setUp(self):
+        self.complete = _complete(
+            _frame(_trending_prices(), feature_set="scale_free"),
+            SCALE_FREE_FEATURE_COLUMNS,
+        )
+
+    def test_a_non_finite_row_is_refused_by_name(self):
+        poisoned = self.complete.copy()
+        # One NaN, in one scale-free column, on one row: the message must name
+        # that column, the count (1), and the remedy.
+        poisoned.loc[poisoned.index[5], "SMA_Spread"] = np.nan
+        for measure in (condition_number, variance_inflation_factors):
+            with self.subTest(measure=measure.__name__):
+                with self.assertRaisesRegex(
+                    ValueError, r"1 non-finite row.*SMA_Spread.*complete rows"
+                ):
+                    measure(poisoned, SCALE_FREE_FEATURE_COLUMNS)
+
+    def test_complete_rows_measure_without_error(self):
+        """The control: the same frame, unpoisoned, gives finite numbers."""
+        self.assertTrue(
+            np.isfinite(condition_number(self.complete, SCALE_FREE_FEATURE_COLUMNS))
+        )
+        vif = variance_inflation_factors(self.complete, SCALE_FREE_FEATURE_COLUMNS)
+        self.assertTrue(np.isfinite(vif.to_numpy()).all())
+
+    def test_diagnose_measures_complete_rows_and_counts_the_rest(self):
+        """`diagnose` takes the full-calendar frame, masks to the set, and says so."""
         prices = _trending_prices()
         prices.loc[prices.index[100:140], "Volume"] = 0
-
         frame = _frame(prices, feature_set="scale_free")
-        self.assertTrue(np.isfinite(frame["Rel_Volume"].to_numpy()).all())
-        self.assertFalse(frame["Rel_Volume"].isna().any())
+        # Warm-up: the 30-bar windows (Long_SMA, Rel_Volume) leave rows 0..28,
+        # 29 rows. Zero volume: Rel_Volume is 0 / 0 on rows 129..139, 11 rows
+        # (see TestNonFiniteGuard). levels: 29; scale_free: 29 + 11 = 40.
+        expected = {"levels": (600 - 29, 29), "scale_free": (600 - 40, 40)}
+        results = [diagnose(frame, name) for name in expected]
+        for result in results:
+            with self.subTest(feature_set=result["feature_set"]):
+                self.assertEqual(
+                    (result["rows"], result["rows_excluded"]),
+                    expected[result["feature_set"]],
+                )
+                self.assertTrue(np.isfinite(result["condition_number"]))
+        report = format_report(results)
+        self.assertIn("rows measured: 560", report)
+        self.assertIn("excluded as non-finite in this set: 40", report)
+
+
+class TestNonFiniteGuard(unittest.TestCase):
+    """FR-006 / 021 FR-008 — a zero denominator is NaN and ineligible, never inf.
+
+    Before 019 those rows were dropped. 019 keeps every session (C4), so the
+    guard is now read as eligibility: `Rel_Volume` is NaN there and the row is
+    not `Inference_Eligible` under `scale_free`.
+    """
+
+    def setUp(self):
+        self.prices = _trending_prices()
+        self.prices.loc[self.prices.index[100:140], "Volume"] = 0
+        # Rel_Volume at row r is Volume[r] / mean(Volume[r-29 .. r]). The mean
+        # is 0 only when the whole 30-bar window sits inside the run 100..139,
+        # i.e. r - 29 >= 100: rows 129..139, eleven rows of 0 / 0.
+        self.zero_window = self.prices.index[129:140]
+
+    def test_zero_volume_rows_are_nan_and_ineligible_not_infinite(self):
+        frame = _frame(self.prices, feature_set="scale_free")
+        rel_volume = frame.loc[self.zero_window, "Rel_Volume"]
+        self.assertFalse(np.isinf(rel_volume.to_numpy()).any())
+        self.assertTrue(rel_volume.isna().all())
+        self.assertFalse(frame.loc[self.zero_window, "Inference_Eligible"].any())
+        self.assertFalse(np.isinf(frame["Rel_Volume"].to_numpy()).any())
 
     def test_a_level_run_keeps_those_rows(self):
         """Zero volume is a valid level feature; only the ratio is undefined.
 
-        This is the control that shows the drop above is the ratio's doing and
-        not a blanket filter that quietly shortens every run.
+        The control: the same rows are eligible under `levels`, so the
+        exclusion above is the ratio's doing and not a blanket filter.
         """
-        prices = _trending_prices()
-        prices.loc[prices.index[100:140], "Volume"] = 0
-
-        levels = _frame(prices, feature_set="levels")
-        scale_free = _frame(prices, feature_set="scale_free")
-        self.assertGreater(len(levels), len(scale_free))
+        levels = _frame(self.prices, feature_set="levels")
+        self.assertTrue(levels.loc[self.zero_window, "Inference_Eligible"].all())
 
 
 class TestScalerIsFitOnTrainingRowsOnly(unittest.TestCase):
@@ -439,42 +533,81 @@ class TestScalerIsFitOnTrainingRowsOnly(unittest.TestCase):
     window's mean and variance into every fold. Because `build_estimator`
     returns a `Pipeline` and every fit site fits per fold, it cannot — and
     this asserts the statistics are the training slice's, not the frame's.
+
+    Since 019 the frame keeps every session (C4): folds are sized by the
+    returned span (C2) and each fold fits on its train-eligible rows only.
     """
 
     def setUp(self):
         self.frame = _frame(_trending_prices(), feature_set="scale_free")
         self.columns = SCALE_FREE_FEATURE_COLUMNS
-        self.folds = list(
-            walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1)
-        )
+        self.span = self.frame.attrs["label_availability_span"]
+        train_ok = self.frame["Train_Eligible"].to_numpy()
+        infer_ok = self.frame["Inference_Eligible"].to_numpy()
+        self.folds = [
+            (train[train_ok[train]], test[infer_ok[test]])
+            for train, test in walk_forward_splits(
+                self.frame, label_horizon=self.span, embargo_bars=self.span
+            )
+            if train_ok[train].any() and infer_ok[test].any()
+        ]
         self.assertGreater(len(self.folds), 1)
 
-    def test_scaler_statistics_are_the_training_slice_statistics(self):
-        for fold, (train_indices, _test_indices) in enumerate(self.folds, start=1):
-            with self.subTest(fold=fold):
-                model = build_estimator(
-                    "ridge", task=REGRESSION, params=None, random_state=42
-                )
-                training = self.frame.iloc[train_indices][self.columns]
-                model.fit(training, self.frame.iloc[train_indices]["Label"])
-
-                scaler = fitted_scaler(model)
-                self.assertIsNotNone(scaler)
-                np.testing.assert_allclose(
-                    scaler.mean_, training.to_numpy(dtype=float).mean(axis=0)
-                )
-
-    def test_scaler_statistics_differ_from_the_whole_frame(self):
-        """Without this, the test above would pass on a leaking scaler whose
-        training slice happened to be the whole frame."""
-        train_indices, _test = self.folds[0]
+    def _fit(self, train_indices):
         model = build_estimator(
             "ridge", task=REGRESSION, params=None, random_state=42
         )
         training = self.frame.iloc[train_indices][self.columns]
         model.fit(training, self.frame.iloc[train_indices]["Label"])
+        return model, training
 
-        whole_frame = self.frame[self.columns].to_numpy(dtype=float).mean(axis=0)
+    def test_scaler_statistics_are_the_training_slice_statistics(self):
+        """Read at the production fit site, `fit_predict_walk_forward`.
+
+        Every model it builds is recorded; fold k's scaler mean must be the
+        mean of fold k's train-eligible rows. A fit site that fitted once on
+        the whole eligible frame fails here (Rule 12, spec 021 T036(b)).
+        """
+        models = []
+        original = estimators.build_estimator
+
+        def recording(*args, **kwargs):
+            models.append(original(*args, **kwargs))
+            return models[-1]
+
+        with unittest.mock.patch.object(estimators, "build_estimator", recording):
+            estimators.fit_predict_walk_forward(
+                self.frame,
+                feature_columns=self.columns,
+                label_column="Label",
+                task=REGRESSION,
+                name="ridge",
+                label_horizon=self.span,
+                embargo_bars=self.span,
+                random_state=42,
+            )
+        self.assertEqual(len(models), len(self.folds))
+        for fold, (model, (train_indices, _test)) in enumerate(
+            zip(models, self.folds), start=1
+        ):
+            with self.subTest(fold=fold):
+                training = self.frame.iloc[train_indices][self.columns]
+                np.testing.assert_allclose(
+                    fitted_scaler(model).mean_,
+                    training.to_numpy(dtype=float).mean(axis=0),
+                )
+
+    def test_scaler_statistics_differ_from_the_whole_frame(self):
+        """Without this, the test above would pass on a leaking scaler whose
+        training slice happened to be the whole frame. The whole frame here is
+        its train-eligible rows: a mean over the NaN warm-up would be NaN and
+        differ from anything, which would make this pass vacuously."""
+        model, _training = self._fit(self.folds[0][0])
+        eligible = self.frame["Train_Eligible"].to_numpy()
+        whole_frame = (
+            self.frame.loc[eligible, self.columns].to_numpy(dtype=float).mean(axis=0)
+        )
+        self.assertTrue(np.isfinite(whole_frame).all())
         self.assertFalse(
             np.allclose(fitted_scaler(model).mean_, whole_frame),
             "the first fold's scaler matches the whole frame; that is leakage",
@@ -482,16 +615,10 @@ class TestScalerIsFitOnTrainingRowsOnly(unittest.TestCase):
 
     def test_later_folds_see_different_statistics(self):
         """A scaler fitted once and reused would give itself away here."""
-        means = []
-        for train_indices, _test in self.folds:
-            model = build_estimator(
-                "ridge", task=REGRESSION, params=None, random_state=42
-            )
-            model.fit(
-                self.frame.iloc[train_indices][self.columns],
-                self.frame.iloc[train_indices]["Label"],
-            )
-            means.append(fitted_scaler(model).mean_.copy())
+        means = [
+            fitted_scaler(self._fit(train)[0]).mean_.copy()
+            for train, _test in self.folds
+        ]
         self.assertFalse(np.allclose(means[0], means[-1]))
 
 
@@ -555,13 +682,15 @@ class TestScalingChangesTheAnswer(unittest.TestCase):
 
     def test_ridge_predictions_move_when_the_scaler_is_applied(self):
         frame = _frame(_trending_prices(), feature_set="levels")
+        # Purge and embargo are the returned span (019 C2), never a literal.
+        span = frame.attrs["label_availability_span"]
         common = dict(
             feature_columns=LEVEL_FEATURE_COLUMNS,
             label_column="Label",
             task=REGRESSION,
             name="ridge",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=42,
         )
         scaled = fit_predict_walk_forward(frame, scale=True, **common)
@@ -586,13 +715,15 @@ class TestScalingChangesTheAnswer(unittest.TestCase):
         revisiting rather than this test relaxing.
         """
         frame = _frame(_trending_prices(), feature_set="levels")
+        # Purge and embargo are the returned span (019 C2), never a literal.
+        span = frame.attrs["label_availability_span"]
         common = dict(
             feature_columns=LEVEL_FEATURE_COLUMNS,
             label_column="Label",
             task=REGRESSION,
             name="hgb",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=42,
         )
         scaled = fit_predict_walk_forward(frame, scale=True, **common)
@@ -646,8 +777,9 @@ class TestScaleReachesEveryFit(unittest.TestCase):
                 label_column="Label",
                 task=REGRESSION,
                 name="ridge",
-                label_horizon=1,
-                embargo_bars=1,
+                # Purge and embargo are the returned span (019 C2).
+                label_horizon=self.frame.attrs["label_availability_span"],
+                embargo_bars=self.frame.attrs["label_availability_span"],
                 random_state=42,
                 scale=scale,
             )

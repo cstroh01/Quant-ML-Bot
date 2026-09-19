@@ -7,6 +7,10 @@ import pandas as pd
 from context import SCRIPTS_DIR  # noqa: F401  (import for the sys.path effect)
 from backtest_harness import run_backtest, summarize_trades
 
+# 019 C1: capital is declared, never taken from a price. 021 D-4: one test
+# constant per module, large enough that no fixture entry is ever rejected.
+STARTING_CAPITAL = 1_000_000.0
+
 
 def make_signalled_prices(rows: list[tuple]) -> pd.DataFrame:
     """Build a price frame from (day, open, close, buy, sell) tuples."""
@@ -39,7 +43,7 @@ class RunBacktestTests(unittest.TestCase):
             ]
         )
 
-        trade_log = run_backtest(prices)
+        trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)
 
         self.assertEqual(len(trade_log), 1)
         trade = trade_log.iloc[0]
@@ -47,9 +51,13 @@ class RunBacktestTests(unittest.TestCase):
         self.assertEqual(trade["Exit Price"], 50.0)
         self.assertEqual(trade["P&L"], 30.0)
 
-    def test_open_position_is_marked_to_the_final_close(self):
-        # An unclosed position is bookkeeping, not a prediction: it settles at
-        # the last price we actually know, and it still counts as a trade.
+    def test_an_open_position_is_marked_not_closed(self):
+        """Mark-only (019 C5 default): end of data is not an exit.
+
+        Replaces half of `test_open_position_is_marked_to_the_final_close`.
+        Before 019 the harness closed the position at the final close and
+        logged a trade; now it marks the share and logs no trade.
+        """
         prices = make_signalled_prices(
             [
                 (0, 10.0, 11.0, True, False),
@@ -57,10 +65,40 @@ class RunBacktestTests(unittest.TestCase):
             ]
         )
 
-        trade_log = run_backtest(prices)
+        trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)
+
+        self.assertTrue(trade_log.empty)
+        final_mark = trade_log.attrs["ledger"].query("Event == 'mark'").iloc[-1]
+        self.assertEqual(final_mark["Price"], 25.0)  # the final Close
+        self.assertEqual(final_mark["Quantity"], 1)
+        # Bought at Open[0] = 10 with no costs, marked at 25: capital - 10 + 25.
+        self.assertEqual(final_mark["Equity"], STARTING_CAPITAL + 15.0)
+
+    def test_liquidation_closes_it_at_the_final_close(self):
+        """Terminal liquidation (`liquidate=True`), the caller's explicit choice.
+
+        Replaces the other half of `test_open_position_is_marked_to_the_final_close`:
+        in 019 a closed round trip at end of data exists only when asked for,
+        and it is recorded as a distinct `liquidation` ledger event.
+        """
+        prices = make_signalled_prices(
+            [
+                (0, 10.0, 11.0, True, False),
+                (1, 12.0, 25.0, False, False),
+            ]
+        )
+
+        trade_log = run_backtest(
+            prices, starting_capital=STARTING_CAPITAL, liquidate=True
+        )
 
         self.assertEqual(len(trade_log), 1)
-        self.assertEqual(trade_log.iloc[0]["Exit Price"], 25.0)
+        self.assertEqual(trade_log.iloc[0]["Exit Price"], 25.0)  # the final Close
+        self.assertEqual(trade_log.iloc[0]["P&L"], 15.0)  # 25 - 10, no costs
+        ledger = trade_log.attrs["ledger"]
+        liquidations = ledger[ledger["Event"] == "liquidation"]
+        self.assertEqual(len(liquidations), 1)
+        self.assertEqual(liquidations.iloc[0]["Date"], prices["Date"].iloc[-1])
 
     def test_repeated_buy_signals_do_not_stack_a_position(self):
         # The harness models exactly one share. A second buy while already long
@@ -74,7 +112,7 @@ class RunBacktestTests(unittest.TestCase):
             ]
         )
 
-        trade_log = run_backtest(prices)
+        trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)
 
         self.assertEqual(len(trade_log), 1)
         self.assertEqual(trade_log.iloc[0]["Entry Price"], 10.0)
@@ -88,7 +126,7 @@ class RunBacktestTests(unittest.TestCase):
             ]
         )
 
-        self.assertTrue(run_backtest(prices).empty)
+        self.assertTrue(run_backtest(prices, starting_capital=STARTING_CAPITAL).empty)
 
     def test_cumulative_pnl_accumulates_across_trades(self):
         prices = make_signalled_prices(
@@ -100,7 +138,7 @@ class RunBacktestTests(unittest.TestCase):
             ]
         )
 
-        trade_log = run_backtest(prices)
+        trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)
 
         self.assertEqual(list(trade_log["P&L"]), [5.0, -2.0])
         self.assertEqual(list(trade_log["Cumulative P&L"]), [5.0, 3.0])
@@ -110,7 +148,7 @@ class RunBacktestTests(unittest.TestCase):
         # by the same reporting code as a populated one.
         prices = make_signalled_prices([(0, 10.0, 10.0, False, False)])
 
-        trade_log = run_backtest(prices)
+        trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)
 
         self.assertTrue(trade_log.empty)
         self.assertIn("Cumulative P&L", trade_log.columns)
@@ -119,8 +157,8 @@ class RunBacktestTests(unittest.TestCase):
     def test_missing_signal_columns_fail_loudly(self):
         prices = pd.DataFrame({"Date": [pd.Timestamp("2024-01-01")], "Open": [1.0]})
 
-        with self.assertRaises(ValueError):
-            run_backtest(prices)
+        with self.assertRaisesRegex(ValueError, "missing columns"):
+            run_backtest(prices, starting_capital=STARTING_CAPITAL)
 
 
 class CostTests(unittest.TestCase):
@@ -143,7 +181,7 @@ class CostTests(unittest.TestCase):
         # pins that adding costs did not perturb the zero-cost numbers: the
         # multiplications are by exactly 1.0 and the subtraction by exactly
         # 0.0, which is an identity in floating point, not an approximation.
-        trade_log = run_backtest(self.two_round_trips())
+        trade_log = run_backtest(self.two_round_trips(), starting_capital=STARTING_CAPITAL)
 
         self.assertEqual(list(trade_log["Entry Price"]), [100.0, 200.0])
         self.assertEqual(list(trade_log["Exit Price"]), [110.0, 190.0])
@@ -155,7 +193,8 @@ class CostTests(unittest.TestCase):
         # the two fills -> 7.895. Trade 2: buy 200 -> 200.10, sell 190 ->
         # 189.905, minus $2 -> -12.195.
         trade_log = run_backtest(
-            self.two_round_trips(), commission_per_trade=1.00, slippage_bps=5.0
+            self.two_round_trips(), commission_per_trade=1.00, slippage_bps=5.0,
+            starting_capital=STARTING_CAPITAL,
         )
 
         self.assertAlmostEqual(trade_log.iloc[0]["Entry Price"], 100.05, places=10)
@@ -169,8 +208,11 @@ class CostTests(unittest.TestCase):
     def test_commission_is_charged_once_per_fill_not_once_per_round_trip(self):
         # A round trip is two fills, so a $1 commission costs the trade $2.
         # Charging it once would understate every strategy's costs by half.
-        costed = run_backtest(self.two_round_trips(), commission_per_trade=1.00)
-        free = run_backtest(self.two_round_trips())
+        costed = run_backtest(
+            self.two_round_trips(), commission_per_trade=1.00,
+            starting_capital=STARTING_CAPITAL,
+        )
+        free = run_backtest(self.two_round_trips(), starting_capital=STARTING_CAPITAL)
 
         difference = free["P&L"].to_numpy() - costed["P&L"].to_numpy()
         self.assertAlmostEqual(difference[0], 2.00, places=10)
@@ -181,7 +223,10 @@ class CostTests(unittest.TestCase):
         # loss bigger. Applying it with the trade instead of against it would
         # shrink the loss here while still enlarging it on the winner, so a
         # winner-only test would pass with the sign inverted.
-        costed = run_backtest(self.two_round_trips(), slippage_bps=100.0)
+        costed = run_backtest(
+            self.two_round_trips(), slippage_bps=100.0,
+            starting_capital=STARTING_CAPITAL,
+        )
 
         self.assertGreater(costed.iloc[0]["Entry Price"], 100.0)
         self.assertLess(costed.iloc[0]["Exit Price"], 110.0)
@@ -201,12 +246,23 @@ class CostTests(unittest.TestCase):
             ]
         )
 
-        self.assertEqual(run_backtest(prices).iloc[0]["P&L"], 2.0)
-        self.assertLess(run_backtest(prices, slippage_bps=200.0).iloc[0]["P&L"], 0.0)
+        uncosted = run_backtest(prices, starting_capital=STARTING_CAPITAL)
+        slipped = run_backtest(
+            prices, slippage_bps=200.0, starting_capital=STARTING_CAPITAL
+        )
 
-    def test_costs_apply_to_the_end_of_data_close_exit(self):
-        # The second exit path. Missing it would leave every still-open final
-        # position costed on one side only.
+        self.assertEqual(uncosted.iloc[0]["P&L"], 2.0)
+        self.assertLess(slipped.iloc[0]["P&L"], 0.0)
+
+    def test_costs_apply_to_the_terminal_liquidation(self):
+        """Terminal liquidation (`liquidate=True`): the one end-of-data exit.
+
+        Was `test_costs_apply_to_the_end_of_data_close_exit`. Before 019 every
+        run closed a still-open position at the final close; in 019 that
+        happens only on request, as a `liquidation` event. It is still a fill,
+        so it must pay slippage and commission like any other exit, or a
+        liquidated position would be costed on one side only.
+        """
         prices = make_signalled_prices(
             [
                 (0, 100.0, 100.0, True, False),
@@ -215,20 +271,34 @@ class CostTests(unittest.TestCase):
         )
 
         trade_log = run_backtest(
-            prices, commission_per_trade=1.00, slippage_bps=100.0
+            prices, commission_per_trade=1.00, slippage_bps=100.0,
+            starting_capital=STARTING_CAPITAL, liquidate=True,
         )
 
+        # s = 100 bps = 0.01. Entry: Open[0] * (1 + s) = 100 * 1.01 = 101.
         self.assertAlmostEqual(trade_log.iloc[0]["Entry Price"], 101.0, places=10)
+        # Exit: Close[1] * (1 - s) = 200 * 0.99 = 198.
         self.assertAlmostEqual(trade_log.iloc[0]["Exit Price"], 198.0, places=10)
+        # 198 - 101 - $1 per fill * 2 fills = 95.
         self.assertAlmostEqual(trade_log.iloc[0]["P&L"], 95.0, places=10)
+        ledger = trade_log.attrs["ledger"]
+        liquidation = ledger[ledger["Event"] == "liquidation"]
+        self.assertEqual(len(liquidation), 1)
+        self.assertEqual(liquidation.iloc[0]["Fee"], 1.00)
 
     def test_negative_costs_are_rejected(self):
         # A negative cost is a fill that improved, which is exactly what the
         # slippage model exists to forbid.
-        with self.assertRaises(ValueError):
-            run_backtest(self.two_round_trips(), commission_per_trade=-1.0)
-        with self.assertRaises(ValueError):
-            run_backtest(self.two_round_trips(), slippage_bps=-5.0)
+        with self.assertRaisesRegex(ValueError, "commission_per_trade"):
+            run_backtest(
+                self.two_round_trips(), commission_per_trade=-1.0,
+                starting_capital=STARTING_CAPITAL,
+            )
+        with self.assertRaisesRegex(ValueError, "slippage_bps"):
+            run_backtest(
+                self.two_round_trips(), slippage_bps=-5.0,
+                starting_capital=STARTING_CAPITAL,
+            )
 
 
 class SummarizeTradesTests(unittest.TestCase):

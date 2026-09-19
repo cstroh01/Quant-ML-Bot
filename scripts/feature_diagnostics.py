@@ -60,8 +60,24 @@ def standardized_matrix(frame: pd.DataFrame, columns: list[str]) -> np.ndarray:
     A zero-variance column would divide by zero. It is left as all-zeros
     rather than dropped or errored on: a constant feature is a real thing to
     discover in a diagnostic, and silently removing it would hide it.
+
+    Every value must be finite. A `build_features` frame keeps every session
+    (spec 019), so warm-up rows carry NaN; masking them here would hide how
+    much of the frame a number describes, so the caller masks and counts.
+
+    Raises:
+        ValueError: naming the non-finite columns and the number of rows they
+            touch, and telling the caller to pass the set's complete rows.
     """
     matrix = frame[columns].to_numpy(dtype=float)
+    finite = np.isfinite(matrix)
+    if not finite.all():
+        bad_rows = int((~finite.all(axis=1)).sum())
+        bad_columns = [c for c, ok in zip(columns, finite.all(axis=0)) if not ok]
+        raise ValueError(
+            f"{bad_rows} non-finite row(s) in {bad_columns}; pass the set's "
+            "complete rows (every column finite) to the diagnostics"
+        )
     centered = matrix - matrix.mean(axis=0)
     deviations = matrix.std(axis=0, ddof=0)
     safe = np.where(deviations == 0.0, 1.0, deviations)
@@ -119,14 +135,24 @@ def max_abs_offdiagonal_correlation(
 
 
 def diagnose(frame: pd.DataFrame, feature_set: str) -> dict:
-    """Every diagnostic for one feature set, as a plain dict."""
+    """Every diagnostic for one feature set, as a plain dict.
+
+    Measures only the rows where every column of the set is finite, and says
+    so: `rows` is the number measured and `rows_excluded` the number left out
+    (warm-up, or a ratio undefined on a zero-volume bar). The frame's other
+    columns do not decide which rows count.
+    """
     columns = feature_columns(feature_set)
+    complete = np.isfinite(frame[columns].to_numpy(dtype=float)).all(axis=1)
+    excluded = int((~complete).sum())
+    frame = frame[complete]
     worst_correlation, worst_pair = max_abs_offdiagonal_correlation(frame, columns)
     vif = variance_inflation_factors(frame, columns)
     return {
         "feature_set": feature_set,
         "columns": columns,
         "rows": len(frame),
+        "rows_excluded": excluded,
         "condition_number": condition_number(frame, columns),
         "vif": vif,
         "max_vif": float(vif.max()),
@@ -143,7 +169,10 @@ def format_report(results: list[dict]) -> str:
     for result in results:
         lines.append("")
         lines.append(f"=== feature_set = {result['feature_set']!r} ===")
-        lines.append(f"rows: {result['rows']}")
+        lines.append(
+            f"rows measured: {result['rows']}"
+            f"   (excluded as non-finite in this set: {result['rows_excluded']})"
+        )
         lines.append("")
         lines.append("Per-column summary:")
         lines.append(
@@ -203,17 +232,17 @@ def main():
     prices = market_data[market_data["Ticker"] == TICKER].copy()
     prices = prices.sort_values("Date").reset_index(drop=True)
 
-    # One frame, diagnosed under both sets. `build_features` computes every
-    # column whichever set is selected, so the only thing `feature_set`
-    # changes here is which rows survive the completeness drop — and the
-    # level set is the one with the shorter warm-up, so it is built first and
-    # the row counts are printed for the reader to compare.
+    # Diagnosed under both sets. `build_features` keeps every session and
+    # computes every column whichever set is selected; `diagnose` measures the
+    # rows complete in the named set and prints how many it measured and
+    # excluded. The counts differ only where one set's own columns are
+    # undefined, such as `Rel_Volume` over a zero-volume run.
     print(f"{TICKER} feature diagnostics over {PERIOD}")
     print(f"registered feature sets: {sorted(FEATURE_SETS)}")
 
     results = []
     for name in ("levels", "scale_free"):
-        frame, _task, _horizon = build_features(
+        frame, _task, _span = build_features(
             prices, target_kind="return", label_horizon=1, feature_set=name
         )
         results.append(diagnose(frame, name))

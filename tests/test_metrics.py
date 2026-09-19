@@ -26,6 +26,14 @@ from metrics import (
 from test_backtest_harness import make_signalled_prices as _make_signalled_prices
 from test_ma_crossover_backtest import COSTS, sawtooth_prices
 
+# 019 C1: capital is declared, never taken from a price. 021 D-4: one test
+# constant per module, large enough that no fixture entry is ever rejected.
+# `COSTS` is imported and frozen (021 FR-020), so the capital joins it here,
+# for `run_backtest` only; `equity_curve`/`performance_summary` read the
+# capital from the funded run and keep `**COSTS`.
+STARTING_CAPITAL = 1_000_000.0
+RUN = {**COSTS, "starting_capital": STARTING_CAPITAL}
+
 
 def make_signalled_prices(rows: list[tuple]) -> pd.DataFrame:
     """Build synthetic nominal-dollar bars for funded-ledger metric tests."""
@@ -44,8 +52,15 @@ class TestReconciliation(unittest.TestCase):
     """
 
     def test_bar_pnl_sums_to_trade_log_pnl(self):
+        """Terminal liquidation (`liquidate=True`), so the run ends flat.
+
+        Sum(Bar P&L) is final equity minus capital, which includes any
+        position still open. Sum(closed P&L) excludes it. The two agree only
+        for a run that ends flat, and since 019 (C5) a run ends flat only
+        when the caller asks for liquidation.
+        """
         prices = sawtooth_prices(200)
-        trade_log = run_backtest(prices, **COSTS)
+        trade_log = run_backtest(prices, **RUN, liquidate=True)
         self.assertGreater(len(trade_log), 1, "fixture should produce real trades")
 
         curve = equity_curve(prices, trade_log, **COSTS)
@@ -57,8 +72,15 @@ class TestReconciliation(unittest.TestCase):
         )
 
     def test_reconciliation_holds_without_costs_too(self):
+        """Terminal liquidation (`liquidate=True`), so the run ends flat.
+
+        As above: Sum(Bar P&L) = Sum(closed P&L) holds only for a run that
+        ends flat, and since 019 (C5) that requires explicit liquidation.
+        """
         prices = sawtooth_prices(200)
-        trade_log = run_backtest(prices)
+        trade_log = run_backtest(
+            prices, starting_capital=STARTING_CAPITAL, liquidate=True
+        )
         curve = equity_curve(prices, trade_log, commission_per_trade=0.0, slippage_bps=0.0)
 
         self.assertAlmostEqual(
@@ -69,7 +91,7 @@ class TestReconciliation(unittest.TestCase):
 
     def test_curve_has_one_row_per_bar(self):
         prices = sawtooth_prices(200)
-        trade_log = run_backtest(prices, **COSTS)
+        trade_log = run_backtest(prices, **RUN)
         curve = equity_curve(prices, trade_log, **COSTS)
 
         self.assertEqual(len(curve), len(prices))
@@ -93,7 +115,7 @@ class TestAttributionOffByOne(unittest.TestCase):
                 (3, 40.0, 44.0, False, False),
             ]
         )
-        trade_log = run_backtest(prices)
+        trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)
         curve = equity_curve(prices, trade_log, commission_per_trade=0.0, slippage_bps=0.0)
 
         bar_pnl = curve["Bar P&L"].to_numpy()
@@ -117,7 +139,7 @@ class TestAttributionOffByOne(unittest.TestCase):
                 (4, 50.0, 55.0, False, False),
             ]
         )
-        trade_log = run_backtest(prices)
+        trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)
         curve = equity_curve(prices, trade_log, commission_per_trade=0.0, slippage_bps=0.0)
 
         # Shares held at each bar's close: on at bars 1 and 2, off at bar 3
@@ -134,7 +156,10 @@ class TestAttributionOffByOne(unittest.TestCase):
                 (2, 30.0, 33.0, False, True),
             ]
         )
-        trade_log = run_backtest(prices, commission_per_trade=1.0, slippage_bps=0.0)
+        trade_log = run_backtest(
+            prices, commission_per_trade=1.0, slippage_bps=0.0,
+            starting_capital=STARTING_CAPITAL,
+        )
         curve = equity_curve(
             prices, trade_log, commission_per_trade=1.0, slippage_bps=0.0
         )
@@ -154,7 +179,7 @@ class TestBoundaries(unittest.TestCase):
                 (1, 20.0, 22.0, False, True),
             ]
         )
-        trade_log = run_backtest(prices)
+        trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)
         curve = equity_curve(prices, trade_log, commission_per_trade=0.0, slippage_bps=0.0)
 
         self.assertAlmostEqual(curve["Bar P&L"].iloc[0], 2.0)   # 12 - 10
@@ -162,9 +187,13 @@ class TestBoundaries(unittest.TestCase):
         self.assertAlmostEqual(curve["Bar P&L"].sum(), 10.0)
 
     def test_position_still_open_on_the_final_bar_marks_to_its_close(self):
-        # The harness closes any open position at the final Close, so the
-        # exit bar's recorded price is a close, not an open. The attribution
-        # uses the log's recorded price and so does not care which it was.
+        """Mark-only (019 C5 default): the name's own claim, now literal.
+
+        Before 019 the harness closed the position at the final close and
+        logged a trade. Now end of data is not an exit: the trade log is
+        empty and the open share is valued at the final close, so the curve
+        must still carry its P&L through the mark.
+        """
         prices = make_signalled_prices(
             [
                 (0, 10.0, 11.0, False, False),
@@ -172,27 +201,37 @@ class TestBoundaries(unittest.TestCase):
                 (2, 30.0, 33.0, False, False),
             ]
         )
-        trade_log = run_backtest(prices)
-        self.assertEqual(len(trade_log), 1)
+        trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)
+        self.assertTrue(trade_log.empty)
         curve = equity_curve(prices, trade_log, commission_per_trade=0.0, slippage_bps=0.0)
 
         self.assertAlmostEqual(curve["Bar P&L"].iloc[1], 2.0)    # 22 - 20
         self.assertAlmostEqual(curve["Bar P&L"].iloc[2], 11.0)   # 33 - 22
+        # Cash after buying one share at Open[1] = 20 with no costs, plus
+        # that share marked at the final Close[2] = 33.
+        self.assertEqual(curve["Equity"].iloc[-1], (STARTING_CAPITAL - 20.0) + 33.0)
         self.assertAlmostEqual(
-            curve["Bar P&L"].sum(), float(trade_log["P&L"].sum())
+            curve["Bar P&L"].sum(), curve["Equity"].iloc[-1] - STARTING_CAPITAL
         )
 
     def test_same_bar_round_trip(self):
-        # Buy_Next_Open on the final row: the harness enters at that bar's
-        # open and its end-of-data block exits at that same bar's close, so
-        # entry and exit land on one bar.
+        """Terminal liquidation (`liquidate=True`): the test is about an exit.
+
+        Its subject is an entry and an exit on one bar, and since 019 (C5)
+        the only end-of-data exit is an explicit liquidation. Buy_Next_Open
+        on the final row enters at that bar's open; the liquidation exits at
+        that same bar's close.
+        """
         prices = make_signalled_prices(
             [
                 (0, 10.0, 11.0, False, False),
                 (1, 20.0, 26.0, True, False),
             ]
         )
-        trade_log = run_backtest(prices, commission_per_trade=1.0, slippage_bps=0.0)
+        trade_log = run_backtest(
+            prices, commission_per_trade=1.0, slippage_bps=0.0,
+            starting_capital=STARTING_CAPITAL, liquidate=True,
+        )
         self.assertEqual(len(trade_log), 1)
         self.assertEqual(
             trade_log.iloc[0]["Entry Date"], trade_log.iloc[0]["Exit Date"]
@@ -221,7 +260,9 @@ class TestBoundaries(unittest.TestCase):
                 (1, 80.0, 80.0, False, True),
             ]
         )
-        trade_log = run_backtest(prices)
+        # 100.0, not STARTING_CAPITAL: the drawdown arithmetic below needs a
+        # capital base the first bar's loss is a visible fraction of.
+        trade_log = run_backtest(prices, starting_capital=100.0)
         curve = equity_curve(
             prices,
             trade_log,
@@ -233,9 +274,13 @@ class TestBoundaries(unittest.TestCase):
         # Bar 0 loses 10 immediately (bought at 100, closed at 90).
         self.assertAlmostEqual(curve["Equity"].iloc[0], 90.0)
         worst, peak_pos, trough_pos = max_drawdown(curve["Equity"])
-        self.assertLess(worst, 0.0)
-        self.assertEqual(peak_pos, 0)
-        self.assertGreater(trough_pos, 0)
+        # Anchored series: [capital 100, bar 0 = 90, bar 1 = 80 (sold at 80)].
+        # The high-water mark is the capital anchor itself, which 019 reports
+        # as peak position -1 (the pre-trade anchor, not a session); bar 0 is
+        # not its own peak. Trough is bar 1: 80 / 100 - 1 = -0.2.
+        self.assertAlmostEqual(worst, -0.2)
+        self.assertEqual(peak_pos, -1)
+        self.assertEqual(trough_pos, 1)
 
 
 class TestEmptyTradeLog(unittest.TestCase):
@@ -253,7 +298,7 @@ class TestEmptyTradeLog(unittest.TestCase):
                 (2, 30.0, 33.0, False, False),
             ]
         )
-        self.trade_log = run_backtest(self.prices, **COSTS)
+        self.trade_log = run_backtest(self.prices, **RUN)
         self.assertTrue(self.trade_log.empty)
 
     def test_curve_is_flat_at_the_capital_base(self):
@@ -261,7 +306,9 @@ class TestEmptyTradeLog(unittest.TestCase):
 
         self.assertEqual(len(curve), 3)
         self.assertTrue((curve["Bar P&L"] == 0.0).all())
-        self.assertTrue((curve["Equity"] == 11.0).all())  # first bar's Close
+        # The declared capital (019 C1), not the first bar's Close (11.0),
+        # which is the price-derived base 019 removed.
+        self.assertTrue((curve["Equity"] == STARTING_CAPITAL).all())
         self.assertTrue((curve["Position"] == 0).all())
 
     def test_sharpe_is_nan_not_zero(self):
@@ -280,7 +327,17 @@ class TestEmptyTradeLog(unittest.TestCase):
     def test_performance_summary_has_every_key(self):
         summary = performance_summary(self.prices, self.trade_log, **COSTS)
 
+        # 019 unit 6's schema (C7): the twelve pre-019 keys plus the eight
+        # below, which carry the return, HAC and end-of-data conventions.
         expected = {
+            "annualized_mean_log_return",
+            "cagr_252_sessions",
+            "mean_log_return_se_hac",
+            "hac_lags",
+            "cash_interest_rate_annual",
+            "risk_free_rate_annual",
+            "interpretation",
+            "liquidation",
             "total_trades",
             "total_pnl",
             "total_return",
@@ -310,10 +367,10 @@ class TestSharpeConventions(unittest.TestCase):
         same risk-adjusted number as an uncosted one."""
         prices = sawtooth_prices(200)
 
-        costed = performance_summary(prices, run_backtest(prices, **COSTS), **COSTS)
+        costed = performance_summary(prices, run_backtest(prices, **RUN), **COSTS)
         free = performance_summary(
             prices,
-            run_backtest(prices),
+            run_backtest(prices, starting_capital=STARTING_CAPITAL),
             commission_per_trade=0.0,
             slippage_bps=0.0,
         )
@@ -384,10 +441,12 @@ class TestValidation(unittest.TestCase):
                 (2, 30.0, 33.0, False, True),
             ]
         )
-        self.trade_log = run_backtest(self.prices, **COSTS)
+        self.trade_log = run_backtest(self.prices, **RUN)
 
-    def _expect_value_error(self, prices, trade_log=None):
-        with self.assertRaises(ValueError):
+    def _expect_value_error(self, message, prices, trade_log=None):
+        # The message is pinned so that no other 019 refusal (capital,
+        # basis, ledger) can satisfy the guard under test by accident.
+        with self.assertRaisesRegex(ValueError, message):
             equity_curve(
                 prices,
                 self.trade_log if trade_log is None else trade_log,
@@ -397,27 +456,44 @@ class TestValidation(unittest.TestCase):
     def test_duplicate_dates_raise(self):
         prices = self.prices.copy()
         prices.loc[2, "Date"] = prices.loc[1, "Date"]
-        self._expect_value_error(prices)
+        self._expect_value_error("must be unique", prices)
 
     def test_unsorted_dates_raise(self):
         prices = self.prices.iloc[::-1].reset_index(drop=True)
-        self._expect_value_error(prices)
+        self._expect_value_error("must be sorted ascending", prices)
 
-    def test_non_range_index_raises(self):
-        prices = self.prices.copy()
-        prices.index = pd.RangeIndex(start=5, stop=5 + len(prices))
-        self._expect_value_error(prices)
+    def test_a_non_range_index_is_preserved_and_changes_nothing(self):
+        """Was `test_non_range_index_raises`.
+
+        Before 019 a non-`RangeIndex` price frame was refused. 019 (C4)
+        keeps the source index instead of forcing a reset, so an offset
+        index is accepted and must give exactly the curve its `RangeIndex`
+        twin gives: the curve is built from the ledger's sessions, never
+        from index labels.
+        """
+        offset = self.prices.copy()
+        offset.index = offset.index * 3 + 7  # 7, 10, 13 (as test_019_calendar)
+        offset_log = run_backtest(offset, **RUN)
+        twin = equity_curve(self.prices, self.trade_log, **COSTS)
+
+        curve = equity_curve(offset, offset_log, **COSTS)
+
+        self.assertTrue(offset.index.equals(pd.Index([7, 10, 13])))
+        np.testing.assert_array_equal(curve["Date"], offset["Date"])
+        np.testing.assert_array_equal(curve["Equity"], twin["Equity"])
 
     def test_a_trade_date_absent_from_prices_raises(self):
         trade_log = self.trade_log.copy()
         trade_log.loc[0, "Exit Date"] = pd.Timestamp("2099-01-01")
-        self._expect_value_error(self.prices, trade_log)
+        self._expect_value_error("trade record differs", self.prices, trade_log)
 
     def test_empty_price_frame_raises(self):
-        self._expect_value_error(self.prices.iloc[:0].reset_index(drop=True))
+        self._expect_value_error(
+            "at least one bar", self.prices.iloc[:0].reset_index(drop=True)
+        )
 
     def test_negative_costs_raise(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "commission_per_trade"):
             equity_curve(
                 self.prices,
                 self.trade_log,
@@ -439,7 +515,7 @@ class TestGapCase(unittest.TestCase):
                 (4, 30.0, 33.0, False, True),
             ]
         )
-        trade_log = run_backtest(prices, **COSTS)
+        trade_log = run_backtest(prices, **RUN)
         curve = equity_curve(prices, trade_log, **COSTS)
 
         # Three bars, not five calendar days. The 252 annualization is

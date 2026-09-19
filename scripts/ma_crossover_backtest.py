@@ -23,6 +23,18 @@ LONG_WINDOW = 30
 COMMISSION_PER_TRADE = 1.00
 SLIPPAGE_BPS = 5.0
 
+# Starting capital funds all three rows identically (spec 019 C1: the harness
+# never derives capital from a price). This is a report ASSUMPTION whose value
+# Camden set per spec 021 D-4, printed like commission; it is not a result and
+# not a capital-gate number. At one share it changes no closed-trade P&L.
+STARTING_CAPITAL = 10_000.0
+
+# End-of-data policy (spec 021 D-3): every row sells a still-open position at
+# the final close, costed, as an explicit ledger `liquidation` event. Without
+# it the harness only marks the position (019 C5) and buy-and-hold would
+# report 0 closed trades. Rule 4 needs the identical policy on all three rows.
+LIQUIDATE_AT_END = True
+
 # Enough seeds for a mean and a spread to mean something. The spread is
 # reported alongside the mean because a single random run says nothing: the
 # question is whether the strategy beats the *distribution* of luck, not one
@@ -64,6 +76,8 @@ def baseline_results(
     commission_per_trade: float,
     slippage_bps: float,
     seed_count: int,
+    starting_capital: float,
+    liquidate: bool,
 ) -> dict:
     """Run both Rule 4 baselines over the same bars, with the same costs.
 
@@ -72,13 +86,18 @@ def baseline_results(
     price history and an identical cost model. That identity is the whole point
     of a baseline — any difference in the numbers then has to come from the
     signal.
+
+    `starting_capital` and `liquidate` are required, with no default: a default
+    would be the implicit funding or implicit end-of-data policy spec 019
+    forbids. Both go unchanged to every `run_backtest` call here.
     """
     costs = {
         "commission_per_trade": commission_per_trade,
         "slippage_bps": slippage_bps,
     }
+    account = {"starting_capital": starting_capital, "liquidate": liquidate}
 
-    hold_log = run_backtest(buy_and_hold_signal(prices), **costs)
+    hold_log = run_backtest(buy_and_hold_signal(prices), **costs, **account)
     results = {
         "buy_and_hold": summarize_trades(hold_log, **costs),
         "random_summaries": [],
@@ -89,7 +108,9 @@ def baseline_results(
         for seed in range(seed_count):
             signalled = random_signal(prices, n_trades, holding_bars, seed)
             results["random_summaries"].append(
-                summarize_trades(run_backtest(signalled, **costs), **costs)
+                summarize_trades(
+                    run_backtest(signalled, **costs, **account), **costs
+                )
             )
     except ValueError as error:
         # Reported, never swallowed: a random baseline that could not match the
@@ -106,12 +127,23 @@ def _comparison_row(label: str, trades: str, pnl: str, win_rate: str) -> str:
     return f"{label:<30}{trades:>7}{pnl:>24}{win_rate:>10}"
 
 
+def _end_of_data_policy(liquidate: bool) -> str:
+    """Describe the end-of-data policy in one report line."""
+    if liquidate:
+        return "open positions are sold at the final close, with costs"
+    return "open positions are marked at the final close, not sold"
+
+
 def format_comparison(sma_summary: dict, baselines: dict, *, seed_count: int) -> str:
     """Render the strategy and both baselines as one cost-adjusted block.
 
     The cost parameters are printed once, above the table, rather than repeated
     per row. Repeating them would invite the reader to check whether they
     match; printing them once makes it structurally impossible for them not to.
+    Starting capital and the end-of-data policy are stated once in the same
+    block. Summaries do not carry them, so both are read from the module
+    constants `main()` also passes to the harness, which keeps the printed
+    value and the used value from differing.
     """
     commission = sma_summary["commission_per_trade"]
     slippage = sma_summary["slippage_bps"]
@@ -122,6 +154,8 @@ def format_comparison(sma_summary: dict, baselines: dict, *, seed_count: int) ->
         f"  Commission: ${commission:,.2f} per fill, charged on entry and again"
         " on exit",
         f"  Slippage:   {slippage:.1f} bps of notional, always against the fill",
+        f"  Capital:    ${STARTING_CAPITAL:,.2f} starting cash per row (assumption)",
+        f"  End of data: {_end_of_data_policy(LIQUIDATE_AT_END)}",
         "",
         _comparison_row("Strategy", "Trades", "Total P&L", "Win rate"),
         "-" * 71,
@@ -183,7 +217,8 @@ def main():
         "commission_per_trade": COMMISSION_PER_TRADE,
         "slippage_bps": SLIPPAGE_BPS,
     }
-    trade_log = run_backtest(prices, **costs)
+    account = {"starting_capital": STARTING_CAPITAL, "liquidate": LIQUIDATE_AT_END}
+    trade_log = run_backtest(prices, **costs, **account)
     trade_log.to_csv(cache_path("phase0_aapl_ma_crossover_trades.csv"), index=False)
 
     print(f"{TICKER} SMA crossover backtest")
@@ -209,6 +244,7 @@ def main():
         holding_bars=mean_holding_bars(prices, trade_log),
         seed_count=RANDOM_BASELINE_SEEDS,
         **costs,
+        **account,
     )
 
     print("\nSummary, against both required baselines:\n")

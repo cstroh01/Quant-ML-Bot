@@ -119,9 +119,19 @@ class TestSignalFromPredictions(unittest.TestCase):
         self.assertFalse(sell.any())
 
 
+# Spec 019 C1: the harness requires declared capital. Large enough that no
+# one-share entry is rejected (spec 021 D-4 test convention); not the report's
+# assumption.
+STARTING_CAPITAL = 1_000_000.0
+
+
 class TestBuildMlSignalEndToEnd(unittest.TestCase):
     """T012 — smoke test: build_ml_signal + run_backtest runs cleanly and
-    pre-coverage rows are flat."""
+    pre-coverage rows are flat.
+
+    Spec 021: the 019 harness requires declared capital (C1) and an explicit
+    end-of-data choice (C5). This passes terminal liquidation, the policy
+    `main()` uses (D-3), so any position still open is closed and costed."""
 
     def test_runs_without_error_and_pnl_is_finite(self):
         from backtest_harness import run_backtest
@@ -136,7 +146,13 @@ class TestBuildMlSignalEndToEnd(unittest.TestCase):
         self.assertFalse(pre_coverage["Sell_Next_Open"].any())
 
         live = signalled.iloc[first_covered_pos:].reset_index(drop=True)
-        trade_log = run_backtest(live, commission_per_trade=1.0, slippage_bps=5.0)
+        trade_log = run_backtest(
+            live,
+            commission_per_trade=1.0,
+            slippage_bps=5.0,
+            starting_capital=STARTING_CAPITAL,
+            liquidate=True,
+        )
 
         self.assertTrue(np.isfinite(trade_log["Cumulative P&L"]).all())
 

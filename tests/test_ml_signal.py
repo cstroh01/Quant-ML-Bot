@@ -31,6 +31,10 @@ PRICE = 250.0
 COMMISSION = 1.0
 SLIPPAGE_BPS = 5.0
 
+# 019 C1: capital is declared, never taken from a price. 021 D-4: one test
+# constant per module, large enough that no fixture entry is ever rejected.
+STARTING_CAPITAL = 1_000_000.0
+
 
 def hand_hurdle(
     price: float = PRICE,
@@ -282,7 +286,11 @@ class NullPredictionTests(unittest.TestCase):
             0.1,
             exit_threshold=0.0,
         )
-        self.assertEqual(list(desired), [True, True, False, True, False])
+        # [0] 0.5 > 0.1 enters; [1] 0.5 is not < 0.0, holds; [2] null exits;
+        # [3] 0.5 > 0.1 re-enters; [4] 0.0 is not < exit 0.0, so it holds --
+        # the batch end is not a decision (019 C5).
+        self.assertEqual(list(desired), [True, True, False, True, True])
+        self.assertFalse(desired.iloc[2])  # the null exit itself
 
     def test_zero_is_distinct_from_null(self):
         # The mutation SC-007 names: null treated as 0.0. Under a negative
@@ -426,9 +434,17 @@ class HysteresisTests(unittest.TestCase):
         self.assertTrue(desired.iloc[1])
         self.assertTrue(desired.iloc[2])
 
-    def test_a_still_long_final_bar_is_forced_flat(self):
+    def test_a_still_long_final_bar_keeps_its_decision(self):
+        """Was `test_a_still_long_final_bar_is_forced_flat`.
+
+        Before 019 the policy layer forced the final bar flat. 019 (C5)
+        removed that: ending a batch is not a decision, and whether an open
+        position is marked or liquidated is the accounting caller's choice.
+        """
         desired = self._desired([2.0, 2.0, 2.0, 2.0])
-        self.assertFalse(desired.iloc[-1])
+        # Every row is 2h > h, so the position is entered on [0] and never
+        # falls below the 0.0 exit threshold.
+        self.assertTrue(desired.iloc[-1])
 
     def test_an_empty_series_is_an_empty_mask(self):
         desired = positions_from_predicted_return(
@@ -461,7 +477,11 @@ class OrderingTests(unittest.TestCase):
         desired = positions_from_predicted_return(
             predictions, hurdle, exit_threshold=0.0
         )
-        self.assertEqual(list(desired), [True, False, True, False, False])
+        # $1000 rows: log1p(2 * $1 / 1000) = log1p(0.002) < 0.01, so enter.
+        # -1.0 rows exit (-1.0 < 0.0). The final row is judged like [0] and
+        # [2], by its own $1000 hurdle; the batch end is not forced flat
+        # (019 C5), so it enters too.
+        self.assertEqual(list(desired), [True, False, True, False, True])
 
         # The mutation SC-007 names -- the shift applied before the
         # comparison -- pairs row t's decision with row t-1's price. It must
@@ -502,10 +522,13 @@ class HarnessReconciliationTests(unittest.TestCase):
                 "Sell_Next_Open": [False, False, True, False],
             }
         )
+        # Test-only basis declaration (019 C6, R-04): synthetic nominal bars.
+        prices.attrs["price_basis"] = "unadjusted_dollars"
         trade_log = run_backtest(
             prices,
             commission_per_trade=commission,
             slippage_bps=slippage_bps,
+            starting_capital=STARTING_CAPITAL,
         )
         self.assertEqual(len(trade_log), 1)
         return float(trade_log["P&L"].iloc[0])
@@ -543,8 +566,11 @@ class HarnessReconciliationTests(unittest.TestCase):
                 "Sell_Next_Open": [False, False, True, False],
             }
         )
+        # Test-only basis declaration (019 C6, R-04): synthetic nominal bars.
+        prices.attrs["price_basis"] = "unadjusted_dollars"
         trade_log = run_backtest(
-            prices, commission_per_trade=COMMISSION, slippage_bps=SLIPPAGE_BPS
+            prices, commission_per_trade=COMMISSION, slippage_bps=SLIPPAGE_BPS,
+            starting_capital=STARTING_CAPITAL,
         )
         self.assertGreater(abs(float(trade_log["P&L"].iloc[0])), 1e-9)
 
@@ -697,6 +723,10 @@ def _synthetic_frame(periods: int = 500, seed: int = 42) -> pd.DataFrame:
     No network, no cache: the point of the sweep below is the code path, not
     the predictive content, so a random walk with two features is enough and
     keeps the test suite offline (Rule 5).
+
+    Carries `Open` because the 019 label (C3) is open-to-open: each open is
+    the prior close, so it is strictly positive. Warm-up rows are kept with
+    NaN features (C4); `model_row_masks` excludes them after splitting.
     """
     rng = np.random.default_rng(seed)
     dates = pd.date_range("2020-01-01", periods=periods, freq="B")
@@ -705,12 +735,13 @@ def _synthetic_frame(periods: int = 500, seed: int = 42) -> pd.DataFrame:
     frame = pd.DataFrame(
         {
             "Date": dates,
+            "Open": np.r_[100.0, close[:-1]],
             "Close": close,
             "Feature_A": pd.Series(steps).rolling(5).mean().to_numpy(),
             "Feature_B": pd.Series(steps).rolling(10).std().to_numpy(),
         }
     )
-    return frame.dropna().reset_index(drop=True)
+    return frame
 
 
 class EstimatorAgnosticTests(unittest.TestCase):
@@ -733,22 +764,23 @@ class EstimatorAgnosticTests(unittest.TestCase):
 
     def _predictions(self, name: str, task: str) -> pd.Series:
         from estimators import CLASSIFICATION, fit_predict_walk_forward
-        from targets import direction_label, forward_log_return_label
+        from targets import DIRECTION, FORWARD_RETURN, build_target
 
-        if task == CLASSIFICATION:
-            label = direction_label(self.frame, horizon=1)
-        else:
-            label = forward_log_return_label(self.frame, horizon=1)
-        frame = self.frame.assign(Label=label).dropna(subset=["Label"])
-        frame = frame.reset_index(drop=True)
+        kind = DIRECTION if task == CLASSIFICATION else FORWARD_RETURN
+        # Purge and embargo are the label's availability span (019 C2,
+        # FR-004), taken from build_target rather than written as a literal.
+        label, _, span = build_target(self.frame, kind=kind, horizon=1)
+        # No dropna: unknown-label and warm-up rows stay, and are masked
+        # after splitting (C4, FR-007).
+        frame = self.frame.assign(Label=label)
         return fit_predict_walk_forward(
             frame,
             feature_columns=["Feature_A", "Feature_B"],
             label_column="Label",
             task=task,
             name=name,
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=42,
             initial_train_months=6,
             test_months=3,
@@ -760,6 +792,9 @@ class EstimatorAgnosticTests(unittest.TestCase):
         for name, task in sorted(ESTIMATOR_REGISTRY):
             with self.subTest(name=name, task=task):
                 predictions = self._predictions(name, task)
+                # One prediction per source row: nothing was dropped (C4).
+                self.assertTrue(predictions.index.equals(self.frame.index))
+                self.assertTrue(predictions.notna().any())  # not vacuously null
                 if task == CLASSIFICATION:
                     desired = positions_from_direction(predictions)
                 else:

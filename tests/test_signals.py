@@ -8,6 +8,10 @@ from context import SCRIPTS_DIR  # noqa: F401  (import for the sys.path effect)
 from backtest_harness import run_backtest
 from signals import buy_and_hold_signal, random_signal, sma_crossover_signal
 
+# Spec 019 C1: the harness requires declared capital. Large enough that no
+# one-share entry here is ever rejected (spec 021 D-4 test convention).
+STARTING_CAPITAL = 1_000_000.0
+
 
 def make_prices(closes: list[float]) -> pd.DataFrame:
     """Build a minimal one-ticker price frame with distinguishable columns.
@@ -94,16 +98,46 @@ class BuyAndHoldSignalTests(unittest.TestCase):
         self.assertEqual(list(signals.index[signals["Buy_Next_Open"]]), [1])
         self.assertFalse(signals["Sell_Next_Open"].any())
 
-    def test_the_harness_closes_the_position_at_the_final_close(self):
-        # No exit logic is added anywhere for this baseline; it relies on the
-        # harness's existing end-of-data mark. This is the test that says so.
+    def test_liquidation_closes_the_position_at_the_final_close(self):
+        """Terminal liquidation (`liquidate=True`), the policy reports use (D-3).
+
+        Before spec 019 the harness closed any open position at the final
+        close on its own. Since 019 (C5) it only marks it; a closed round trip
+        exists only because the accounting caller asks for liquidation. No
+        exit logic is added to the signal layer for this baseline.
+        """
         closes = [10.0, 20.0, 30.0, 40.0]
-        trade_log = run_backtest(buy_and_hold_signal(make_prices(closes)))
+        trade_log = run_backtest(
+            buy_and_hold_signal(make_prices(closes)),
+            starting_capital=STARTING_CAPITAL,
+            liquidate=True,
+        )
 
         self.assertEqual(len(trade_log), 1)
-        # Open is Close + 100 in this fixture, so the entry is row 1's open.
+        # Open is Close + 100 and costs are zero: entry = row 1's open =
+        # 20 + 100 = 120.0; exit = final close = 40.0.
         self.assertEqual(trade_log.iloc[0]["Entry Price"], 120.0)
         self.assertEqual(trade_log.iloc[0]["Exit Price"], 40.0)
+
+    def test_without_liquidation_the_position_is_marked_not_closed(self):
+        """Mark-only, the 019 default (C5): end of data is not an exit.
+
+        The trade log is empty, and the ledger's last `mark` still holds the
+        one share at the final close.
+        """
+        closes = [10.0, 20.0, 30.0, 40.0]
+        trade_log = run_backtest(
+            buy_and_hold_signal(make_prices(closes)),
+            starting_capital=STARTING_CAPITAL,
+        )
+
+        self.assertTrue(trade_log.empty)
+        ledger = trade_log.attrs["ledger"]
+        final_mark = ledger[ledger["Event"] == "mark"].iloc[-1]
+        # One share bought on row 1, never sold; marked at the final close,
+        # closes[-1] = 40.0.
+        self.assertEqual(final_mark["Quantity"], 1)
+        self.assertEqual(final_mark["Price"], 40.0)
 
     def test_a_single_row_frame_produces_no_trade_rather_than_crashing(self):
         # Boundary case: there is no next bar to shift the entry onto, which is
@@ -111,13 +145,22 @@ class BuyAndHoldSignalTests(unittest.TestCase):
         signals = buy_and_hold_signal(make_prices([10.0]))
 
         self.assertFalse(signals["Buy_Next_Open"].any())
-        self.assertTrue(run_backtest(signals).empty)
+        self.assertTrue(
+            run_backtest(signals, starting_capital=STARTING_CAPITAL).empty
+        )
 
-    def test_an_empty_frame_produces_no_trade_rather_than_crashing(self):
+    def test_an_empty_frame_yields_no_entry_and_the_harness_refuses_it(self):
+        """The signal layer says "no trade"; the 019 harness refuses the frame.
+
+        Before spec 019 an empty frame ran to an empty trade log. Since 019
+        (C6) `run_backtest` rejects an empty frame with a named error, so
+        "no trade" is asserted where it lives, at the signal layer (FR-014).
+        """
         signals = buy_and_hold_signal(make_prices([]))
 
         self.assertFalse(signals["Buy_Next_Open"].any())
-        self.assertTrue(run_backtest(signals).empty)
+        with self.assertRaisesRegex(ValueError, "nonempty"):
+            run_backtest(signals, starting_capital=STARTING_CAPITAL)
 
     def test_caller_frame_is_not_modified(self):
         prices = make_prices([1, 2, 3, 4])
@@ -130,7 +173,9 @@ class BuyAndHoldSignalTests(unittest.TestCase):
 
 class RandomSignalTests(unittest.TestCase):
     def price_frame(self, n_bars: int = 120):
-        return make_prices([float(bar) for bar in range(n_bars)])
+        # Strictly positive closes 1..n_bars: the 019 harness refuses a
+        # non-positive price, and a zero close at row 0 would trip it.
+        return make_prices([float(bar) for bar in range(1, n_bars + 1)])
 
     def test_the_same_seed_twice_gives_an_identical_trade_log(self):
         # SC-003, and the project's determinism convention: a result that
@@ -173,7 +218,10 @@ class RandomSignalTests(unittest.TestCase):
         # Non-overlap stated as the harness sees it: a trip that opened while
         # another was still open would be swallowed by the one-share state
         # machine and the count would come back short.
-        trade_log = run_backtest(random_signal(self.price_frame(), 8, 12, seed=3))
+        trade_log = run_backtest(
+            random_signal(self.price_frame(), 8, 12, seed=3),
+            starting_capital=STARTING_CAPITAL,
+        )
 
         self.assertEqual(len(trade_log), 8)
 
@@ -194,7 +242,9 @@ class RandomSignalTests(unittest.TestCase):
 
         self.assertFalse(signals["Buy_Next_Open"].any())
         self.assertFalse(signals["Sell_Next_Open"].any())
-        self.assertTrue(run_backtest(signals).empty)
+        self.assertTrue(
+            run_backtest(signals, starting_capital=STARTING_CAPITAL).empty
+        )
 
     def test_too_few_bars_raises_rather_than_quietly_shortening_the_baseline(self):
         # Returning 3 trades when 8 were asked for would silently break the
@@ -205,13 +255,15 @@ class RandomSignalTests(unittest.TestCase):
             random_signal(self.price_frame(5), 1, 12, seed=0)
 
     def test_a_frame_sized_to_the_exact_minimum_still_works(self):
-        # n trips of length h need n * h bars plus one unused row at each end:
-        # row 0, which carries no fill, and the row the last exit fills on.
-        signals = random_signal(self.price_frame(2 * 12 + 2), 2, 12, seed=0)
+        # Spec 021 (FR-011) moved the bound: n trips of length h now need
+        # n * (h + 1) + 1 rows, i.e. row 0 (no fill), each trip plus its
+        # one-row gap. 2 * (12 + 1) + 1 = 27; the old bound was 2 * 12 + 2.
+        minimum = 2 * (12 + 1) + 1
+        signals = random_signal(self.price_frame(minimum), 2, 12, seed=0)
 
         self.assertEqual(int(signals["Buy_Next_Open"].sum()), 2)
-        with self.assertRaises(ValueError):
-            random_signal(self.price_frame(2 * 12 + 1), 2, 12, seed=0)
+        with self.assertRaisesRegex(ValueError, "bars are needed"):
+            random_signal(self.price_frame(minimum - 1), 2, 12, seed=0)
 
     def test_invalid_arguments_are_rejected(self):
         with self.assertRaises(ValueError):
@@ -226,6 +278,74 @@ class RandomSignalTests(unittest.TestCase):
         random_signal(prices, 8, 12, seed=0)
 
         self.assertEqual(list(prices.columns), original_columns)
+
+
+class RandomSignalSpacingTests(unittest.TestCase):
+    """Rule 5 tests for the one-row gap between trips (spec 021 FR-011, R-4).
+
+    The 019 harness refuses a row carrying both flags, and a same-open
+    sell-then-buy is two costed fills with no change in position, so trip i's
+    exit and trip i+1's entry must land on different rows. Every assertion
+    here is row-positional: `random_signal` reads the frame's length and
+    nothing else.
+    """
+
+    @staticmethod
+    def positive_frame(n_bars: int) -> pd.DataFrame:
+        # Strictly positive closes, so the 019 harness would accept the frame.
+        return make_prices([float(bar) for bar in range(1, n_bars + 1)])
+
+    def test_no_row_carries_both_flags_for_any_seed(self):
+        # Off-by-one case. With h = 10 held rows plus the one-row gap, entry
+        # i+1 is at least 10 + 1 = 11 rows after entry i.
+        n_trades, holding = 8, 10
+        min_entry_gap = holding + 1
+        for seed in range(50):
+            with self.subTest(seed=seed):
+                signals = random_signal(
+                    self.positive_frame(200), n_trades, holding, seed
+                )
+                both = signals.index[
+                    signals["Buy_Next_Open"] & signals["Sell_Next_Open"]
+                ]
+                self.assertEqual(list(both), [], f"rows with both flags: {list(both)}")
+                entries = list(signals.index[signals["Buy_Next_Open"]])
+                for previous, following in zip(entries, entries[1:]):
+                    self.assertGreaterEqual(following - previous, min_entry_gap)
+
+    def test_the_tightest_feasible_frame_is_accepted_and_one_row_less_raises(self):
+        # Boundary case. First entry at row 1; trip k (1-based) exits at row
+        # 1 + (k-1)(h+1) + h. For k = n_trades that must be <= n - 1, so
+        # n >= n_trades*(h+1) + 1 = 2*(12+1) + 1 = 27.
+        n_trades, holding = 2, 12
+        tightest = n_trades * (holding + 1) + 1
+
+        signals = random_signal(self.positive_frame(tightest), n_trades, holding, 0)
+        entries = list(signals.index[signals["Buy_Next_Open"]])
+        exits = list(signals.index[signals["Sell_Next_Open"]])
+        self.assertEqual(len(entries), n_trades)
+        self.assertGreaterEqual(entries[0], 1)
+        self.assertLessEqual(exits[-1], tightest - 1)
+
+        with self.assertRaisesRegex(ValueError, rf"\b{tightest}\b"):
+            random_signal(self.positive_frame(tightest - 1), n_trades, holding, 0)
+
+    def test_calendar_holes_do_not_move_row_positions(self):
+        # Gap case. Same row count, one frame missing a business day (a
+        # holiday hole); the signal columns must be identical row by row.
+        n_bars = 60
+        contiguous = self.positive_frame(n_bars)
+        holed = contiguous.copy()
+        business_days = pd.date_range("2024-01-01", periods=n_bars + 1, freq="B")
+        holed["Date"] = business_days.delete(10)
+
+        columns = ["Buy_Next_Open", "Sell_Next_Open"]
+        for seed in range(10):
+            with self.subTest(seed=seed):
+                pd.testing.assert_frame_equal(
+                    random_signal(contiguous, 3, 10, seed)[columns],
+                    random_signal(holed, 3, 10, seed)[columns],
+                )
 
 
 if __name__ == "__main__":

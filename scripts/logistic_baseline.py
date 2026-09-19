@@ -29,6 +29,12 @@ FEATURE_COLUMNS = [
 # worth adding for that alone (see spec 005 plan).
 COMMISSION_PER_TRADE = 1.00
 SLIPPAGE_BPS = 5.0
+# Capital and end-of-data policy, restated the same way (spec 021 D-4, D-3):
+# the capital is a report ASSUMPTION Camden set, not a result or a
+# capital-gate number; liquidation sells a still-open position at the final
+# close, costed, identically on all three rows.
+STARTING_CAPITAL = 10_000.0
+LIQUIDATE_AT_END = True
 RANDOM_BASELINE_SEEDS = 20
 CURRENCY_COLUMNS = ["Entry Price", "Exit Price", "P&L", "Cumulative P&L"]
 
@@ -238,6 +244,13 @@ def _format_ml_comparison(ml_summary: dict, baselines: dict, *, seed_count: int)
     commission = ml_summary["commission_per_trade"]
     slippage = ml_summary["slippage_bps"]
     hold = baselines["buy_and_hold"]
+    # Summaries do not carry capital or the end-of-data policy, so both come
+    # from the module constants main() also passes to the harness.
+    end_of_data = (
+        "open positions are sold at the final close, with costs"
+        if LIQUIDATE_AT_END
+        else "open positions are marked at the final close, not sold"
+    )
 
     def row(label: str, trades: str, pnl: str, win_rate: str) -> str:
         return f"{label:<30}{trades:>7}{pnl:>24}{win_rate:>10}"
@@ -247,6 +260,8 @@ def _format_ml_comparison(ml_summary: dict, baselines: dict, *, seed_count: int)
         f"  Commission: ${commission:,.2f} per fill, charged on entry and again"
         " on exit",
         f"  Slippage:   {slippage:.1f} bps of notional, always against the fill",
+        f"  Capital:    ${STARTING_CAPITAL:,.2f} starting cash per row (assumption)",
+        f"  End of data: {end_of_data}",
         "",
         row("Strategy", "Trades", "Total P&L", "Win rate"),
         "-" * 71,
@@ -311,7 +326,8 @@ def main() -> None:
         "commission_per_trade": COMMISSION_PER_TRADE,
         "slippage_bps": SLIPPAGE_BPS,
     }
-    trade_log = run_backtest(live, **costs)
+    account = {"starting_capital": STARTING_CAPITAL, "liquidate": LIQUIDATE_AT_END}
+    trade_log = run_backtest(live, **costs, **account)
     trade_log.to_csv(cache_path("phase2_logistic_baseline_trades.csv"), index=False)
 
     print(f"\n{TICKER} logistic-regression walk-forward backtest")
@@ -337,6 +353,7 @@ def main() -> None:
         holding_bars=mean_holding_bars(live, trade_log),
         seed_count=RANDOM_BASELINE_SEEDS,
         **costs,
+        **account,
     )
 
     print("\nSummary, against both required baselines:\n")

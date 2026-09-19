@@ -325,6 +325,23 @@ Defects handed to the follow-on:
   - The random baseline error is caught at `:143-148`. 021's `random_signal`
     fix removes its cause.
 
+**Rule 4 compliance blocker, not a known limitation.** Since spec 019
+landed, `random_signal` put exit *i* and entry *i+1* on one row, the 019
+harness rejected it, and both callers (`ma_crossover_backtest.baseline_results`
+and `multi_ticker_comparison._baseline_rows`) caught the error and printed a
+reason in place of the baseline. Every comparison table produced through
+either path since 019 has therefore been missing its required random-signal
+baseline, silently. 021 lane B fixes the cause in `signals.py` (not frozen;
+Camden confirmed 2026-09-18) and restores the baseline for
+`ma_crossover_backtest`. `multi_ticker_comparison.py` stays frozen, so its
+tables do not get a Rule 4 baseline until the follow-on spec wires capital,
+the end-of-data policy and 020 data through it. No table from that script
+may be read as Rule 4 compliant before then. The follow-on is **not yet
+numbered**: `TODO(spec-NNN, number assigned by Camden): frozen-file
+follow-on — Rule 4 blocker`. The `feature_set_comparison.py:367` cast is a
+separate defect (NaN-label scoring, not a baseline). It is also frozen and
+also handed to that follow-on, and a test-side fix would only hide it.
+
 ### D-6 — Lane ownership and overlap
 
 - **The concurrent cost_utils lane.** It touches `test_metrics.py`,

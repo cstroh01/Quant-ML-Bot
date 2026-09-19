@@ -439,7 +439,12 @@ class TestTuneOnFoldIsolation(unittest.TestCase):
 
     def setUp(self):
         self.frame = _learnable_frame(kind="direction")
-        outer = list(walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1))
+        # Purge and embargo are the label availability span (spec 019 C2),
+        # read from the frame rather than written as a literal (FR-003).
+        span = self.frame.attrs["label_availability_span"]
+        outer = list(
+            walk_forward_splits(self.frame, label_horizon=span, embargo_bars=span)
+        )
         self.assertGreater(len(outer), 3)
         # A late fold: long enough to support several inner folds, and one
         # whose training positions genuinely carry embargo holes.
@@ -450,15 +455,22 @@ class TestTuneOnFoldIsolation(unittest.TestCase):
             task=CLASSIFICATION,
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=42,
             inner_initial_train_months=6,
             inner_test_months=2,
         )
 
     def _corrupted(self) -> pd.DataFrame:
-        """Sentinel values in every row outside the outer training positions."""
+        """Sentinel values in every row outside the outer training positions.
+
+        Features are overwritten on every outside row. The label is flipped
+        only where it is known: under spec 019 (C4) the final `span` rows
+        keep an unknown `<NA>` label, which has no flip, and casting it to
+        int raises. Those rows are never train-eligible, so leaving their
+        label unknown hides nothing a leak could read.
+        """
         corrupt = self.frame.copy()
         outside = np.setdiff1d(
             np.arange(len(corrupt)), self.train_indices, assume_unique=False
@@ -467,8 +479,10 @@ class TestTuneOnFoldIsolation(unittest.TestCase):
         for column in SCALE_FREE_FEATURE_COLUMNS:
             corrupt.iloc[outside, corrupt.columns.get_loc(column)] = 1e9
         label_position = corrupt.columns.get_loc("Label")
-        corrupt.iloc[outside, label_position] = (
-            1 - corrupt.iloc[outside, label_position].astype(int)
+        known = outside[corrupt.iloc[outside, label_position].notna().to_numpy()]
+        self.assertGreater(known.size, 0)
+        corrupt.iloc[known, label_position] = (
+            1 - corrupt.iloc[known, label_position].astype(int)
         )
         return corrupt
 
@@ -644,7 +658,10 @@ class TestSelectionActuallySelects(unittest.TestCase):
 
     def test_the_winner_has_the_lowest_mean_inner_score(self):
         frame = _learnable_frame(kind="return")
-        outer = list(walk_forward_splits(frame, label_horizon=1, embargo_bars=1))
+        span = frame.attrs["label_availability_span"]  # C2; never a literal
+        outer = list(
+            walk_forward_splits(frame, label_horizon=span, embargo_bars=span)
+        )
         train_indices = outer[-1][0]
         params, tuned, scores = tune_on_fold(
             frame,
@@ -653,8 +670,8 @@ class TestSelectionActuallySelects(unittest.TestCase):
             task=REGRESSION,
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=42,
         )
         self.assertTrue(tuned)
@@ -666,7 +683,10 @@ class TestSelectionActuallySelects(unittest.TestCase):
     def test_scores_differ_across_candidates(self):
         """Otherwise the selection test above would pass on any implementation."""
         frame = _learnable_frame(kind="return")
-        outer = list(walk_forward_splits(frame, label_horizon=1, embargo_bars=1))
+        span = frame.attrs["label_availability_span"]  # C2; never a literal
+        outer = list(
+            walk_forward_splits(frame, label_horizon=span, embargo_bars=span)
+        )
         _, _, scores = tune_on_fold(
             frame,
             outer[-1][0],
@@ -674,8 +694,8 @@ class TestSelectionActuallySelects(unittest.TestCase):
             task=REGRESSION,
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=42,
         )
         means = scores.groupby("Grid_Point")["Score"].mean().to_numpy()
@@ -740,14 +760,15 @@ class TestNestedWalkForward(unittest.TestCase):
 
     def test_regression_path_produces_finite_floats(self):
         frame = _learnable_frame(kind="return")
+        span = frame.attrs["label_availability_span"]  # C2; never a literal
         predictions, covered, results = nested_walk_forward(
             frame,
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=REGRESSION,
             name="ridge",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=42,
         )
         self.assertEqual(str(predictions.dtype), "float64")
@@ -792,13 +813,14 @@ class TestDeterminism(unittest.TestCase):
 
     def test_repeated_nested_runs_agree(self):
         frame = _learnable_frame(kind="return")
+        span = frame.attrs["label_availability_span"]  # C2; never a literal
         kwargs = dict(
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=REGRESSION,
             name="ridge",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=13,
         )
         first_pred, first_cov, first_results = nested_walk_forward(frame, **kwargs)
@@ -809,14 +831,17 @@ class TestDeterminism(unittest.TestCase):
 
     def test_repeated_tuning_selects_the_same_candidate(self):
         frame = _learnable_frame(kind="return")
-        outer = list(walk_forward_splits(frame, label_horizon=1, embargo_bars=1))
+        span = frame.attrs["label_availability_span"]  # C2; never a literal
+        outer = list(
+            walk_forward_splits(frame, label_horizon=span, embargo_bars=span)
+        )
         kwargs = dict(
             name="ridge",
             task=REGRESSION,
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=13,
         )
         first = tune_on_fold(frame, outer[-1][0], **kwargs)

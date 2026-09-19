@@ -31,11 +31,13 @@ from test_ma_crossover_backtest import make_prices
 
 
 def _walk(n: int, seed: int = 7) -> pd.DataFrame:
-    """A price frame with a non-monotonic close, so a direction label has
-    both classes and a wrong shift changes the answer.
+    """A price frame with a non-monotonic close, and so a non-monotonic open
+    (`make_prices` sets Open = Close + 1), so a direction label has both
+    classes and a wrong shift changes the answer.
 
-    `Volume` is added because every feature set needs it, and
-    `build_features` drops on it — `make_prices` alone gives Date/Open/Close.
+    `Volume` is added because `Rel_Volume` reads it and `build_features`
+    copies it onto the frame — `make_prices` alone gives Date/Open/Close.
+    Since 019 (C4) `build_features` drops no row; it flags them instead.
     """
     rng = np.random.default_rng(seed)
     closes = 100.0 + np.cumsum(rng.normal(scale=1.5, size=n))
@@ -45,18 +47,28 @@ def _walk(n: int, seed: int = 7) -> pd.DataFrame:
 
 
 class TestDirectionLabel(unittest.TestCase):
-    def test_label_at_t_compares_against_close_at_t_plus_horizon(self):
+    def test_label_compares_the_exit_open_against_the_entry_open(self):
+        """Label at t is the sign of Open[t+h+1] vs Open[t+1] (019 C3).
+
+        Was `..._compares_against_close_at_t_plus_horizon`: before 019 the
+        label compared Close[t+h] with Close[t]. The closes here are chosen so
+        the close reading gives a different h = 1 answer ([1, 0, 1, 0]).
+        """
+        # Closes [10, 12, 11, 15, 14]; make_prices sets Open = Close + 1,
+        # so Open = [11, 13, 12, 16, 15].
         prices = make_prices([10.0, 12.0, 11.0, 15.0, 14.0])
 
         one = direction_label(prices, horizon=1)
-        # 10->12 up, 12->11 down, 11->15 up, 15->14 down, last unobservable.
-        self.assertEqual(one.tolist()[:4], [1, 0, 1, 0])
-        self.assertTrue(pd.isna(one.iloc[4]))
+        # t=0: Open[2]=12 > Open[1]=13? no -> 0.  t=1: 16 > 12 -> 1.
+        # t=2: Open[4]=15 > Open[3]=16? no -> 0.  t=3, t=4 need Open[5]: NA.
+        self.assertEqual(one.tolist()[:3], [0, 1, 0])
+        self.assertTrue(one.iloc[3:].isna().all())
 
         two = direction_label(prices, horizon=2)
-        # 10->11 up, 12->15 up, 11->14 up, last two unobservable.
-        self.assertEqual(two.tolist()[:3], [1, 1, 1])
-        self.assertTrue(two.iloc[3:].isna().all())
+        # t=0: Open[3]=16 > Open[1]=13 -> 1.  t=1: Open[4]=15 > Open[2]=12 -> 1.
+        # t=2..4 need Open[5] or later: NA (h + 1 = 3 rows).
+        self.assertEqual(two.tolist()[:2], [1, 1])
+        self.assertTrue(two.iloc[2:].isna().all())
 
     def test_a_flat_close_counts_as_down(self):
         # Stated convention, matching logistic_baseline.build_features:47.
@@ -65,25 +77,36 @@ class TestDirectionLabel(unittest.TestCase):
 
     def test_dtype_is_nullable_so_the_tail_cannot_become_false(self):
         """A bool or int64 column cannot hold a null, so the unobservable
-        tail would silently become False/0 — a fabricated target."""
+        tail would silently become False/0 — a fabricated target.
+
+        Since 019 (C2) the tail is h + 1 rows: at h = 3 the last 4 rows lack
+        the exit open Open[t+4].
+        """
         label = direction_label(_walk(20), horizon=3)
 
         self.assertEqual(str(label.dtype), "Int64")
-        self.assertTrue(label.iloc[-3:].isna().all())
-        self.assertFalse(label.iloc[:-3].isna().any())
+        self.assertTrue(label.iloc[-4:].isna().all())
+        self.assertFalse(label.iloc[:-4].isna().any())
 
 
 class TestForwardLogReturnLabel(unittest.TestCase):
     def test_value_is_the_log_ratio_over_the_horizon(self):
-        prices = make_prices([100.0, 110.0, 121.0])
+        """log(Open[t+h+1] / Open[t+1]) (019 C3), not log(Close[t+h]/Close[t])."""
+        # Closes [100, 110, 121, 133.1]; Open = Close + 1 = [101, 111, 122, 134.1].
+        prices = make_prices([100.0, 110.0, 121.0, 133.1])
 
         label = forward_log_return_label(prices, horizon=1)
-        self.assertAlmostEqual(label.iloc[0], np.log(110.0 / 100.0))
-        self.assertAlmostEqual(label.iloc[1], np.log(121.0 / 110.0))
-        self.assertTrue(np.isnan(label.iloc[2]))
+        # t=0: log(Open[2]/Open[1]) = log(122/111).
+        # t=1: log(Open[3]/Open[2]) = log(134.1/122).
+        # t=2, t=3 need Open[4] or later: the last h + 1 = 2 rows are NaN.
+        self.assertAlmostEqual(label.iloc[0], np.log(122.0 / 111.0))
+        self.assertAlmostEqual(label.iloc[1], np.log(134.1 / 122.0))
+        self.assertTrue(label.iloc[2:].isna().all())
 
         two = forward_log_return_label(prices, horizon=2)
-        self.assertAlmostEqual(two.iloc[0], np.log(121.0 / 100.0))
+        # t=0: log(Open[3]/Open[1]) = log(134.1/111); last h + 1 = 3 rows NaN.
+        self.assertAlmostEqual(two.iloc[0], np.log(134.1 / 111.0))
+        self.assertTrue(two.iloc[1:].isna().all())
 
     def test_log_returns_add_across_the_horizon(self):
         """The property log returns are chosen for: a two-bar return is the
@@ -98,11 +121,20 @@ class TestForwardLogReturnLabel(unittest.TestCase):
             two.iloc[:-2], expected.iloc[:-2], check_names=False
         )
 
-    def test_non_positive_close_is_nan_not_negative_infinity(self):
-        prices = make_prices([100.0, 0.0, 50.0])
+    def test_a_non_positive_open_endpoint_is_nan_not_infinite(self):
+        """Was `test_non_positive_close_is_nan_not_negative_infinity`: since
+        019 (C3) the label reads opens, so the zero goes on an *Open*. A zero
+        entry open would give log(x) - log(0) = +inf if unguarded.
+        """
+        # Closes [100, 110, 50, 60]; Open = Close + 1 = [101, 111, 51, 61],
+        # then zero Open[1], which is row 0's entry endpoint (h = 1).
+        prices = make_prices([100.0, 110.0, 50.0, 60.0])
+        prices.loc[1, "Open"] = 0.0
         label = forward_log_return_label(prices, horizon=1)
 
         self.assertTrue(np.isnan(label.iloc[0]))
+        # Row 1 does not touch Open[1]: log(Open[3]/Open[2]) = log(61/51).
+        self.assertAlmostEqual(label.iloc[1], np.log(61.0 / 51.0))
         self.assertFalse(np.isinf(label.to_numpy()).any())
 
 
@@ -281,20 +313,23 @@ class TestOffByOneGuardsFireOnARealBug(unittest.TestCase):
 
 
 class TestBoundaries(unittest.TestCase):
-    """SC-003 / SC-006 — the unobservable tail, and an over-long horizon."""
+    """SC-003 / SC-006 — the unobservable h + 1 tail, and an over-long horizon."""
 
-    def test_exactly_the_last_horizon_rows_are_null(self):
+    def test_exactly_the_last_span_rows_are_null(self):
+        """Was `test_exactly_the_last_horizon_rows_are_null`: since 019 (C2)
+        row t needs Open[t+h+1], so the last h + 1 rows are unobservable."""
         n = 25
         prices = _walk(n)
         for horizon in (1, 2, 3, 7):
+            span = horizon + 1
             with self.subTest(horizon=horizon):
                 for label in (
                     direction_label(prices, horizon=horizon),
                     forward_log_return_label(prices, horizon=horizon),
                 ):
-                    self.assertEqual(int(label.isna().sum()), horizon)
-                    self.assertTrue(label.iloc[-horizon:].isna().all())
-                    self.assertFalse(label.iloc[:-horizon].isna().any())
+                    self.assertEqual(int(label.isna().sum()), span)
+                    self.assertTrue(label.iloc[-span:].isna().all())
+                    self.assertFalse(label.iloc[:-span].isna().any())
 
     def test_first_row_has_a_label(self):
         label = direction_label(_walk(10), horizon=1)
@@ -305,14 +340,20 @@ class TestBoundaries(unittest.TestCase):
         self.assertTrue(direction_label(prices, horizon=5).isna().all())
         self.assertTrue(direction_label(prices, horizon=99).isna().all())
 
-    def test_over_long_horizon_yields_an_empty_feature_frame_not_an_error(self):
-        """SC-006 — asking for a 300-bar horizon on 60 bars gets nothing,
-        which is correct, not an exception."""
-        frame, task, horizon = build_features(
+    def test_an_over_long_horizon_keeps_every_row_and_trains_on_none(self):
+        """SC-006 — a 300-bar horizon on 60 bars is not an exception.
+
+        Was `test_over_long_horizon_yields_an_empty_feature_frame_not_an_error`:
+        before 019 the frame came back empty. Since 019 (C4) no row is
+        dropped, so all 60 stay and none is `Train_Eligible` (every label is
+        unknown); the third value is the span 300 + 1 = 301 (C2).
+        """
+        frame, task, span = build_features(
             _walk(60), target_kind="direction", label_horizon=300
         )
-        self.assertTrue(frame.empty)
-        self.assertEqual((task, horizon), ("classification", 300))
+        self.assertEqual(len(frame), 60)
+        self.assertFalse(frame.Train_Eligible.any())
+        self.assertEqual((task, span), ("classification", 301))
 
 
 class TestValidation(unittest.TestCase):
@@ -340,36 +381,66 @@ class TestValidation(unittest.TestCase):
         self.assertIn("direction", str(caught.exception))
         self.assertIn("return", str(caught.exception))
 
-    def test_missing_close_column_raises(self):
-        with self.assertRaises(ValueError):
-            direction_label(pd.DataFrame({"Open": [1.0, 2.0]}), horizon=1)
+    def test_missing_open_column_raises(self):
+        """Was `test_missing_close_column_raises`: since 019 (C3) the label
+        reads opens, so `Open` is the required column. A Close-only frame
+        must raise, and the message must name the missing column."""
+        with self.assertRaisesRegex(ValueError, "Open"):
+            direction_label(pd.DataFrame({"Close": [1.0, 2.0]}), horizon=1)
 
 
 class TestBuildTargetContract(unittest.TestCase):
-    """SC-005 / FR-004 — the horizon handback."""
+    """SC-005 / FR-004 — the availability-span handback.
+
+    Since 019 (C2) the third value is the label availability span h + 1, not
+    the horizon: the label at t is known only at the exit open Open[t+h+1].
+    """
 
     def test_direction_is_a_classification_task(self):
-        label, task, horizon = build_target(_walk(20), kind="direction", horizon=1)
+        label, task, span = build_target(_walk(20), kind="direction", horizon=1)
         self.assertEqual(task, "classification")
         self.assertEqual(str(label.dtype), "Int64")
-        self.assertEqual(horizon, 1)
+        self.assertEqual(span, 2)  # h + 1 = 1 + 1
 
     def test_return_is_a_regression_task(self):
-        label, task, horizon = build_target(_walk(20), kind="return", horizon=3)
+        label, task, span = build_target(_walk(20), kind="return", horizon=3)
         self.assertEqual(task, "regression")
         self.assertEqual(label.dtype, float)
-        self.assertEqual(horizon, 3)
+        self.assertEqual(span, 4)  # h + 1 = 3 + 1
 
-    def test_the_returned_horizon_is_what_was_asked_for(self):
-        """FR-004 — this is what lets a caller pass one number to both the
-        label and the purge instead of writing the literal twice."""
+    def test_the_third_value_is_the_availability_span(self):
+        """FR-004 — this is what lets a caller pass one number to both purge
+        and embargo instead of writing the literal twice.
+
+        Was `test_the_returned_horizon_is_what_was_asked_for`: before 019 the
+        third value was the horizon itself; now it is h + 1 (C2).
+        """
         for horizon in (1, 2, 5):
             for kind in ("direction", "return"):
                 with self.subTest(kind=kind, horizon=horizon):
                     _, _, returned = build_target(
                         _walk(30), kind=kind, horizon=horizon
                     )
-                    self.assertEqual(returned, horizon)
+                    self.assertEqual(returned, horizon + 1)
+
+    def test_passing_the_span_back_as_horizon_builds_a_different_label(self):
+        """REVIEW_019 R-10 — the span is not a horizon. Fed back as
+        `horizon=`, it builds a longer label, so the mistake is visible."""
+        # Closes [10, 12, 11, 15, 14]; Open = Close + 1 = [11, 13, 12, 16, 15].
+        prices = make_prices([10.0, 12.0, 11.0, 15.0, 14.0])
+        # Row 0 at h = 1: Open[2]/Open[1] = 12/13, down (0), log(12/13).
+        # Row 0 at h = span = 2: Open[3]/Open[1] = 16/13, up (1), log(16/13).
+        expected = {
+            "direction": (0, 1),
+            "return": (np.log(12.0 / 13.0), np.log(16.0 / 13.0)),
+        }
+        for kind, (at_one, at_span) in expected.items():
+            with self.subTest(kind=kind):
+                right, _, span = build_target(prices, kind=kind, horizon=1)
+                wrong = build_target(prices, kind=kind, horizon=span)[0]
+                self.assertAlmostEqual(float(right.iloc[0]), at_one)
+                self.assertAlmostEqual(float(wrong.iloc[0]), at_span)
+                self.assertNotEqual(right.iloc[0], wrong.iloc[0])
 
 
 class TestGapCase(unittest.TestCase):
@@ -381,24 +452,31 @@ class TestGapCase(unittest.TestCase):
     """
 
     def test_label_spans_rows_not_calendar_days(self):
+        """Re-derived on opens for 019 (C3). Before 019 this compared closes;
+        the closes are left as they were and are not read by the label."""
         prices = pd.DataFrame(
             {
                 "Date": pd.to_datetime(
                     ["2024-01-02", "2024-01-03", "2024-01-08", "2024-01-09"]
                 ),
-                "Open": [10.0, 11.0, 12.0, 13.0],
+                "Open": [10.0, 11.0, 14.0, 8.0],
                 "Close": [10.0, 20.0, 5.0, 30.0],
             }
         )
         label = direction_label(prices, horizon=1)
 
-        # Row 1 -> row 2 is a five-calendar-day jump but one bar. The label
-        # compares 20 against 5 and reads down.
+        # Row 0: entry Open[1] = 11 (01-03), exit Open[2] = 14 (01-08) — a
+        # five-calendar-day jump but one bar. Row reading: 14 > 11, up (1).
+        # A calendar-day reading of h = 1 would exit at the last open on or
+        # before 01-04, which is 01-03's own 11: 11 > 11 is false, down (0).
+        self.assertEqual(label.iloc[0], 1)
+        # Row 1: Open[3]/Open[2] = 8/14, down (0). Rows 2-3 lack Open[t+2].
         self.assertEqual(label.iloc[1], 0)
-        self.assertEqual(label.iloc[2], 1)
+        self.assertTrue(label.iloc[2:].isna().all())
 
         returns = forward_log_return_label(prices, horizon=1)
-        self.assertAlmostEqual(returns.iloc[1], np.log(5.0 / 20.0))
+        # Row 0: log(Open[2]/Open[1]) = log(14/11); calendar reading: log(11/11) = 0.
+        self.assertAlmostEqual(returns.iloc[0], np.log(14.0 / 11.0))
 
 
 class TestEquivalenceWithLogisticBaseline(unittest.TestCase):

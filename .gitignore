@@ -20,6 +20,14 @@ data/cache/
 *.csv
 *.parquet
 
+# Live-trading safety gate durable state (spec 032) -- machine-local runtime
+# state (kill latch, halts, reservations), never regenerable and never
+# committed, but also never read by another checkout.
+data/live_safety/
+*.db
+*.db-wal
+*.db-shm
+
 # OS/editor cruft
 .DS_Store
 Thumbs.db

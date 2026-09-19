@@ -293,18 +293,27 @@ class TestOneFitPerFold(unittest.TestCase):
         self.assertEqual(len(calls), len(folds))
 
     def test_each_fold_sees_a_freshly_fitted_model(self):
-        """A learnable, drifting frame: a reused model gives itself away."""
+        """A learnable, drifting frame: a reused model gives itself away.
+
+        Spec 019: the frame keeps warm-up and unknown-label rows (C4), so each
+        fold's training positions are masked to `Train_Eligible` *after* the
+        split, never by dropping rows first (FR-007).
+        """
         prices = _price_walk(500)
-        frame, task, horizon = build_features(
+        frame, task, span = build_features(
             prices, target_kind="return", label_horizon=1
         )
+        # Purge and embargo are the label availability span (C2), never a
+        # literal (FR-003).
         folds = list(
-            walk_forward_splits(frame, label_horizon=horizon, embargo_bars=1)
+            walk_forward_splits(frame, label_horizon=span, embargo_bars=span)
         )
         self.assertGreater(len(folds), 1)
 
+        eligible = frame["Train_Eligible"].to_numpy()
         per_fold_coefs = []
         for train_indices, _ in folds:
+            train_indices = train_indices[eligible[train_indices]]
             model = build_estimator(
                 "ridge", task=task, params=None, random_state=42
             )
@@ -327,13 +336,22 @@ class TestRegressionPath(unittest.TestCase):
 
     def setUp(self):
         prices = _price_walk(500)
-        self.frame, self.task, self.horizon = build_features(
+        self.frame, self.task, self.span = build_features(
             prices, target_kind="return", label_horizon=1
         )
 
-    def test_task_and_horizon_come_through_from_build_features(self):
+    def test_task_and_span_come_through_from_build_features(self):
+        """Renamed from `..._task_and_horizon_...` (spec 021 T039).
+
+        Spec 019 (C2) changed the third return from the horizon `h` to the
+        label availability span `h + 1`: the forward label at `t` is known
+        only after the open at `t + h + 1`. At `h = 1` that is 1 + 1 = 2. It
+        is also stamped on the frame, so a caller holding only the frame
+        sizes purge and embargo the same way.
+        """
         self.assertEqual(self.task, REGRESSION)
-        self.assertEqual(self.horizon, 1)
+        self.assertEqual(self.span, 2)  # h + 1 = 1 + 1
+        self.assertEqual(self.frame.attrs["label_availability_span"], self.span)
 
     def test_predictions_are_finite_floats_where_covered(self):
         predictions = fit_predict_walk_forward(
@@ -342,8 +360,8 @@ class TestRegressionPath(unittest.TestCase):
             label_column="Label",
             task=self.task,
             name="ridge",
-            label_horizon=self.horizon,
-            embargo_bars=1,
+            label_horizon=self.span,
+            embargo_bars=self.span,
             random_state=42,
         )
         self.assertEqual(str(predictions.dtype), "float64")
@@ -358,8 +376,8 @@ class TestRegressionPath(unittest.TestCase):
             label_column="Label",
             task=self.task,
             name="ridge",
-            label_horizon=self.horizon,
-            embargo_bars=1,
+            label_horizon=self.span,
+            embargo_bars=self.span,
             random_state=42,
         )
         first_covered = int(np.flatnonzero(predictions.notna().to_numpy())[0])
@@ -369,15 +387,22 @@ class TestRegressionPath(unittest.TestCase):
     def test_a_continuous_label_would_break_the_classification_path(self):
         # The reason the task branch exists at all: proving the old loop
         # genuinely could not have served this target.
-        with self.assertRaises(Exception):
+        #
+        # Spec 021: before the span was passed, this raised the library's
+        # "purge/embargo shorter than label availability span" guard and
+        # passed without reaching the fit. Pinned to the real failure: every
+        # daily log return here has |r| < 1, so the classification path's
+        # `astype(int)` truncates every label to 0, and a one-class fit is
+        # refused.
+        with self.assertRaisesRegex(ValueError, "only one class"):
             fit_predict_walk_forward(
                 self.frame,
                 feature_columns=SCALE_FREE_FEATURE_COLUMNS,
                 label_column="Label",
                 task=CLASSIFICATION,
                 name="logistic",
-                label_horizon=self.horizon,
-                embargo_bars=1,
+                label_horizon=self.span,
+                embargo_bars=self.span,
                 random_state=42,
             )
 
@@ -387,15 +412,15 @@ class TestGradientBoosting(unittest.TestCase):
 
     def test_hgb_regression_runs_and_differs_from_ridge(self):
         prices = _price_walk(500)
-        frame, task, horizon = build_features(
+        frame, task, span = build_features(
             prices, target_kind="return", label_horizon=1
         )
         common = dict(
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
             label_column="Label",
             task=task,
-            label_horizon=horizon,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=42,
         )
         ridge = fit_predict_walk_forward(frame, name="ridge", **common)
@@ -410,7 +435,7 @@ class TestGradientBoosting(unittest.TestCase):
 
     def test_hgb_classification_runs_and_predicts_labels(self):
         prices = _price_walk(500)
-        frame, task, horizon = build_features(
+        frame, task, span = build_features(
             prices, target_kind="direction", label_horizon=1
         )
         predictions = fit_predict_walk_forward(
@@ -419,8 +444,8 @@ class TestGradientBoosting(unittest.TestCase):
             label_column="Label",
             task=task,
             name="hgb",
-            label_horizon=horizon,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=42,
         )
         self.assertEqual(str(predictions.dtype), "Int64")
@@ -434,7 +459,7 @@ class TestDeterminism(unittest.TestCase):
 
     def test_repeated_runs_agree(self):
         prices = _price_walk(400)
-        frame, task, horizon = build_features(
+        frame, task, span = build_features(
             prices, target_kind="return", label_horizon=1
         )
         kwargs = dict(
@@ -442,8 +467,8 @@ class TestDeterminism(unittest.TestCase):
             label_column="Label",
             task=task,
             name="hgb",
-            label_horizon=horizon,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=13,
         )
         first = fit_predict_walk_forward(frame, **kwargs)
@@ -453,7 +478,7 @@ class TestDeterminism(unittest.TestCase):
     def test_different_params_change_the_answer(self):
         # Guards the mutation where `params` is accepted and then ignored.
         prices = _price_walk(400)
-        frame, task, horizon = build_features(
+        frame, task, span = build_features(
             prices, target_kind="return", label_horizon=1
         )
         common = dict(
@@ -461,8 +486,8 @@ class TestDeterminism(unittest.TestCase):
             label_column="Label",
             task=task,
             name="ridge",
-            label_horizon=horizon,
-            embargo_bars=1,
+            label_horizon=span,
+            embargo_bars=span,
             random_state=13,
         )
         weak = fit_predict_walk_forward(frame, params={"alpha": 0.1}, **common)

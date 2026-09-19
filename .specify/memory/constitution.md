@@ -264,6 +264,58 @@ reading arbitrarily far into the future.
 _Added 2026-09-18. Rule 1 is only as good as the tests that detect its
 violation; this rule is what keeps those tests honest._
 
+## Rule 13 — Cost modeling requires spread and market impact
+
+**Flat basis-point transaction cost assumptions are forbidden for any reported
+backtest result.**
+
+Slippage must be derived from a half-spread estimate calculated from daily OHLC
+bars (following Ardia, Guidotti & Kroencke, JFE 2024) plus a square-root
+market-impact term. Fixed or constant-basis-point slippage masks liquidity
+dry-ups, execution capacity constraints, and the true cost of trading
+non-megacap names. A backtest reported with flat basis-point costs is invalid.
+
+Citation: `claude/research-solo-quant-edge-and-survival.md`, section "The 5-bullet plan", item 3 ("Fix data and costs, the two places a daily-bar backtest lies most").
+
+_Added 2026-09-18, per report finding: flat basis-point transaction costs forbidden; slippage must derive from daily OHLC half-spread (Ardia, Guidotti & Kroencke 2024) plus square-root market impact._
+
+## Rule 14 — Corporate action data verification
+
+**Corporate action data (splits, dividends) sourced from yfinance must be
+cross-checked against an independent second source before use in any backtest
+whose results get reported.**
+
+yfinance has documented defects including missed split adjustments, missed
+dividend adjustments, and 100× currency/pricing errors. Backtests run on
+unverified corporate action data produce phantom alpha or catastrophic
+drawdowns from unadjusted price jumps. Any corporate action adjustments applied
+to a traded universe must be reconciled against an independent second source
+(e.g. SEC EDGAR filings, exchange notices, or reference feeds like
+CRSP/Compustat or Norgate) before results are reported.
+
+Citation: `claude/research-solo-quant-edge-and-survival.md`, section "The 5-bullet plan", item 3 ("Fix data and costs, the two places a daily-bar backtest lies most").
+
+_Added 2026-09-18, per report finding: yfinance corporate action data (splits, dividends) must be independently cross-checked before use in reported backtests due to documented defects._
+
+## Rule 15 — Deflated Sharpe Ratio statistical gate
+
+**No strategy variant's Sharpe ratio may be reported as a result unless it has
+passed the Deflated Sharpe Ratio gate (DSR ≥ 0.95) once spec 033 exists.**
+
+Until spec 033 exists and is operational, any reported Sharpe ratio must be
+explicitly flagged as provisional and undeflated in the same surface where it is
+shown (terminal output, reports, tearsheets, README tables, or specs), in
+accordance with Rule 11's provenance requirement.
+
+Unlogged backtest search, hyperparameter sweeps, and strategy iteration inflate
+apparent Sharpe ratios purely through selection bias. A strategy variant
+reporting an undeflated Sharpe provides no statistical evidence of edge over
+luck.
+
+Citation: `claude/research-solo-quant-edge-and-survival.md`, section "The 5-bullet plan", item 1 ("Build the false-discovery gate before any new alpha: a lifetime trial ledger, Deflated Sharpe and PBO").
+
+_Added 2026-09-18, per report finding: strategy Sharpe ratios require Deflated Sharpe Ratio gating (DSR ≥ 0.95) once spec 033 exists, and must be flagged as provisional/undeflated until then._
+
 ---
 
 ## Amendment
