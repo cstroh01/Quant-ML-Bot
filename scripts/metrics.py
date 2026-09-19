@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 
 from constants import RISK_FREE_RATE_ANNUAL, TRADING_DAYS_PER_YEAR
+from cost_utils import risk_free_log_return, validate_costs
 
 EQUITY_CURVE_COLUMNS = ["Date", "Position", "Bar P&L", "Equity"]
 
@@ -22,14 +23,6 @@ EQUITY_CURVE_COLUMNS = ["Date", "Position", "Bar P&L", "Equity"]
 # than any real cost effect, loose enough for float64 accumulation over a
 # few thousand bars.
 RECONCILIATION_TOLERANCE = 1e-9
-
-
-def validate_costs(commission_per_trade: float, slippage_bps: float) -> None:
-    """Validate the cash execution cost domain before any event."""
-    if not np.isfinite(commission_per_trade) or commission_per_trade < 0:
-        raise ValueError("commission_per_trade must be finite and >= 0")
-    if not np.isfinite(slippage_bps) or not 0 <= slippage_bps < 10000:
-        raise ValueError("slippage_bps must be finite and in [0, 10000)")
 
 
 def _validate_prices(prices: pd.DataFrame) -> None:
@@ -227,12 +220,13 @@ def sharpe_ratio(
 ) -> float:
     """Annualized Sharpe ratio of a per-bar return series.
 
-    Uses the same arithmetic as `return_stats.annualize`: the mean scales
+    Annualizes log returns as `return_stats.annualize` does: the mean scales
     with time and the standard deviation with its square root (pandas'
-    default `ddof=1`), and the risk-free rate is subtracted from the
-    annualized log return after converting the effective annual hurdle
-    with log1p. This descriptive ratio is not evidence of skill. Cash earns
-    zero in this model; the constant hurdle is a separate assumption.
+    default `ddof=1`). Both this function and `return_stats.main` use
+    `cost_utils.risk_free_log_return` to convert the effective annual hurdle
+    with log1p before subtraction. This descriptive ratio is not evidence of
+    skill. Cash earns zero in this model; the constant hurdle is a separate
+    assumption.
 
     Returns `nan` — never `0.0` and never `inf` — when the ratio is
     undefined: fewer than two observations, zero variance (a flat curve, the
@@ -240,8 +234,7 @@ def sharpe_ratio(
     equity series that reached zero. `0.0` would read as a real, mediocre
     result; `inf` would read as an extraordinary one.
     """
-    if not np.isfinite(risk_free_rate_annual) or risk_free_rate_annual <= -1:
-        raise ValueError("annual effective risk-free rate must be finite and > -1")
+    annual_risk_free_log_return = risk_free_log_return(risk_free_rate_annual)
     clean = returns.dropna()
     if len(clean) != len(returns) or len(clean) < 2:
         return float("nan")
@@ -250,7 +243,7 @@ def sharpe_ratio(
     annualized_volatility = clean.std() * np.sqrt(periods_per_year)
     if not np.isfinite(annualized_volatility) or annualized_volatility == 0:
         return float("nan")
-    return float((annualized_return - np.log1p(risk_free_rate_annual)) / annualized_volatility)
+    return float((annualized_return - annual_risk_free_log_return) / annualized_volatility)
 
 
 def mean_log_return_se(returns: pd.Series, *, lags: int, min_lags: int = 0) -> float:

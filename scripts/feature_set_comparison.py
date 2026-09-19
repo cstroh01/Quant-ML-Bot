@@ -104,7 +104,6 @@ PERIOD = "10y"
 CACHE_TICKERS = ["AAPL", "AMZN", "GOOGL", "MSFT", "NVDA"]
 
 LABEL_HORIZON = 1
-EMBARGO_BARS = 1
 RANDOM_STATE = 42
 
 # The project's walk-forward defaults, restated here so the printed report
@@ -159,6 +158,10 @@ def _predictions_by_date(
     )
     assert task_out == task, f"expected task {task!r}, got {task_out!r}"
 
+    embargo_bars = frame.attrs.get(
+        "label_availability_span", frame.attrs.get("label_horizon", horizon)
+    )
+
     predictions, covered, fold_results = nested_walk_forward(
         frame,
         feature_columns=feature_columns(feature_set),
@@ -166,7 +169,7 @@ def _predictions_by_date(
         task=task,
         name=name,
         label_horizon=horizon,
-        embargo_bars=EMBARGO_BARS,
+        embargo_bars=embargo_bars,
         random_state=random_state,
         initial_train_months=INITIAL_TRAIN_MONTHS,
         test_months=TEST_MONTHS,
@@ -184,6 +187,8 @@ def _predictions_by_date(
         frame["Label"].iloc[covered_index].to_numpy(),
         index=pd.Index(dates.iloc[covered_index], name="Date"),
     )
+    # Keep the run geometry with its predictions across serial/process paths.
+    predicted.attrs.update(purge_bars=horizon, embargo_bars=embargo_bars)
     return predicted, labels, len(fold_results)
 
 
@@ -506,6 +511,10 @@ def pair_results(
             "shared_bars": len(shared),
             "outer_folds_a": folds_a,
             "outer_folds_b": folds_b,
+            "purge_bars_a": predicted_a.attrs.get("purge_bars"),
+            "purge_bars_b": predicted_b.attrs.get("purge_bars"),
+            "embargo_bars_a": predicted_a.attrs.get("embargo_bars"),
+            "embargo_bars_b": predicted_b.attrs.get("embargo_bars"),
         }
     )
     return result
@@ -758,10 +767,6 @@ def format_report(results: list[dict]) -> str:
         f"test_months={INNER_TEST_MONTHS}"
     )
     lines.append(
-        f"  purge = label_horizon = {LABEL_HORIZON} bar(s); "
-        f"embargo = {EMBARGO_BARS} bar(s)"
-    )
-    lines.append(
         "  commission and slippage: not applicable — nothing here is a "
         "backtest; these are prediction-quality tests only."
     )
@@ -775,6 +780,13 @@ def format_report(results: list[dict]) -> str:
             f"{result['outer_folds_b']} ({FEATURE_SET_B}); "
             f"paired bars: {result['shared_bars']}"
         )
+        for suffix, feature_set in (("a", FEATURE_SET_A), ("b", FEATURE_SET_B)):
+            purge = result.get(f"purge_bars_{suffix}")
+            embargo = result.get(f"embargo_bars_{suffix}")
+            lines.append(
+                f"  {feature_set}: purge = {purge if purge is not None else 'unknown'} bar(s); "
+                f"embargo = {embargo if embargo is not None else 'unknown'} bar(s)"
+            )
         if result["task"] == CLASSIFICATION:
             lines.append(
                 f"  accuracy: {result['accuracy_a']:.4f} -> "

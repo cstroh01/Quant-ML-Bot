@@ -329,7 +329,7 @@ class TestSharpeConventions(unittest.TestCase):
 
         annualized_return = returns.mean() * TRADING_DAYS_PER_YEAR
         annualized_volatility = returns.std() * np.sqrt(TRADING_DAYS_PER_YEAR)
-        expected = (annualized_return - RISK_FREE_RATE_ANNUAL) / annualized_volatility
+        expected = (annualized_return - np.log1p(RISK_FREE_RATE_ANNUAL)) / annualized_volatility
 
         self.assertAlmostEqual(sharpe_ratio(returns), float(expected), places=12)
 

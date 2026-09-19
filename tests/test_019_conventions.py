@@ -163,7 +163,7 @@ def test_hac_bandwidth_guards_raise():
 
 def test_metric_convention_mutants():
     from mutation_support_019 import killed
-    killed(mt, '(annualized_return - np.log1p(risk_free_rate_annual))',
+    killed(mt, '(annualized_return - annual_risk_free_log_return)',
            '(annualized_return - risk_free_rate_annual)',
            test_effective_annual_hurdle_uses_log_units)
     killed(mt, 'variance += 2 * (1 - lag / (lags + 1)) * covariance',

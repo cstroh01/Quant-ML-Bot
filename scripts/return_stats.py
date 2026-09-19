@@ -5,6 +5,7 @@ import pandas as pd
 from scipy.stats import kurtosis, norm, skew
 
 from constants import RISK_FREE_RATE_ANNUAL, TRADING_DAYS_PER_YEAR
+from cost_utils import risk_free_log_return
 from data import cache_path, download_market_data
 from plotting import plt, save_figure
 
@@ -33,7 +34,7 @@ def cumulative_price_index(prices: pd.DataFrame, returns: pd.Series) -> pd.Serie
 
 
 def annualize(returns: pd.Series) -> tuple[float, float]:
-    """Return the annualized mean return and volatility of a daily series."""
+    """Return the annualized mean log return and volatility of a daily log series."""
     # Mean scales with time, standard deviation with its square root — the
     # standard independent-increments assumption behind this convention.
     annualized_return = returns.mean() * TRADING_DAYS_PER_YEAR
@@ -100,11 +101,11 @@ def main():
     )
     for ticker, returns in return_series.items():
         annualized_return, annualized_volatility = annualize(returns)
-        # Sharpe is excess return per unit of volatility. Subtracting the
-        # risk-free rate is what makes it a measure of skill rather than a
-        # measure of simply having been invested.
+        # Express the effective annual hurdle in log units before subtracting
+        # it from the annualized log return, matching metrics.sharpe_ratio.
+        # This descriptive ratio alone is not evidence of skill.
         sharpe_ratio = (
-            annualized_return - RISK_FREE_RATE_ANNUAL
+            annualized_return - risk_free_log_return(RISK_FREE_RATE_ANNUAL)
         ) / annualized_volatility
         print(
             f"{ticker}: annualized return = {annualized_return:.6f}, "

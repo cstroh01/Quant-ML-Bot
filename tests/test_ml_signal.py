@@ -671,7 +671,7 @@ class ModuleBoundaryTests(unittest.TestCase):
     def test_ml_signal_imports_only_numpy_and_pandas(self):
         self.assertEqual(
             self._imported_modules("ml_signal.py"),
-            {"__future__", "numpy", "pandas"},
+            {"__future__", "numpy", "pandas", "cost_utils"},
         )
 
     def test_ml_signal_imports_no_forbidden_project_module(self):

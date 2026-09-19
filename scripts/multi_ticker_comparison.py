@@ -75,7 +75,6 @@ PERIOD = "10y"
 ESTIMATOR_NAME = "ridge"
 TARGET_KIND = "return"
 LABEL_HORIZON = 1
-EMBARGO_BARS = 1
 RANDOM_STATE = 42
 
 # A retail-broker cost model, restated from `ma_crossover_backtest.py` rather
@@ -236,6 +235,10 @@ def run_one_ticker(
             prices, target_kind=TARGET_KIND, label_horizon=LABEL_HORIZON
         )
 
+        embargo_bars = frame.attrs.get(
+            "label_availability_span", frame.attrs.get("label_horizon", label_horizon)
+        )
+
         predictions, covered, fold_results = nested_walk_forward(
             frame,
             feature_columns=feature_columns(),
@@ -243,7 +246,7 @@ def run_one_ticker(
             task=task,
             name=ESTIMATOR_NAME,
             label_horizon=label_horizon,
-            embargo_bars=EMBARGO_BARS,
+            embargo_bars=embargo_bars,
             random_state=random_state,
         )
         assert task == REGRESSION, "ml_signal's hurdle comparison expects a continuous prediction"
@@ -296,7 +299,7 @@ def run_one_ticker(
         shared_columns = {
             "fold_count": len(fold_results),
             "purge_bars": label_horizon,
-            "embargo_bars": EMBARGO_BARS,
+            "embargo_bars": embargo_bars,
             "random_state": random_state,
             **random_baseline_columns,
         }

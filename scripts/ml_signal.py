@@ -29,7 +29,7 @@ exit and re-enter repeatedly, paying that round trip each time -- the opposite
 of what the rule is for. So entry is strict against the hurdle and the exit is
 a separate, looser threshold.
 
-Signal layer (Rule 8): uses the pure cost-domain validator in metrics;
+Signal layer (Rule 8): uses the pure cost-domain validator in cost_utils;
 no account state or fill implementation is imported. This module reasons about the
 *size* of a cost; `backtest_harness.py` remains the only module that *applies*
 one to a fill, and neither imports the other. It does not import
@@ -44,7 +44,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from metrics import validate_costs
+from cost_utils import validate_costs
 
 
 def _validate_costs(
