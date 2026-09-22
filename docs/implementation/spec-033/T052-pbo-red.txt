@@ -1,0 +1,627 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFF                                               [100%]
+================================== FAILURES ===================================
+__________ test_contiguous_blocks_cover_exact_chronological_rows[16] __________
+
+n = 16
+
+    @pytest.mark.parametrize("n", [16, 17, 31, 32, 1250])
+    def test_contiguous_blocks_cover_exact_chronological_rows(n):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+__________ test_contiguous_blocks_cover_exact_chronological_rows[17] __________
+
+n = 17
+
+    @pytest.mark.parametrize("n", [16, 17, 31, 32, 1250])
+    def test_contiguous_blocks_cover_exact_chronological_rows(n):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+__________ test_contiguous_blocks_cover_exact_chronological_rows[31] __________
+
+n = 31
+
+    @pytest.mark.parametrize("n", [16, 17, 31, 32, 1250])
+    def test_contiguous_blocks_cover_exact_chronological_rows(n):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+__________ test_contiguous_blocks_cover_exact_chronological_rows[32] __________
+
+n = 32
+
+    @pytest.mark.parametrize("n", [16, 17, 31, 32, 1250])
+    def test_contiguous_blocks_cover_exact_chronological_rows(n):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+_________ test_contiguous_blocks_cover_exact_chronological_rows[1250] _________
+
+n = 1250
+
+    @pytest.mark.parametrize("n", [16, 17, 31, 32, 1250])
+    def test_contiguous_blocks_cover_exact_chronological_rows(n):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+_______________ test_blocks_reject_invalid_time_contract[short] _______________
+
+defect = 'short'
+
+    @pytest.mark.parametrize("defect", ["short", "reverse", "duplicate", "aware", "intraday"])
+    def test_blocks_reject_invalid_time_contract(defect):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+______________ test_blocks_reject_invalid_time_contract[reverse] ______________
+
+defect = 'reverse'
+
+    @pytest.mark.parametrize("defect", ["short", "reverse", "duplicate", "aware", "intraday"])
+    def test_blocks_reject_invalid_time_contract(defect):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+_____________ test_blocks_reject_invalid_time_contract[duplicate] _____________
+
+defect = 'duplicate'
+
+    @pytest.mark.parametrize("defect", ["short", "reverse", "duplicate", "aware", "intraday"])
+    def test_blocks_reject_invalid_time_contract(defect):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+_______________ test_blocks_reject_invalid_time_contract[aware] _______________
+
+defect = 'aware'
+
+    @pytest.mark.parametrize("defect", ["short", "reverse", "duplicate", "aware", "intraday"])
+    def test_blocks_reject_invalid_time_contract(defect):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+_____________ test_blocks_reject_invalid_time_contract[intraday] ______________
+
+defect = 'intraday'
+
+    @pytest.mark.parametrize("defect", ["short", "reverse", "duplicate", "aware", "intraday"])
+    def test_blocks_reject_invalid_time_contract(defect):
+>       blocks = api("selection_bias", "cscv_blocks")
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_blocks'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_blocks
+
+tests\spec033_support.py:21: AssertionError
+___________ test_all_combinations_and_complements_without_sampling ____________
+
+    def test_all_combinations_and_complements_without_sampling():
+>       splits = list(api("selection_bias", "cscv_splits")())
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:65: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'cscv_splits'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.cscv_splits
+
+tests\spec033_support.py:21: AssertionError
+_____ test_persistent_winner_independent_oracle_and_recomputable_evidence _____
+
+    def test_persistent_winner_independent_oracle_and_recomputable_evidence():
+>       result = api("selection_bias", "matrix_pbo")(persistent())
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_____ test_overfit_oracle_winner_carry_through_ties_sign_and_column_order _____
+
+    def test_overfit_oracle_winner_carry_through_ties_sign_and_column_order():
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+___________ test_same_matrix_as_dsr_and_history_never_adds_columns ____________
+
+    def test_same_matrix_as_dsr_and_history_never_adds_columns():
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:128: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_ test_preflight_undefined_never_reports_a_computed_probability[short-insufficient_pbo_rows] _
+
+defect = 'short', reason = 'insufficient_pbo_rows'
+
+    @pytest.mark.parametrize("defect,reason", [
+        ("short", "insufficient_pbo_rows"), ("single", "insufficient_pbo_columns"),
+        ("corrupt", "matrix_digest_mismatch"), ("nan", "nonfinite_matrix"),
+        ("ineligible", "insufficient_shared_coverage"), ("objective", "invalid_pbo_objective"),
+        ("reverse", "invalid_matrix"), ("shape", "invalid_matrix"),
+    ])
+    def test_preflight_undefined_never_reports_a_computed_probability(defect, reason):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_ test_preflight_undefined_never_reports_a_computed_probability[single-insufficient_pbo_columns] _
+
+defect = 'single', reason = 'insufficient_pbo_columns'
+
+    @pytest.mark.parametrize("defect,reason", [
+        ("short", "insufficient_pbo_rows"), ("single", "insufficient_pbo_columns"),
+        ("corrupt", "matrix_digest_mismatch"), ("nan", "nonfinite_matrix"),
+        ("ineligible", "insufficient_shared_coverage"), ("objective", "invalid_pbo_objective"),
+        ("reverse", "invalid_matrix"), ("shape", "invalid_matrix"),
+    ])
+    def test_preflight_undefined_never_reports_a_computed_probability(defect, reason):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_ test_preflight_undefined_never_reports_a_computed_probability[corrupt-matrix_digest_mismatch] _
+
+defect = 'corrupt', reason = 'matrix_digest_mismatch'
+
+    @pytest.mark.parametrize("defect,reason", [
+        ("short", "insufficient_pbo_rows"), ("single", "insufficient_pbo_columns"),
+        ("corrupt", "matrix_digest_mismatch"), ("nan", "nonfinite_matrix"),
+        ("ineligible", "insufficient_shared_coverage"), ("objective", "invalid_pbo_objective"),
+        ("reverse", "invalid_matrix"), ("shape", "invalid_matrix"),
+    ])
+    def test_preflight_undefined_never_reports_a_computed_probability(defect, reason):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_ test_preflight_undefined_never_reports_a_computed_probability[nan-nonfinite_matrix] _
+
+defect = 'nan', reason = 'nonfinite_matrix'
+
+    @pytest.mark.parametrize("defect,reason", [
+        ("short", "insufficient_pbo_rows"), ("single", "insufficient_pbo_columns"),
+        ("corrupt", "matrix_digest_mismatch"), ("nan", "nonfinite_matrix"),
+        ("ineligible", "insufficient_shared_coverage"), ("objective", "invalid_pbo_objective"),
+        ("reverse", "invalid_matrix"), ("shape", "invalid_matrix"),
+    ])
+    def test_preflight_undefined_never_reports_a_computed_probability(defect, reason):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_ test_preflight_undefined_never_reports_a_computed_probability[ineligible-insufficient_shared_coverage] _
+
+defect = 'ineligible', reason = 'insufficient_shared_coverage'
+
+    @pytest.mark.parametrize("defect,reason", [
+        ("short", "insufficient_pbo_rows"), ("single", "insufficient_pbo_columns"),
+        ("corrupt", "matrix_digest_mismatch"), ("nan", "nonfinite_matrix"),
+        ("ineligible", "insufficient_shared_coverage"), ("objective", "invalid_pbo_objective"),
+        ("reverse", "invalid_matrix"), ("shape", "invalid_matrix"),
+    ])
+    def test_preflight_undefined_never_reports_a_computed_probability(defect, reason):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_ test_preflight_undefined_never_reports_a_computed_probability[objective-invalid_pbo_objective] _
+
+defect = 'objective', reason = 'invalid_pbo_objective'
+
+    @pytest.mark.parametrize("defect,reason", [
+        ("short", "insufficient_pbo_rows"), ("single", "insufficient_pbo_columns"),
+        ("corrupt", "matrix_digest_mismatch"), ("nan", "nonfinite_matrix"),
+        ("ineligible", "insufficient_shared_coverage"), ("objective", "invalid_pbo_objective"),
+        ("reverse", "invalid_matrix"), ("shape", "invalid_matrix"),
+    ])
+    def test_preflight_undefined_never_reports_a_computed_probability(defect, reason):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_ test_preflight_undefined_never_reports_a_computed_probability[reverse-invalid_matrix] _
+
+defect = 'reverse', reason = 'invalid_matrix'
+
+    @pytest.mark.parametrize("defect,reason", [
+        ("short", "insufficient_pbo_rows"), ("single", "insufficient_pbo_columns"),
+        ("corrupt", "matrix_digest_mismatch"), ("nan", "nonfinite_matrix"),
+        ("ineligible", "insufficient_shared_coverage"), ("objective", "invalid_pbo_objective"),
+        ("reverse", "invalid_matrix"), ("shape", "invalid_matrix"),
+    ])
+    def test_preflight_undefined_never_reports_a_computed_probability(defect, reason):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_ test_preflight_undefined_never_reports_a_computed_probability[shape-invalid_matrix] _
+
+defect = 'shape', reason = 'invalid_matrix'
+
+    @pytest.mark.parametrize("defect,reason", [
+        ("short", "insufficient_pbo_rows"), ("single", "insufficient_pbo_columns"),
+        ("corrupt", "matrix_digest_mismatch"), ("nan", "nonfinite_matrix"),
+        ("ineligible", "insufficient_shared_coverage"), ("objective", "invalid_pbo_objective"),
+        ("reverse", "invalid_matrix"), ("shape", "invalid_matrix"),
+    ])
+    def test_preflight_undefined_never_reports_a_computed_probability(defect, reason):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:147: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+______ test_rejected_splits_retained_and_invalidate_aggregate[all_zero] _______
+
+mode = 'all_zero'
+
+    @pytest.mark.parametrize("mode", ["all_zero", "two_bad_splits", "overflow"])
+    def test_rejected_splits_retained_and_invalidate_aggregate(mode):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+___ test_rejected_splits_retained_and_invalidate_aggregate[two_bad_splits] ____
+
+mode = 'two_bad_splits'
+
+    @pytest.mark.parametrize("mode", ["all_zero", "two_bad_splits", "overflow"])
+    def test_rejected_splits_retained_and_invalidate_aggregate(mode):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+______ test_rejected_splits_retained_and_invalidate_aggregate[overflow] _______
+
+mode = 'overflow'
+
+    @pytest.mark.parametrize("mode", ["all_zero", "two_bad_splits", "overflow"])
+    def test_rejected_splits_retained_and_invalidate_aggregate(mode):
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+_________ test_risk_free_and_is_selection_do_not_read_complement_rows _________
+
+    def test_risk_free_and_is_selection_do_not_read_complement_rows():
+>       pbo = api("selection_bias", "matrix_pbo")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:185: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_pbo'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_pbo
+
+tests\spec033_support.py:21: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_033_pbo.py::test_contiguous_blocks_cover_exact_chronological_rows[16]
+FAILED tests/test_033_pbo.py::test_contiguous_blocks_cover_exact_chronological_rows[17]
+FAILED tests/test_033_pbo.py::test_contiguous_blocks_cover_exact_chronological_rows[31]
+FAILED tests/test_033_pbo.py::test_contiguous_blocks_cover_exact_chronological_rows[32]
+FAILED tests/test_033_pbo.py::test_contiguous_blocks_cover_exact_chronological_rows[1250]
+FAILED tests/test_033_pbo.py::test_blocks_reject_invalid_time_contract[short]
+FAILED tests/test_033_pbo.py::test_blocks_reject_invalid_time_contract[reverse]
+FAILED tests/test_033_pbo.py::test_blocks_reject_invalid_time_contract[duplicate]
+FAILED tests/test_033_pbo.py::test_blocks_reject_invalid_time_contract[aware]
+FAILED tests/test_033_pbo.py::test_blocks_reject_invalid_time_contract[intraday]
+FAILED tests/test_033_pbo.py::test_all_combinations_and_complements_without_sampling
+FAILED tests/test_033_pbo.py::test_persistent_winner_independent_oracle_and_recomputable_evidence
+FAILED tests/test_033_pbo.py::test_overfit_oracle_winner_carry_through_ties_sign_and_column_order
+FAILED tests/test_033_pbo.py::test_same_matrix_as_dsr_and_history_never_adds_columns
+FAILED tests/test_033_pbo.py::test_preflight_undefined_never_reports_a_computed_probability[short-insufficient_pbo_rows]
+FAILED tests/test_033_pbo.py::test_preflight_undefined_never_reports_a_computed_probability[single-insufficient_pbo_columns]
+FAILED tests/test_033_pbo.py::test_preflight_undefined_never_reports_a_computed_probability[corrupt-matrix_digest_mismatch]
+FAILED tests/test_033_pbo.py::test_preflight_undefined_never_reports_a_computed_probability[nan-nonfinite_matrix]
+FAILED tests/test_033_pbo.py::test_preflight_undefined_never_reports_a_computed_probability[ineligible-insufficient_shared_coverage]
+FAILED tests/test_033_pbo.py::test_preflight_undefined_never_reports_a_computed_probability[objective-invalid_pbo_objective]
+FAILED tests/test_033_pbo.py::test_preflight_undefined_never_reports_a_computed_probability[reverse-invalid_matrix]
+FAILED tests/test_033_pbo.py::test_preflight_undefined_never_reports_a_computed_probability[shape-invalid_matrix]
+FAILED tests/test_033_pbo.py::test_rejected_splits_retained_and_invalidate_aggregate[all_zero]
+FAILED tests/test_033_pbo.py::test_rejected_splits_retained_and_invalidate_aggregate[two_bad_splits]
+FAILED tests/test_033_pbo.py::test_rejected_splits_retained_and_invalidate_aggregate[overflow]
+FAILED tests/test_033_pbo.py::test_risk_free_and_is_selection_do_not_read_complement_rows
+26 failed in 4.50s

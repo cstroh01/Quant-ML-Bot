@@ -1,0 +1,1817 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\GitHub\Quant-ML-Bot
+plugins: anyio-4.14.2
+collected 750 items
+
+tests\test_019_calendar.py .......                                       [  0%]
+tests\test_019_conventions.py .....................Synthetic baseline P&L: {'policy': -0.02200000000000557, 'buy_hold': 4.175899999999999} random mean/std: -0.024799999999997446 0.001239694359615175
+.                     [  3%]
+tests\test_019_ledger.py ...........                                     [  5%]
+tests\test_019_metrics.py ......                                         [  6%]
+tests\test_019_prices.py .......                                         [  7%]
+tests\test_019_targets.py ..............                                 [  8%]
+tests\test_020_unadjusted_price_data.py ...............                  [ 10%]
+tests\test_backtest_harness.py ....................                      [ 13%]
+tests\test_collection_guards.py .........                                [ 14%]
+tests\test_cost_utils.py ......................                          [ 17%]
+tests\test_data.py ..............................................        [ 23%]
+tests\test_data_pipeline_sanity_check.py ......                          [ 24%]
+tests\test_estimators.py ..............................                  [ 28%]
+tests\test_feature_scaling.py .......................................... [ 34%]
+...............                                                          [ 36%]
+tests\test_feature_set_comparison.py .......F.............FFEEEEEEEEE... [ 40%]
+....                                                                     [ 41%]
+tests\test_live_safety_gate.py ......................................... [ 46%]
+....................                                                     [ 49%]
+tests\test_logistic_baseline.py .........                                [ 50%]
+tests\test_ma_crossover_backtest.py ............                         [ 52%]
+tests\test_metrics.py .............................                      [ 56%]
+tests\test_ml_signal.py .............................................    [ 62%]
+tests\test_model_cv.py .......................................FFFF..     [ 68%]
+tests\test_multi_ticker_comparison.py FF.FFFF.FF.                        [ 69%]
+tests\test_no_fabricated_values.py .......                               [ 70%]
+tests\test_portfolio_risk.py ........................................... [ 76%]
+........................................................................ [ 86%]
+..........                                                               [ 87%]
+tests\test_reports_api.py F............                                  [ 89%]
+tests\test_return_stats.py ....                                          [ 89%]
+tests\test_signals.py ........................                           [ 92%]
+tests\test_targets.py ........................FF.......                  [ 97%]
+tests\test_trial_registry.py ..........                                  [ 98%]
+tests\test_walk_forward_cv.py ...........                                [100%]
+
+=================================== ERRORS ====================================
+_ ERROR at setup of TestSerialParallelEquivalence.test_discordant_counts_and_p_values_are_equal _
+
+cls = <class 'test_feature_set_comparison.TestSerialParallelEquivalence'>
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prices = synthetic_prices()
+        cls.tasks = build_tasks()
+    
+        cls.serial_units = {
+            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+                cls.prices, task
+            )[3:]
+            for task in cls.tasks
+        }
+        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+    
+>       cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_ ERROR at setup of TestSerialParallelEquivalence.test_formatted_reports_match_character_for_character _
+
+cls = <class 'test_feature_set_comparison.TestSerialParallelEquivalence'>
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prices = synthetic_prices()
+        cls.tasks = build_tasks()
+    
+        cls.serial_units = {
+            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+                cls.prices, task
+            )[3:]
+            for task in cls.tasks
+        }
+        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+    
+>       cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_ ERROR at setup of TestSerialParallelEquivalence.test_on_pair_reports_completed_comparisons_in_report_order _
+
+cls = <class 'test_feature_set_comparison.TestSerialParallelEquivalence'>
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prices = synthetic_prices()
+        cls.tasks = build_tasks()
+    
+        cls.serial_units = {
+            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+                cls.prices, task
+            )[3:]
+            for task in cls.tasks
+        }
+        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+    
+>       cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_ ERROR at setup of TestSerialParallelEquivalence.test_orchestrator_results_match_key_for_key_and_bit_for_bit _
+
+cls = <class 'test_feature_set_comparison.TestSerialParallelEquivalence'>
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prices = synthetic_prices()
+        cls.tasks = build_tasks()
+    
+        cls.serial_units = {
+            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+                cls.prices, task
+            )[3:]
+            for task in cls.tasks
+        }
+        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+    
+>       cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_ ERROR at setup of TestSerialParallelEquivalence.test_pairing_the_two_unit_sets_gives_identical_statistics _
+
+cls = <class 'test_feature_set_comparison.TestSerialParallelEquivalence'>
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prices = synthetic_prices()
+        cls.tasks = build_tasks()
+    
+        cls.serial_units = {
+            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+                cls.prices, task
+            )[3:]
+            for task in cls.tasks
+        }
+        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+    
+>       cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_ ERROR at setup of TestSerialParallelEquivalence.test_prediction_dtypes_and_index_survive_the_process_boundary _
+
+cls = <class 'test_feature_set_comparison.TestSerialParallelEquivalence'>
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prices = synthetic_prices()
+        cls.tasks = build_tasks()
+    
+        cls.serial_units = {
+            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+                cls.prices, task
+            )[3:]
+            for task in cls.tasks
+        }
+        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+    
+>       cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_ ERROR at setup of TestSerialParallelEquivalence.test_prediction_series_are_identical _
+
+cls = <class 'test_feature_set_comparison.TestSerialParallelEquivalence'>
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prices = synthetic_prices()
+        cls.tasks = build_tasks()
+    
+        cls.serial_units = {
+            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+                cls.prices, task
+            )[3:]
+            for task in cls.tasks
+        }
+        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+    
+>       cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_ ERROR at setup of TestSerialParallelEquivalence.test_result_order_is_the_registry_order_in_both_modes _
+
+cls = <class 'test_feature_set_comparison.TestSerialParallelEquivalence'>
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prices = synthetic_prices()
+        cls.tasks = build_tasks()
+    
+        cls.serial_units = {
+            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+                cls.prices, task
+            )[3:]
+            for task in cls.tasks
+        }
+        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+    
+>       cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_ ERROR at setup of TestSerialParallelEquivalence.test_the_fr_007_alias_produces_the_same_results _
+
+cls = <class 'test_feature_set_comparison.TestSerialParallelEquivalence'>
+
+    @classmethod
+    def setUpClass(cls):
+        cls.prices = synthetic_prices()
+        cls.tasks = build_tasks()
+    
+        cls.serial_units = {
+            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+                cls.prices, task
+            )[3:]
+            for task in cls.tasks
+        }
+        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+    
+>       cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:480: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+================================== FAILURES ===================================
+_ TestParentSideThreadPinning.test_the_orchestrator_leaves_this_process_unpinned _
+
+self = <test_feature_set_comparison.TestParentSideThreadPinning testMethod=test_the_orchestrator_leaves_this_process_unpinned>
+
+    def test_the_orchestrator_leaves_this_process_unpinned(self):
+        """A diagnostic script that single-threaded the caller's interpreter
+        as a side effect would be a nasty thing to import."""
+        os.environ.pop("OMP_NUM_THREADS", None)
+>       compare_all_entries_parallel(synthetic_prices(), max_workers=2)
+
+tests\test_feature_set_comparison.py:272: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:715: in compare_all_entries_parallel
+    record(payload)
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+____ TestSynchronousPathCreatesNoProcesses.test_no_executor_is_constructed ____
+
+self = <test_feature_set_comparison.TestSynchronousPathCreatesNoProcesses testMethod=test_no_executor_is_constructed>
+
+    def test_no_executor_is_constructed(self):
+        prices = synthetic_prices()
+        constructed = []
+    
+        class _Forbidden:
+            def __init__(self, *args, **kwargs):
+                constructed.append((args, kwargs))
+                raise AssertionError(
+                    "max_workers=1 must not construct a ProcessPoolExecutor"
+                )
+    
+        original = concurrent.futures.ProcessPoolExecutor
+        concurrent.futures.ProcessPoolExecutor = _Forbidden
+        try:
+>           results = compare_all_entries_parallel(prices, max_workers=1)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_feature_set_comparison.py:432: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_ TestSynchronousPathCreatesNoProcesses.test_the_synchronous_path_runs_in_the_calling_process _
+
+self = <test_feature_set_comparison.TestSynchronousPathCreatesNoProcesses testMethod=test_the_synchronous_path_runs_in_the_calling_process>
+
+    def test_the_synchronous_path_runs_in_the_calling_process(self):
+        """Not merely "no pool" � the same process. Checked by counting the
+        live children of this process across the call."""
+        prices = synthetic_prices()
+        before = len(multiprocessing.active_children())
+>       compare_all_entries_parallel(prices, max_workers=1)
+
+tests\test_feature_set_comparison.py:444: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:682: in compare_all_entries_parallel
+    record(_evaluate_feature_set_task(prices, task_spec))
+scripts\feature_set_comparison.py:660: in record
+    pairs[(name, task)] = pair_results(
+scripts\feature_set_comparison.py:499: in pair_results
+    result = compare_classification(
+scripts\feature_set_comparison.py:367: in compare_classification
+    truth = labels.astype(int).to_numpy()
+            ^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\generic.py:6529: in astype
+    new_data = self._mgr.astype(dtype=dtype, errors=errors)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:627: in astype
+    return self.apply("astype", dtype=dtype, errors=errors)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\managers.py:445: in apply
+    applied = getattr(b, f)(**kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\internals\blocks.py:607: in astype
+    new_values = astype_array_safe(values, dtype, errors=errors)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:240: in astype_array_safe
+    new_values = astype_array(values, dtype, copy=copy)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:185: in astype_array
+    values = _astype_nansafe(values, dtype, copy=copy)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:102: in _astype_nansafe
+    return _astype_float_to_int_nansafe(arr, dtype, copy)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+values = array([ 1.,  0.,  1.,  1.,  0.,  0.,  0.,  0.,  1.,  0.,  0.,  0.,  0.,
+        0.,  1.,  0.,  1.,  1.,  0.,  0.,  0.,... 0.,  1.,  1.,  1.,  0.,
+        1.,  0.,  0.,  0.,  0.,  1.,  0.,  1.,  0.,  1.,  1.,  0.,  0.,
+        0., nan, nan])
+dtype = dtype('int64'), copy = False
+
+    def _astype_float_to_int_nansafe(
+        values: np.ndarray, dtype: np.dtype, copy: bool
+    ) -> np.ndarray:
+        """
+        astype with a check preventing converting NaN to a meaningless integer value.
+        """
+        if not np.isfinite(values).all():
+>           raise IntCastingNaNError(
+                "Cannot convert non-finite values (NA or inf) to integer."
+                "Replace or remove non-finite values or cast to an integer type"
+                "that supports these values (e.g. 'Int64')"
+            )
+E           pandas.errors.IntCastingNaNError: Cannot convert non-finite values (NA or inf) to integer.Replace or remove non-finite values or cast to an integer typethat supports these values (e.g. 'Int64')
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\dtypes\astype.py:146: IntCastingNaNError
+_____ TestEquivalenceWithLogisticBaseline.test_null_placement_matches_too _____
+
+self = <test_model_cv.TestEquivalenceWithLogisticBaseline testMethod=test_null_placement_matches_too>
+
+    def test_null_placement_matches_too(self):
+        # Separate from value equality: a loop that predicted everywhere
+        # would still match on the covered rows.
+>       expected = walk_forward_predictions(self.frame)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_model_cv.py:975: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\logistic_baseline.py:165: in walk_forward_predictions
+    model.fit(features.iloc[train_indices][FEATURE_COLUMNS], train_labels)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\base.py:1403: in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\linear_model\_logistic.py:1459: in fit
+    X, y = validate_data(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:3055: in validate_data
+    X, y = check_X_y(X, y, **check_params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:1327: in check_X_y
+    X = check_array(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:1087: in check_array
+    _assert_all_finite(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:137: in _assert_all_finite
+    _assert_all_finite_element_wise(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+X = array([[            nan,             nan,             nan,
+                    nan,  2.80299500e+06],
+       [ 1.08162...2.46032900e+06],
+       [-3.21427841e-03,  5.07818023e-03,  1.03699658e+02,
+         1.02513717e+02,  4.34040500e+06]])
+xp = <module 'sklearn.externals.array_api_compat.numpy' from 'C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\sklearn\\externals\\array_api_compat\\numpy\\__init__.py'>
+allow_nan = False, msg_dtype = None, estimator_name = 'LogisticRegression'
+input_name = 'X'
+
+    def _assert_all_finite_element_wise(
+        X, *, xp, allow_nan, msg_dtype=None, estimator_name=None, input_name=""
+    ):
+        # Cython implementation doesn't support FP16 or complex numbers
+        use_cython = (
+            xp is np and X.data.contiguous and X.dtype.type in {np.float32, np.float64}
+        )
+        if use_cython:
+            out = cy_isfinite(X.reshape(-1), allow_nan=allow_nan)
+            has_nan_error = False if allow_nan else out == FiniteStatus.has_nan
+            has_inf = out == FiniteStatus.has_infinite
+        else:
+            has_inf = xp.any(xp.isinf(X))
+            has_nan_error = False if allow_nan else xp.any(xp.isnan(X))
+        if has_inf or has_nan_error:
+            if has_nan_error:
+                type_err = "NaN"
+            else:
+                msg_dtype = msg_dtype if msg_dtype is not None else X.dtype
+                type_err = f"infinity or a value too large for {msg_dtype!r}"
+            padded_input_name = input_name + " " if input_name else ""
+            msg_err = f"Input {padded_input_name}contains {type_err}."
+            if estimator_name and input_name == "X" and has_nan_error:
+                # Improve the error message on how to handle missing values in
+                # scikit-learn.
+                msg_err += (
+                    f"\n{estimator_name} does not accept missing values"
+                    " encoded as NaN natively. For supervised learning, you might want"
+                    " to consider sklearn.ensemble.HistGradientBoostingClassifier and"
+                    " Regressor which accept missing values encoded as NaNs natively."
+                    " Alternatively, it is possible to preprocess the data, for"
+                    " instance by using an imputer transformer in a pipeline or drop"
+                    " samples with missing values. See"
+                    " https://scikit-learn.org/stable/modules/impute.html"
+                    " You can find a list of all estimators that handle NaN values"
+                    " at the following page:"
+                    " https://scikit-learn.org/stable/modules/impute.html"
+                    "#estimators-that-handle-nan-values"
+                )
+>           raise ValueError(msg_err)
+E           ValueError: Input X contains NaN.
+E           LogisticRegression does not accept missing values encoded as NaN natively. For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier and Regressor which accept missing values encoded as NaNs natively. Alternatively, it is possible to preprocess the data, for instance by using an imputer transformer in a pipeline or drop samples with missing values. See https://scikit-learn.org/stable/modules/impute.html You can find a list of all estimators that handle NaN values at the following page: https://scikit-learn.org/stable/modules/impute.html#estimators-that-handle-nan-values
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:186: ValueError
+_ TestEquivalenceWithLogisticBaseline.test_one_outer_fit_per_fold_on_top_of_the_tuning_fits _
+
+self = <test_model_cv.TestEquivalenceWithLogisticBaseline testMethod=test_one_outer_fit_per_fold_on_top_of_the_tuning_fits>
+
+    def test_one_outer_fit_per_fold_on_top_of_the_tuning_fits(self):
+        """The structural half: a fit-once loop cannot pass this.
+    
+        With a one-point grid, the call budget is exactly one estimator per
+        (grid point, inner fold) plus one per outer fold. Anything reusing a
+        model across outer folds comes in under it.
+        """
+        expected_inner = sum(
+            len(
+                list(
+                    inner_splits_over(
+                        self.frame,
+                        train_indices,
+                        label_horizon=1,
+                        embargo_bars=1,
+                    )
+                )
+            )
+            for train_indices, _ in self.outer
+        )
+        self.assertGreater(expected_inner, 0)
+    
+        with _grid("logistic", CLASSIFICATION, {"C": [1.0]}):
+            with _counting_build_estimator() as calls:
+>               nested_walk_forward(
+                    self.frame,
+                    feature_columns=BASELINE_FEATURE_COLUMNS,
+                    label_column="Label",
+                    task=CLASSIFICATION,
+                    name="logistic",
+                    label_horizon=1,
+                    embargo_bars=1,
+                    random_state=42,
+                )
+
+tests\test_model_cv.py:959: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\model_cv.py:439: in nested_walk_forward
+    train_ok, infer_ok = model_row_masks(frame, feature_columns, label_column,
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+frame =           Date        Open  ...  Inference_Eligible  Train_Eligible
+0   2022-01-03  100.027354  ...               Fals...      True           False
+599 2024-04-19  107.770228  ...                True           False
+
+[600 rows x 18 columns]
+columns = ['Log_Return', 'Rolling_Volatility', 'Short_SMA', 'Long_SMA', 'Volume']
+label = 'Label', horizon = 1, embargo = 1
+
+    def model_row_masks(frame: pd.DataFrame, columns: list[str], label: str,
+                        horizon: int, embargo: int) -> tuple[np.ndarray, np.ndarray]:
+        """Eligibility on the intact calendar; never permit a shorter label purge."""
+        required = frame.attrs.get("label_availability_span", frame.attrs.get("label_horizon", horizon))
+        if horizon < required or embargo < required:
+>           raise ValueError("purge/embargo shorter than label availability span")
+E           ValueError: purge/embargo shorter than label availability span
+
+scripts\estimators.py:280: ValueError
+_ TestEquivalenceWithLogisticBaseline.test_single_point_grid_reproduces_the_baseline_element_for_element _
+
+self = <test_model_cv.TestEquivalenceWithLogisticBaseline testMethod=test_single_point_grid_reproduces_the_baseline_element_for_element>
+
+    def test_single_point_grid_reproduces_the_baseline_element_for_element(self):
+>       expected = walk_forward_predictions(self.frame)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_model_cv.py:911: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\logistic_baseline.py:165: in walk_forward_predictions
+    model.fit(features.iloc[train_indices][FEATURE_COLUMNS], train_labels)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\base.py:1403: in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\linear_model\_logistic.py:1459: in fit
+    X, y = validate_data(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:3055: in validate_data
+    X, y = check_X_y(X, y, **check_params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:1327: in check_X_y
+    X = check_array(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:1087: in check_array
+    _assert_all_finite(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:137: in _assert_all_finite
+    _assert_all_finite_element_wise(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+X = array([[            nan,             nan,             nan,
+                    nan,  2.80299500e+06],
+       [ 1.08162...2.46032900e+06],
+       [-3.21427841e-03,  5.07818023e-03,  1.03699658e+02,
+         1.02513717e+02,  4.34040500e+06]])
+xp = <module 'sklearn.externals.array_api_compat.numpy' from 'C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\sklearn\\externals\\array_api_compat\\numpy\\__init__.py'>
+allow_nan = False, msg_dtype = None, estimator_name = 'LogisticRegression'
+input_name = 'X'
+
+    def _assert_all_finite_element_wise(
+        X, *, xp, allow_nan, msg_dtype=None, estimator_name=None, input_name=""
+    ):
+        # Cython implementation doesn't support FP16 or complex numbers
+        use_cython = (
+            xp is np and X.data.contiguous and X.dtype.type in {np.float32, np.float64}
+        )
+        if use_cython:
+            out = cy_isfinite(X.reshape(-1), allow_nan=allow_nan)
+            has_nan_error = False if allow_nan else out == FiniteStatus.has_nan
+            has_inf = out == FiniteStatus.has_infinite
+        else:
+            has_inf = xp.any(xp.isinf(X))
+            has_nan_error = False if allow_nan else xp.any(xp.isnan(X))
+        if has_inf or has_nan_error:
+            if has_nan_error:
+                type_err = "NaN"
+            else:
+                msg_dtype = msg_dtype if msg_dtype is not None else X.dtype
+                type_err = f"infinity or a value too large for {msg_dtype!r}"
+            padded_input_name = input_name + " " if input_name else ""
+            msg_err = f"Input {padded_input_name}contains {type_err}."
+            if estimator_name and input_name == "X" and has_nan_error:
+                # Improve the error message on how to handle missing values in
+                # scikit-learn.
+                msg_err += (
+                    f"\n{estimator_name} does not accept missing values"
+                    " encoded as NaN natively. For supervised learning, you might want"
+                    " to consider sklearn.ensemble.HistGradientBoostingClassifier and"
+                    " Regressor which accept missing values encoded as NaNs natively."
+                    " Alternatively, it is possible to preprocess the data, for"
+                    " instance by using an imputer transformer in a pipeline or drop"
+                    " samples with missing values. See"
+                    " https://scikit-learn.org/stable/modules/impute.html"
+                    " You can find a list of all estimators that handle NaN values"
+                    " at the following page:"
+                    " https://scikit-learn.org/stable/modules/impute.html"
+                    "#estimators-that-handle-nan-values"
+                )
+>           raise ValueError(msg_err)
+E           ValueError: Input X contains NaN.
+E           LogisticRegression does not accept missing values encoded as NaN natively. For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier and Regressor which accept missing values encoded as NaNs natively. Alternatively, it is possible to preprocess the data, for instance by using an imputer transformer in a pipeline or drop samples with missing values. See https://scikit-learn.org/stable/modules/impute.html You can find a list of all estimators that handle NaN values at the following page: https://scikit-learn.org/stable/modules/impute.html#estimators-that-handle-nan-values
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:186: ValueError
+_ TestEquivalenceWithLogisticBaseline.test_the_fixture_discriminates_between_folds _
+
+self = <test_model_cv.TestEquivalenceWithLogisticBaseline testMethod=test_the_fixture_discriminates_between_folds>
+
+    def test_the_fixture_discriminates_between_folds(self):
+        """If every fold fit alike, the equality tests below prove nothing."""
+        coefficients = []
+        for train_indices, _ in self.outer:
+            model = estimators.build_estimator(
+                "logistic",
+                task=CLASSIFICATION,
+                params={"C": 1.0},
+                random_state=42,
+                scale=False,
+            )
+>           model.fit(
+                self.frame.iloc[train_indices][LEVEL_FEATURE_COLUMNS],
+                self.frame.iloc[train_indices]["Label"].astype(int),
+            )
+
+tests\test_model_cv.py:900: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\base.py:1403: in wrapper
+    return fit_method(estimator, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\linear_model\_logistic.py:1459: in fit
+    X, y = validate_data(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:3055: in validate_data
+    X, y = check_X_y(X, y, **check_params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:1327: in check_X_y
+    X = check_array(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:1087: in check_array
+    _assert_all_finite(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:137: in _assert_all_finite
+    _assert_all_finite_element_wise(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+X = array([[            nan,             nan,             nan,
+                    nan,  2.80299500e+06],
+       [ 1.08162...2.46032900e+06],
+       [-3.21427841e-03,  5.07818023e-03,  1.03699658e+02,
+         1.02513717e+02,  4.34040500e+06]])
+xp = <module 'sklearn.externals.array_api_compat.numpy' from 'C:\\Users\\Owner\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\sklearn\\externals\\array_api_compat\\numpy\\__init__.py'>
+allow_nan = False, msg_dtype = None, estimator_name = 'LogisticRegression'
+input_name = 'X'
+
+    def _assert_all_finite_element_wise(
+        X, *, xp, allow_nan, msg_dtype=None, estimator_name=None, input_name=""
+    ):
+        # Cython implementation doesn't support FP16 or complex numbers
+        use_cython = (
+            xp is np and X.data.contiguous and X.dtype.type in {np.float32, np.float64}
+        )
+        if use_cython:
+            out = cy_isfinite(X.reshape(-1), allow_nan=allow_nan)
+            has_nan_error = False if allow_nan else out == FiniteStatus.has_nan
+            has_inf = out == FiniteStatus.has_infinite
+        else:
+            has_inf = xp.any(xp.isinf(X))
+            has_nan_error = False if allow_nan else xp.any(xp.isnan(X))
+        if has_inf or has_nan_error:
+            if has_nan_error:
+                type_err = "NaN"
+            else:
+                msg_dtype = msg_dtype if msg_dtype is not None else X.dtype
+                type_err = f"infinity or a value too large for {msg_dtype!r}"
+            padded_input_name = input_name + " " if input_name else ""
+            msg_err = f"Input {padded_input_name}contains {type_err}."
+            if estimator_name and input_name == "X" and has_nan_error:
+                # Improve the error message on how to handle missing values in
+                # scikit-learn.
+                msg_err += (
+                    f"\n{estimator_name} does not accept missing values"
+                    " encoded as NaN natively. For supervised learning, you might want"
+                    " to consider sklearn.ensemble.HistGradientBoostingClassifier and"
+                    " Regressor which accept missing values encoded as NaNs natively."
+                    " Alternatively, it is possible to preprocess the data, for"
+                    " instance by using an imputer transformer in a pipeline or drop"
+                    " samples with missing values. See"
+                    " https://scikit-learn.org/stable/modules/impute.html"
+                    " You can find a list of all estimators that handle NaN values"
+                    " at the following page:"
+                    " https://scikit-learn.org/stable/modules/impute.html"
+                    "#estimators-that-handle-nan-values"
+                )
+>           raise ValueError(msg_err)
+E           ValueError: Input X contains NaN.
+E           LogisticRegression does not accept missing values encoded as NaN natively. For supervised learning, you might want to consider sklearn.ensemble.HistGradientBoostingClassifier and Regressor which accept missing values encoded as NaNs natively. Alternatively, it is possible to preprocess the data, for instance by using an imputer transformer in a pipeline or drop samples with missing values. See https://scikit-learn.org/stable/modules/impute.html You can find a list of all estimators that handle NaN values at the following page: https://scikit-learn.org/stable/modules/impute.html#estimators-that-handle-nan-values
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\sklearn\utils\validation.py:186: ValueError
+_ TestIsolatedFailure.test_the_short_ticker_fails_by_name_and_the_others_complete _
+
+self = <test_multi_ticker_comparison.TestIsolatedFailure testMethod=test_the_short_ticker_fails_by_name_and_the_others_complete>
+
+    def test_the_short_ticker_fails_by_name_and_the_others_complete(self):
+        frames = {
+            "GOOD1": _long_history(seed=1),
+            "BAD": _short_history(),
+            "GOOD2": _long_history(seed=2),
+        }
+        with patch.object(mtc, "download_market_data", _fake_download(frames)):
+            results_frame, failures = mtc.run_comparison(
+                tickers=["GOOD1", "BAD", "GOOD2"], seed_count=3
+            )
+    
+>       self.assertEqual([failure.ticker for failure in failures], ["BAD"])
+E       AssertionError: Lists differ: ['GOOD1', 'BAD', 'GOOD2'] != ['BAD']
+E       
+E       First differing element 0:
+E       'GOOD1'
+E       'BAD'
+E       
+E       First list contains 2 additional elements.
+E       First extra element 1:
+E       'BAD'
+E       
+E       - ['GOOD1', 'BAD', 'GOOD2']
+E       + ['BAD']
+
+tests\test_multi_ticker_comparison.py:84: AssertionError
+________ TestAllSucceed.test_every_ticker_produces_exactly_three_rows _________
+
+self = <test_multi_ticker_comparison.TestAllSucceed testMethod=test_every_ticker_produces_exactly_three_rows>
+
+    def test_every_ticker_produces_exactly_three_rows(self):
+        frames = {"A": _long_history(seed=1), "B": _long_history(seed=2)}
+        with patch.object(mtc, "download_market_data", _fake_download(frames)):
+            results_frame, failures = mtc.run_comparison(
+                tickers=["A", "B"], seed_count=3
+            )
+    
+>       self.assertEqual(failures, [])
+E       AssertionError: Lists differ: [ComparisonFailure(ticker='A', reason='fun[149 chars]es')] != []
+E       
+E       First list contains 2 additional elements.
+E       First extra element 0:
+E       ComparisonFailure(ticker='A', reason='funded ledger requires declared unadjusted dollar prices')
+E       
+E       + []
+E       - [ComparisonFailure(ticker='A',
+E       -                    reason='funded ledger requires declared unadjusted dollar '
+E       -                           'prices'),
+E       -  ComparisonFailure(ticker='B',
+E       -                    reason='funded ledger requires declared unadjusted dollar '
+E       -                           'prices')]
+
+tests\test_multi_ticker_comparison.py:107: AssertionError
+_ TestCostParameterConsistency.test_commission_and_slippage_match_across_tickers_and_strategies _
+
+self = <test_multi_ticker_comparison.TestCostParameterConsistency testMethod=test_commission_and_slippage_match_across_tickers_and_strategies>
+
+    def test_commission_and_slippage_match_across_tickers_and_strategies(self):
+        frames = {"A": _long_history(seed=1), "B": _long_history(seed=2)}
+        with patch.object(mtc, "download_market_data", _fake_download(frames)):
+            results_frame, failures = mtc.run_comparison(
+                tickers=["A", "B"],
+                commission_per_trade=1.25,
+                slippage_bps=7.0,
+                seed_count=3,
+            )
+    
+>       self.assertEqual(failures, [])
+E       AssertionError: Lists differ: [ComparisonFailure(ticker='A', reason='fun[149 chars]es')] != []
+E       
+E       First list contains 2 additional elements.
+E       First extra element 0:
+E       ComparisonFailure(ticker='A', reason='funded ledger requires declared unadjusted dollar prices')
+E       
+E       + []
+E       - [ComparisonFailure(ticker='A',
+E       -                    reason='funded ledger requires declared unadjusted dollar '
+E       -                           'prices'),
+E       -  ComparisonFailure(ticker='B',
+E       -                    reason='funded ledger requires declared unadjusted dollar '
+E       -                           'prices')]
+
+tests\test_multi_ticker_comparison.py:148: AssertionError
+_ TestCostParameterConsistency.test_isolated_failure_still_matches_costs_for_completed_tickers _
+
+self = <test_multi_ticker_comparison.TestCostParameterConsistency testMethod=test_isolated_failure_still_matches_costs_for_completed_tickers>
+
+    def test_isolated_failure_still_matches_costs_for_completed_tickers(self):
+        frames = {"GOOD": _long_history(seed=1), "BAD": _short_history()}
+        with patch.object(mtc, "download_market_data", _fake_download(frames)):
+            results_frame, _failures = mtc.run_comparison(
+                tickers=["GOOD", "BAD"], seed_count=3
+            )
+    
+>       self.assertTrue((results_frame["commission_per_trade"] == mtc.COMMISSION_PER_TRADE).all())
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_multi_ticker_comparison.py:159: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\frame.py:4378: in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = RangeIndex(start=0, stop=0, step=1), key = 'commission_per_trade'
+
+    def get_loc(self, key) -> int:
+        """
+        Get integer location for requested label.
+    
+        Parameters
+        ----------
+        key : int or float
+            Label to locate. Integer-like floats (e.g. 3.0) are accepted and
+            treated as the corresponding integer. Non-integer floats and other
+            non-integer labels are not valid and will raise KeyError or
+            InvalidIndexError.
+    
+        Returns
+        -------
+        int
+            Integer location of the label within the RangeIndex.
+    
+        Raises
+        ------
+        KeyError
+            If the label is not present in the RangeIndex or the label is a
+            non-integer value.
+        InvalidIndexError
+            If the label is of an invalid type for the RangeIndex.
+    
+        See Also
+        --------
+        RangeIndex.get_slice_bound : Calculate slice bound that corresponds to
+            given label.
+        RangeIndex.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        RangeIndex.get_non_unique : Returns indexer and masks for new index given
+            the current index.
+        RangeIndex.get_indexer_for : Returns an indexer even when non-unique.
+    
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.get_loc(3)
+        3
+    
+        >>> idx = pd.RangeIndex(2, 10, 2)  # values [2, 4, 6, 8]
+        >>> idx.get_loc(6)
+        2
+        """
+        if is_integer(key) or (is_float(key) and key.is_integer()):
+            new_key = int(key)
+            try:
+                return self._range.index(new_key)
+            except ValueError as err:
+                raise KeyError(key) from err
+        if isinstance(key, Hashable):
+>           raise KeyError(key)
+E           KeyError: 'commission_per_trade'
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\indexes\range.py:525: KeyError
+___ TestHonestyColumns.test_baseline_rows_carry_nan_for_the_ml_only_columns ___
+
+self = <test_multi_ticker_comparison.TestHonestyColumns testMethod=test_baseline_rows_carry_nan_for_the_ml_only_columns>
+
+    def test_baseline_rows_carry_nan_for_the_ml_only_columns(self):
+        frames = {"A": _long_history(seed=1)}
+        with patch.object(mtc, "download_market_data", _fake_download(frames)):
+            results_frame, _failures = mtc.run_comparison(tickers=["A"], seed_count=3)
+    
+>       baseline_rows = results_frame[results_frame["Strategy"] != mtc.STRATEGY_ML]
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_multi_ticker_comparison.py:186: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\frame.py:4378: in __getitem__
+    indexer = self.columns.get_loc(key)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = RangeIndex(start=0, stop=0, step=1), key = 'Strategy'
+
+    def get_loc(self, key) -> int:
+        """
+        Get integer location for requested label.
+    
+        Parameters
+        ----------
+        key : int or float
+            Label to locate. Integer-like floats (e.g. 3.0) are accepted and
+            treated as the corresponding integer. Non-integer floats and other
+            non-integer labels are not valid and will raise KeyError or
+            InvalidIndexError.
+    
+        Returns
+        -------
+        int
+            Integer location of the label within the RangeIndex.
+    
+        Raises
+        ------
+        KeyError
+            If the label is not present in the RangeIndex or the label is a
+            non-integer value.
+        InvalidIndexError
+            If the label is of an invalid type for the RangeIndex.
+    
+        See Also
+        --------
+        RangeIndex.get_slice_bound : Calculate slice bound that corresponds to
+            given label.
+        RangeIndex.get_indexer : Computes indexer and mask for new index given
+            the current index.
+        RangeIndex.get_non_unique : Returns indexer and masks for new index given
+            the current index.
+        RangeIndex.get_indexer_for : Returns an indexer even when non-unique.
+    
+        Examples
+        --------
+        >>> idx = pd.RangeIndex(5)
+        >>> idx.get_loc(3)
+        3
+    
+        >>> idx = pd.RangeIndex(2, 10, 2)  # values [2, 4, 6, 8]
+        >>> idx.get_loc(6)
+        2
+        """
+        if is_integer(key) or (is_float(key) and key.is_integer()):
+            new_key = int(key)
+            try:
+                return self._range.index(new_key)
+            except ValueError as err:
+                raise KeyError(key) from err
+        if isinstance(key, Hashable):
+>           raise KeyError(key)
+E           KeyError: 'Strategy'
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\core\indexes\range.py:525: KeyError
+_ TestHonestyColumns.test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry _
+
+self = <test_multi_ticker_comparison.TestHonestyColumns testMethod=test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry>
+
+    def test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry(self):
+        frames = {"A": _long_history(seed=1)}
+        with patch.object(mtc, "download_market_data", _fake_download(frames)):
+            results_frame, failures = mtc.run_comparison(tickers=["A"], seed_count=3)
+    
+>       self.assertEqual(failures, [])
+E       AssertionError: Lists differ: [ComparisonFailure(ticker='A', reason='fun[51 chars]es')] != []
+E       
+E       First list contains 1 additional elements.
+E       First extra element 0:
+E       ComparisonFailure(ticker='A', reason='funded ledger requires declared unadjusted dollar prices')
+E       
+E       + []
+E       - [ComparisonFailure(ticker='A',
+E       -                    reason='funded ledger requires declared unadjusted dollar '
+E       -                           'prices')]
+
+tests\test_multi_ticker_comparison.py:171: AssertionError
+______________ TestCsvRoundTrip.test_round_trip_preserves_shape _______________
+
+self = <test_multi_ticker_comparison.TestCsvRoundTrip testMethod=test_round_trip_preserves_shape>
+
+    def test_round_trip_preserves_shape(self):
+        frames = {"A": _long_history(seed=1), "B": _long_history(seed=2)}
+        with patch.object(mtc, "download_market_data", _fake_download(frames)):
+            results_frame, failures = mtc.run_comparison(
+                tickers=["A", "B"], seed_count=3
+            )
+>       self.assertEqual(failures, [])
+E       AssertionError: Lists differ: [ComparisonFailure(ticker='A', reason='fun[149 chars]es')] != []
+E       
+E       First list contains 2 additional elements.
+E       First extra element 0:
+E       ComparisonFailure(ticker='A', reason='funded ledger requires declared unadjusted dollar prices')
+E       
+E       + []
+E       - [ComparisonFailure(ticker='A',
+E       -                    reason='funded ledger requires declared unadjusted dollar '
+E       -                           'prices'),
+E       -  ComparisonFailure(ticker='B',
+E       -                    reason='funded ledger requires declared unadjusted dollar '
+E       -                           'prices')]
+
+tests\test_multi_ticker_comparison.py:209: AssertionError
+_ TestMutations.test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion _
+
+self = <test_multi_ticker_comparison.TestMutations testMethod=test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion>
+
+    def test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion(self):
+        frames = {"A": _long_history(seed=1)}
+        with patch.object(mtc, "download_market_data", _fake_download(frames)):
+            results_frame, failures = mtc.run_comparison(tickers=["A"], seed_count=3)
+>       self.assertEqual(failures, [])
+E       AssertionError: Lists differ: [ComparisonFailure(ticker='A', reason='fun[51 chars]es')] != []
+E       
+E       First list contains 1 additional elements.
+E       First extra element 0:
+E       ComparisonFailure(ticker='A', reason='funded ledger requires declared unadjusted dollar prices')
+E       
+E       + []
+E       - [ComparisonFailure(ticker='A',
+E       -                    reason='funded ledger requires declared unadjusted dollar '
+E       -                           'prices')]
+
+tests\test_multi_ticker_comparison.py:259: AssertionError
+___________________ TestReportsApi.test_backtest_tearsheet ____________________
+
+self = <test_reports_api.TestReportsApi testMethod=test_backtest_tearsheet>
+
+    def test_backtest_tearsheet(self):
+>       response = self.client.get(
+            "/api/backtest/tearsheet?ticker=AAPL&short_window=10&long_window=30&commission=1.0&slippage_bps=5.0"
+        )
+
+tests\test_reports_api.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:483: in get
+    return super().get(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\httpx2\_client.py:1113: in get
+    return self.request(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:455: in request
+    return super().request(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\httpx2\_client.py:797: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\httpx2\_client.py:980: in send
+    response = self._send_handling_auth(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\httpx2\_client.py:1008: in _send_handling_auth
+    response = self._send_handling_redirects(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\httpx2\_client.py:1043: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\httpx2\_client.py:1076: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:354: in handle_request
+    raise exc
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\testclient.py:351: in handle_request
+    portal.call(self.app, scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\anyio\from_thread.py:338: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\_base.py:460: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\concurrent\futures\_base.py:402: in __get_result
+    raise self._exception
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\anyio\from_thread.py:263: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\middleware\cors.py:88: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\routing.py:670: in __call__
+    await self.middleware_stack(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py:2734: in app
+    await route.handle(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py:1780: in handle
+    await self.original_router.handle(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py:2789: in handle
+    await included_router._handle_selected(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py:1800: in _handle_selected
+    await original_route.handle(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py:1279: in handle
+    await app(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py:706: in app
+    raw_response = await run_endpoint_function(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\fastapi\routing.py:354: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\anyio\_backends\_asyncio.py:2641: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\anyio\_backends\_asyncio.py:1033: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+reports\api\routes\backtest.py:53: in get_backtest_tearsheet
+    trade_log = run_backtest(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+prices =           Date        Open  ...  Buy_Next_Open  Sell_Next_Open
+0   2023-01-03  100.733346  ...          False         ...          False           False
+319 2024-03-25   65.314593  ...          False           False
+
+[320 rows x 12 columns]
+commission_per_trade = 1.0, slippage_bps = 5.0, starting_capital = None
+shares = 1, liquidate = False
+
+    def run_backtest(
+        prices: pd.DataFrame,
+        *,
+        commission_per_trade: float = 0.0,
+        slippage_bps: float = 0.0,
+        starting_capital: float | None = None,
+        shares: int = 1,
+        liquidate: bool = False,
+    ) -> pd.DataFrame:
+        """Fund already-shifted orders; return closed trades with an event ledger.
+    
+        Long-only, immediate fills, no borrowing or pending orders. Buying power
+        equals cash. An unaffordable entry is recorded as rejected, never resized.
+        Starting capital must be chosen explicitly before the first open.
+        Open positions are marked unless terminal liquidation is requested.
+        Dates identify sessions; Phase identifies initial/open/close events.
+        """
+        missing = [c for c in REQUIRED_PRICE_COLUMNS if c not in prices]
+        if missing or prices.empty:
+            raise ValueError(f"nonempty prices required; missing columns: {missing}")
+        validate_costs(commission_per_trade, slippage_bps)
+        if prices.attrs.get("price_basis") != "unadjusted_dollars":
+>           raise ValueError("funded ledger requires declared unadjusted dollar prices")
+E           ValueError: funded ledger requires declared unadjusted dollar prices
+
+scripts\backtest_harness.py:38: ValueError
+_ TestEquivalenceWithLogisticBaseline.test_build_features_reproduces_the_baseline_frame _
+
+self = <test_targets.TestEquivalenceWithLogisticBaseline testMethod=test_build_features_reproduces_the_baseline_frame>
+
+    def test_build_features_reproduces_the_baseline_frame(self):
+        """SC-002 � every shared column, row for row."""
+        import logistic_baseline
+    
+        old = logistic_baseline.build_features(self.prices)
+        new, task, horizon = build_features(
+            self.prices,
+            target_kind="direction",
+            label_horizon=1,
+            short_window=logistic_baseline.SHORT_WINDOW,
+            long_window=logistic_baseline.LONG_WINDOW,
+            volatility_window=logistic_baseline.VOLATILITY_WINDOW,
+            feature_set="levels",
+        )
+    
+>       self.assertEqual((task, horizon), ("classification", 1))
+E       AssertionError: Tuples differ: ('classification', 2) != ('classification', 1)
+E       
+E       First differing element 1:
+E       2
+E       1
+E       
+E       - ('classification', 2)
+E       ?                    ^
+E       
+E       + ('classification', 1)
+E       ?                    ^
+
+tests\test_targets.py:544: AssertionError
+_ TestEquivalenceWithLogisticBaseline.test_direction_label_matches_the_baseline_label _
+
+self = <test_targets.TestEquivalenceWithLogisticBaseline testMethod=test_direction_label_matches_the_baseline_label>
+
+    def test_direction_label_matches_the_baseline_label(self):
+        """SC-001 � element for element, dtype included."""
+        import logistic_baseline
+    
+        old = logistic_baseline.build_features(self.prices)
+        new_label = direction_label(self.prices, horizon=1)
+    
+        # The old frame drops warm-up rows; compare over the rows it kept, by
+        # matching on Date rather than assuming a shared offset.
+        aligned = new_label.reindex(
+            pd.Index(self.prices["Date"]).get_indexer(old["Date"])
+        ).reset_index(drop=True)
+    
+>       pd.testing.assert_series_equal(
+            old[LABEL_COLUMN].reset_index(drop=True),
+            aligned,
+            check_names=False,
+        )
+
+tests\test_targets.py:523: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\_testing\asserters.py:817: in assert_extension_array_equal
+    assert_numpy_array_equal(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+left = array([False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False,...False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False, False])
+right = array([False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False,...False, False, False, False, False, False, False, False, False,
+       False, False, False, False, False, False,  True])
+err_msg = None
+
+    def _raise(left, right, err_msg) -> NoReturn:
+        if err_msg is None:
+            if left.shape != right.shape:
+                raise_assert_detail(
+                    obj, f"{obj} shapes are different", left.shape, right.shape
+                )
+    
+            diff = 0
+            for left_arr, right_arr in zip(left, right, strict=True):
+                # count up differences
+                if not array_equivalent(left_arr, right_arr, strict_nan=strict_nan):
+                    diff += 1
+    
+            diff = diff * 100.0 / left.size
+            msg = f"{obj} values are different ({np.round(diff, 5)} %)"
+>           raise_assert_detail(obj, msg, left, right, index_values=index_values)
+E           AssertionError: Series NA mask are different
+E           
+E           Series NA mask values are different (0.59172 %)
+E           [index]: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, ...]
+E           [left]:  [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, ...]
+E           [right]: [False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, ...]
+
+C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pandas\_testing\asserters.py:689: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_feature_set_comparison.py::TestParentSideThreadPinning::test_the_orchestrator_leaves_this_process_unpinned
+FAILED tests/test_feature_set_comparison.py::TestSynchronousPathCreatesNoProcesses::test_no_executor_is_constructed
+FAILED tests/test_feature_set_comparison.py::TestSynchronousPathCreatesNoProcesses::test_the_synchronous_path_runs_in_the_calling_process
+FAILED tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline::test_null_placement_matches_too
+FAILED tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline::test_one_outer_fit_per_fold_on_top_of_the_tuning_fits
+FAILED tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline::test_single_point_grid_reproduces_the_baseline_element_for_element
+FAILED tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline::test_the_fixture_discriminates_between_folds
+FAILED tests/test_multi_ticker_comparison.py::TestIsolatedFailure::test_the_short_ticker_fails_by_name_and_the_others_complete
+FAILED tests/test_multi_ticker_comparison.py::TestAllSucceed::test_every_ticker_produces_exactly_three_rows
+FAILED tests/test_multi_ticker_comparison.py::TestCostParameterConsistency::test_commission_and_slippage_match_across_tickers_and_strategies
+FAILED tests/test_multi_ticker_comparison.py::TestCostParameterConsistency::test_isolated_failure_still_matches_costs_for_completed_tickers
+FAILED tests/test_multi_ticker_comparison.py::TestHonestyColumns::test_baseline_rows_carry_nan_for_the_ml_only_columns
+FAILED tests/test_multi_ticker_comparison.py::TestHonestyColumns::test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry
+FAILED tests/test_multi_ticker_comparison.py::TestCsvRoundTrip::test_round_trip_preserves_shape
+FAILED tests/test_multi_ticker_comparison.py::TestMutations::test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion
+FAILED tests/test_reports_api.py::TestReportsApi::test_backtest_tearsheet - V...
+FAILED tests/test_targets.py::TestEquivalenceWithLogisticBaseline::test_build_features_reproduces_the_baseline_frame
+FAILED tests/test_targets.py::TestEquivalenceWithLogisticBaseline::test_direction_label_matches_the_baseline_label
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_discordant_counts_and_p_values_are_equal
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_formatted_reports_match_character_for_character
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_on_pair_reports_completed_comparisons_in_report_order
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_orchestrator_results_match_key_for_key_and_bit_for_bit
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_pairing_the_two_unit_sets_gives_identical_statistics
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_prediction_dtypes_and_index_survive_the_process_boundary
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_prediction_series_are_identical
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_result_order_is_the_registry_order_in_both_modes
+ERROR tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_the_fr_007_alias_produces_the_same_results
+============ 18 failed, 723 passed, 9 errors in 198.14s (0:03:18) =============

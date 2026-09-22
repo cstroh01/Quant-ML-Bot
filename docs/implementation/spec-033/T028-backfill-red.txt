@@ -1,0 +1,247 @@
+FFFFFFFFFFFF                                                             [100%]
+================================== FAILURES ===================================
+______________________ test_campaign_schema[campaign_id] ______________________
+
+missing = 'campaign_id'
+
+    @pytest.mark.parametrize("missing", sorted(BACKFILL_FIELDS))
+    def test_campaign_schema(missing):
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+_________________ test_campaign_schema[cartesian_upper_bound] _________________
+
+missing = 'cartesian_upper_bound'
+
+    @pytest.mark.parametrize("missing", sorted(BACKFILL_FIELDS))
+    def test_campaign_schema(missing):
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+__________________ test_campaign_schema[chosen_upper_bound] ___________________
+
+missing = 'chosen_upper_bound'
+
+    @pytest.mark.parametrize("missing", sorted(BACKFILL_FIELDS))
+    def test_campaign_schema(missing):
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+______________________ test_campaign_schema[description] ______________________
+
+missing = 'description'
+
+    @pytest.mark.parametrize("missing", sorted(BACKFILL_FIELDS))
+    def test_campaign_schema(missing):
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+______________________ test_campaign_schema[dimensions] _______________________
+
+missing = 'dimensions'
+
+    @pytest.mark.parametrize("missing", sorted(BACKFILL_FIELDS))
+    def test_campaign_schema(missing):
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+_______________________ test_campaign_schema[evidence] ________________________
+
+missing = 'evidence'
+
+    @pytest.mark.parametrize("missing", sorted(BACKFILL_FIELDS))
+    def test_campaign_schema(missing):
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+___________________ test_campaign_schema[remembered_range] ____________________
+
+missing = 'remembered_range'
+
+    @pytest.mark.parametrize("missing", sorted(BACKFILL_FIELDS))
+    def test_campaign_schema(missing):
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+___________________ test_campaign_schema[rerun_upper_bound] ___________________
+
+missing = 'rerun_upper_bound'
+
+    @pytest.mark.parametrize("missing", sorted(BACKFILL_FIELDS))
+    def test_campaign_schema(missing):
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+___________________ test_campaign_schema[unresolved_reason] ___________________
+
+missing = 'unresolved_reason'
+
+    @pytest.mark.parametrize("missing", sorted(BACKFILL_FIELDS))
+    def test_campaign_schema(missing):
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:15: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+_____________ test_cartesian_add_upper_endpoint_round_then_double _____________
+
+    def test_cartesian_add_upper_endpoint_round_then_double():
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+________ test_no_downward_supersession_no_optimistic_unknown_fallback _________
+
+    def test_no_downward_supersession_no_optimistic_unknown_fallback():
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:29: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+_____________ test_invalid_cartesian_and_understated_chosen_bound _____________
+
+    def test_invalid_cartesian_and_understated_chosen_bound():
+>       calculate = api("trial_backfill", "calculate_backfill")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_backfill.py:38: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_backfill', name = 'calculate_backfill'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_backfill.calculate_backfill
+
+tests\spec033_support.py:19: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_033_backfill.py::test_campaign_schema[campaign_id] - Assert...
+FAILED tests/test_033_backfill.py::test_campaign_schema[cartesian_upper_bound]
+FAILED tests/test_033_backfill.py::test_campaign_schema[chosen_upper_bound]
+FAILED tests/test_033_backfill.py::test_campaign_schema[description] - Assert...
+FAILED tests/test_033_backfill.py::test_campaign_schema[dimensions] - Asserti...
+FAILED tests/test_033_backfill.py::test_campaign_schema[evidence] - Assertion...
+FAILED tests/test_033_backfill.py::test_campaign_schema[remembered_range] - A...
+FAILED tests/test_033_backfill.py::test_campaign_schema[rerun_upper_bound] - ...
+FAILED tests/test_033_backfill.py::test_campaign_schema[unresolved_reason] - ...
+FAILED tests/test_033_backfill.py::test_cartesian_add_upper_endpoint_round_then_double
+FAILED tests/test_033_backfill.py::test_no_downward_supersession_no_optimistic_unknown_fallback
+FAILED tests/test_033_backfill.py::test_invalid_cartesian_and_understated_chosen_bound
+12 failed in 0.17s

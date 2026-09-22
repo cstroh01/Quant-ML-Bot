@@ -161,9 +161,9 @@ incomplete; there is no optimistic fallback.
 - [ ] T035 [US3] Add Rule 1/5 tests for first/last row, unequal boundaries,
   missing/holiday session, duplicate/reordered/aware/non-midnight dates, fold
   joins, and future-row perturbation plus a current-row control.
-- [ ] T036 [US3] Transcribe the DSR paper's worked-example inputs into the
+- [x] T036 [US3] Transcribe the DSR paper's worked-example inputs into the
   labelled fixture and write the direct formula test: `N = 88` gives
-  `pytest.approx(0.905, abs=0.001)` and fails `0.95`; `N = 46` passes `0.95`.
+  `pytest.approx(0.910153014744707, abs=0.001)` and fails `0.95`; `N = 46` passes `0.95`.
 - [ ] T037 [US3] Write unit tests for every named DSR input and convention:
   daily non-annualized Sharpe, observation count, skewness, Pearson kurtosis,
   trial-Sharpe dispersion, extreme-value benchmark, normal CDF, and
@@ -202,28 +202,28 @@ verified matrix plus lifetime count.
 
 ## Phase 7 — US3 tests and implementation: CSCV/PBO S=16
 
-- [ ] T047 [US3] Write block-construction tests in `tests/test_033_pbo.py` for
+- [x] T047 [US3] Write block-construction tests in `tests/test_033_pbo.py` for
   16 contiguous chronological non-empty blocks, size difference at most one,
   stable boundaries, and rejection below 16 rows.
-- [ ] T048 [US3] Write a combinations/complement test proving exactly
+- [x] T048 [US3] Write a combinations/complement test proving exactly
   `C(16, 8) = 12,870` unique splits, eight IS plus complementary eight OOS
   blocks, and no random sampling.
-- [ ] T049 [US3] Build an independently calculated deterministic oracle that
+- [x] T049 [US3] Build an independently calculated deterministic oracle that
   pins the IS winner, same-column OOS result, relative rank, logit sign,
   tie handling, degradation, and final PBO; verify column-order invariance.
-- [ ] T050 [US3] Write integration tests proving PBO and DSR consume the same
+- [x] T050 [US3] Write integration tests proving PBO and DSR consume the same
   matrix hash and that missing backfilled series never appear as zero, copied,
   or imputed columns.
-- [ ] T051 [US3] Write undefined-result tests for insufficient columns,
+- [x] T051 [US3] Write undefined-result tests for insufficient columns,
   non-finite split statistics, invalid/rejected split accounting, and zero valid
   splits; no invalid split may disappear silently.
-- [ ] T052 [US3] Confirm T047-T051 fail for the intended missing PBO behavior.
-- [ ] T053 [US3] Implement deterministic 16-block construction and all 12,870
+- [x] T052 [US3] Confirm T047-T051 fail for the intended missing PBO behavior.
+- [x] T053 [US3] Implement deterministic 16-block construction and all 12,870
   combinations in `scripts/selection_bias.py`.
-- [ ] T054 [US3] Implement preregistered IS selection, OOS carry-through,
+- [x] T054 [US3] Implement preregistered IS selection, OOS carry-through,
   deterministic rank/tie convention, rank logits, PBO, degradation, and
   split-level evidence.
-- [ ] T055 [US3] Make T047-T051 green and record runtime/memory on a
+- [x] T055 [US3] Make T047-T051 green and record runtime/memory on a
   representative synthetic `T x M` matrix without weakening the exhaustive
   split requirement.
 
@@ -334,3 +334,12 @@ Phase 1
 - This spec-writing change creates only `spec.md`, `plan.md`, `research.md`, and
   `tasks.md`; all paths named above are future implementation scope.
 
+
+## Implementation checkpoint — 2026-09-22
+
+The approved source correction and Phase 7 checks above have recorded evidence
+in `docs/implementation/spec-033/HANDOFF.md`. Earlier checkboxes have not been
+retroactively certified; their partial acceptance and remaining gaps are
+documented there. Camden explicitly limited this continuation to Phase 7.
+T031/T032 remain untouched. Phases 8–10 are not started by this continuation.
+The full-suite merge gate remains subject to the recorded canonical results.

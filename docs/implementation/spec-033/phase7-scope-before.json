@@ -1,0 +1,10 @@
+{
+  "reports/api/routes/capital_gate.py": "9ca1f16f8de9c85f4acdf3f41c5a848b63ad6abb1e47baa21083139c485855c3",
+  "docs/trials/backfill/manifest.json": "c68e61a0de445d1ed2ad3c4418c58492f5c503cdeafff7a47c4f8d9579402ab5",
+  "docs/trials/trials.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "requirements.txt": "816ab9586ad6f1452dde76e77071773e1a07c796fe5bdc2066a18761098287bd",
+  "requirements-dev.txt": "39a274047a205e6ef1d395f3feccf006de70460db1ad03b1a7825f1b53617135",
+  "backfill_files": [
+    "docs/trials/backfill/manifest.json"
+  ]
+}

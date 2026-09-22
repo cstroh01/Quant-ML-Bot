@@ -1,0 +1,136 @@
+{
+  "generated_at_utc": "2026-09-22T22:42:37.119035+00:00",
+  "scope": "Approved DSR source correction and Phase 7 checkpoint only; parsing is static evidence, not runtime verification",
+  "files": [
+    {
+      "path": ".specify/specs/033-trial-ledger-dsr-pbo-gate/plan.md",
+      "sha256": "71ef00fc20240724bcc752b0c01e9b967e139f327663972471d769de00b33b30",
+      "lines": 447
+    },
+    {
+      "path": ".specify/specs/033-trial-ledger-dsr-pbo-gate/research.md",
+      "sha256": "36985905291fdb1a974abbf269e28c55535386187a4eda905586a428b4ca68ab",
+      "lines": 366
+    },
+    {
+      "path": ".specify/specs/033-trial-ledger-dsr-pbo-gate/spec.md",
+      "sha256": "b2d07189ec4e3eab7c6de5f8b4a5082778d179a5707886757baffe2cc6df8052",
+      "lines": 568
+    },
+    {
+      "path": ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
+      "sha256": "29f3420cfac1769c57cf4e3af43c97f157780b95746ab6c6dbca10f8e2cbecb4",
+      "lines": 345
+    },
+    {
+      "path": "reports/api/routes/backtest.py",
+      "sha256": "9a6b6eace184a883fe84d86c97ea28f5c74b69d36dde045ac508c4ced4c6c32e",
+      "lines": 176
+    },
+    {
+      "path": "scripts/feature_set_comparison.py",
+      "sha256": "c11a845410ce7211567240e0c8bd3a1af69488815f1f90627f500068951bdaca",
+      "lines": 977
+    },
+    {
+      "path": "scripts/logistic_baseline.py",
+      "sha256": "a81832f1ecddfebb81657aedebc45cf84c5d95df4aaba0e8b3d26b05ae87e2be",
+      "lines": 368
+    },
+    {
+      "path": "scripts/ma_crossover_backtest.py",
+      "sha256": "e927760f0dee8fd00a71b2b8645d32260166d2fff0198de1993f1fc13f3ae897",
+      "lines": 283
+    },
+    {
+      "path": "scripts/model_cv.py",
+      "sha256": "f0bf4df33159f2f495496aafd407a51aaf0cbb495de63aea4e17ce5fa8b76aea",
+      "lines": 521
+    },
+    {
+      "path": "scripts/multi_ticker_comparison.py",
+      "sha256": "9865eb527f1b10e97c7de6c0ee695291cd894d7b1734ad7ffea9d0f4192b1339",
+      "lines": 396
+    },
+    {
+      "path": "scripts/selection_bias.py",
+      "sha256": "c40c22f161f94b67267348ff078115c0c532fd08b3ebeb9d5c401293b6b35faf",
+      "lines": 263
+    },
+    {
+      "path": "scripts/trial_backfill.py",
+      "sha256": "cd5450e6d2054685f3ed32fdd2787a0923f94d8176b1529862113e6aaa298e46",
+      "lines": 74
+    },
+    {
+      "path": "scripts/trial_registry.py",
+      "sha256": "c34c2738dcc95c63ce4600e79553228329a863b7c2520a314891dc1dd8896cc7",
+      "lines": 260
+    },
+    {
+      "path": "scripts/trial_runner.py",
+      "sha256": "96d3216967893fb54729427a37a3b1322e3e66b5b36f3dcd68261216b48e0205",
+      "lines": 128
+    },
+    {
+      "path": "tests/conftest.py",
+      "sha256": "0229da1e88fec891d320d359cf265d9e70bc050e1da7b21611eef32f5177b33e",
+      "lines": 59
+    },
+    {
+      "path": "tests/fixtures/spec_033/cscv_oracle.json",
+      "sha256": "99d7b8dcc23f485884c71699a8123fa52c4b272a37317d8b3433502ab80476d7",
+      "lines": 170
+    },
+    {
+      "path": "tests/fixtures/spec_033/paper_inputs.json",
+      "sha256": "7dc14309e3fbe9656f10d993025b35cac3801950771fa5e917bab780cb8fd540",
+      "lines": 18
+    },
+    {
+      "path": "tests/spec033_pbo_profile.py",
+      "sha256": "32cedef943236285ab2b03888314100cad2424ba71adeae92578c60c0f048e63",
+      "lines": 47
+    },
+    {
+      "path": "tests/spec033_support.py",
+      "sha256": "d3657499dfe7e81e46d61d7e1aa56d5698a61e21729e49fcf5c28b4c958b07e7",
+      "lines": 37
+    },
+    {
+      "path": "tests/test_033_backfill.py",
+      "sha256": "12887a14334f049f7311e8bee979e0b9efec1f7be98dd7f94f2689af965d4367",
+      "lines": 53
+    },
+    {
+      "path": "tests/test_033_dsr.py",
+      "sha256": "16e58a733c2bd1de8dd51903320f00e6741fe375a4c40b9ccc26e09dda090c5e",
+      "lines": 120
+    },
+    {
+      "path": "tests/test_033_pbo.py",
+      "sha256": "bc94fdaa23547e6acd759408a634d952fe571118656f6370dd74bbd5e0061494",
+      "lines": 237
+    },
+    {
+      "path": "tests/test_033_trial_instrumentation.py",
+      "sha256": "29d920b65534bd1b69292206cfc69fca8d591a3f455934afae9cbf97c126da30",
+      "lines": 60
+    },
+    {
+      "path": "tests/test_033_trial_ledger.py",
+      "sha256": "c687f002c2cf725c92d44774495cb2bc358c3b2528984faa448f3b2546a6bb80",
+      "lines": 196
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "sha256": "dbbffec3dc60538d27839fd697bbcc2f95d18b7ac26786e7a4ab644dc81cb097",
+      "lines": 1045
+    },
+    {
+      "path": "tests/test_trial_registry.py",
+      "sha256": "977a428ec707bcb3c7073e49504c80743455c36fa1f77727f419dc48c86a36b1",
+      "lines": 13
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "generated_at_utc": "2026-09-22T22:42:37.119035+00:00",
+  "unchanged_protected_files": {
+    "reports/api/routes/capital_gate.py": true,
+    "docs/trials/backfill/manifest.json": true,
+    "docs/trials/trials.jsonl": true,
+    "requirements.txt": true,
+    "requirements-dev.txt": true,
+    "backfill_file_set_unchanged": true
+  },
+  "production_ledger_bytes": 0,
+  "production_trial_files": [
+    "docs/trials/backfill/manifest.json",
+    "docs/trials/trials.jsonl"
+  ],
+  "deferred_modules_absent": {
+    "scripts/generate_gate3_evidence.py": true,
+    "tests/test_033_gate3.py": true,
+    "tests/mutation/run_spec_033_gate_mutants.py": true
+  },
+  "canonical_artifact": "canonical-phase7.txt",
+  "scope": "Source correction and Phase 7 only; no Gate 3 artifact/API/Rule 12 mutations, backfill approval, git, dependency or execution changes in this continuation."
+}

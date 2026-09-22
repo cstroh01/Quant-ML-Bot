@@ -30,6 +30,7 @@ kind to interpret.
 
 from __future__ import annotations
 
+from trial_runner import research_attempt, research_config
 from collections.abc import Iterator
 from typing import Any
 
@@ -326,38 +327,39 @@ def tune_on_fold(
     # for one point and for eight, so the no-leak guarantee does not depend
     # on grid size, and a one-point grid still produces a scored record.
     for point_index, params in enumerate(grid):
-        scores: list[float] = []
-        for fold_number, (inner_train, inner_val) in enumerate(inner_folds, start=1):
-            model = build_estimator(
-                name,
-                task=task,
-                params=params,
-                random_state=random_state,
-                scale=scale,
-            )
-            train_labels = features.iloc[inner_train][label_column]
-            val_labels = features.iloc[inner_val][label_column]
-            if task == CLASSIFICATION:
-                train_labels = train_labels.astype(int)
-                val_labels = val_labels.astype(int)
+        with research_attempt(research_config("scripts/model_cv.py:grid_point", locals())) as attempt:
+            scores: list[float] = []
+            for fold_number, (inner_train, inner_val) in enumerate(inner_folds, start=1):
+                model = build_estimator(
+                    name,
+                    task=task,
+                    params=params,
+                    random_state=random_state,
+                    scale=scale,
+                )
+                train_labels = features.iloc[inner_train][label_column]
+                val_labels = features.iloc[inner_val][label_column]
+                if task == CLASSIFICATION:
+                    train_labels = train_labels.astype(int)
+                    val_labels = val_labels.astype(int)
 
-            model.fit(features.iloc[inner_train][feature_columns], train_labels)
-            predicted = _predict_for_scoring(
-                model, features.iloc[inner_val][feature_columns], task=task
-            )
-            score = score_fold(val_labels.to_numpy(), predicted, task=task)
-            scores.append(score)
-            rows.append(
-                {
-                    "Grid_Point": point_index,
-                    "Params": dict(params),
-                    "Inner_Fold": fold_number,
-                    "Train_Rows": len(inner_train),
-                    "Val_Rows": len(inner_val),
-                    "Score": score,
-                }
-            )
-        mean_scores.append(float(np.mean(scores)))
+                model.fit(features.iloc[inner_train][feature_columns], train_labels)
+                predicted = _predict_for_scoring(
+                    model, features.iloc[inner_val][feature_columns], task=task
+                )
+                score = score_fold(val_labels.to_numpy(), predicted, task=task)
+                scores.append(score)
+                rows.append(
+                    {
+                        "Grid_Point": point_index,
+                        "Params": dict(params),
+                        "Inner_Fold": fold_number,
+                        "Train_Rows": len(inner_train),
+                        "Val_Rows": len(inner_val),
+                        "Score": score,
+                    }
+                )
+            mean_scores.append(float(np.mean(scores)))
 
     best_index = int(np.argmin(mean_scores))
     inner_scores = pd.DataFrame(rows, columns=INNER_SCORE_COLUMNS)
@@ -456,21 +458,22 @@ def nested_walk_forward(
             train_dates.max() < test_dates.min()
         ), f"Fold {fold} has test data at or before training data."
 
-        params, tuned, inner_scores = tune_on_fold(
-            frame,
-            raw_train_indices,
-            name=name,
-            task=task,
-            feature_columns=feature_columns,
-            label_column=label_column,
-            label_horizon=label_horizon,
-            embargo_bars=embargo_bars,
-            random_state=random_state,
-            inner_initial_train_months=inner_initial_train_months,
-            inner_test_months=inner_test_months,
-            date_column=date_column,
-            scale=scale,
-        )
+        with research_attempt(research_config("scripts/model_cv.py:tune_on_fold", locals()), role="candidate") as attempt:
+            params, tuned, inner_scores = tune_on_fold(
+                frame,
+                raw_train_indices,
+                name=name,
+                task=task,
+                feature_columns=feature_columns,
+                label_column=label_column,
+                label_horizon=label_horizon,
+                embargo_bars=embargo_bars,
+                random_state=random_state,
+                inner_initial_train_months=inner_initial_train_months,
+                inner_test_months=inner_test_months,
+                date_column=date_column,
+                scale=scale,
+            )
 
         model = build_estimator(
             name, task=task, params=params, random_state=random_state, scale=scale

@@ -1,0 +1,1280 @@
+{
+  "label": "EXAMPLE — NOT A RESULT",
+  "source": "AST inventory of checkout, 2026-09-22; declarations are not calls",
+  "calls": [
+    {
+      "path": "scripts/feature_set_comparison.py",
+      "line": 165,
+      "call": "nested_walk_forward",
+      "classification": "candidate runner",
+      "source": "predictions, covered, fold_results = nested_walk_forward("
+    },
+    {
+      "path": "scripts/logistic_baseline.py",
+      "line": 317,
+      "call": "evaluate_walk_forward",
+      "classification": "candidate runner",
+      "source": "results = evaluate_walk_forward(features)"
+    },
+    {
+      "path": "scripts/logistic_baseline.py",
+      "line": 330,
+      "call": "run_backtest",
+      "classification": "candidate runner",
+      "source": "trade_log = run_backtest(live, **costs, **account)"
+    },
+    {
+      "path": "scripts/logistic_baseline.py",
+      "line": 349,
+      "call": "summarize_trades",
+      "classification": "candidate runner",
+      "source": "summary = summarize_trades(trade_log, **costs)"
+    },
+    {
+      "path": "scripts/ma_crossover_backtest.py",
+      "line": 100,
+      "call": "run_backtest",
+      "classification": "required baseline",
+      "source": "hold_log = run_backtest(buy_and_hold_signal(prices), **costs, **account)"
+    },
+    {
+      "path": "scripts/ma_crossover_backtest.py",
+      "line": 221,
+      "call": "run_backtest",
+      "classification": "candidate runner",
+      "source": "trade_log = run_backtest(prices, **costs, **account)"
+    },
+    {
+      "path": "scripts/ma_crossover_backtest.py",
+      "line": 240,
+      "call": "summarize_trades",
+      "classification": "candidate runner",
+      "source": "summary = summarize_trades(trade_log, **costs)"
+    },
+    {
+      "path": "scripts/ma_crossover_backtest.py",
+      "line": 102,
+      "call": "summarize_trades",
+      "classification": "required baseline",
+      "source": "\"buy_and_hold\": summarize_trades(hold_log, **costs),"
+    },
+    {
+      "path": "scripts/ma_crossover_backtest.py",
+      "line": 111,
+      "call": "summarize_trades",
+      "classification": "candidate runner",
+      "source": "summarize_trades("
+    },
+    {
+      "path": "scripts/ma_crossover_backtest.py",
+      "line": 112,
+      "call": "run_backtest",
+      "classification": "required baseline",
+      "source": "run_backtest(signalled, **costs, **account), **costs"
+    },
+    {
+      "path": "scripts/model_cv.py",
+      "line": 459,
+      "call": "tune_on_fold",
+      "classification": "candidate runner",
+      "source": "params, tuned, inner_scores = tune_on_fold("
+    },
+    {
+      "path": "scripts/model_cv.py",
+      "line": 348,
+      "call": "score_fold",
+      "classification": "candidate runner",
+      "source": "score = score_fold(val_labels.to_numpy(), predicted, task=task)"
+    },
+    {
+      "path": "scripts/multi_ticker_comparison.py",
+      "line": 133,
+      "call": "run_backtest",
+      "classification": "required baseline",
+      "source": "hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs)"
+    },
+    {
+      "path": "scripts/multi_ticker_comparison.py",
+      "line": 134,
+      "call": "performance_summary",
+      "classification": "required baseline",
+      "source": "hold_summary = performance_summary(ml_prices, hold_log, **costs)"
+    },
+    {
+      "path": "scripts/multi_ticker_comparison.py",
+      "line": 242,
+      "call": "nested_walk_forward",
+      "classification": "candidate runner",
+      "source": "predictions, covered, fold_results = nested_walk_forward("
+    },
+    {
+      "path": "scripts/multi_ticker_comparison.py",
+      "line": 269,
+      "call": "run_backtest",
+      "classification": "candidate runner",
+      "source": "ml_trade_log = run_backtest(ml_prices, **costs)"
+    },
+    {
+      "path": "scripts/multi_ticker_comparison.py",
+      "line": 270,
+      "call": "performance_summary",
+      "classification": "candidate runner",
+      "source": "ml_summary = performance_summary(ml_prices, ml_trade_log, **costs)"
+    },
+    {
+      "path": "scripts/multi_ticker_comparison.py",
+      "line": 141,
+      "call": "run_backtest",
+      "classification": "required baseline",
+      "source": "trade_log = run_backtest(signalled, **costs)"
+    },
+    {
+      "path": "scripts/multi_ticker_comparison.py",
+      "line": 142,
+      "call": "performance_summary",
+      "classification": "required baseline",
+      "source": "random_summaries.append(performance_summary(ml_prices, trade_log, **costs))"
+    },
+    {
+      "path": "reports/api/routes/backtest.py",
+      "line": 53,
+      "call": "run_backtest",
+      "classification": "candidate runner",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "reports/api/routes/backtest.py",
+      "line": 66,
+      "call": "performance_summary",
+      "classification": "candidate runner",
+      "source": "summary = performance_summary("
+    },
+    {
+      "path": "reports/api/routes/backtest.py",
+      "line": 96,
+      "call": "summarize_trades",
+      "classification": "candidate runner",
+      "source": "strategy_summary = summarize_trades(trade_log, commission_per_trade=commission, slippage_bps=slippage_bps)"
+    },
+    {
+      "path": "tests/test_019_calendar.py",
+      "line": 89,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "es.fit_predict_walk_forward(frame, name='ridge', task=task,"
+    },
+    {
+      "path": "tests/test_019_calendar.py",
+      "line": 74,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "result = (cv.nested_walk_forward(frame, inner_initial_train_months=1,"
+    },
+    {
+      "path": "tests/test_019_calendar.py",
+      "line": 76,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "else es.fit_predict_walk_forward(frame, **kwargs))"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 28,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 29,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "s = mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0., horizon=1)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 52,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 62,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 70,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 89,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=21., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 90,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "s = mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0., horizon=1)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 98,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=101., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 107,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=101., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 126,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 127,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "s_h1 = mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0., horizon=1)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 128,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "s_default = mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 139,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log15 = bt.run_backtest(p15, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 140,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "s_h10 = mt.performance_summary(p15, log15, commission_per_trade=1., slippage_bps=0., horizon=10)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 155,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 55,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0., horizon=1)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 84,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "bt.run_backtest(bars().assign(Close=99999.))"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 157,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0., horizon=5, nw_bandwidth=2)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 161,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0., horizon=0)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 179,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log15 = bt.run_backtest(p15, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 201,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(prices, starting_capital=100., commission_per_trade=1.,"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 203,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "records[name] = mt.performance_summary(prices, log, commission_per_trade=1., slippage_bps=5., horizon=1)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 211,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(prices, starting_capital=100., commission_per_trade=1., slippage_bps=5., liquidate=True)"
+    },
+    {
+      "path": "tests/test_019_conventions.py",
+      "line": 181,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "s = mt.performance_summary(p15, log15, commission_per_trade=1., slippage_bps=0., horizon=10)"
+    },
+    {
+      "path": "tests/test_019_ledger.py",
+      "line": 18,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trades = bt.run_backtest(bars(), starting_capital=100., commission_per_trade=1., slippage_bps=5.)"
+    },
+    {
+      "path": "tests/test_019_ledger.py",
+      "line": 25,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., shares=3,"
+    },
+    {
+      "path": "tests/test_019_ledger.py",
+      "line": 55,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "short = bt.run_backtest(p.iloc[:2], starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_ledger.py",
+      "line": 56,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "full = bt.run_backtest(p, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_ledger.py",
+      "line": 59,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "liquidated = bt.run_backtest(p, starting_capital=100., commission_per_trade=1., liquidate=True)"
+    },
+    {
+      "path": "tests/test_019_ledger.py",
+      "line": 43,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "bt.run_backtest(p, starting_capital=100.)"
+    },
+    {
+      "path": "tests/test_019_ledger.py",
+      "line": 50,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "bt.run_backtest(bars(), starting_capital=100., **kwargs)"
+    },
+    {
+      "path": "tests/test_019_ledger.py",
+      "line": 68,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "bt.run_backtest(p, starting_capital=100.)"
+    },
+    {
+      "path": "tests/test_019_metrics.py",
+      "line": 12,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., commission_per_trade=5.)"
+    },
+    {
+      "path": "tests/test_019_metrics.py",
+      "line": 28,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., shares=3, commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_metrics.py",
+      "line": 29,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "summary = mt.performance_summary(p, log, commission_per_trade=1., slippage_bps=0., horizon=1)"
+    },
+    {
+      "path": "tests/test_019_prices.py",
+      "line": 33,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=101., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_prices.py",
+      "line": 46,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "log = bt.run_backtest(p, starting_capital=100., commission_per_trade=1.)"
+    },
+    {
+      "path": "tests/test_019_prices.py",
+      "line": 25,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "bt.run_backtest(p)"
+    },
+    {
+      "path": "tests/test_019_prices.py",
+      "line": 71,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "bt.run_backtest(p)"
+    },
+    {
+      "path": "tests/test_020_unadjusted_price_data.py",
+      "line": 106,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trades = run_backtest(execution, starting_capital=1000.0)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 46,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 68,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 91,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 115,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 141,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 151,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 184,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(self.two_round_trips(), starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 195,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 211,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "costed = run_backtest("
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 215,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "free = run_backtest(self.two_round_trips(), starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 226,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "costed = run_backtest("
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 249,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "uncosted = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 250,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "slipped = run_backtest("
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 273,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 308,
+      "call": "summarize_trades",
+      "classification": "test-only",
+      "source": "summary = summarize_trades(trade_log)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 315,
+      "call": "summarize_trades",
+      "classification": "test-only",
+      "source": "summary = summarize_trades(pd.DataFrame({\"P&L\": [0.0, 1.0]}))"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 320,
+      "call": "summarize_trades",
+      "classification": "test-only",
+      "source": "summary = summarize_trades(pd.DataFrame({\"P&L\": []}))"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 329,
+      "call": "summarize_trades",
+      "classification": "test-only",
+      "source": "summary = summarize_trades("
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 341,
+      "call": "summarize_trades",
+      "classification": "test-only",
+      "source": "summary = summarize_trades(pd.DataFrame({\"P&L\": [1.0]}))"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 161,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 293,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "run_backtest("
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 298,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "run_backtest("
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 129,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "self.assertTrue(run_backtest(prices, starting_capital=STARTING_CAPITAL).empty)"
+    },
+    {
+      "path": "tests/test_backtest_harness.py",
+      "line": 155,
+      "call": "summarize_trades",
+      "classification": "test-only",
+      "source": "self.assertEqual(summarize_trades(trade_log)[\"total_pnl\"], 0.0)"
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 216,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "actual = fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 239,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "actual = fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 406,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "predictions = fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 422,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "predictions = fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 475,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "ridge = fit_predict_walk_forward(frame, name=\"ridge\", **common)"
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 476,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "hgb = fit_predict_walk_forward(frame, name=\"hgb\", **common)"
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 490,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "predictions = fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 523,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "first = fit_predict_walk_forward(frame, **kwargs)"
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 524,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "second = fit_predict_walk_forward(frame, **kwargs)"
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 542,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "weak = fit_predict_walk_forward(frame, params={\"alpha\": 0.1}, **common)"
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 543,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "strong = fit_predict_walk_forward(frame, params={\"alpha\": 100.0}, **common)"
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 195,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 285,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 329,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 447,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_estimators.py",
+      "line": 554,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_feature_scaling.py",
+      "line": 696,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "scaled = fit_predict_walk_forward(frame, scale=True, **common)"
+    },
+    {
+      "path": "tests/test_feature_scaling.py",
+      "line": 697,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "unscaled = fit_predict_walk_forward(frame, scale=False, **common)"
+    },
+    {
+      "path": "tests/test_feature_scaling.py",
+      "line": 729,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "scaled = fit_predict_walk_forward(frame, scale=True, **common)"
+    },
+    {
+      "path": "tests/test_feature_scaling.py",
+      "line": 730,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "unscaled = fit_predict_walk_forward(frame, scale=False, **common)"
+    },
+    {
+      "path": "tests/test_feature_scaling.py",
+      "line": 579,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "estimators.fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_feature_scaling.py",
+      "line": 774,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "model_cv.nested_walk_forward("
+    },
+    {
+      "path": "tests/test_logistic_baseline.py",
+      "line": 83,
+      "call": "evaluate_walk_forward",
+      "classification": "test-only",
+      "source": "results = evaluate_walk_forward(features)"
+    },
+    {
+      "path": "tests/test_logistic_baseline.py",
+      "line": 149,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_ma_crossover_backtest.py",
+      "line": 66,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, **ACCOUNT)"
+    },
+    {
+      "path": "tests/test_ma_crossover_backtest.py",
+      "line": 139,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, **COSTS, **ACCOUNT)"
+    },
+    {
+      "path": "tests/test_ma_crossover_backtest.py",
+      "line": 140,
+      "call": "summarize_trades",
+      "classification": "test-only",
+      "source": "summary = summarize_trades(trade_log, **COSTS)"
+    },
+    {
+      "path": "tests/test_ma_crossover_backtest.py",
+      "line": 193,
+      "call": "summarize_trades",
+      "classification": "test-only",
+      "source": "summary = summarize_trades(run_backtest(prices, **COSTS, **ACCOUNT), **COSTS)"
+    },
+    {
+      "path": "tests/test_ma_crossover_backtest.py",
+      "line": 193,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "summary = summarize_trades(run_backtest(prices, **COSTS, **ACCOUNT), **COSTS)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 63,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, **RUN, liquidate=True)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 81,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 94,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, **RUN)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 118,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 142,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 159,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 182,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 204,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 231,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 265,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, starting_capital=100.0)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 301,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "self.trade_log = run_backtest(self.prices, **RUN)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 328,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "summary = performance_summary(self.prices, self.trade_log, **COSTS)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 370,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "costed = performance_summary(prices, run_backtest(prices, **RUN), **COSTS)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 371,
+      "call": "performance_summary",
+      "classification": "test-only",
+      "source": "free = performance_summary("
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 444,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "self.trade_log = run_backtest(self.prices, **RUN)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 476,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "offset_log = run_backtest(offset, **RUN)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 518,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest(prices, **RUN)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 370,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "costed = performance_summary(prices, run_backtest(prices, **RUN), **COSTS)"
+    },
+    {
+      "path": "tests/test_metrics.py",
+      "line": 373,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "run_backtest(prices, starting_capital=STARTING_CAPITAL),"
+    },
+    {
+      "path": "tests/test_ml_signal.py",
+      "line": 527,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_ml_signal.py",
+      "line": 571,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_ml_signal.py",
+      "line": 776,
+      "call": "fit_predict_walk_forward",
+      "classification": "test-only",
+      "source": "return fit_predict_walk_forward("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 366,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "confident = score_fold(all_ones, np.full(5, 0.99), task=CLASSIFICATION)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 367,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "wrong = score_fold(all_ones, np.full(5, 0.01), task=CLASSIFICATION)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 490,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "clean_params, clean_tuned, clean_scores = tune_on_fold("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 493,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "dirty_params, dirty_tuned, dirty_scores = tune_on_fold("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 511,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "_, _, clean = tune_on_fold(self.frame, everything, **self.kwargs)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 512,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "_, _, dirty = tune_on_fold(self._corrupted(), everything, **self.kwargs)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 537,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "params, tuned, scores = tune_on_fold("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 559,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "params, tuned, _ = tune_on_fold(self.frame, np.arange(60), **self.kwargs)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 567,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "params, tuned, _ = tune_on_fold(self.frame, np.arange(30), **self.kwargs)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 572,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "params, _, _ = tune_on_fold(self.frame, np.arange(60), **self.kwargs)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 666,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "params, tuned, scores = tune_on_fold("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 690,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "_, _, scores = tune_on_fold("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 711,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "self.predictions, self.covered, self.fold_results = nested_walk_forward("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 764,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "predictions, covered, results = nested_walk_forward("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 826,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "first_pred, first_cov, first_results = nested_walk_forward(frame, **kwargs)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 827,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "second_pred, second_cov, second_results = nested_walk_forward(frame, **kwargs)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 847,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "first = tune_on_fold(frame, outer[-1][0], **kwargs)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 848,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "second = tune_on_fold(frame, outer[-1][0], **kwargs)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 346,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "score_fold(y_true, good, task=CLASSIFICATION),"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 347,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "score_fold(y_true, bad, task=CLASSIFICATION),"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 353,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "score_fold(y_true, np.array([1.0, 2.0, 3.0]), task=REGRESSION),"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 354,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "score_fold(y_true, np.array([3.0, 1.0, 5.0]), task=REGRESSION),"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 372,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "score_fold(all_zeros, np.full(5, 0.01), task=CLASSIFICATION),"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 373,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "score_fold(all_zeros, np.full(5, 0.99), task=CLASSIFICATION),"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 378,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "score_fold(np.array([0, 1]), np.array([0.5, 0.5]), task=\"ranking\")"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 640,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "_, _, scores = tune_on_fold("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 781,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "nested_walk_forward("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 802,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "nested_walk_forward("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 806,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "nested_walk_forward("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 914,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "actual, _covered, results = nested_walk_forward("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 977,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "actual, _covered, _results = nested_walk_forward("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 417,
+      "call": "score_fold",
+      "classification": "test-only",
+      "source": "score_fold(np.zeros(4, dtype=int), predicted, task=CLASSIFICATION)"
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 603,
+      "call": "tune_on_fold",
+      "classification": "test-only",
+      "source": "params, tuned, scores = tune_on_fold("
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "line": 959,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "nested_walk_forward("
+    },
+    {
+      "path": "tests/test_multi_ticker_comparison.py",
+      "line": 239,
+      "call": "nested_walk_forward",
+      "classification": "test-only",
+      "source": "mtc.nested_walk_forward("
+    },
+    {
+      "path": "tests/test_signals.py",
+      "line": 110,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_signals.py",
+      "line": 129,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_signals.py",
+      "line": 221,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "trade_log = run_backtest("
+    },
+    {
+      "path": "tests/test_signals.py",
+      "line": 163,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "run_backtest(signals, starting_capital=STARTING_CAPITAL)"
+    },
+    {
+      "path": "tests/test_signals.py",
+      "line": 149,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "run_backtest(signals, starting_capital=STARTING_CAPITAL).empty"
+    },
+    {
+      "path": "tests/test_signals.py",
+      "line": 246,
+      "call": "run_backtest",
+      "classification": "test-only",
+      "source": "run_backtest(signals, starting_capital=STARTING_CAPITAL).empty"
+    },
+    {
+      "path": "tests/test_walk_forward_cv.py",
+      "line": 301,
+      "call": "evaluate_walk_forward",
+      "classification": "test-only",
+      "source": "results = evaluate_walk_forward(features)"
+    }
+  ]
+}

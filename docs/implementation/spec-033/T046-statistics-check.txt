@@ -1,0 +1,19 @@
+............F........                                                    [100%]
+================================== FAILURES ===================================
+___________________ test_paper_formula_required_spec_target ___________________
+
+    def test_paper_formula_required_spec_target():
+        dsr = api("selection_bias", "deflated_sharpe")
+        result = dsr(**paper_inputs(), n_current=88)
+>       assert result["value"] == pytest.approx(.905, abs=.001), "FR-027/T036 conflicts with primary-paper inputs; do not tune fixture"
+E       AssertionError: FR-027/T036 conflicts with primary-paper inputs; do not tune fixture
+E       assert 0.910153014744707 == 0.905 � 0.001
+E         
+E         comparison failed
+E         Obtained: 0.910153014744707
+E         Expected: 0.905 � 0.001
+
+tests\test_033_dsr.py:77: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_033_dsr.py::test_paper_formula_required_spec_target - Asser...
+1 failed, 20 passed in 1.43s

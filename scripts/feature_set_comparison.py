@@ -74,6 +74,7 @@ of fills, positions, or P&L — no metric here is a return.
 
 from __future__ import annotations
 
+from trial_runner import research_attempt, research_config
 import argparse
 import concurrent.futures
 import contextlib
@@ -162,20 +163,21 @@ def _predictions_by_date(
         "label_availability_span", frame.attrs.get("label_horizon", horizon)
     )
 
-    predictions, covered, fold_results = nested_walk_forward(
-        frame,
-        feature_columns=feature_columns(feature_set),
-        label_column="Label",
-        task=task,
-        name=name,
-        label_horizon=horizon,
-        embargo_bars=embargo_bars,
-        random_state=random_state,
-        initial_train_months=INITIAL_TRAIN_MONTHS,
-        test_months=TEST_MONTHS,
-        inner_initial_train_months=INNER_INITIAL_TRAIN_MONTHS,
-        inner_test_months=INNER_TEST_MONTHS,
-    )
+    with research_attempt(research_config("scripts/feature_set_comparison.py:nested_walk_forward", locals()), role="candidate") as attempt:
+        predictions, covered, fold_results = nested_walk_forward(
+            frame,
+            feature_columns=feature_columns(feature_set),
+            label_column="Label",
+            task=task,
+            name=name,
+            label_horizon=horizon,
+            embargo_bars=embargo_bars,
+            random_state=random_state,
+            initial_train_months=INITIAL_TRAIN_MONTHS,
+            test_months=TEST_MONTHS,
+            inner_initial_train_months=INNER_INITIAL_TRAIN_MONTHS,
+            inner_test_months=INNER_TEST_MONTHS,
+        )
 
     dates = pd.to_datetime(frame["Date"])
     covered_index = np.sort(np.asarray(covered))

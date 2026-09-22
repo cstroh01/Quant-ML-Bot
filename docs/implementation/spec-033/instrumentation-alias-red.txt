@@ -1,0 +1,19 @@
+..F.                                                                     [100%]
+================================== FAILURES ===================================
+______________________ test_guard_catches_aliased_bypass ______________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-21/test_guard_catches_aliased_byp0')
+
+    def test_guard_catches_aliased_bypass(tmp_path):
+        (tmp_path / "scripts").mkdir()
+        (tmp_path / "scripts/new_runner.py").write_text("from backtest_harness import run_backtest as evaluate\nevaluate(prices)\n")
+>       assert bypasses(tmp_path) == ["scripts/new_runner.py:2 run_backtest"]
+E       AssertionError: assert [] == ['scripts/new...run_backtest']
+E         
+E         Right contains one more item: 'scripts/new_runner.py:2 run_backtest'
+E         Use -v to get more diff
+
+tests\test_033_trial_instrumentation.py:51: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_033_trial_instrumentation.py::test_guard_catches_aliased_bypass
+1 failed, 3 passed in 0.20s

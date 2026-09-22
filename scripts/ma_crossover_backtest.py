@@ -4,6 +4,7 @@ This is intentionally a simple plumbing baseline. It is not meant to be a
 production trading strategy or investment recommendation.
 """
 
+from trial_runner import research_attempt, research_config
 import statistics
 
 import pandas as pd
@@ -97,7 +98,9 @@ def baseline_results(
     }
     account = {"starting_capital": starting_capital, "liquidate": liquidate}
 
-    hold_log = run_backtest(buy_and_hold_signal(prices), **costs, **account)
+    with research_attempt(research_config("scripts/ma_crossover_backtest.py:run_backtest", locals()), role="buy_and_hold_baseline") as attempt:
+        hold_log = run_backtest(buy_and_hold_signal(prices), **costs, **account)
+        attempt.account(hold_log)
     results = {
         "buy_and_hold": summarize_trades(hold_log, **costs),
         "random_summaries": [],
@@ -107,11 +110,14 @@ def baseline_results(
     try:
         for seed in range(seed_count):
             signalled = random_signal(prices, n_trades, holding_bars, seed)
-            results["random_summaries"].append(
-                summarize_trades(
-                    run_backtest(signalled, **costs, **account), **costs
+            with research_attempt(research_config("scripts/ma_crossover_backtest.py:run_backtest", locals()), role="random_signal_baseline") as attempt:
+                recorded_trades = run_backtest(signalled, **costs, **account)
+                results["random_summaries"].append(
+                    summarize_trades(
+                        recorded_trades, **costs
+                    )
                 )
-            )
+                attempt.account(recorded_trades)
     except ValueError as error:
         # Reported, never swallowed: a random baseline that could not match the
         # strategy's trade frequency is not a baseline, and printing why beats
@@ -218,7 +224,9 @@ def main():
         "slippage_bps": SLIPPAGE_BPS,
     }
     account = {"starting_capital": STARTING_CAPITAL, "liquidate": LIQUIDATE_AT_END}
-    trade_log = run_backtest(prices, **costs, **account)
+    with research_attempt(research_config("scripts/ma_crossover_backtest.py:run_backtest", locals()), role="candidate") as attempt:
+        trade_log = run_backtest(prices, **costs, **account)
+        attempt.account(trade_log)
     trade_log.to_csv(cache_path("phase0_aapl_ma_crossover_trades.csv"), index=False)
 
     print(f"{TICKER} SMA crossover backtest")

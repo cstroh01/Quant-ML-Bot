@@ -1,0 +1,19 @@
+{
+  "label": "EXAMPLE \u2014 NOT A RESULT",
+  "incident": "Interrupted verification used per-test fixture injection, but unittest setUpClass ran before it. All records came from synthetic model_cv fixtures. Pre-run production ledger was empty (T001 inventory). Restored that exact initial zero-byte file; no historical research removed. Startup-level injection and a production-byte invariant added.",
+  "at_utc": "2026-09-22T04:37:56.578196+00:00",
+  "files": [
+    {
+      "path": "docs/trials/trials.jsonl",
+      "sha256": "5d501db25299abde86fdce49269036b9870315f7715c09107676b1d355e3b15b",
+      "bytes": 3881198,
+      "quarantined_as": ".pytest_cache/spec033-quarantine/trials.jsonl"
+    },
+    {
+      "path": "docs/trials/trials.head.json",
+      "sha256": "1b4e76f7c4a7b334998d83af4e1be17d4e2c67fc0212b7a23064c127cc9dba8d",
+      "bytes": 89,
+      "quarantined_as": ".pytest_cache/spec033-quarantine/trials.head.json"
+    }
+  ]
+}

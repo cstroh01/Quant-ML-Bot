@@ -19,7 +19,7 @@ Camden's local project-doc copy at
   with the full daily out-of-sample return series for every inspected trial;
 - a deliberately conservative pre-ledger trial-count backfill;
 - a hand-rolled Deflated Sharpe Ratio (DSR), checked against Bailey and Lopez
-  de Prado's worked example (`DSR ~= 0.905` at `N = 88`, rejected; `N = 46`
+  de Prado's worked-example inputs (approved source correction: `DSR ~= 0.910153014744707` at `N = 88`, rejected; `N = 46`
   passes);
 - CSCV Probability of Backtest Overfitting (PBO) over the same trial matrix;
   and
@@ -201,7 +201,7 @@ hand-enumerated CSCV oracle, then run both from a single immutable matrix.
 
 **Acceptance scenarios**:
 
-1. The DSR fixture copied from the paper produces approximately `0.905` at
+1. The fixture evaluates the paper's fixed non-normal inputs to approximately `0.910153014744707` at
    `N = 88` (absolute tolerance `0.001`) and does not pass `0.95`.
 2. The same paper fixture at `N = 46` passes `0.95`.
 3. DSR uses `N_current`, not the number of surviving, eligible, unique, or
@@ -345,8 +345,10 @@ prove the same route reports `failed` with the DSR reason.
   `N_current` with unique hashes, completed trials, eligible columns, or an
   effective/clustered trial count.
 - **FR-027**: A test fixture transcribed from the DSR paper's worked example
-  MUST reproduce `DSR ~= 0.905` at `N = 88` within absolute tolerance `0.001`
-  and MUST show that the same fixture passes `0.95` at `N = 46`.
+  MUST reproduce `DSR ~= 0.910153014744707` at `N = 88` within absolute tolerance `0.001`
+  and MUST show that the same fixture passes `0.95` at `N = 46`. N=88 is an
+  evaluation of those inputs, not the published example's N=100; retain the
+  additional test reproducing the published N=100 DSR of 0.9004.
 - **FR-028**: The gate t-statistic MUST be the selected candidate's mean daily
   OOS excess log return divided by its Newey-West/Bartlett HAC standard error.
   Bandwidth MUST be recorded and MUST be at least `horizon - 1`; an undefined
@@ -434,7 +436,7 @@ prove the same route reports `failed` with the DSR reason.
 
 - **FR-051**: The real Gate 3 evaluator and real API route MUST be tested with
   a plausible selected strategy that has an attractive unadjusted result but
-  the paper fixture's `DSR ~= 0.905` at `N = 88`. It MUST report `failed` with
+  the paper fixture's `DSR ~= 0.910153014744707` at `N = 88`. It MUST report `failed` with
   reason code `dsr_below_threshold`, even when its t-statistic is at least 3.
 - **FR-052**: A clean control using the paper fixture's `N = 46` case, valid
   PBO evidence, and t-statistic at least 3 MUST report `passed` through the
@@ -538,7 +540,7 @@ implemented across the boundary.
 - **SC-003**: The backfill manifest is reviewable line by line, intentionally
   upper-biased, and either yields immutable `N_backfill` or blocks the gate as
   incomplete.
-- **SC-004**: The paper fixture produces DSR within `0.001` of `0.905` for
+- **SC-004**: The paper fixture produces DSR within `0.001` of `0.910153014744707` for
   `N = 88`, fails `0.95`, and passes for `N = 46`.
 - **SC-005**: CSCV enumerates exactly 12,870 splits at `S = 16` and matches an
   independent deterministic oracle.
@@ -554,3 +556,13 @@ implemented across the boundary.
 - **SC-010**: Focused spec tests pass and `python -m pytest tests` is run and
   reported honestly; no network and no new dependency are introduced.
 
+
+## Approved source correction — 2026-09-22
+
+Camden approved the narrow FR-027/T036 correction: N=88 evaluates the
+paper's fixed non-normal inputs to 0.910153014744707 (EXAMPLE — NOT A RESULT),
+not the previously asserted 0.905. This is an evaluation of the paper inputs,
+not its published N=100 result; that published-result test is retained.
+N=88/N=46, raw lifetime counting, all thresholds and non-history inputs remain
+unchanged. See `docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md`.
+This approval does not approve the historical backfill.

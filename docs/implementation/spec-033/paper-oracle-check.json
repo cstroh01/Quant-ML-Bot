@@ -1,0 +1,50 @@
+{
+  "label": "EXAMPLE — NOT A RESULT",
+  "source": "Bailey and Lopez de Prado 2014, equations and printed pages 9-10, https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf",
+  "source_pdf_sha256": "ca4a1e834a2954b84eb560776e903329cd9cef318d458aadf6d67bc8166d10b5",
+  "fixture_path": "tests/fixtures/spec_033/paper_inputs.json",
+  "fixture_sha256": "7bfe0238d0192a45e4e72b08cfaf3d17a61ed9603ef04a0dc6e414c0b4259093",
+  "generated_at_utc": "2026-09-22T16:07:57.191737+00:00",
+  "implementation": "Independent Python standard-library statistics.NormalDist; no selection_bias call",
+  "inputs": {
+    "label": "EXAMPLE — NOT A RESULT",
+    "source": "Bailey and Lopez de Prado (2014), pp. 9-10, https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf; visually verified",
+    "annualized_sharpe": 2.5,
+    "annualized_trial_sharpe_variance": 0.5,
+    "observations": 1250,
+    "days_per_year": 250,
+    "skewness": -3,
+    "pearson_kurtosis": 10,
+    "published_n": 100,
+    "published_dsr": 0.9004,
+    "control_n": 46,
+    "published_control_dsr": 0.9505,
+    "spec_n": 88,
+    "spec_target": 0.905,
+    "source_formula_at_spec_n": 0.910153014744707,
+    "acceptance_conflict": "FR-027 and T036 awaiting Camden decision"
+  },
+  "calculations": [
+    {
+      "n_current": 100,
+      "benchmark_daily_sharpe": 0.11317200186513214,
+      "z": 1.2838160365336546,
+      "dsr": 0.9003968344493904,
+      "passes_0_95": false
+    },
+    {
+      "n_current": 88,
+      "benchmark_daily_sharpe": 0.11114576178358426,
+      "z": 1.341697892930914,
+      "dsr": 0.910153014744707,
+      "passes_0_95": false
+    },
+    {
+      "n_current": 46,
+      "benchmark_daily_sharpe": 0.10036237061765357,
+      "z": 1.649737746957031,
+      "dsr": 0.9505017068755786,
+      "passes_0_95": true
+    }
+  ]
+}

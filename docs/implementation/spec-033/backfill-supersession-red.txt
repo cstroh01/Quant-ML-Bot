@@ -1,0 +1,20 @@
+............F                                                            [100%]
+================================== FAILURES ===================================
+___ test_immutable_supersession_reads_prior_counts_without_caller_reminder ____
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-23/test_immutable_supersession_re0')
+
+    def test_immutable_supersession_reads_prior_counts_without_caller_reminder(tmp_path):
+        write = api("trial_backfill", "write_backfill")
+        first = write(tmp_path, manifest(), previous_counts=[128])
+        original = first.read_bytes()
+        second = write(tmp_path, manifest())
+        assert second != first
+        assert first.read_bytes() == original
+>       assert json.loads(second.read_bytes())["n_backfill"] == 128
+E       assert 64 == 128
+
+tests\test_033_backfill.py:52: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_033_backfill.py::test_immutable_supersession_reads_prior_counts_without_caller_reminder
+1 failed, 12 passed in 0.22s

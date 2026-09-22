@@ -11,12 +11,13 @@ import pandas as pd
 from fastapi import APIRouter, Depends, Query
 
 # Ensure repo root and scripts are in path
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from backtest_harness import run_backtest, summarize_trades
+from trial_runner import research_attempt, research_config
 from ma_crossover_backtest import baseline_results, mean_holding_bars
 from metrics import equity_curve, performance_summary
 from reports.api.routes.data import get_cache_dir, get_cached_ticker_data
@@ -50,11 +51,13 @@ def get_backtest_tearsheet(
     signalled = sma_crossover_signal(prices, short_window=short_window, long_window=long_window)
 
     # 2. Run harness
-    trade_log = run_backtest(
-        signalled,
-        commission_per_trade=commission,
-        slippage_bps=slippage_bps,
-    )
+    with research_attempt(research_config("reports/api/routes/backtest.py:run_backtest", locals()), role="candidate") as attempt:
+        trade_log = run_backtest(
+            signalled,
+            commission_per_trade=commission,
+            slippage_bps=slippage_bps,
+        )
+        attempt.account(trade_log)
 
     # 3. Compute reconciled equity curve & performance summary
     curve = equity_curve(

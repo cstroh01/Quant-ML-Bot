@@ -1,0 +1,26 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\GitHub\Quant-ML-Bot
+plugins: anyio-4.14.2
+collected 810 items
+
+tests\test_019_calendar.py .......                                       [  0%]
+tests\test_019_conventions.py .....................Synthetic baseline P&L: {'policy': -0.02200000000000557, 'buy_hold': 4.175899999999999} random mean/std: -0.024799999999997446 0.001239694359615175
+.                     [  3%]
+tests\test_019_ledger.py ...........                                     [  4%]
+tests\test_019_metrics.py ......                                         [  5%]
+tests\test_019_prices.py .......                                         [  6%]
+tests\test_019_targets.py ..............                                 [  8%]
+tests\test_020_unadjusted_price_data.py ...............                  [ 10%]
+tests\test_033_backfill.py ............                                  [ 11%]
+tests\test_033_dsr.py ............F........                              [ 14%]
+tests\test_033_trial_instrumentation.py ..                               [ 14%]
+tests\test_033_trial_ledger.py ................................          [ 18%]
+tests\test_backtest_harness.py ....................                      [ 20%]
+tests\test_collection_guards.py .........                                [ 21%]
+tests\test_cost_utils.py ......................                          [ 24%]
+tests\test_data.py ..............................................        [ 30%]
+tests\test_data_pipeline_sanity_check.py ......                          [ 31%]
+tests\test_estimators.py ...............................                 [ 34%]
+tests\test_feature_scaling.py .......................................... [ 40%]
+...............                                                          [ 41%]

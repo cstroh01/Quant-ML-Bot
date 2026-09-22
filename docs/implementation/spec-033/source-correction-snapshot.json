@@ -1,0 +1,15 @@
+{
+  "generated_at_utc": "2026-09-22T22:23:33.300713+00:00",
+  "approval": "Camden explicitly approved narrow correction; Phase 7 only after canonical comparison",
+  "files": {
+    "scripts/selection_bias.py": "2a2cf8b6d9ce908a5028305170d88a770ceb86b9008af8c4ce7d8a07a03c26e3",
+    "tests/test_033_dsr.py": "16e58a733c2bd1de8dd51903320f00e6741fe375a4c40b9ccc26e09dda090c5e",
+    "tests/fixtures/spec_033/paper_inputs.json": "7dc14309e3fbe9656f10d993025b35cac3801950771fa5e917bab780cb8fd540",
+    ".specify/specs/033-trial-ledger-dsr-pbo-gate/plan.md": "71ef00fc20240724bcc752b0c01e9b967e139f327663972471d769de00b33b30",
+    ".specify/specs/033-trial-ledger-dsr-pbo-gate/research.md": "36985905291fdb1a974abbf269e28c55535386187a4eda905586a428b4ca68ab",
+    ".specify/specs/033-trial-ledger-dsr-pbo-gate/spec.md": "b2d07189ec4e3eab7c6de5f8b4a5082778d179a5707886757baffe2cc6df8052",
+    ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md": "804a8b80e398b56c36ec70f7fd8a90a1683d95452de9e315a250e05075a052ee"
+  },
+  "focused_log": "T046-approved-correction-green.txt",
+  "canonical_log": "canonical-source-correction.txt"
+}

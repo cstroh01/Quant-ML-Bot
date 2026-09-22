@@ -1,0 +1,826 @@
+FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF.                                       [100%]
+================================== FAILURES ===================================
+_________________ test_every_result_choice_changes_hash[data] _________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang0')
+field = 'data'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+_______________ test_every_result_choice_changes_hash[universe] _______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang1')
+field = 'universe'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+______________ test_every_result_choice_changes_hash[date_range] ______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang2')
+field = 'date_range'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+_______________ test_every_result_choice_changes_hash[features] _______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang3')
+field = 'features'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+______________ test_every_result_choice_changes_hash[transforms] ______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang4')
+field = 'transforms'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+________________ test_every_result_choice_changes_hash[target] ________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang5')
+field = 'target'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+________________ test_every_result_choice_changes_hash[model] _________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang6')
+field = 'model'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+__________________ test_every_result_choice_changes_hash[cv] __________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang7')
+field = 'cv'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+_________________ test_every_result_choice_changes_hash[seed] _________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang8')
+field = 'seed'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+___________ test_every_result_choice_changes_hash[initial_capital] ____________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang9')
+field = 'initial_capital'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+______________ test_every_result_choice_changes_hash[commission] ______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang10')
+field = 'commission'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+_______________ test_every_result_choice_changes_hash[slippage] _______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang11')
+field = 'slippage'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+_____________ test_every_result_choice_changes_hash[liquidation] ______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang12')
+field = 'liquidation'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+______________ test_every_result_choice_changes_hash[risk_free] _______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_every_result_choice_chang13')
+field = 'risk_free'
+
+    @pytest.mark.parametrize("field", list(CONFIG))
+    def test_every_result_choice_changes_hash(tmp_path, field):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:20: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+___________ test_canonical_defaults_order_sets_paths_and_finiteness ___________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_canonical_defaults_order_0')
+
+    def test_canonical_defaults_order_sets_paths_and_finiteness(tmp_path):
+>       canonical = api("trial_registry", "canonical_config")
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:27: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'canonical_config'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.canonical_config
+
+tests\spec033_support.py:21: AssertionError
+__ test_lifecycle_before_callback_duplicate_error_abandoned_and_interrupted ___
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_lifecycle_before_callback0')
+
+    def test_lifecycle_before_callback_duplicate_error_abandoned_and_interrupted(tmp_path):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+___________________ test_sidecar_complete_atomic_and_bound ____________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_sidecar_complete_atomic_a0')
+
+    def test_sidecar_complete_atomic_and_bound(tmp_path):
+>       log = ledger(tmp_path); trial = start(log)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:68: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+________________ test_chain_defects_name_record_or_path[edit] _________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_chain_defects_name_record0')
+defect = 'edit'
+
+    @pytest.mark.parametrize("defect", ["edit", "delete", "delete_tail", "reorder", "duplicate", "truncate", "disconnect", "missing_sidecar", "corrupt_sidecar"])
+    def test_chain_defects_name_record_or_path(tmp_path, defect):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+_______________ test_chain_defects_name_record_or_path[delete] ________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_chain_defects_name_record1')
+defect = 'delete'
+
+    @pytest.mark.parametrize("defect", ["edit", "delete", "delete_tail", "reorder", "duplicate", "truncate", "disconnect", "missing_sidecar", "corrupt_sidecar"])
+    def test_chain_defects_name_record_or_path(tmp_path, defect):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+_____________ test_chain_defects_name_record_or_path[delete_tail] _____________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_chain_defects_name_record2')
+defect = 'delete_tail'
+
+    @pytest.mark.parametrize("defect", ["edit", "delete", "delete_tail", "reorder", "duplicate", "truncate", "disconnect", "missing_sidecar", "corrupt_sidecar"])
+    def test_chain_defects_name_record_or_path(tmp_path, defect):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+_______________ test_chain_defects_name_record_or_path[reorder] _______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_chain_defects_name_record3')
+defect = 'reorder'
+
+    @pytest.mark.parametrize("defect", ["edit", "delete", "delete_tail", "reorder", "duplicate", "truncate", "disconnect", "missing_sidecar", "corrupt_sidecar"])
+    def test_chain_defects_name_record_or_path(tmp_path, defect):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+______________ test_chain_defects_name_record_or_path[duplicate] ______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_chain_defects_name_record4')
+defect = 'duplicate'
+
+    @pytest.mark.parametrize("defect", ["edit", "delete", "delete_tail", "reorder", "duplicate", "truncate", "disconnect", "missing_sidecar", "corrupt_sidecar"])
+    def test_chain_defects_name_record_or_path(tmp_path, defect):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+______________ test_chain_defects_name_record_or_path[truncate] _______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_chain_defects_name_record5')
+defect = 'truncate'
+
+    @pytest.mark.parametrize("defect", ["edit", "delete", "delete_tail", "reorder", "duplicate", "truncate", "disconnect", "missing_sidecar", "corrupt_sidecar"])
+    def test_chain_defects_name_record_or_path(tmp_path, defect):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+_____________ test_chain_defects_name_record_or_path[disconnect] ______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_chain_defects_name_record6')
+defect = 'disconnect'
+
+    @pytest.mark.parametrize("defect", ["edit", "delete", "delete_tail", "reorder", "duplicate", "truncate", "disconnect", "missing_sidecar", "corrupt_sidecar"])
+    def test_chain_defects_name_record_or_path(tmp_path, defect):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+___________ test_chain_defects_name_record_or_path[missing_sidecar] ___________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_chain_defects_name_record7')
+defect = 'missing_sidecar'
+
+    @pytest.mark.parametrize("defect", ["edit", "delete", "delete_tail", "reorder", "duplicate", "truncate", "disconnect", "missing_sidecar", "corrupt_sidecar"])
+    def test_chain_defects_name_record_or_path(tmp_path, defect):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+___________ test_chain_defects_name_record_or_path[corrupt_sidecar] ___________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_chain_defects_name_record8')
+defect = 'corrupt_sidecar'
+
+    @pytest.mark.parametrize("defect", ["edit", "delete", "delete_tail", "reorder", "duplicate", "truncate", "disconnect", "missing_sidecar", "corrupt_sidecar"])
+    def test_chain_defects_name_record_or_path(tmp_path, defect):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+____________ test_source_identity_full_sha_no_subprocess[detached] ____________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_source_identity_full_sha_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B4BC924B00>
+mode = 'detached'
+
+    @pytest.mark.parametrize("mode", ["detached", "loose", "packed", "missing"])
+    def test_source_identity_full_sha_no_subprocess(tmp_path, monkeypatch, mode):
+>       identity = api("trial_registry", "source_identity")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'source_identity'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.source_identity
+
+tests\spec033_support.py:21: AssertionError
+_____________ test_source_identity_full_sha_no_subprocess[loose] ______________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_source_identity_full_sha_1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B4BC924D60>
+mode = 'loose'
+
+    @pytest.mark.parametrize("mode", ["detached", "loose", "packed", "missing"])
+    def test_source_identity_full_sha_no_subprocess(tmp_path, monkeypatch, mode):
+>       identity = api("trial_registry", "source_identity")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'source_identity'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.source_identity
+
+tests\spec033_support.py:21: AssertionError
+_____________ test_source_identity_full_sha_no_subprocess[packed] _____________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_source_identity_full_sha_2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B4BC8E2210>
+mode = 'packed'
+
+    @pytest.mark.parametrize("mode", ["detached", "loose", "packed", "missing"])
+    def test_source_identity_full_sha_no_subprocess(tmp_path, monkeypatch, mode):
+>       identity = api("trial_registry", "source_identity")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'source_identity'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.source_identity
+
+tests\spec033_support.py:21: AssertionError
+____________ test_source_identity_full_sha_no_subprocess[missing] _____________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_source_identity_full_sha_3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001B4BC853F00>
+mode = 'missing'
+
+    @pytest.mark.parametrize("mode", ["detached", "loose", "packed", "missing"])
+    def test_source_identity_full_sha_no_subprocess(tmp_path, monkeypatch, mode):
+>       identity = api("trial_registry", "source_identity")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'source_identity'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.source_identity
+
+tests\spec033_support.py:21: AssertionError
+___________________ test_multiprocess_append_and_stale_lock ___________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_multiprocess_append_and_s0')
+
+    def test_multiprocess_append_and_stale_lock(tmp_path):
+>       log = ledger(tmp_path)
+              ^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:133: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests\spec033_support.py:30: in ledger
+    return api("trial_registry", "TrialLedger")(tmp_path, synthetic=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+__________ test_production_default_and_explicit_synthetic_injection ___________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-3/test_production_default_and_ex0')
+
+    def test_production_default_and_explicit_synthetic_injection(tmp_path):
+>       cls = api("trial_registry", "TrialLedger")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_trial_ledger.py:146: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'trial_registry', name = 'TrialLedger'
+
+    def api(module, name):
+        assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+        obj = getattr(importlib.import_module(module), name, None)
+>       assert callable(obj), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: trial_registry.TrialLedger
+
+tests\spec033_support.py:21: AssertionError
+_____________________ test_inventory_and_production_guard _____________________
+
+    def test_inventory_and_production_guard():
+        data = json.loads((ROOT / "tests/fixtures/spec_033/runner_inventory.json").read_text(encoding="utf-8"))
+        assert data["calls"]
+>       assert not bypasses(ROOT), "uninstrumented research calls: " + "; ".join(bypasses(ROOT))
+E       AssertionError: uninstrumented research calls: scripts/feature_set_comparison.py:165 nested_walk_forward; scripts/logistic_baseline.py:317 evaluate_walk_forward; scripts/logistic_baseline.py:330 run_backtest; scripts/ma_crossover_backtest.py:100 run_backtest; scripts/ma_crossover_backtest.py:221 run_backtest; scripts/ma_crossover_backtest.py:112 run_backtest; scripts/model_cv.py:459 tune_on_fold; scripts/model_cv.py:348 score_fold; scripts/multi_ticker_comparison.py:133 run_backtest; scripts/multi_ticker_comparison.py:242 nested_walk_forward; scripts/multi_ticker_comparison.py:269 run_backtest; scripts/multi_ticker_comparison.py:141 run_backtest; reports/api/routes/backtest.py:53 run_backtest
+E       assert not ['scripts/feature_set_comparison.py:165 nested_walk_forward', 'scripts/logistic_baseline.py:317 evaluate_walk_forward'...cktest', 'scripts/ma_crossover_backtest.py:221 run_backtest', 'scripts/ma_crossover_backtest.py:112 run_backtest', ...]
+E        +  where ['scripts/feature_set_comparison.py:165 nested_walk_forward', 'scripts/logistic_baseline.py:317 evaluate_walk_forward'...cktest', 'scripts/ma_crossover_backtest.py:221 run_backtest', 'scripts/ma_crossover_backtest.py:112 run_backtest', ...] = bypasses(WindowsPath('C:/GitHub/Quant-ML-Bot'))
+
+tests\test_033_trial_instrumentation.py:36: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[data]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[universe]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[date_range]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[features]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[transforms]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[target]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[model]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[cv]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[seed]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[initial_capital]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[commission]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[slippage]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[liquidation]
+FAILED tests/test_033_trial_ledger.py::test_every_result_choice_changes_hash[risk_free]
+FAILED tests/test_033_trial_ledger.py::test_canonical_defaults_order_sets_paths_and_finiteness
+FAILED tests/test_033_trial_ledger.py::test_lifecycle_before_callback_duplicate_error_abandoned_and_interrupted
+FAILED tests/test_033_trial_ledger.py::test_sidecar_complete_atomic_and_bound
+FAILED tests/test_033_trial_ledger.py::test_chain_defects_name_record_or_path[edit]
+FAILED tests/test_033_trial_ledger.py::test_chain_defects_name_record_or_path[delete]
+FAILED tests/test_033_trial_ledger.py::test_chain_defects_name_record_or_path[delete_tail]
+FAILED tests/test_033_trial_ledger.py::test_chain_defects_name_record_or_path[reorder]
+FAILED tests/test_033_trial_ledger.py::test_chain_defects_name_record_or_path[duplicate]
+FAILED tests/test_033_trial_ledger.py::test_chain_defects_name_record_or_path[truncate]
+FAILED tests/test_033_trial_ledger.py::test_chain_defects_name_record_or_path[disconnect]
+FAILED tests/test_033_trial_ledger.py::test_chain_defects_name_record_or_path[missing_sidecar]
+FAILED tests/test_033_trial_ledger.py::test_chain_defects_name_record_or_path[corrupt_sidecar]
+FAILED tests/test_033_trial_ledger.py::test_source_identity_full_sha_no_subprocess[detached]
+FAILED tests/test_033_trial_ledger.py::test_source_identity_full_sha_no_subprocess[loose]
+FAILED tests/test_033_trial_ledger.py::test_source_identity_full_sha_no_subprocess[packed]
+FAILED tests/test_033_trial_ledger.py::test_source_identity_full_sha_no_subprocess[missing]
+FAILED tests/test_033_trial_ledger.py::test_multiprocess_append_and_stale_lock
+FAILED tests/test_033_trial_ledger.py::test_production_default_and_explicit_synthetic_injection
+FAILED tests/test_033_trial_instrumentation.py::test_inventory_and_production_guard
+33 failed, 1 passed in 0.61s

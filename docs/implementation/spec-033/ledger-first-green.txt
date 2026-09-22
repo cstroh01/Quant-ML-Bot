@@ -1,0 +1,249 @@
+..............................F...                                       [100%]
+================================== FAILURES ===================================
+___________________ test_multiprocess_append_and_stale_lock ___________________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-5/test_multiprocess_append_and_s0')
+
+    def test_multiprocess_append_and_stale_lock(tmp_path):
+        log = ledger(tmp_path)
+        ctx = multiprocessing.get_context("spawn")
+        processes = [ctx.Process(target=_append_worker, args=(str(tmp_path),)) for _ in range(4)]
+        for p in processes: p.start()
+>       for p in processes: p.join(30); assert p.exitcode == 0
+                                        ^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: assert 1 == 0
+E        +  where 1 = <SpawnProcess name='SpawnProcess-1' pid=11880 parent=24292 stopped exitcode=1>.exitcode
+
+tests\test_033_trial_ledger.py:137: AssertionError
+---------------------------- Captured stderr call -----------------------------
+Process SpawnProcess-2:
+
+Traceback (most recent call last):
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 313, in _bootstrap
+
+    self.run()
+
+    ~~~~~~~~^^
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 108, in run
+
+    self._target(*self._args, **self._kwargs)
+
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\tests\test_033_trial_ledger.py", line 130, in _append_worker
+
+    start(ledger(Path(root)))
+
+    ~~~~~^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\tests\spec033_support.py", line 37, in start
+
+    return log.start(config(**changes), role=role, family="example", runner="fixture", source=SOURCE)
+
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 229, in start
+
+    with serialized(self.path):
+
+         ~~~~~~~~~~^^^^^^^^^^^
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 148, in __exit__
+
+    next(self.gen)
+
+    ~~~~^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 153, in serialized
+
+    lock.unlink()
+
+    ~~~~~~~~~~~^^
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\pathlib\_local.py", line 746, in unlink
+
+    os.unlink(self)
+
+    ~~~~~~~~~^^^^^^
+
+PermissionError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\Owner\\AppData\\Local\\Temp\\pytest-of-Camden\\pytest-5\\test_multiprocess_append_and_s0\\docs\\trials\\trials.lock'
+
+Process SpawnProcess-1:
+
+Process SpawnProcess-4:
+
+Process SpawnProcess-3:
+
+Traceback (most recent call last):
+
+Traceback (most recent call last):
+
+Traceback (most recent call last):
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 139, in serialized
+
+    fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 139, in serialized
+
+    fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+
+FileExistsError: [Errno 17] File exists: 'C:\\Users\\Owner\\AppData\\Local\\Temp\\pytest-of-Camden\\pytest-5\\test_multiprocess_append_and_s0\\docs\\trials\\trials.lock'
+
+FileExistsError: [Errno 17] File exists: 'C:\\Users\\Owner\\AppData\\Local\\Temp\\pytest-of-Camden\\pytest-5\\test_multiprocess_append_and_s0\\docs\\trials\\trials.lock'
+
+
+
+During handling of the above exception, another exception occurred:
+
+
+
+Traceback (most recent call last):
+
+
+
+During handling of the above exception, another exception occurred:
+
+
+
+Traceback (most recent call last):
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 139, in serialized
+
+    fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+
+FileExistsError: [Errno 17] File exists: 'C:\\Users\\Owner\\AppData\\Local\\Temp\\pytest-of-Camden\\pytest-5\\test_multiprocess_append_and_s0\\docs\\trials\\trials.lock'
+
+
+
+During handling of the above exception, another exception occurred:
+
+
+
+Traceback (most recent call last):
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 313, in _bootstrap
+
+    self.run()
+
+    ~~~~~~~~^^
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 108, in run
+
+    self._target(*self._args, **self._kwargs)
+
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\tests\test_033_trial_ledger.py", line 130, in _append_worker
+
+    start(ledger(Path(root)))
+
+    ~~~~~^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\tests\spec033_support.py", line 37, in start
+
+    return log.start(config(**changes), role=role, family="example", runner="fixture", source=SOURCE)
+
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 229, in start
+
+    with serialized(self.path):
+
+         ~~~~~~~~~~^^^^^^^^^^^
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 141, in __enter__
+
+    return next(self.gen)
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 148, in serialized
+
+    raise ValueError(f"lock requires explicit recovery: {lock}")
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 313, in _bootstrap
+
+    self.run()
+
+    ~~~~~~~~^^
+
+ValueError: lock requires explicit recovery: C:\Users\Owner\AppData\Local\Temp\pytest-of-Camden\pytest-5\test_multiprocess_append_and_s0\docs\trials\trials.lock
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 108, in run
+
+    self._target(*self._args, **self._kwargs)
+
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\tests\test_033_trial_ledger.py", line 130, in _append_worker
+
+    start(ledger(Path(root)))
+
+    ~~~~~^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\tests\spec033_support.py", line 37, in start
+
+    return log.start(config(**changes), role=role, family="example", runner="fixture", source=SOURCE)
+
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 229, in start
+
+    with serialized(self.path):
+
+         ~~~~~~~~~~^^^^^^^^^^^
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 141, in __enter__
+
+    return next(self.gen)
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 148, in serialized
+
+    raise ValueError(f"lock requires explicit recovery: {lock}")
+
+ValueError: lock requires explicit recovery: C:\Users\Owner\AppData\Local\Temp\pytest-of-Camden\pytest-5\test_multiprocess_append_and_s0\docs\trials\trials.lock
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 313, in _bootstrap
+
+    self.run()
+
+    ~~~~~~~~^^
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 108, in run
+
+    self._target(*self._args, **self._kwargs)
+
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\tests\test_033_trial_ledger.py", line 130, in _append_worker
+
+    start(ledger(Path(root)))
+
+    ~~~~~^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\tests\spec033_support.py", line 37, in start
+
+    return log.start(config(**changes), role=role, family="example", runner="fixture", source=SOURCE)
+
+           ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 229, in start
+
+    with serialized(self.path):
+
+         ~~~~~~~~~~^^^^^^^^^^^
+
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\contextlib.py", line 141, in __enter__
+
+    return next(self.gen)
+
+  File "C:\GitHub\Quant-ML-Bot\scripts\trial_registry.py", line 148, in serialized
+
+    raise ValueError(f"lock requires explicit recovery: {lock}")
+
+ValueError: lock requires explicit recovery: C:\Users\Owner\AppData\Local\Temp\pytest-of-Camden\pytest-5\test_multiprocess_append_and_s0\docs\trials\trials.lock
+
+=========================== short test summary info ===========================
+FAILED tests/test_033_trial_ledger.py::test_multiprocess_append_and_stale_lock
+1 failed, 33 passed in 12.45s

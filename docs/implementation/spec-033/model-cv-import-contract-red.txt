@@ -1,0 +1,27 @@
+F.                                                                       [100%]
+================================== FAILURES ===================================
+_____ TestModuleBoundaries.test_model_cv_imports_exactly_the_declared_set _____
+
+self = <test_model_cv.TestModuleBoundaries testMethod=test_model_cv_imports_exactly_the_declared_set>
+
+    def test_model_cv_imports_exactly_the_declared_set(self):
+>       self.assertEqual(
+            self._imported_modules("model_cv.py"),
+            {
+                "__future__",
+                "collections",
+                "typing",
+                "numpy",
+                "pandas",
+                "sklearn",
+                "estimators",
+                "walk_forward_cv",
+            },
+        )
+E       AssertionError: Items in the first set but not the second:
+E       'trial_runner'
+
+tests\test_model_cv.py:1012: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_model_cv.py::TestModuleBoundaries::test_model_cv_imports_exactly_the_declared_set
+1 failed, 1 passed in 2.90s

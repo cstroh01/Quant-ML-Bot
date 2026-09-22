@@ -221,8 +221,8 @@ quantiles, and the observed dispersion of trial Sharpe estimates.
 
 The implementation must transcribe the paper's worked-example inputs into a
 labelled test fixture rather than reverse-engineer inputs to hit a desired
-answer. The required observable checks are supplied by the project document:
-approximately `0.905` at `N = 88` and a pass at the `0.95` threshold when
+answer. After Camden's 2026-09-22 source-fidelity correction, the checks are:
+approximately `0.910153014744707` at `N = 88` and a pass at the `0.95` threshold when
 `N = 46`.
 
 For repository returns, use the non-annualized daily Sharpe inside the PSR/DSR
@@ -315,7 +315,7 @@ real comparator plus the real `N` source in isolated copies.
 
 **Rationale.** A plausible failure is not “all returns are NaN.” It is a
 strategy whose unadjusted result and t-statistic look attractive after many
-attempts but whose DSR is only about `0.905`. Weakening the threshold to
+attempts but whose DSR is only about `0.910153014744707`. Weakening the threshold to
 `DSR > 0` recreates the existing route text's nearly vacuous standard. Replacing
 lifetime `N` with surviving matrix columns recreates survivorship. Those are
 the exact defects this gate exists to catch.

@@ -1,0 +1,1698 @@
+{
+  "schema_version": 1,
+  "status": "draft_incomplete",
+  "author": "Codex; NOT approved by Camden",
+  "generated_at_utc": "2026-09-22T16:15:42.367906+00:00",
+  "approval": null,
+  "formula": "sum full Cartesian campaign upper bounds times rerun bounds; choose remembered upper endpoints; next power of two; double; max previous approved count",
+  "count_policy": "Raw lifetime count, no clustering; possible executions, no saved-output/config deduplication. Unknown ceilings remain null. Observed counts are lower-bound evidence only, not accepted upper bounds.",
+  "campaigns": [
+    {
+      "campaign_id": "pre-spec-sma",
+      "description": "Original inspected uncosted AAPL moving-average strategy; never erased because costs were missing.",
+      "evidence": [
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 718,
+              "text": "reviewed and verified lookahead-free. Last *uncosted* real result:"
+            },
+            {
+              "line": 719,
+              "text": "8 trades, 50% win rate, about +$33 total per share. That figure is"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "strategies": 1,
+        "ticker": 1
+      },
+      "cartesian_upper_bound": 1,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "Original parameter/window/date variants and rerun ceiling not recoverable from current checkout.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "ma-crossover-costed",
+      "description": "Costed SMA runner; count all possible manual cost/window/capital variants.",
+      "evidence": [
+        {
+          "path": "scripts/ma_crossover_backtest.py",
+          "sha256": "e927760f0dee8fd00a71b2b8645d32260166d2fff0198de1993f1fc13f3ae897",
+          "passages": [
+            {
+              "line": 12,
+              "text": "from backtest_harness import run_backtest, summarize_trades"
+            },
+            {
+              "line": 17,
+              "text": "TICKER = \"AAPL\""
+            },
+            {
+              "line": 93,
+              "text": "forbids. Both go unchanged to every `run_backtest` call here."
+            },
+            {
+              "line": 101,
+              "text": "with research_attempt(research_config(\"scripts/ma_crossover_backtest.py:run_backtest\", locals()), role=\"buy_and_hold_baseline\") as attempt:"
+            },
+            {
+              "line": 102,
+              "text": "hold_log = run_backtest(buy_and_hold_signal(prices), **costs, **account)"
+            },
+            {
+              "line": 113,
+              "text": "with research_attempt(research_config(\"scripts/ma_crossover_backtest.py:run_backtest\", locals()), role=\"random_signal_baseline\") as attempt:"
+            },
+            {
+              "line": 114,
+              "text": "recorded_trades = run_backtest(signalled, **costs, **account)"
+            },
+            {
+              "line": 213,
+              "text": "def main():"
+            },
+            {
+              "line": 214,
+              "text": "market_data = download_market_data([TICKER])"
+            },
+            {
+              "line": 215,
+              "text": "prices = market_data[market_data[\"Ticker\"] == TICKER].copy()"
+            },
+            {
+              "line": 227,
+              "text": "with research_attempt(research_config(\"scripts/ma_crossover_backtest.py:run_backtest\", locals()), role=\"candidate\") as attempt:"
+            },
+            {
+              "line": 228,
+              "text": "trade_log = run_backtest(prices, **costs, **account)"
+            }
+          ]
+        },
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 176,
+              "text": "## Spec 013 — Multi-ticker comparison: implemented, real run not yet published"
+            },
+            {
+              "line": 223,
+              "text": "- Built ahead of spec 013's real run — out of declared order, like 016."
+            },
+            {
+              "line": 254,
+              "text": "**Spec 013 (multi-ticker comparison) is unblocked.** It still requires a"
+            },
+            {
+              "line": 285,
+              "text": "spec 013** — building a single-ticker runner here and replacing it one"
+            },
+            {
+              "line": 371,
+              "text": "113 outer folds per side, 2,359 paired bars per entry, purge = label"
+            },
+            {
+              "line": 397,
+              "text": "Whether these entries hold up across tickers is spec 013's question."
+            },
+            {
+              "line": 498,
+              "text": "multi-ticker runner, spec 013) would have silently truncated the live"
+            },
+            {
+              "line": 521,
+              "text": "the Phase 3 multi-ticker run (spec 013), not a rerun of this fix alone."
+            },
+            {
+              "line": 833,
+              "text": "- **Spec 013 — Multi-ticker comparison table. Unheld — 014's evidence is"
+            },
+            {
+              "line": 860,
+              "text": "(spec 013) and any other real-data run happens on Camden's machine,"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "strategy": 1,
+        "ticker": 1
+      },
+      "cartesian_upper_bound": 1,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "logistic-baseline",
+      "description": "Classification accuracy screening and funded signal backtests, including rejected variants.",
+      "evidence": [
+        {
+          "path": "scripts/logistic_baseline.py",
+          "sha256": "a81832f1ecddfebb81657aedebc45cf84c5d95df4aaba0e8b3d26b05ae87e2be",
+          "passages": [
+            {
+              "line": 11,
+              "text": "from backtest_harness import run_backtest, summarize_trades"
+            },
+            {
+              "line": 14,
+              "text": "TICKER = \"AAPL\""
+            },
+            {
+              "line": 72,
+              "text": "walk_forward_splits(features, label_horizon=1, embargo_bars=1), start=1"
+            },
+            {
+              "line": 80,
+              "text": "model = LogisticRegression(max_iter=1000, random_state=42)"
+            },
+            {
+              "line": 137,
+              "text": "`evaluate_walk_forward` uses (`label_horizon=1, embargo_bars=1`) — this"
+            },
+            {
+              "line": 156,
+              "text": "walk_forward_splits(features, label_horizon=1, embargo_bars=1), start=1"
+            },
+            {
+              "line": 164,
+              "text": "model = LogisticRegression(max_iter=1000, random_state=42)"
+            },
+            {
+              "line": 313,
+              "text": "def main() -> None:"
+            },
+            {
+              "line": 314,
+              "text": "market_data = download_market_data([TICKER], period=\"2y\")"
+            },
+            {
+              "line": 315,
+              "text": "prices = market_data[market_data[\"Ticker\"] == TICKER].copy()"
+            },
+            {
+              "line": 332,
+              "text": "with research_attempt(research_config(\"scripts/logistic_baseline.py:run_backtest\", locals()), role=\"candidate\") as attempt:"
+            },
+            {
+              "line": 333,
+              "text": "trade_log = run_backtest(live, **costs, **account)"
+            }
+          ]
+        },
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 176,
+              "text": "## Spec 013 — Multi-ticker comparison: implemented, real run not yet published"
+            },
+            {
+              "line": 223,
+              "text": "- Built ahead of spec 013's real run — out of declared order, like 016."
+            },
+            {
+              "line": 254,
+              "text": "**Spec 013 (multi-ticker comparison) is unblocked.** It still requires a"
+            },
+            {
+              "line": 285,
+              "text": "spec 013** — building a single-ticker runner here and replacing it one"
+            },
+            {
+              "line": 371,
+              "text": "113 outer folds per side, 2,359 paired bars per entry, purge = label"
+            },
+            {
+              "line": 397,
+              "text": "Whether these entries hold up across tickers is spec 013's question."
+            },
+            {
+              "line": 498,
+              "text": "multi-ticker runner, spec 013) would have silently truncated the live"
+            },
+            {
+              "line": 521,
+              "text": "the Phase 3 multi-ticker run (spec 013), not a rerun of this fix alone."
+            },
+            {
+              "line": 833,
+              "text": "- **Spec 013 — Multi-ticker comparison table. Unheld — 014's evidence is"
+            },
+            {
+              "line": 860,
+              "text": "(spec 013) and any other real-data run happens on Camden's machine,"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "evaluation_modes": 2,
+        "ticker": 1
+      },
+      "cartesian_upper_bound": 2,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "model-cv-search",
+      "description": "Nested grid/refold selection independent of final winners.",
+      "evidence": [
+        {
+          "path": "scripts/model_cv.py",
+          "sha256": "f0bf4df33159f2f495496aafd407a51aaf0cbb495de63aea4e17ce5fa8b76aea",
+          "passages": [
+            {
+              "line": 68,
+              "text": "# Columns of `nested_walk_forward`'s per-fold results frame."
+            },
+            {
+              "line": 121,
+              "text": "label_horizon: int,"
+            },
+            {
+              "line": 154,
+              "text": "label_horizon=label_horizon,"
+            },
+            {
+              "line": 166,
+              "text": "label_horizon: int,"
+            },
+            {
+              "line": 184,
+              "text": "label_horizon=label_horizon,"
+            },
+            {
+              "line": 255,
+              "text": "label_horizon: int,"
+            },
+            {
+              "line": 257,
+              "text": "random_state: int,"
+            },
+            {
+              "line": 302,
+              "text": "label_horizon, embargo_bars)"
+            },
+            {
+              "line": 309,
+              "text": "label_horizon=label_horizon,"
+            },
+            {
+              "line": 329,
+              "text": "for point_index, params in enumerate(grid):"
+            },
+            {
+              "line": 337,
+              "text": "random_state=random_state,"
+            },
+            {
+              "line": 369,
+              "text": "def nested_walk_forward("
+            }
+          ]
+        },
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 176,
+              "text": "## Spec 013 — Multi-ticker comparison: implemented, real run not yet published"
+            },
+            {
+              "line": 223,
+              "text": "- Built ahead of spec 013's real run — out of declared order, like 016."
+            },
+            {
+              "line": 254,
+              "text": "**Spec 013 (multi-ticker comparison) is unblocked.** It still requires a"
+            },
+            {
+              "line": 285,
+              "text": "spec 013** — building a single-ticker runner here and replacing it one"
+            },
+            {
+              "line": 371,
+              "text": "113 outer folds per side, 2,359 paired bars per entry, purge = label"
+            },
+            {
+              "line": 397,
+              "text": "Whether these entries hold up across tickers is spec 013's question."
+            },
+            {
+              "line": 498,
+              "text": "multi-ticker runner, spec 013) would have silently truncated the live"
+            },
+            {
+              "line": 521,
+              "text": "the Phase 3 multi-ticker run (spec 013), not a rerun of this fix alone."
+            },
+            {
+              "line": 833,
+              "text": "- **Spec 013 — Multi-ticker comparison table. Unheld — 014's evidence is"
+            },
+            {
+              "line": 860,
+              "text": "(spec 013) and any other real-data run happens on Camden's machine,"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "estimator_target_pairs": 4,
+        "grid_points": 4
+      },
+      "cartesian_upper_bound": 16,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "multi-ticker-comparison",
+      "description": "Five-ticker ridge policy comparison; absent published output does not prove no execution.",
+      "evidence": [
+        {
+          "path": "scripts/multi_ticker_comparison.py",
+          "sha256": "9865eb527f1b10e97c7de6c0ee695291cd894d7b1734ad7ffea9d0f4192b1339",
+          "passages": [
+            {
+              "line": 1,
+              "text": "\"\"\"Run the full per-ticker pipeline over a named universe and compare."
+            },
+            {
+              "line": 3,
+              "text": "Every existing runnable script hardcodes `TICKER = \"AAPL\"`. This is the"
+            },
+            {
+              "line": 4,
+              "text": "composition spec 008's Background pointed at: one ticker's tuned estimator"
+            },
+            {
+              "line": 6,
+              "text": "`performance_summary` (spec 008), run independently over a five-ticker"
+            },
+            {
+              "line": 12,
+              "text": "`model_cv.nested_walk_forward` -> `ml_signal.{log_hurdle,"
+            },
+            {
+              "line": 14,
+              "text": "`backtest_harness.run_backtest` -> `metrics.performance_summary`, plus"
+            },
+            {
+              "line": 22,
+              "text": "`performance_summary`'s risk-adjusted fields so a cross-ticker ranking"
+            },
+            {
+              "line": 29,
+              "text": "**Failure isolation (FR-002).** `run_one_ticker` is the one place in this"
+            },
+            {
+              "line": 31,
+              "text": "everything from downloading that ticker's data through building its three"
+            },
+            {
+              "line": 39,
+              "text": "Prerequisite: the ten-year download for `TICKER_UNIVERSE`, which this lane"
+            },
+            {
+              "line": 42,
+              "text": "loop for whichever ticker happens to be first."
+            },
+            {
+              "line": 57,
+              "text": "from backtest_harness import run_backtest"
+            }
+          ]
+        },
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 176,
+              "text": "## Spec 013 — Multi-ticker comparison: implemented, real run not yet published"
+            },
+            {
+              "line": 223,
+              "text": "- Built ahead of spec 013's real run — out of declared order, like 016."
+            },
+            {
+              "line": 254,
+              "text": "**Spec 013 (multi-ticker comparison) is unblocked.** It still requires a"
+            },
+            {
+              "line": 285,
+              "text": "spec 013** — building a single-ticker runner here and replacing it one"
+            },
+            {
+              "line": 371,
+              "text": "113 outer folds per side, 2,359 paired bars per entry, purge = label"
+            },
+            {
+              "line": 397,
+              "text": "Whether these entries hold up across tickers is spec 013's question."
+            },
+            {
+              "line": 498,
+              "text": "multi-ticker runner, spec 013) would have silently truncated the live"
+            },
+            {
+              "line": 521,
+              "text": "the Phase 3 multi-ticker run (spec 013), not a rerun of this fix alone."
+            },
+            {
+              "line": 833,
+              "text": "- **Spec 013 — Multi-ticker comparison table. Unheld — 014's evidence is"
+            },
+            {
+              "line": 860,
+              "text": "(spec 013) and any other real-data run happens on Camden's machine,"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "tickers": 5,
+        "grid_points": 4
+      },
+      "cartesian_upper_bound": 20,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "api-backtest",
+      "description": "Interactive tearsheet requests expose selectable periods, tickers, commissions and slippage.",
+      "evidence": [
+        {
+          "path": "reports/api/routes/backtest.py",
+          "sha256": "9a6b6eace184a883fe84d86c97ea28f5c74b69d36dde045ac508c4ced4c6c32e",
+          "passages": [
+            {
+              "line": 20,
+              "text": "from backtest_harness import run_backtest, summarize_trades"
+            },
+            {
+              "line": 23,
+              "text": "from reports.api.routes.data import get_cache_dir, get_cached_ticker_data"
+            },
+            {
+              "line": 36,
+              "text": "def get_backtest_tearsheet("
+            },
+            {
+              "line": 37,
+              "text": "ticker: str = Query(\"AAPL\", description=\"Ticker symbol\"),"
+            },
+            {
+              "line": 45,
+              "text": "raw_df = get_cached_ticker_data(ticker.upper(), cache_dir)"
+            },
+            {
+              "line": 54,
+              "text": "with research_attempt(research_config(\"reports/api/routes/backtest.py:run_backtest\", locals()), role=\"random_signal_baseline\") as attempt:"
+            },
+            {
+              "line": 55,
+              "text": "trade_log = run_backtest("
+            },
+            {
+              "line": 163,
+              "text": "ticker=ticker.upper(),"
+            }
+          ]
+        },
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 176,
+              "text": "## Spec 013 — Multi-ticker comparison: implemented, real run not yet published"
+            },
+            {
+              "line": 223,
+              "text": "- Built ahead of spec 013's real run — out of declared order, like 016."
+            },
+            {
+              "line": 254,
+              "text": "**Spec 013 (multi-ticker comparison) is unblocked.** It still requires a"
+            },
+            {
+              "line": 285,
+              "text": "spec 013** — building a single-ticker runner here and replacing it one"
+            },
+            {
+              "line": 371,
+              "text": "113 outer folds per side, 2,359 paired bars per entry, purge = label"
+            },
+            {
+              "line": 397,
+              "text": "Whether these entries hold up across tickers is spec 013's question."
+            },
+            {
+              "line": 498,
+              "text": "multi-ticker runner, spec 013) would have silently truncated the live"
+            },
+            {
+              "line": 521,
+              "text": "the Phase 3 multi-ticker run (spec 013), not a rerun of this fix alone."
+            },
+            {
+              "line": 833,
+              "text": "- **Spec 013 — Multi-ticker comparison table. Unheld — 014's evidence is"
+            },
+            {
+              "line": 860,
+              "text": "(spec 013) and any other real-data run happens on Camden's machine,"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "candidate_strategy": 1
+      },
+      "cartesian_upper_bound": 1,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "feature-set-comparison",
+      "description": "Full reachable current fixed screening batch; includes all parameter scores and selected defaults per refold.",
+      "evidence": [
+        {
+          "path": "scripts/feature_set_comparison.py",
+          "sha256": "c11a845410ce7211567240e0c8bd3a1af69488815f1f90627f500068951bdaca",
+          "passages": [
+            {
+              "line": 33,
+              "text": "sized for four comparisons on a single ticker, chosen to catch a real effect"
+            },
+            {
+              "line": 44,
+              "text": "hours on one ticker, which blocked spec 013's five. They are also completely"
+            },
+            {
+              "line": 96,
+              "text": "from model_cv import nested_walk_forward"
+            },
+            {
+              "line": 98,
+              "text": "TICKER = \"AAPL\""
+            },
+            {
+              "line": 101,
+              "text": "# The cached download is the five-ticker universe (spec 013's"
+            },
+            {
+              "line": 102,
+              "text": "# `TICKER_UNIVERSE`), so the whole list is requested and `TICKER` selected out"
+            },
+            {
+              "line": 103,
+              "text": "# of it. Asking for `[TICKER]` alone would miss that cache file — the key is"
+            },
+            {
+              "line": 104,
+              "text": "# the sorted ticker list — and trigger a network call this lane cannot make."
+            },
+            {
+              "line": 105,
+              "text": "CACHE_TICKERS = [\"AAPL\", \"AMZN\", \"GOOGL\", \"MSFT\", \"NVDA\"]"
+            },
+            {
+              "line": 107,
+              "text": "LABEL_HORIZON = 1"
+            },
+            {
+              "line": 108,
+              "text": "RANDOM_STATE = 42"
+            },
+            {
+              "line": 135,
+              "text": "random_state: int = RANDOM_STATE,"
+            }
+          ]
+        },
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 176,
+              "text": "## Spec 013 — Multi-ticker comparison: implemented, real run not yet published"
+            },
+            {
+              "line": 223,
+              "text": "- Built ahead of spec 013's real run — out of declared order, like 016."
+            },
+            {
+              "line": 254,
+              "text": "**Spec 013 (multi-ticker comparison) is unblocked.** It still requires a"
+            },
+            {
+              "line": 285,
+              "text": "spec 013** — building a single-ticker runner here and replacing it one"
+            },
+            {
+              "line": 371,
+              "text": "113 outer folds per side, 2,359 paired bars per entry, purge = label"
+            },
+            {
+              "line": 397,
+              "text": "Whether these entries hold up across tickers is spec 013's question."
+            },
+            {
+              "line": 498,
+              "text": "multi-ticker runner, spec 013) would have silently truncated the live"
+            },
+            {
+              "line": 521,
+              "text": "the Phase 3 multi-ticker run (spec 013), not a rerun of this fix alone."
+            },
+            {
+              "line": 833,
+              "text": "- **Spec 013 — Multi-ticker comparison table. Unheld — 014's evidence is"
+            },
+            {
+              "line": 860,
+              "text": "(spec 013) and any other real-data run happens on Camden's machine,"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "estimator_target_pairs": 4,
+        "feature_sets": 2,
+        "grid_plus_selected": 5,
+        "outer_folds_upper": 113,
+        "inner_folds_upper": 113
+      },
+      "cartesian_upper_bound": 510760,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "screen-014-inspected",
+      "description": "Separate evidenced screening execution/history; deliberately no cross-campaign deduplication.",
+      "evidence": [
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 369,
+              "text": "**The comparison run: screening bar MET** (`feature_set_comparison.py`,"
+            },
+            {
+              "line": 371,
+              "text": "113 outer folds per side, 2,359 paired bars per entry, purge = label"
+            },
+            {
+              "line": 826,
+              "text": "(see above), including the T032 comparison run: **screening bar met** on"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "estimator_target_pairs": 4,
+        "feature_sets": 2,
+        "grid_plus_selected": 5,
+        "outer_folds_upper": 113,
+        "inner_folds_upper": 113
+      },
+      "cartesian_upper_bound": 510760,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "screen-2026-09-06-interrupted",
+      "description": "Separate evidenced screening execution/history; deliberately no cross-campaign deduplication.",
+      "evidence": [
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 406,
+              "text": "write itself now has tests. The 2026-09-06 run left no checkpoint not"
+            },
+            {
+              "line": 407,
+              "text": "because of that code but because a machine reboot killed it inside its"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "estimator_target_pairs": 4,
+        "feature_sets": 2,
+        "grid_plus_selected": 5,
+        "outer_folds_upper": 113,
+        "inner_folds_upper": 113
+      },
+      "cartesian_upper_bound": 510760,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "screen-015-serial",
+      "description": "Separate evidenced screening execution/history; deliberately no cross-campaign deduplication.",
+      "evidence": [
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 249,
+              "text": "The serial rerun needed to establish this (2026-09-11) took 89.9 minutes of"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "estimator_target_pairs": 4,
+        "feature_sets": 2,
+        "grid_plus_selected": 5,
+        "outer_folds_upper": 113,
+        "inner_folds_upper": 113
+      },
+      "cartesian_upper_bound": 510760,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "screen-015-parallel",
+      "description": "Separate evidenced screening execution/history; deliberately no cross-campaign deduplication.",
+      "evidence": [
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 241,
+              "text": "(all-core):"
+            },
+            {
+              "line": 245,
+              "text": "| SC-001 (speedup) | ≥3.0x, serial vs. default | **4.68x** (5394.82s → 1153.66s) |"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "estimator_target_pairs": 4,
+        "feature_sets": 2,
+        "grid_plus_selected": 5,
+        "outer_folds_upper": 113,
+        "inner_folds_upper": 113
+      },
+      "cartesian_upper_bound": 510760,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "screen-previous-partial",
+      "description": "Separate evidenced screening execution/history; deliberately no cross-campaign deduplication.",
+      "evidence": [
+        {
+          "path": "docs/PROJECT_CONTEXT.md",
+          "sha256": "96145125df3ef520fe647ea0c930f4bff31152c9c481ab3ab71f3009636bb42e",
+          "passages": [
+            {
+              "line": 251,
+              "text": "silently mid-run with no error. `data/cache/feature_set_comparison_PREVIOUS.json`"
+            },
+            {
+              "line": 252,
+              "text": "and `_STALE_PARTIAL.json` are now safe to delete."
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "estimator_target_pairs": 4,
+        "feature_sets": 2,
+        "grid_plus_selected": 5,
+        "outer_folds_upper": 113,
+        "inner_folds_upper": 113
+      },
+      "cartesian_upper_bound": 510760,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "required-baselines-promotion-uncertain",
+      "description": "Buy-and-hold plus random baselines across SMA, logistic, and five-ticker campaigns; reserve candidate count until Camden confirms no selection/promotion.",
+      "evidence": [
+        {
+          "path": "scripts/ma_crossover_backtest.py",
+          "sha256": "e927760f0dee8fd00a71b2b8645d32260166d2fff0198de1993f1fc13f3ae897",
+          "passages": [
+            {
+              "line": 43,
+              "text": "RANDOM_BASELINE_SEEDS = 20"
+            },
+            {
+              "line": 79,
+              "text": "seed_count: int,"
+            },
+            {
+              "line": 111,
+              "text": "for seed in range(seed_count):"
+            },
+            {
+              "line": 143,
+              "text": "def format_comparison(sma_summary: dict, baselines: dict, *, seed_count: int) -> str:"
+            },
+            {
+              "line": 183,
+              "text": "label = f\"Random baseline ({seed_count} seeds)\""
+            },
+            {
+              "line": 207,
+              "text": "f\"{seed_count} seeds, matched to\""
+            },
+            {
+              "line": 253,
+              "text": "seed_count=RANDOM_BASELINE_SEEDS,"
+            },
+            {
+              "line": 259,
+              "text": "print(format_comparison(summary, baselines, seed_count=RANDOM_BASELINE_SEEDS))"
+            }
+          ]
+        },
+        {
+          "path": "scripts/multi_ticker_comparison.py",
+          "sha256": "9865eb527f1b10e97c7de6c0ee695291cd894d7b1734ad7ffea9d0f4192b1339",
+          "passages": [
+            {
+              "line": 39,
+              "text": "Prerequisite: the ten-year download for `TICKER_UNIVERSE`, which this lane"
+            },
+            {
+              "line": 67,
+              "text": "TICKER_UNIVERSE = [\"AAPL\", \"MSFT\", \"GOOGL\", \"NVDA\", \"AMZN\"]"
+            },
+            {
+              "line": 93,
+              "text": "RANDOM_BASELINE_SEEDS = 20"
+            },
+            {
+              "line": 223,
+              "text": "seed_count: int = RANDOM_BASELINE_SEEDS,"
+            },
+            {
+              "line": 323,
+              "text": "tickers: list[str] = TICKER_UNIVERSE,"
+            },
+            {
+              "line": 329,
+              "text": "seed_count: int = RANDOM_BASELINE_SEEDS,"
+            },
+            {
+              "line": 370,
+              "text": "f\"{'-'.join(sorted(set(TICKER_UNIVERSE)))}_{PERIOD}.csv\""
+            },
+            {
+              "line": 380,
+              "text": "f\"{TICKER_UNIVERSE!r}, period={PERIOD!r})\\\"\""
+            },
+            {
+              "line": 385,
+              "text": "output_path = cache_path(_output_filename(TICKER_UNIVERSE))"
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "runner_ticker_combinations": 7,
+        "buy_hold_plus_random_seeds": 21
+      },
+      "cartesian_upper_bound": 147,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "Baseline roles historically unrecorded. Count conservatively if performance influenced strategy selection; promotion/reruns require review.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "audit-2026-09-12",
+      "description": "Audit inspected cached tearsheet and all saved screening entries; count possible repeated human inspection separately.",
+      "evidence": [
+        {
+          "path": "docs/audit-2026-09-12/probes.py",
+          "sha256": "d1bf3ac504a89e75a271de08d32eaaabea9f7a0c8fb78eec85ad08a3a6e0358f",
+          "passages": [
+            {
+              "line": 123,
+              "text": "out[\"cached_sma_tearsheet\"] = {k: ts[k] for k in [\"capital_base\", \"total_pnl\", \"total_return\", \"sharpe_ratio\", \"max_drawdown\", \"comparison_table\"]}"
+            },
+            {
+              "line": 124,
+              "text": "out[\"actual_screening_artifact\"] = json.loads((ROOT / \"data/cache/feature_set_comparison.json\").read_text())"
+            }
+          ]
+        },
+        {
+          "path": "docs/audit-2026-09-12/AUDIT.md",
+          "sha256": "8a0a6f3e62291cd364035fb034404c62e0800ee999f2a2ede771e7f6fa9089ca",
+          "passages": [
+            {
+              "line": 101,
+              "text": "**27 — P1 / G: create an untouched final evaluation and an experiment ledger.** [feature_set_comparison.py](../../scripts/feature_set_comparison.py:745), [project context](../PROJECT_CONTEXT.md). The same historical results have guided features, model families, windows and policy decisions. Repeated outer-test inspection turns that history into research/selection data. Register every material trial, including failed variants and manual changes; freeze the strategy before a genuinely untouched chronological evaluation. Already-inspected dates cannot be made unseen by renaming them. New forward observations may be the only honest final holdout."
+            },
+            {
+              "line": 107,
+              "text": "**30 — P1 / G: adjust selection claims for the full search, not one screen.** Four tests with a rule that any p<0.10 passes are not a 10% family-wide test, and the true research search is larger than those four entries. Specify the family and correction in advance. Calculate PSR/DSR on valid net strategy returns, accounting for the search history and uncertainty in effective independent trials. “Deflated Sharpe remains positive” in [capital_gate.py](../../reports/api/routes/capital_gate.py) is not a meaningful pass rule: the usual DSR is a probability, so merely being above zero is almost vacuous. Define a justified probability threshold, minimum sample and economic effect, not a badge. [Bailey and López de Prado's original DSR paper](https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf)."
+            },
+            {
+              "line": 123,
+              "text": "**38 — P2 / G: preserve probabilities, inner-search records and model identity.** [model_cv.py](../../scripts/model_cv.py:245), [model_cv.py](../../scripts/model_cv.py:362). Aggregate winning scores are insufficient for calibration, reproducibility, error attribution or counting trials. Save fold IDs, training bounds, all candidate scores, selected params, scaler state, predictions/probabilities, label definition, seed, elapsed time and source/data hashes. Define whether fold scores are equally weighted or observation-weighted. Validate at public boundaries with explicit errors rather than relying on removable `assert` statements."
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "screen_entries": 4,
+        "feature_sets": 2,
+        "tearsheet_modes": 1
+      },
+      "cartesian_upper_bound": 8,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "Probe artifact proves inspection but not all repeated probe executions.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "audit-2026-09-18-history-gap",
+      "description": "Static audit identifies absent lifetime recording and unrepresentable failures; reserve unresolved historical/AI search instead of assigning zero.",
+      "evidence": [
+        {
+          "path": "docs/cleanup-audit-2026-09-18/AUDIT.md",
+          "sha256": "c6e465ae5834edeb32739af346759d6e2adee4f83da9c23be2a8b388cc1d1fdf",
+          "passages": [
+            {
+              "line": 276,
+              "text": "### F23 — P1: complete trial history is neither captured nor representable for failed runs"
+            },
+            {
+              "line": 280,
+              "text": "**Plan:** record trial intent before evaluation and terminal outcome afterward, including failed/canceled candidates with reasons and nullable artifacts. Make gate eligibility a later independent decision. Integrate all production search paths and document unrecoverable pre-ledger history. **Acceptance:** failure before the first prediction still leaves a traceable trial; repeated candidates and each searched configuration are accounted for without pretending missing return evidence exists."
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "unresolved_campaign_placeholder": 1
+      },
+      "cartesian_upper_bound": 1,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "Static audit is not itself a backtest; it documents that the historical research count is incomplete.",
+      "observed_executions_at_least": 1
+    },
+    {
+      "campaign_id": "manual-ai-off-repo",
+      "description": "Known ad hoc/AI-assisted feature, model, window and policy selection history beyond surviving fixed scripts.",
+      "evidence": [
+        {
+          "path": "docs/audit-2026-09-12/AUDIT.md",
+          "sha256": "8a0a6f3e62291cd364035fb034404c62e0800ee999f2a2ede771e7f6fa9089ca",
+          "passages": [
+            {
+              "line": 101,
+              "text": "**27 — P1 / G: create an untouched final evaluation and an experiment ledger.** [feature_set_comparison.py](../../scripts/feature_set_comparison.py:745), [project context](../PROJECT_CONTEXT.md). The same historical results have guided features, model families, windows and policy decisions. Repeated outer-test inspection turns that history into research/selection data. Register every material trial, including failed variants and manual changes; freeze the strategy before a genuinely untouched chronological evaluation. Already-inspected dates cannot be made unseen by renaming them. New forward observations may be the only honest final holdout."
+            },
+            {
+              "line": 107,
+              "text": "**30 — P1 / G: adjust selection claims for the full search, not one screen.** Four tests with a rule that any p<0.10 passes are not a 10% family-wide test, and the true research search is larger than those four entries. Specify the family and correction in advance. Calculate PSR/DSR on valid net strategy returns, accounting for the search history and uncertainty in effective independent trials. “Deflated Sharpe remains positive” in [capital_gate.py](../../reports/api/routes/capital_gate.py) is not a meaningful pass rule: the usual DSR is a probability, so merely being above zero is almost vacuous. Define a justified probability threshold, minimum sample and economic effect, not a badge. [Bailey and López de Prado's original DSR paper](https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf)."
+            }
+          ]
+        }
+      ],
+      "dimensions": {
+        "unresolved_campaign_placeholder": 1
+      },
+      "cartesian_upper_bound": 1,
+      "rerun_upper_bound": null,
+      "remembered_range": null,
+      "chosen_upper_bound": null,
+      "unresolved_reason": "No defensible finite bound from repository. Camden recollection of manual, AI, notebook, off-repo, horizon, seed, ticker, cost and refold variations required.",
+      "observed_executions_at_least": 1
+    }
+  ],
+  "spec_coverage": [
+    {
+      "spec": "001-data-ingestion",
+      "path": ".specify/specs/001-data-ingestion/spec.md",
+      "sha256": "90075449d2cfa39b03d94cc2cb34713fff70b9dccb92c302d4c1f011a1b2dde9",
+      "classification": "infrastructure/diagnostic; no distinct inspected strategy run proven by spec alone",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": []
+    },
+    {
+      "spec": "002-backtest-costs-baselines",
+      "path": ".specify/specs/002-backtest-costs-baselines/spec.md",
+      "sha256": "0940e38c84303f122099a7d0017d0334008bf4f50ada363c50635a0ec3d7b740",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 49,
+          "text": "constitution actually allows me to report — not a gross figure I'd have to"
+        },
+        {
+          "line": 75,
+          "text": "produced it, alongside total P&L — so a results artifact never reports a"
+        },
+        {
+          "line": 99,
+          "text": "2. **Given** the resulting frame, **When** `run_backtest` is called,"
+        },
+        {
+          "line": 119,
+          "text": "the same seed; results are byte-identical. Call it with 20 different seeds;"
+        },
+        {
+          "line": 120,
+          "text": "the mean and standard deviation of the resulting net P&L (after identical"
+        },
+        {
+          "line": 122,
+          "text": "result."
+        },
+        {
+          "line": 240,
+          "text": "passed in — `signals.py` does not reach into another strategy's results to"
+        }
+      ]
+    },
+    {
+      "spec": "003-cv-purge-embargo",
+      "path": ".specify/specs/003-cv-purge-embargo/spec.md",
+      "sha256": "6b5f7596bc2f8b0b968998b5775a3b9fdba4cb2b2e9b1b4e6c8f158dd60efffd",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 62,
+          "text": "accuracy number is one I can actually report under Rule 2."
+        }
+      ]
+    },
+    {
+      "spec": "004-test-ci-workflow",
+      "path": ".specify/specs/004-test-ci-workflow/spec.md",
+      "sha256": "dc491e79aba43b18bae8d78f890b9c64b794a97a6e0d62e2287a466f6ddcec71",
+      "classification": "infrastructure/diagnostic; no distinct inspected strategy run proven by spec alone",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": []
+    },
+    {
+      "spec": "005-ml-signal-wiring",
+      "path": ".specify/specs/005-ml-signal-wiring/spec.md",
+      "sha256": "3f38948baf578013d223ca12f3a505145742db83daca6c39f5250ec218d72efd",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 9,
+          "text": "**Input**: Wire `logistic_baseline.py`'s walk-forward model into an actual"
+        },
+        {
+          "line": 13,
+          "text": "embargoed CV): this is the first spec to actually trade on that CV's output,"
+        },
+        {
+          "line": 19,
+          "text": "*imports* two label-agnostic helpers from the latter (`baseline_results`,"
+        },
+        {
+          "line": 33,
+          "text": "signal, so the model has never actually been backtested, only graded."
+        },
+        {
+          "line": 138,
+          "text": "two existing, label-agnostic helpers from it (`baseline_results`,"
+        },
+        {
+          "line": 142,
+          "text": "the ML result as \"SMA crossover.\""
+        },
+        {
+          "line": 153,
+          "text": "- **SC-002**: The resulting trade log, run through the existing cost model,"
+        },
+        {
+          "line": 162,
+          "text": "next-day-direction task is a result to distrust first and celebrate"
+        }
+      ]
+    },
+    {
+      "spec": "006-embargo-window-semantics",
+      "path": ".specify/specs/006-embargo-window-semantics/spec.md",
+      "sha256": "6a39d85da99c6a24f125dde0b46939dd61c69f267f7ce75b579dd1d60b19ed9c",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 101,
+          "text": "run on ten years of history is actually using ten years of history."
+        },
+        {
+          "line": 231,
+          "text": "`docs/PROJECT_CONTEXT.md` quotes an AAPL result produced under the old"
+        }
+      ]
+    },
+    {
+      "spec": "007-oos-coverage-index",
+      "path": ".specify/specs/007-oos-coverage-index/spec.md",
+      "sha256": "e655e8f5f80a25f0a59f8149374b2db2e780111a48b4bff9627e66fa4a95e660",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 26,
+          "text": "the window where trading is actually possible:"
+        },
+        {
+          "line": 108,
+          "text": "`features.iloc[pos:]`, **Then** the first row of the result is the first"
+        },
+        {
+          "line": 135,
+          "text": "current result."
+        }
+      ]
+    },
+    {
+      "spec": "008-metrics-reporting",
+      "path": ".specify/specs/008-metrics-reporting/spec.md",
+      "sha256": "0692a11ae67e1f4eef832368b1ce1b36aca22690de6ccc46b6a7d47bc5fd4a3d",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 12,
+          "text": "strategy results. Phase 3 needs them: a five-ticker comparison table that"
+        },
+        {
+          "line": 134,
+          "text": "result of the phase is an error message."
+        },
+        {
+          "line": 144,
+          "text": "undefined, and `0.0` would read as \"a real, mediocre result\"."
+        }
+      ]
+    },
+    {
+      "spec": "009-selectable-target",
+      "path": ".specify/specs/009-selectable-target/spec.md",
+      "sha256": "99ca369f170c188d9879374493c0d2394b2476fe1f8a1653b4476e53d5311493",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 57,
+          "text": "- **The existing binary result stays the control.** `docs/PROJECT_CONTEXT.md`"
+        },
+        {
+          "line": 99,
+          "text": "the committed AAPL result remains a valid control for everything Phase 3"
+        },
+        {
+          "line": 129,
+          "text": "\"unknown\" is a lookahead bug that improves results."
+        },
+        {
+          "line": 148,
+          "text": "first `long_window` rows; a shorter frame yields an empty result, not an"
+        },
+        {
+          "line": 195,
+          "text": "- **FR-011**: `logistic_baseline.py` MUST NOT be modified. Its results are"
+        },
+        {
+          "line": 230,
+          "text": "`build_features` result without raising."
+        },
+        {
+          "line": 243,
+          "text": "results and does not belong in the same PR as a new target."
+        }
+      ]
+    },
+    {
+      "spec": "010-estimator-registry",
+      "path": ".specify/specs/010-estimator-registry/spec.md",
+      "sha256": "14a8bc085451ba4200bbb8b19567302427669e590801a9edfd90cf8679602381",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 15,
+          "text": "`walk_forward_predictions` and pinned as the Phase 2 control result (spec 009"
+        },
+        {
+          "line": 41,
+          "text": "- **The registry carries a parameter grid and a declared default per entry.**"
+        },
+        {
+          "line": 43,
+          "text": "must invent its own grids, and the \"one place a model is declared\" property"
+        },
+        {
+          "line": 45,
+          "text": "(`Phase 3` plan, spec 010) specified `EstimatorSpec` with `param_grid` and"
+        },
+        {
+          "line": 71,
+          "text": "need `predict` results carried through with the right dtype (`Int64` for a"
+        },
+        {
+          "line": 88,
+          "text": "linear baseline net of costs,\" which is the actual question. LightGBM and"
+        },
+        {
+          "line": 91,
+          "text": "constraint. Today there is not one, because there is no result yet."
+        },
+        {
+          "line": 125,
+          "text": "As the project owner, I need the model choice, its parameter grid, and its"
+        }
+      ]
+    },
+    {
+      "spec": "011-nested-cv-tuning",
+      "path": ".specify/specs/011-nested-cv-tuning/spec.md",
+      "sha256": "08bc98cdd8a8e07ec19776d7c27f5fc3fd253dee4039aeca6799a44bf1aa5525",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 12,
+          "text": "actually expands, and named the consequence: after the fix, each outer fold's"
+        },
+        {
+          "line": 15,
+          "text": "declared parameter grid, but nothing yet selects a point from that grid. A"
+        },
+        {
+          "line": 65,
+          "text": "in the direction that flatters the result: it re-admits every row the outer"
+        },
+        {
+          "line": 80,
+          "text": "`train_indices`, and maps results back positionally:"
+        },
+        {
+          "line": 138,
+          "text": "As the project owner, I need the grid search to score candidates only on"
+        },
+        {
+          "line": 144,
+          "text": "1. **Given** a grid and an outer fold's training positions, **When**"
+        },
+        {
+          "line": 151,
+          "text": "`default_params` with `tuned=False` recorded — and **never** `grid[0]`."
+        },
+        {
+          "line": 157,
+          "text": "`default_params` with `tuned=False`. The flag is what makes the fold-results"
+        }
+      ]
+    },
+    {
+      "spec": "012-cost-aware-entry-rule",
+      "path": ".specify/specs/012-cost-aware-entry-rule/spec.md",
+      "sha256": "6d3e464724166af9b1c0b41e7f733fb662c7109a7f3375f9ad52e339bb134bad",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 18,
+          "text": "long only when the predicted return clears what the round trip will actually"
+        },
+        {
+          "line": 38,
+          "text": "actual fills (`backtest_harness.py:67`, `:73`, `:75`):"
+        },
+        {
+          "line": 91,
+          "text": "one-ticker result on AAPL. Spec 013's multi-ticker expansion may surface"
+        },
+        {
+          "line": 151,
+          "text": "cost, so the strategy is graded on decisions it could actually profit from"
+        },
+        {
+          "line": 178,
+          "text": "parameters the harness will actually charge, so a strategy that \"clears the"
+        },
+        {
+          "line": 195,
+          "text": "- **A near-empty or empty resulting trade log**: not an error, and the"
+        }
+      ]
+    },
+    {
+      "spec": "013-multi-ticker-comparison",
+      "path": ".specify/specs/013-multi-ticker-comparison/spec.md",
+      "sha256": "c5db6891e9ea067635857b9fc017baae7afa1da06c0c46b97a4a4ff3c1749b07",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 14,
+          "text": "name or assembles the results into one table. `docs/PROJECT_CONTEXT.md`'s"
+        },
+        {
+          "line": 58,
+          "text": "predicted-magnitude distribution beside every result — see FR-005. Without"
+        },
+        {
+          "line": 145,
+          "text": "`(results_frame, failures)`."
+        },
+        {
+          "line": 146,
+          "text": "- **FR-004**: `results_frame` MUST have one row per (ticker, strategy) for"
+        },
+        {
+          "line": 155,
+          "text": "turns an empty table into the actual finding — \"the hurdle is 90 bps and"
+        },
+        {
+          "line": 156,
+          "text": "the model's 90th-percentile conviction is 14 bps\" is a result; \"0 trades\""
+        },
+        {
+          "line": 165,
+          "text": "`phase2_logistic_baseline_results.csv` is not namespaced, so a naive loop"
+        },
+        {
+          "line": 208,
+          "text": "`TICKER_UNIVERSE` plus a rerun, so nothing here is hard to revisit."
+        }
+      ]
+    },
+    {
+      "spec": "014-scale-free-features",
+      "path": ".specify/specs/014-scale-free-features/spec.md",
+      "sha256": "ee82e1997b0ebe28138e9b0b5fceaeb13f6656878adfe2317303160ae1146c40",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 9,
+          "text": "**Input**: Phase 3 produced a hard negative result: no registered model beats"
+        },
+        {
+          "line": 15,
+          "text": "separate change with its own effect on results\" that \"does not belong in the"
+        },
+        {
+          "line": 118,
+          "text": "### User Story 3 - The committed control result does not move (Priority: P1)"
+        },
+        {
+          "line": 120,
+          "text": "`docs/PROJECT_CONTEXT.md` quotes an AAPL result from `logistic_baseline.py`."
+        },
+        {
+          "line": 189,
+          "text": "- **FR-009**: parameter grids MUST keep plain names (`{\"alpha\": ...}`, not"
+        },
+        {
+          "line": 201,
+          "text": "paired-test the results — **McNemar** (`statsmodels.stats.contingency_"
+        },
+        {
+          "line": 212,
+          "text": "deflated Sharpe step and comes later. A null result still merges; it rules"
+        },
+        {
+          "line": 299,
+          "text": "the committed AAPL result was computed on and what spec 013's comparison"
+        }
+      ]
+    },
+    {
+      "spec": "015-parallel-comparison",
+      "path": ".specify/specs/015-parallel-comparison/spec.md",
+      "sha256": "18d5dcfed970bd2f3707ce79717fff0c7c4db085306e07a53f7b0e4fa2809a7b",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 15,
+          "text": "~113 outer folds, with each outer fold evaluating inner folds across 4 grid"
+        },
+        {
+          "line": 42,
+          "text": "- $G = 4$ hyperparameter grid points per entry"
+        },
+        {
+          "line": 53,
+          "text": "machine, 8 worker processes each attempting to run 8 threads results in 64"
+        },
+        {
+          "line": 54,
+          "text": "active threads competing for 8 cores. The resulting cache eviction, CPU"
+        },
+        {
+          "line": 88,
+          "text": "- Inner folds and grid search remain localized within each worker process,"
+        },
+        {
+          "line": 110,
+          "text": "- Because work units are executed in isolated processes and results are gathered"
+        },
+        {
+          "line": 171,
+          "text": "- **FR-006**: The parallel orchestrator MUST collect results into a deterministic"
+        }
+      ]
+    },
+    {
+      "spec": "016-quant-terminal-ui",
+      "path": ".specify/specs/016-quant-terminal-ui/spec.md",
+      "sha256": "6e65b90146bae75d358b83c0a98715fa4b5cf263dfda11b60917149766b7385e",
+      "classification": "infrastructure/diagnostic; no distinct inspected strategy run proven by spec alone",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 26,
+          "text": "However, exploring results currently requires running standalone scripts in the terminal and viewing static PNG plots in `plots/` or inspecting CSV logs."
+        },
+        {
+          "line": 57,
+          "text": "- **FR-006 (FastAPI Bridge)**: Type-safe REST API in `reports/api/` serving cached market data, diagnostics, and backtest results."
+        }
+      ]
+    },
+    {
+      "spec": "017-position-sizing-risk",
+      "path": ".specify/specs/017-position-sizing-risk/spec.md",
+      "sha256": "eaff06c8fccc4d0b5f02c6068c5e57249ff671c38c26082facdfb9938dd5edb8",
+      "classification": "infrastructure/diagnostic; no distinct inspected strategy run proven by spec alone",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 109,
+          "text": "result on one ticker that spec 005 showed does not yet beat a majority-class"
+        },
+        {
+          "line": 393,
+          "text": "final) so the mechanism can be inspected, not just its result."
+        }
+      ]
+    },
+    {
+      "spec": "018-terminal-truthfulness",
+      "path": ".specify/specs/018-terminal-truthfulness/spec.md",
+      "sha256": "c1778dd412a2a3a84c099cefc773d840f343e4ed8b1297f0cdeee43f296af529",
+      "classification": "infrastructure/diagnostic; no distinct inspected strategy run proven by spec alone",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 76,
+          "text": "- No experiment is rerun and no metric is reported."
+        },
+        {
+          "line": 80,
+          "text": "> No fabricated forecast/p-value/pass badge; malformed inputs cannot yield a successful result; clean API fixtures"
+        },
+        {
+          "line": 97,
+          "text": "### US2: Malformed input cannot yield a successful result (P1; 03, 04, 50)"
+        },
+        {
+          "line": 169,
+          "text": "returns, in order. No screen describes a p-value as the chance a result is"
+        }
+      ]
+    },
+    {
+      "spec": "019-funded-ledger-and-timing",
+      "path": ".specify/specs/019-funded-ledger-and-timing/spec.md",
+      "sha256": "5488593fb0c59591c3c648b4b748975730adab4cde56fad69ac762edcd46746f",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": []
+    },
+    {
+      "spec": "020-unadjusted-price-data",
+      "path": ".specify/specs/020-unadjusted-price-data/spec.md",
+      "sha256": "45588262a3e53d681e919a90aeb9aab584315a56bbe171a33d834c9dd29e68c8",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 31,
+          "text": "- **Harness / Smoke-Test Boundary**: In accordance with Audit Finding 21, this basket is strictly a **computational smoke-test panel and accounting harness**, not an investable alpha universe. Backtest results across this panel cannot be cited as evidence of generalizable equity strategy alpha."
+        }
+      ]
+    },
+    {
+      "spec": "021-finish-spec-019-migration",
+      "path": ".specify/specs/021-finish-spec-019-migration/spec.md",
+      "sha256": "df837c757f8022c060f7286c13d878a3600a0f326942cdc4f9dbff333c81814f",
+      "classification": "research-affecting revision; historical reruns unbounded",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 98,
+          "text": "`ma_crossover_backtest.baseline_results:88-99`, and `multi_ticker_comparison._baseline_rows:138-148`."
+        },
+        {
+          "line": 115,
+          "text": "| `scripts/ma_crossover_backtest.py` | Declares starting capital and an end-of-data policy beside the cost model. Passes both, identically, to the strategy and both baselines (`:81`, `:92`, `:186`). `baseline_results` takes both as required keyword arguments. `format_comparison` states each once. | C1, C5 |"
+        },
+        {
+          "line": 259,
+          "text": "the same single grid point and the same span."
+        },
+        {
+          "line": 266,
+          "text": "That changes a committed control result. It needs its own spec, with Rule 4"
+        },
+        {
+          "line": 293,
+          "text": "in the report header like commission. It is not a result. The only existing"
+        },
+        {
+          "line": 330,
+          "text": "harness rejected it, and both callers (`ma_crossover_backtest.baseline_results`"
+        },
+        {
+          "line": 354,
+          "text": "- **The `baseline_results` signature (D-3, D-4)** is the interface T024 adopts"
+        },
+        {
+          "line": 359,
+          "text": "That document quotes results produced under the pre-019 contract:"
+        }
+      ]
+    },
+    {
+      "spec": "032-live-trading-safety-layer",
+      "path": ".specify/specs/032-live-trading-safety-layer/spec.md",
+      "sha256": "7a11d5d31adfec3b90cb8682cd0d2989de4007dd0a99ea899562f45e4fb3bb8c",
+      "classification": "infrastructure/diagnostic; no distinct inspected strategy run proven by spec alone",
+      "counting": "covered by runner and manual-history campaigns; do not count spec existence as one trial",
+      "review_passages": [
+        {
+          "line": 38,
+          "text": "- **REQ-002 — Hard deny semantics.** The only permissive result is an explicit"
+        },
+        {
+          "line": 79,
+          "text": "broker acknowledgement, reconciliation result, reset, and operator command"
+        },
+        {
+          "line": 81,
+          "text": "reason, broker order IDs, and resulting exposure."
+        },
+        {
+          "line": 95,
+          "text": "7. Confirm broker acknowledgement and reconcile the resulting state. An"
+        },
+        {
+          "line": 96,
+          "text": "uncertain result remains halted for new exposure until resolved."
+        },
+        {
+          "line": 318,
+          "text": "- any fills racing with cancellation are reconciled before the result is"
+        },
+        {
+          "line": 330,
+          "text": "The operator-facing result MUST distinguish `REQUESTED`, `LOCAL_BLOCKED`,"
+        },
+        {
+          "line": 343,
+          "text": "5. If the broker exposes no disable-status query, the result is"
+        }
+      ]
+    }
+  ],
+  "missing_spec_numbers": "022-031 absent; do not fabricate campaigns",
+  "review_required": [
+    "Supply finite rerun/configuration upper bounds or leave incomplete.",
+    "Confirm baseline promotions and off-repo/AI/manual work.",
+    "Approve exact finalized manifest digest explicitly before an immutable count artifact is written."
+  ]
+}

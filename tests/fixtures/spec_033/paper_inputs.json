@@ -1,0 +1,18 @@
+{
+  "label": "EXAMPLE — NOT A RESULT",
+  "source": "Bailey and Lopez de Prado (2014), pp. 9-10, https://www.davidhbailey.com/dhbpapers/deflated-sharpe.pdf; visually verified",
+  "annualized_sharpe": 2.5,
+  "annualized_trial_sharpe_variance": 0.5,
+  "observations": 1250,
+  "days_per_year": 250,
+  "skewness": -3,
+  "pearson_kurtosis": 10,
+  "published_n": 100,
+  "published_dsr": 0.9004,
+  "control_n": 46,
+  "published_control_dsr": 0.9505,
+  "spec_n": 88,
+  "spec_target": 0.910153014744707,
+  "source_formula_at_spec_n": 0.910153014744707,
+  "source_correction": "Approved by Camden 2026-09-22; N=88 evaluates unchanged non-normal paper inputs; published N=100 test retained"
+}

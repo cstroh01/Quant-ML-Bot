@@ -2,6 +2,12 @@
 
 _Last updated: 2026-09-18_
 
+## Known issues
+
+- `scripts/estimators.py` silently truncates continuous labels with `astype(int)`
+  on the classification path; `tests/test_estimators.py` pins this current
+  behavior until a dedicated spec defines the correction.
+
 ## Spec 032 — Live-trading safety layer: BUILT, not through the Merge Gate
 
 The #4 Capital Gate requirement ("A live-trading safety layer exists and is

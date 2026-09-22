@@ -1,0 +1,56 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+__ test_extreme_finite_returns_retain_all_rejected_splits_instead_of_raising __
+
+    def test_extreme_finite_returns_retain_all_rejected_splits_instead_of_raising():
+        pbo = api("selection_bias", "matrix_pbo")
+        values = [[1e308 if i < 16 else -1e308, .01 + (-1) ** i * .02] for i in range(32)]
+        try:
+>           result = pbo(committed(values))
+                     ^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_pbo.py:207: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\selection_bias.py:255: in matrix_pbo
+    records = [_cscv_record(moments, columns, i, a, b) for i, (a, b) in enumerate(cscv_splits())]
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+scripts\selection_bias.py:204: in _cscv_record
+    inside, outside = _half_sharpes(moments, chosen), _half_sharpes(moments, other)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+moments = (array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]), array([[ 1.e+308,  1.e-002],
+       [ 1.e+308,  1.e-002],
+  ...[0.    , 0.0008],
+       [0.    , 0.0008],
+       [0.    , 0.0008],
+       [0.    , 0.0008],
+       [0.    , 0.0008]]))
+chosen = (0, 1, 2, 3, 4, 5, ...)
+
+    def _half_sharpes(moments: tuple, chosen: tuple[int, ...]) -> np.ndarray:
+        """Combine disjoint block moments into sample daily Sharpe for each column."""
+        counts, means, sums = (v[list(chosen)] for v in moments)
+        n = int(counts.sum())
+        with np.errstate(over="ignore", invalid="ignore", divide="ignore"):
+>           mean = np.array([math.fsum(col * counts / n) for col in means.T])
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           ValueError: -inf + inf in fsum
+
+scripts\selection_bias.py:195: ValueError
+
+During handling of the above exception, another exception occurred:
+
+    def test_extreme_finite_returns_retain_all_rejected_splits_instead_of_raising():
+        pbo = api("selection_bias", "matrix_pbo")
+        values = [[1e308 if i < 16 else -1e308, .01 + (-1) ** i * .02] for i in range(32)]
+        try:
+            result = pbo(committed(values))
+        except (ValueError, OverflowError) as error:
+>           pytest.fail(f"finite input must retain rejected split evidence, not raise: {error}")
+E           Failed: finite input must retain rejected split evidence, not raise: -inf + inf in fsum
+
+tests\test_033_pbo.py:209: Failed
+=========================== short test summary info ===========================
+FAILED tests/test_033_pbo.py::test_extreme_finite_returns_retain_all_rejected_splits_instead_of_raising
+1 failed, 27 deselected in 1.06s

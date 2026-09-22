@@ -2,6 +2,7 @@
 
 import ast
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -75,9 +76,7 @@ class TestRegistryShape(unittest.TestCase):
             for params in param_grid_points(name, task=task):
                 with self.subTest(name=name, task=task, params=params):
                     self.assertIsNotNone(
-                        build_estimator(
-                            name, task=task, params=params, random_state=0
-                        )
+                        build_estimator(name, task=task, params=params, random_state=0)
                     )
 
     def test_grids_stay_under_the_cap(self):
@@ -252,6 +251,54 @@ class TestClassificationEquivalence(unittest.TestCase):
         )
 
 
+class TestKnownClassificationLabelTruncation(unittest.TestCase):
+    def test_continuous_labels_are_currently_truncated_before_classification_fit(self):
+        frame = pd.DataFrame(
+            {
+                "Date": pd.date_range("2024-01-01", periods=3),
+                "Feature": [1.0, 2.0, 3.0],
+                "Label": [0.75, -0.25, 0.5],
+            }
+        )
+
+        class RecordingEstimator:
+            def __init__(self):
+                self.fitted_labels = None
+
+            def fit(self, features, labels):
+                self.fitted_labels = labels.copy()
+                return self
+
+            def predict(self, features):
+                return np.zeros(len(features), dtype=int)
+
+        estimator = RecordingEstimator()
+        with (
+            patch(
+                "estimators.walk_forward_splits",
+                return_value=iter([(np.array([0, 1]), np.array([2]))]),
+            ),
+            patch("estimators.build_estimator", return_value=estimator),
+        ):
+            fit_predict_walk_forward(
+                frame,
+                feature_columns=["Feature"],
+                label_column="Label",
+                task=CLASSIFICATION,
+                name="logistic",
+                label_horizon=1,
+                embargo_bars=1,
+                random_state=0,
+            )
+
+        # Known open item: continuous classification labels are silently
+        # truncated here; a dedicated spec must define the correction.
+        pd.testing.assert_series_equal(
+            estimator.fitted_labels,
+            pd.Series([0, 0], index=[0, 1], name="Label"),
+        )
+
+
 class TestOneFitPerFold(unittest.TestCase):
     """Rule 2 — the loop refits per fold and never reuses or pre-fits.
 
@@ -305,18 +352,14 @@ class TestOneFitPerFold(unittest.TestCase):
         )
         # Purge and embargo are the label availability span (C2), never a
         # literal (FR-003).
-        folds = list(
-            walk_forward_splits(frame, label_horizon=span, embargo_bars=span)
-        )
+        folds = list(walk_forward_splits(frame, label_horizon=span, embargo_bars=span))
         self.assertGreater(len(folds), 1)
 
         eligible = frame["Train_Eligible"].to_numpy()
         per_fold_coefs = []
         for train_indices, _ in folds:
             train_indices = train_indices[eligible[train_indices]]
-            model = build_estimator(
-                "ridge", task=task, params=None, random_state=42
-            )
+            model = build_estimator("ridge", task=task, params=None, random_state=42)
             model.fit(
                 frame.iloc[train_indices][SCALE_FREE_FEATURE_COLUMNS],
                 frame.iloc[train_indices]["Label"],
@@ -559,9 +602,7 @@ class TestModuleBoundaries(unittest.TestCase):
             "metrics",
             "ma_crossover_backtest",
         }
-        self.assertEqual(
-            self._imported_modules("estimators.py") & forbidden, set()
-        )
+        self.assertEqual(self._imported_modules("estimators.py") & forbidden, set())
 
 
 if __name__ == "__main__":

@@ -74,6 +74,8 @@ data/cache/                       Generated output (gitignored)
 | `scripts/data.py` | Download, cache, adjust OHLCV | Signals, positions, P&L |
 | `scripts/signals.py` | When to trade, and nothing else | Fills, sizing, accounting |
 | `scripts/backtest_harness.py` | Fills, trades, P&L | How a signal was produced |
+| `scripts/portfolio_risk.py` | Position sizing, correlation overlap, loss-cap halts | Raw data, fills, P&L, broker calls |
+| `scripts/live_safety_gate.py` | Independent pre-order safety checks, durable halts, reservations, kill switch | Signal generation, sizing, fills, P&L, broker credentials or network |
 | `scripts/plotting.py` | Headless figures | Everything else |
 
 These boundaries are load-bearing. They are what let a model replace a rule

@@ -1,0 +1,22 @@
+{
+  "label": "EXAMPLE \u2014 NOT A RESULT",
+  "generated_at_utc": "2026-09-22T22:34:55.760595+00:00",
+  "command": "python tests/spec033_pbo_profile.py",
+  "rows": 1250,
+  "columns": 16,
+  "matrix_hash": "f8262ca78941340b8ba5d4ea1fbc300f80d049cbf297d85a54cdd46d7daf0d0a",
+  "S": 16,
+  "valid_splits": 12870,
+  "rejected_splits": 0,
+  "elapsed_seconds_with_tracemalloc": 8.674346300002071,
+  "traced_current_bytes": 26014790,
+  "traced_peak_bytes": 26604722,
+  "memory_scope": "tracemalloc Python/NumPy tracked allocations during matrix_pbo; not total process RSS",
+  "source_sha256": {
+    "tests/spec033_pbo_profile.py": "32cedef943236285ab2b03888314100cad2424ba71adeae92578c60c0f048e63",
+    "scripts/selection_bias.py": "c40c22f161f94b67267348ff078115c0c532fd08b3ebeb9d5c401293b6b35faf",
+    "tests/test_033_pbo.py": "bc94fdaa23547e6acd759408a634d952fe571118656f6370dd74bbd5e0061494",
+    "tests/test_033_dsr.py": "16e58a733c2bd1de8dd51903320f00e6741fe375a4c40b9ccc26e09dda090c5e",
+    "tests/spec033_support.py": "d3657499dfe7e81e46d61d7e1aa56d5698a61e21729e49fcf5c28b4c958b07e7"
+  }
+}

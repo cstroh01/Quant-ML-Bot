@@ -1,0 +1,193 @@
+{
+  "asset_dependency_references": {
+    "@tanstack/react-query": [
+      {
+        "path": "reports/web/package.json",
+        "line": 14
+      }
+    ],
+    "App.css": [
+      {
+        "path": "docs/audit-2026-09-12/coverage-initial.json",
+        "line": 941
+      },
+      {
+        "path": "docs/audit-2026-09-12/coverage.json",
+        "line": 906
+      }
+    ],
+    "hero.png": [
+      {
+        "path": "docs/audit-2026-09-12/coverage-initial.json",
+        "line": 955
+      },
+      {
+        "path": "docs/audit-2026-09-12/coverage.json",
+        "line": 920
+      }
+    ],
+    "react.svg": [
+      {
+        "path": "docs/audit-2026-09-12/coverage-initial.json",
+        "line": 962
+      },
+      {
+        "path": "docs/audit-2026-09-12/coverage.json",
+        "line": 927
+      }
+    ],
+    "vite.svg": [
+      {
+        "path": "docs/audit-2026-09-12/coverage-initial.json",
+        "line": 969
+      },
+      {
+        "path": "docs/audit-2026-09-12/coverage.json",
+        "line": 934
+      }
+    ],
+    "icons.svg": [
+      {
+        "path": "docs/audit-2026-09-12/coverage-initial.json",
+        "line": 927
+      },
+      {
+        "path": "docs/audit-2026-09-12/coverage.json",
+        "line": 892
+      }
+    ]
+  },
+  "path_constant_declarations": [
+    {
+      "path": "reports/api/main.py",
+      "line": 13,
+      "text": "REPO_ROOT = Path(__file__).resolve().parents[2]"
+    },
+    {
+      "path": "reports/api/main.py",
+      "line": 14,
+      "text": "SCRIPTS_DIR = REPO_ROOT / \"scripts\""
+    },
+    {
+      "path": "reports/api/routes/backtest.py",
+      "line": 14,
+      "text": "REPO_ROOT = Path(__file__).resolve().parents[2]"
+    },
+    {
+      "path": "reports/api/routes/backtest.py",
+      "line": 15,
+      "text": "SCRIPTS_DIR = REPO_ROOT / \"scripts\""
+    },
+    {
+      "path": "reports/api/routes/data.py",
+      "line": 14,
+      "text": "REPO_ROOT = Path(__file__).resolve().parents[2]"
+    },
+    {
+      "path": "reports/api/routes/data.py",
+      "line": 15,
+      "text": "SCRIPTS_DIR = REPO_ROOT / \"scripts\""
+    },
+    {
+      "path": "reports/api/routes/diagnostics.py",
+      "line": 11,
+      "text": "REPO_ROOT = Path(__file__).resolve().parents[2]"
+    },
+    {
+      "path": "reports/api/routes/diagnostics.py",
+      "line": 12,
+      "text": "SCRIPTS_DIR = REPO_ROOT / \"scripts\""
+    },
+    {
+      "path": "reports/api/routes/ml_rundown.py",
+      "line": 19,
+      "text": "REPO_ROOT = Path(__file__).resolve().parents[2]"
+    },
+    {
+      "path": "reports/api/routes/ml_rundown.py",
+      "line": 20,
+      "text": "SCRIPTS_DIR = REPO_ROOT / \"scripts\""
+    },
+    {
+      "path": "scripts/autocorrelation_check.py",
+      "line": 14,
+      "text": "PLOTS_DIRECTORY = Path(__file__).resolve().parent.parent / \"plots\""
+    },
+    {
+      "path": "scripts/data.py",
+      "line": 52,
+      "text": "PROJECT_ROOT = Path(__file__).resolve().parents[1]"
+    },
+    {
+      "path": "scripts/data.py",
+      "line": 53,
+      "text": "CACHE_DIR = PROJECT_ROOT / \"data\" / \"cache\""
+    },
+    {
+      "path": "scripts/scratch_aapl_correlations.py",
+      "line": 11,
+      "text": "PROJECT_ROOT = Path(__file__).resolve().parents[1]"
+    },
+    {
+      "path": "scripts/scratch_multiticker_collinearity.py",
+      "line": 20,
+      "text": "PROJECT_ROOT = Path(__file__).resolve().parents[1]"
+    },
+    {
+      "path": "scripts/stationarity_check.py",
+      "line": 17,
+      "text": "PLOTS_DIRECTORY = Path(__file__).resolve().parent.parent / \"plots\""
+    }
+  ],
+  "preserve_empty_files": [
+    ".claude/settings.json",
+    "docs/trials/trials.jsonl"
+  ],
+  "large_local_logs": [
+    {
+      "path": "review_018.log",
+      "bytes": 312
+    },
+    {
+      "path": "review_019.log",
+      "bytes": 154
+    }
+  ],
+  "source_hash_recheck": {
+    "date": "2026-09-19T02:10:07.040673+00:00",
+    "files_checked": 231,
+    "changed_or_missing": [],
+    "limit": "Does not cover excluded files or establish who changed a file."
+  },
+  "api_path_resolution": [
+    {
+      "path": "reports/api/main.py",
+      "declared_scripts_dir": "C:\\GitHub\\Quant-ML-Bot\\scripts",
+      "exists": true
+    },
+    {
+      "path": "reports/api/routes/backtest.py",
+      "declared_scripts_dir": "C:\\GitHub\\Quant-ML-Bot\\reports\\scripts",
+      "exists": false
+    },
+    {
+      "path": "reports/api/routes/data.py",
+      "declared_scripts_dir": "C:\\GitHub\\Quant-ML-Bot\\reports\\scripts",
+      "exists": false
+    },
+    {
+      "path": "reports/api/routes/diagnostics.py",
+      "declared_scripts_dir": "C:\\GitHub\\Quant-ML-Bot\\reports\\scripts",
+      "exists": false
+    },
+    {
+      "path": "reports/api/routes/ml_rundown.py",
+      "declared_scripts_dir": "C:\\GitHub\\Quant-ML-Bot\\reports\\scripts",
+      "exists": false
+    }
+  ],
+  "active_document_link_scan": {
+    "missing_local_targets": [],
+    "scope": "Inline Markdown links in inventoried Markdown outside .specify/specs and docs/audit-*; template placeholders and external URLs skipped; fragments and bare code paths not validated."
+  }
+}

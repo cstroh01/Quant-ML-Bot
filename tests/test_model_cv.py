@@ -1020,6 +1020,10 @@ class TestModuleBoundaries(unittest.TestCase):
                 "sklearn",
                 "estimators",
                 "walk_forward_cv",
+                # Spec 033 records opaque search intent before each grid point;
+                # the separate forbidden-module guard still bans accounting,
+                # fills, signals, data loading, and feature generation here.
+                "trial_runner",
             },
         )
 

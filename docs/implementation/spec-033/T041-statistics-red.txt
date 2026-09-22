@@ -1,0 +1,430 @@
+FFFFFFFFFFFFFFFFFFFFF                                                    [100%]
+================================== FAILURES ===================================
+_____ test_matrix_exact_shared_dates_sorted_columns_digest_and_exclusions _____
+
+    def test_matrix_exact_shared_dates_sorted_columns_digest_and_exclusions():
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:28: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+_______________ test_matrix_rejects_invalid_evidence[duplicate] _______________
+
+defect = 'duplicate'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+________________ test_matrix_rejects_invalid_evidence[reverse] ________________
+
+defect = 'reverse'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+_________________ test_matrix_rejects_invalid_evidence[aware] _________________
+
+defect = 'aware'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+______________ test_matrix_rejects_invalid_evidence[nonmidnight] ______________
+
+defect = 'nonmidnight'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+__________________ test_matrix_rejects_invalid_evidence[nan] __________________
+
+defect = 'nan'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+_______________ test_matrix_rejects_invalid_evidence[unfunded] ________________
+
+defect = 'unfunded'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+________________ test_matrix_rejects_invalid_evidence[not_oos] ________________
+
+defect = 'not_oos'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+_______________ test_matrix_rejects_invalid_evidence[no_costs] ________________
+
+defect = 'no_costs'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+______________ test_matrix_rejects_invalid_evidence[short_purge] ______________
+
+defect = 'short_purge'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+____________ test_matrix_rejects_invalid_evidence[source_missing] _____________
+
+defect = 'source_missing'
+
+    @pytest.mark.parametrize("defect", ["duplicate", "reverse", "aware", "nonmidnight", "nan", "unfunded", "not_oos", "no_costs", "short_purge", "source_missing"])
+    def test_matrix_rejects_invalid_evidence(defect):
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:42: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+_______ test_gaps_fold_join_future_perturbation_and_current_row_control _______
+
+    def test_gaps_fold_join_future_perturbation_and_current_row_control():
+>       build = api("selection_bias", "build_matrix")
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:58: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'build_matrix'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.build_matrix
+
+tests\spec033_support.py:19: AssertionError
+___________________ test_paper_formula_required_spec_target ___________________
+
+    def test_paper_formula_required_spec_target():
+>       dsr = api("selection_bias", "deflated_sharpe")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:75: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'deflated_sharpe'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.deflated_sharpe
+
+tests\spec033_support.py:19: AssertionError
+___________________ test_primary_paper_actual_n100_and_n46 ____________________
+
+    def test_primary_paper_actual_n100_and_n46():
+>       dsr = api("selection_bias", "deflated_sharpe")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:82: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'deflated_sharpe'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.deflated_sharpe
+
+tests\spec033_support.py:19: AssertionError
+________ test_dsr_invalid_domains[changes0-insufficient_observations] _________
+
+changes = {'observations': 1}, reason = 'insufficient_observations'
+
+    @pytest.mark.parametrize("changes,reason", [({"observations": 1}, "insufficient_observations"), ({"trial_sharpe_std": 0.}, "invalid_trial_dispersion"), ({"n_current": 0}, "invalid_lifetime_count"), ({"skewness": float("nan")}, "nonfinite_moments"), ({"observed_sharpe": 1., "skewness": 10., "pearson_kurtosis": 1.}, "invalid_psr_denominator")])
+    def test_dsr_invalid_domains(changes, reason):
+>       dsr = api("selection_bias", "deflated_sharpe")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'deflated_sharpe'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.deflated_sharpe
+
+tests\spec033_support.py:19: AssertionError
+_________ test_dsr_invalid_domains[changes1-invalid_trial_dispersion] _________
+
+changes = {'trial_sharpe_std': 0.0}, reason = 'invalid_trial_dispersion'
+
+    @pytest.mark.parametrize("changes,reason", [({"observations": 1}, "insufficient_observations"), ({"trial_sharpe_std": 0.}, "invalid_trial_dispersion"), ({"n_current": 0}, "invalid_lifetime_count"), ({"skewness": float("nan")}, "nonfinite_moments"), ({"observed_sharpe": 1., "skewness": 10., "pearson_kurtosis": 1.}, "invalid_psr_denominator")])
+    def test_dsr_invalid_domains(changes, reason):
+>       dsr = api("selection_bias", "deflated_sharpe")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'deflated_sharpe'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.deflated_sharpe
+
+tests\spec033_support.py:19: AssertionError
+__________ test_dsr_invalid_domains[changes2-invalid_lifetime_count] __________
+
+changes = {'n_current': 0}, reason = 'invalid_lifetime_count'
+
+    @pytest.mark.parametrize("changes,reason", [({"observations": 1}, "insufficient_observations"), ({"trial_sharpe_std": 0.}, "invalid_trial_dispersion"), ({"n_current": 0}, "invalid_lifetime_count"), ({"skewness": float("nan")}, "nonfinite_moments"), ({"observed_sharpe": 1., "skewness": 10., "pearson_kurtosis": 1.}, "invalid_psr_denominator")])
+    def test_dsr_invalid_domains(changes, reason):
+>       dsr = api("selection_bias", "deflated_sharpe")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'deflated_sharpe'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.deflated_sharpe
+
+tests\spec033_support.py:19: AssertionError
+____________ test_dsr_invalid_domains[changes3-nonfinite_moments] _____________
+
+changes = {'skewness': nan}, reason = 'nonfinite_moments'
+
+    @pytest.mark.parametrize("changes,reason", [({"observations": 1}, "insufficient_observations"), ({"trial_sharpe_std": 0.}, "invalid_trial_dispersion"), ({"n_current": 0}, "invalid_lifetime_count"), ({"skewness": float("nan")}, "nonfinite_moments"), ({"observed_sharpe": 1., "skewness": 10., "pearson_kurtosis": 1.}, "invalid_psr_denominator")])
+    def test_dsr_invalid_domains(changes, reason):
+>       dsr = api("selection_bias", "deflated_sharpe")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'deflated_sharpe'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.deflated_sharpe
+
+tests\spec033_support.py:19: AssertionError
+_________ test_dsr_invalid_domains[changes4-invalid_psr_denominator] __________
+
+changes = {'observed_sharpe': 1.0, 'skewness': 10.0, 'pearson_kurtosis': 1.0}
+reason = 'invalid_psr_denominator'
+
+    @pytest.mark.parametrize("changes,reason", [({"observations": 1}, "insufficient_observations"), ({"trial_sharpe_std": 0.}, "invalid_trial_dispersion"), ({"n_current": 0}, "invalid_lifetime_count"), ({"skewness": float("nan")}, "nonfinite_moments"), ({"observed_sharpe": 1., "skewness": 10., "pearson_kurtosis": 1.}, "invalid_psr_denominator")])
+    def test_dsr_invalid_domains(changes, reason):
+>       dsr = api("selection_bias", "deflated_sharpe")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:88: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'deflated_sharpe'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.deflated_sharpe
+
+tests\spec033_support.py:19: AssertionError
+___________ test_matrix_moments_named_inputs_and_raw_lifetime_count ___________
+
+tmp_path = WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-11/test_matrix_moments_named_inpu0')
+
+    def test_matrix_moments_named_inputs_and_raw_lifetime_count(tmp_path):
+>       analyze = api("selection_bias", "matrix_dsr")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:93: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'matrix_dsr'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.matrix_dsr
+
+tests\spec033_support.py:19: AssertionError
+_________________ test_hac_hand_oracle_horizon_and_risk_free __________________
+
+    def test_hac_hand_oracle_horizon_and_risk_free():
+>       hac = api("selection_bias", "hac_t_stat")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\test_033_dsr.py:110: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+module = 'selection_bias', name = 'hac_t_stat'
+
+    def api(module, name):
+>       assert importlib.util.find_spec(module), f"missing spec-033 behavior: {module}.{name}"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: missing spec-033 behavior: selection_bias.hac_t_stat
+
+tests\spec033_support.py:19: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_033_dsr.py::test_matrix_exact_shared_dates_sorted_columns_digest_and_exclusions
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[duplicate]
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[reverse]
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[aware] - A...
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[nonmidnight]
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[nan] - Ass...
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[unfunded]
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[not_oos]
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[no_costs]
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[short_purge]
+FAILED tests/test_033_dsr.py::test_matrix_rejects_invalid_evidence[source_missing]
+FAILED tests/test_033_dsr.py::test_gaps_fold_join_future_perturbation_and_current_row_control
+FAILED tests/test_033_dsr.py::test_paper_formula_required_spec_target - Asser...
+FAILED tests/test_033_dsr.py::test_primary_paper_actual_n100_and_n46 - Assert...
+FAILED tests/test_033_dsr.py::test_dsr_invalid_domains[changes0-insufficient_observations]
+FAILED tests/test_033_dsr.py::test_dsr_invalid_domains[changes1-invalid_trial_dispersion]
+FAILED tests/test_033_dsr.py::test_dsr_invalid_domains[changes2-invalid_lifetime_count]
+FAILED tests/test_033_dsr.py::test_dsr_invalid_domains[changes3-nonfinite_moments]
+FAILED tests/test_033_dsr.py::test_dsr_invalid_domains[changes4-invalid_psr_denominator]
+FAILED tests/test_033_dsr.py::test_matrix_moments_named_inputs_and_raw_lifetime_count
+FAILED tests/test_033_dsr.py::test_hac_hand_oracle_horizon_and_risk_free - As...
+21 failed in 0.77s

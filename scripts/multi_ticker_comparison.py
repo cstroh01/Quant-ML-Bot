@@ -44,6 +44,7 @@ loop for whichever ticker happens to be first.
 
 from __future__ import annotations
 
+from trial_runner import research_attempt, research_config
 import dataclasses
 
 import numpy as np
@@ -130,7 +131,9 @@ def _baseline_rows(
     n_trades = len(ml_trade_log)
     holding_bars = mean_holding_bars(ml_prices, ml_trade_log)
 
-    hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs)
+    with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="buy_and_hold_baseline") as attempt:
+        hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs)
+        attempt.account(hold_log)
     hold_summary = performance_summary(ml_prices, hold_log, **costs)
 
     random_summaries: list[dict] = []
@@ -138,7 +141,9 @@ def _baseline_rows(
     try:
         for seed in range(seed_count):
             signalled = random_signal(ml_prices, n_trades, holding_bars, seed)
-            trade_log = run_backtest(signalled, **costs)
+            with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="random_signal_baseline") as attempt:
+                trade_log = run_backtest(signalled, **costs)
+                attempt.account(trade_log)
             random_summaries.append(performance_summary(ml_prices, trade_log, **costs))
     except ValueError as error:
         # Reported, never swallowed: a random baseline that could not match
@@ -239,16 +244,17 @@ def run_one_ticker(
             "label_availability_span", frame.attrs.get("label_horizon", label_horizon)
         )
 
-        predictions, covered, fold_results = nested_walk_forward(
-            frame,
-            feature_columns=feature_columns(),
-            label_column="Label",
-            task=task,
-            name=ESTIMATOR_NAME,
-            label_horizon=label_horizon,
-            embargo_bars=embargo_bars,
-            random_state=random_state,
-        )
+        with research_attempt(research_config("scripts/multi_ticker_comparison.py:nested_walk_forward", locals()), role="candidate") as attempt:
+            predictions, covered, fold_results = nested_walk_forward(
+                frame,
+                feature_columns=feature_columns(),
+                label_column="Label",
+                task=task,
+                name=ESTIMATOR_NAME,
+                label_horizon=label_horizon,
+                embargo_bars=embargo_bars,
+                random_state=random_state,
+            )
         assert task == REGRESSION, "ml_signal's hurdle comparison expects a continuous prediction"
 
         hurdle = log_hurdle(
@@ -266,7 +272,9 @@ def run_one_ticker(
         ml_prices["Sell_Next_Open"] = sell_next_open
 
         costs = {"commission_per_trade": commission_per_trade, "slippage_bps": slippage_bps}
-        ml_trade_log = run_backtest(ml_prices, **costs)
+        with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="candidate") as attempt:
+            ml_trade_log = run_backtest(ml_prices, **costs)
+            attempt.account(ml_trade_log)
         ml_summary = performance_summary(ml_prices, ml_trade_log, **costs)
 
         covered_predictions = predictions.iloc[np.sort(np.asarray(covered))].dropna()

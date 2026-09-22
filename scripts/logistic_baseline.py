@@ -1,5 +1,6 @@
 """Phase 2 logistic-regression baseline with walk-forward validation."""
 
+from trial_runner import research_attempt, research_config
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
@@ -314,7 +315,8 @@ def main() -> None:
     prices = market_data[market_data["Ticker"] == TICKER].copy()
     prices = prices.sort_values("Date").reset_index(drop=True)
     features = build_features(prices)
-    results = evaluate_walk_forward(features)
+    with research_attempt(research_config("scripts/logistic_baseline.py:evaluate_walk_forward", locals()), role="candidate") as attempt:
+        results = evaluate_walk_forward(features)
     output_path = cache_path(RESULTS_FILENAME)
     results.to_csv(output_path, index=False)
     print(f"Saved fold results to {output_path}")
@@ -327,7 +329,9 @@ def main() -> None:
         "slippage_bps": SLIPPAGE_BPS,
     }
     account = {"starting_capital": STARTING_CAPITAL, "liquidate": LIQUIDATE_AT_END}
-    trade_log = run_backtest(live, **costs, **account)
+    with research_attempt(research_config("scripts/logistic_baseline.py:run_backtest", locals()), role="candidate") as attempt:
+        trade_log = run_backtest(live, **costs, **account)
+        attempt.account(trade_log)
     trade_log.to_csv(cache_path("phase2_logistic_baseline_trades.csv"), index=False)
 
     print(f"\n{TICKER} logistic-regression walk-forward backtest")

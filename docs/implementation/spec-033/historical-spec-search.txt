@@ -1,0 +1,519 @@
+.specify/specs\008-metrics-reporting\spec.md:12:strategy results. Phase 3 needs them: a five-ticker comparison table that
+.specify/specs\008-metrics-reporting\spec.md:28:`run_backtest` returns `TRADE_LOG_COLUMNS + ["Cumulative P&L"]` — one row per
+.specify/specs\008-metrics-reporting\spec.md:36:- **Cross-ticker comparison is meaningless in dollars.** A one-share position
+.specify/specs\008-metrics-reporting\spec.md:38:  whole point is running one pipeline over five names.
+.specify/specs\008-metrics-reporting\spec.md:52:1. **There is never an unclosed trade.** `run_backtest:87-98` unconditionally
+.specify/specs\008-metrics-reporting\spec.md:74:**Independent Test**: Build a price frame with hand-chosen signals, run the
+.specify/specs\008-metrics-reporting\spec.md:75:real `run_backtest` on it, and assert the per-bar P&L series sums to exactly
+.specify/specs\008-metrics-reporting\spec.md:101:**Why this priority**: This is what makes the Phase 3 comparison table
+.specify/specs\008-metrics-reporting\spec.md:104:**Independent Test**: Compute Sharpe on a costed and an uncosted run of the
+.specify/specs\008-metrics-reporting\spec.md:121:4. **Given** the same signals run with and without costs, **When** Sharpe is
+.specify/specs\008-metrics-reporting\spec.md:156:  the final row enters at `run_backtest:83`, and the end-of-data block at
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:1:# Feature Specification: Lifetime Trial Ledger, DSR, PBO, and Capital Gate 3
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:3:**Feature**: `033-trial-ledger-dsr-pbo-gate`  
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:18:- a lifetime append-only trial ledger keyed by configuration hash and git SHA,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:19:  with the full daily out-of-sample return series for every inspected trial;
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:20:- a deliberately conservative pre-ledger trial-count backfill;
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:24:- CSCV Probability of Backtest Overfitting (PBO) over the same trial matrix;
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:41:Verified without running `git`, as Rule 10 requires:
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:52:- A metadata prototype does exist at `scripts/trial_registry.py`, with tests in
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:53:  `tests/test_trial_registry.py`, and an empty `docs/trials/trials.jsonl`.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:79:   provenance-checked trial matrix; and
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:87:  script, grid, sweep, or model/feature comparison in this repository.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:91:  prevents them from silently becoming selected candidate trials.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:104:- Reconstructing nonexistent historical daily return series. Backfilled trials
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:113:- **Research trial attempt**: one opportunity to inspect the performance of a
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:114:  candidate configuration. Re-running the same configuration is another
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:116:- **Synthetic test run**: a unit/integration fixture whose result is not
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:119:- **Trial role**: `candidate`, `buy_and_hold_baseline`,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:121:  to the selection-trial count, but every real backtest role is recorded.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:122:- **Started trial**: a durable record written before result computation. A
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:126:  `abandoned` event referring to a started trial. No earlier event is edited.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:132:  `N` never decreases because a run failed, repeated a hash, lacked a return
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:134:- **Trial matrix**: one date-indexed `T x M` matrix of eligible candidate OOS
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:136:  observation is replaced by zero. This same matrix supplies trial Sharpe
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:138:- **Selected candidate**: the preregistered trial whose Gate 3 status is being
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:149:**Independent test**: run a successful candidate, a duplicate configuration,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:159:2. Given the same configuration is run twice, then both attempts have distinct
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:160:   trial IDs and both count in `N` even though their config hashes match.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:163:4. Given a completed eligible trial, then every daily session and OOS return is
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:166:5. Given a real human-facing runner, then disabling the lifetime recorder is
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:176:grid, repeated artifacts, a remembered range, and an unresolved campaign;
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:184:2. A historical grid counts its full reachable Cartesian product across model,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:185:   hyperparameter, feature, target, horizon, ticker/universe, seed, and rerun
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:188:   artifacts, commits, or remembered runs.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:200:hand-enumerated CSCV oracle, then run both from a single immutable matrix.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:208:   matrix-resident trials.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:211:5. DSR's observed trial-Sharpe inputs and PBO both come from the same matrix
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:243:- **FR-001**: There MUST be exactly one authoritative lifetime trial ledger.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:244:  `scripts/trial_registry.py` and `docs/trials/trials.jsonl` MUST be migrated or
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:246:- **FR-002**: A real research run MUST append and durably flush a `started`
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:248:  UUID trial ID, UTC instant, trial role, canonical config hash, full git SHA,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:249:  workspace-state status, runner identity, and previous-record hash.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:251:  choice available to the runner: data snapshot/hash and price basis, universe,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:252:  date range, features and transforms, label/target and horizon, model and
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:253:  hyperparameters, CV folds/purge/embargo, seed, initial capital, commission,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:270:  duplicate, manual, API, batch, sweep, and AI-generated candidate attempts.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:280:  and must make Gate 3 `unknown`, never silently truncate history.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:294:  metadata read; missing or ambiguous SHA is recorded and makes the trial
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:304:  targets/horizons, seeds, folds/refolds when they were selection choices, and
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:305:  evidenced reruns. The backfill MUST count possible execution, not only saved
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:307:- **FR-017**: Counts from separate campaigns, artifacts, and reruns MUST be
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:308:  added without cross-campaign config-hash deduplication. A trial that may have
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:323:### C. Trial matrix, DSR, and t-statistic
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:329:- **FR-022**: Matrix membership, excluded trial IDs with reasons, shared dates,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:339:  across-trial Sharpe dispersion, and `N_current`; it MUST validate their
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:343:  series, the matrix-derived trial Sharpe distribution, and
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:345:  `N_current` with unique hashes, completed trials, eligible columns, or an
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:346:  effective/clustered trial count.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:352:  Bandwidth MUST be recorded and MUST be at least `horizon - 1`; an undefined
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:358:  without the source ledger head hash, backfill hash, trial matrix hash,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:359:  selected trial ID/config hash/git SHA, generation code SHA/content hash, and
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:372:  or seed-dependent sampling is allowed.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:387:  final probability. A seeded simulation alone is not an oracle.
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:388:- **FR-038**: Backfilled trials without return series MUST NOT be added to the
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:389:  PBO matrix, imputed, cloned from surviving trials, or treated as zero-return
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:449:  smaller eligible matrix-column count. A fixture with backfilled trials MUST
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:455:  deleted-record, missing-sidecar, uninstrumented-runner, and partial-write
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:460:- **FR-059**: Tests MUST be network-free and run under the canonical command
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:480:- A trial starts but the process is killed before any return: count it in `N`;
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:482:- Same config, same SHA, same seed, run twice: two attempts, one config hash,
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:499:- Artifact is valid but references a prior ledger head after a new trial
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:501:- The selected trial is later abandoned: the historical artifact remains
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:516:| 8 — Layer separation | Recording belongs around human-facing research runners, not inside signal logic. The low-level harness may return funded equity/returns but MUST NOT learn model/feature semantics. Any implementation that injects research config into the harness instead must be flagged before coding. | Conforms with stated boundary |
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:518:| 10 — Version control | No agent runs `git`; provenance reads metadata or accepts an explicit SHA. Camden commits. | Conforms |
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:552:  trial changes the ledger head, and evidence-backed `failed`/`passed` only
+.specify/specs\033-trial-ledger-dsr-pbo-gate\spec.md:554:- **SC-010**: Focused spec tests pass and `python -m pytest tests` is run and
+.specify/specs\007-oos-coverage-index\spec.md:14:truncated and the reported P&L changes; on a `DatetimeIndex` it raises.
+.specify/specs\007-oos-coverage-index\spec.md:68:81% of the backtest — with no error. `run_backtest` then reports a P&L
+.specify/specs\007-oos-coverage-index\spec.md:75:per-ticker `groupby` slice. Phase 3's multi-ticker runner does exactly this
+.specify/specs\007-oos-coverage-index\spec.md:87:silently run over the wrong window.
+.specify/specs\007-oos-coverage-index\spec.md:116:  existing `RuntimeError("walk_forward_predictions produced no predictions.")`
+.specify/specs\007-oos-coverage-index\spec.md:136:- **FR-003**: The `RuntimeError` raised when there are no predictions MUST be
+.specify/specs\004-test-ci-workflow\spec.md:12:workflow that runs `tests/` automatically. "Tests passing" today means an
+.specify/specs\004-test-ci-workflow\spec.md:18:what the tests check — only that they run and that a failure is visible as
+.specify/specs\004-test-ci-workflow\spec.md:27:re-runs that claim. A PR could merge with a broken test, or with a claimed
+.specify/specs\004-test-ci-workflow\spec.md:32:of what specs 002/003 cost, since it is being run under a nearly-exhausted
+.specify/specs\004-test-ci-workflow\spec.md:39:### User Story 1 - Tests run automatically on every push and PR (Priority: P1)
+.specify/specs\004-test-ci-workflow\spec.md:41:As the project owner, I need the test suite to run on every push and every
+.specify/specs\004-test-ci-workflow\spec.md:52:   workflow runs, **Then** it checks out the repo, installs
+.specify/specs\004-test-ci-workflow\spec.md:53:   `requirements.txt`, and runs `python -m unittest discover -s tests`.
+.specify/specs\004-test-ci-workflow\spec.md:54:2. **Given** a test failure, **When** the workflow runs, **Then** the job
+.specify/specs\004-test-ci-workflow\spec.md:57:3. **Given** all tests pass, **When** the workflow runs, **Then** the job
+.specify/specs\004-test-ci-workflow\spec.md:65:  it only installs dependencies and runs the existing test suite, so it
+.specify/specs\004-test-ci-workflow\spec.md:66:  costs nothing against the capped API budget and can run on every commit
+.specify/specs\004-test-ci-workflow\spec.md:70:  restore any cache; the existing test suite already runs without network
+.specify/specs\004-test-ci-workflow\spec.md:83:  `requirements.txt`, then run `python -m unittest discover -s tests`.
+.specify/specs\003-cv-purge-embargo\spec.md:23:their own label horizon.
+.specify/specs\003-cv-purge-embargo\spec.md:49:| Purge (drop training rows whose label horizon reaches into the test window) | **No** |
+.specify/specs\003-cv-purge-embargo\spec.md:52:| `label_horizon`/`embargo_bars` as explicit, caller-supplied parameters (Rule 1/8: the CV module must not guess another module's label horizon) | **No** |
+.specify/specs\003-cv-purge-embargo\spec.md:69:boundary. Call `walk_forward_splits(data, label_horizon=1, ...)`. Assert the
+.specify/specs\003-cv-purge-embargo\spec.md:76:   `label_horizon=h`, **When** `walk_forward_splits` yields that fold,
+.specify/specs\003-cv-purge-embargo\spec.md:80:2. **Given** `label_horizon=0` (a caller whose label needs no future bar —
+.specify/specs\003-cv-purge-embargo\spec.md:85:   1-bar horizon), **When** `walk_forward_splits` is called with
+.specify/specs\003-cv-purge-embargo\spec.md:86:   `label_horizon=1` (the caller-supplied value matching that label),
+.specify/specs\003-cv-purge-embargo\spec.md:105:**Independent Test**: Run two folds. Confirm the second fold's training
+.specify/specs\003-cv-purge-embargo\spec.md:117:2. **Given** `g` less than the caller's own `label_horizon`, **When**
+.specify/specs\003-cv-purge-embargo\spec.md:119:   Rule 2 requires the embargo be "sized to at least the label horizon,"
+.specify/specs\003-cv-purge-embargo\spec.md:131:- A fold whose test window has fewer rows than `label_horizon` or
+.specify/specs\003-cv-purge-embargo\spec.md:137:- `label_horizon` or `embargo_bars` large enough that an entire fold's
+.specify/specs\003-cv-purge-embargo\spec.md:142:  FR-001 below, `label_horizon` has no safe default and must be supplied
+.specify/specs\003-cv-purge-embargo\spec.md:144:  another module's label horizon).
+.specify/specs\003-cv-purge-embargo\spec.md:153:  `label_horizon: int` as a required keyword argument (no default) — the
+.specify/specs\003-cv-purge-embargo\spec.md:159:  raise `ValueError` if `embargo_bars < label_horizon`.
+.specify/specs\003-cv-purge-embargo\spec.md:161:  exclude every position `p` with `p + label_horizon >= test_start_position`
+.specify/specs\003-cv-purge-embargo\spec.md:176:  `walk_forward_splits` MUST pass `label_horizon=1` (matching its
+.specify/specs\003-cv-purge-embargo\spec.md:183:  does a training row at exactly `test_start - label_horizon` get purged or
+.specify/specs\003-cv-purge-embargo\spec.md:184:  kept — it must be purged, since `p + label_horizon >= test_start` is
+.specify/specs\003-cv-purge-embargo\spec.md:186:  `embargo_bars < label_horizon` validation error.
+.specify/specs\003-cv-purge-embargo\spec.md:191:- **`label_horizon`**: bars a caller's label looks forward, supplied by the
+.specify/specs\003-cv-purge-embargo\spec.md:194:  test window, for all future folds; must be `>= label_horizon`.
+.specify/specs\003-cv-purge-embargo\spec.md:205:- **SC-001**: A synthetic-data test proves the last `label_horizon`
+.specify/specs\003-cv-purge-embargo\spec.md:210:- **SC-003**: Calling with `embargo_bars < label_horizon` raises
+.specify/specs\003-cv-purge-embargo\spec.md:212:- **SC-004**: Running `logistic_baseline.py` end-to-end after this change
+.specify/specs\003-cv-purge-embargo\spec.md:215:  accuracy numbers are expected to change from the pre-fix run and that
+.specify/specs\003-cv-purge-embargo\spec.md:222:- `label_horizon=1` and `embargo_bars=1` are the values `logistic_baseline.py`
+.specify/specs\003-cv-purge-embargo\spec.md:224:  multi-bar label horizon passes larger values; `walk_forward_cv.py` itself
+.specify/specs\005-ml-signal-wiring\spec.md:10:tradeable signal, run it through `backtest_harness.py`, and report it beside
+.specify/specs\005-ml-signal-wiring\spec.md:42:| That signal run through `run_backtest` with real costs | **No** |
+.specify/specs\005-ml-signal-wiring\spec.md:43:| Cost-adjusted comparison vs. buy-and-hold and random baselines | **No** |
+.specify/specs\005-ml-signal-wiring\spec.md:76:   **when** both are run, **then** the predictions collected here agree with
+.specify/specs\005-ml-signal-wiring\spec.md:103:### User Story 3 - Cost-adjusted comparison against both baselines (Priority: P1)
+.specify/specs\005-ml-signal-wiring\spec.md:112:   onward, **when** the comparison runs, **then** all three rows (ML
+.specify/specs\005-ml-signal-wiring\spec.md:117:   ($1.00/fill commission, 5 bps slippage), **when** the comparison runs,
+.specify/specs\005-ml-signal-wiring\spec.md:124:  covered by any walk-forward fold, using the same `label_horizon=1,
+.specify/specs\005-ml-signal-wiring\spec.md:133:- **FR-004**: `main()` runs this signal through `run_backtest` and reports it
+.specify/specs\005-ml-signal-wiring\spec.md:140:  reusing `ma_crossover_backtest.format_comparison`, because that function
+.specify/specs\005-ml-signal-wiring\spec.md:153:- **SC-002**: The resulting trade log, run through the existing cost model,
+.specify/specs\005-ml-signal-wiring\spec.md:157:- **SC-003**: The printed comparison shows the ML strategy, buy-and-hold, and
+.specify/specs\006-embargo-window-semantics\spec.md:42:`label_horizon=1, embargo_bars=1` (the values `logistic_baseline.py` passes):
+.specify/specs\006-embargo-window-semantics\spec.md:60:| Observations whose label horizon overlaps the test window are purged (Rule 2) | Holds, before and after — untouched by this spec |
+.specify/specs\006-embargo-window-semantics\spec.md:72:**before training resumes**, sized to at least the label horizon." The phrase
+.specify/specs\006-embargo-window-semantics\spec.md:101:run on ten years of history is actually using ten years of history.
+.specify/specs\006-embargo-window-semantics\spec.md:106:**Independent Test**: Run three or more folds on a synthetic daily frame.
+.specify/specs\006-embargo-window-semantics\spec.md:146:3. **Given** `embargo_bars=0` and `label_horizon=0`, **When** folds are
+.specify/specs\006-embargo-window-semantics\spec.md:156:- An embargo gap that runs past the end of the data: the range is applied by
+.specify/specs\006-embargo-window-semantics\spec.md:157:  positional comparison, so a gap extending beyond the final position simply
+.specify/specs\006-embargo-window-semantics\spec.md:182:  `p + label_horizon >= test_start_position` are still excluded, and spec
+.specify/specs\006-embargo-window-semantics\spec.md:184:- **FR-004**: The `embargo_bars < label_horizon` validation MUST be
+.specify/specs\006-embargo-window-semantics\spec.md:223:- **SC-006**: Re-running the measurement in Background on the same date range
+.specify/specs\006-embargo-window-semantics\spec.md:234:baseline of $74.26 +/- $19.00 over 20 seeds.
+.specify/specs\006-embargo-window-semantics\spec.md:242:This spec does **not** re-run `logistic_baseline.py` or edit
+.specify/specs\006-embargo-window-semantics\spec.md:244:replacement figures come from the Phase 3 multi-ticker run. Until then the
+.specify/specs\032-live-trading-safety-layer\spec.md:325:prevents “kill” from turning a control intended to stop a runaway system into
+.specify/specs\032-live-trading-safety-layer\spec.md:351:recommends source-level cancel-all, separate access for a runaway-algorithm
+.specify/specs\032-live-trading-safety-layer\spec.md:429:    first live order: paper-run duration, injected broker failures, replay
+.specify/specs\032-live-trading-safety-layer\spec.md:438:- [FIA MiFID II minimum-standard recommendations](https://www.fia.org/sites/default/files/2019-05/FIA-MiFID-II-Minimum-Standard-Recs-for-ETD-eTrading-vF.pdf) — source-level cancel-all, separate access for runaway algorithms, re-enable semantics, and conformance testing.
+.specify/specs\015-parallel-comparison\spec.md:1:# Feature Specification: Parallelized Feature-Set Comparison
+.specify/specs\015-parallel-comparison\spec.md:3:**Feature Branch**: `015-parallel-comparison`
+.specify/specs\015-parallel-comparison\spec.md:9:**Input**: Spec 014 introduced `scripts/feature_set_comparison.py` to run nested
+.specify/specs\015-parallel-comparison\spec.md:13:regression). Currently, this comparison executes completely serially:
+.specify/specs\015-parallel-comparison\spec.md:14:4 estimator entries × 2 feature sets = 8 walk-forward runs. Each run evaluates
+.specify/specs\015-parallel-comparison\spec.md:15:~113 outer folds, with each outer fold evaluating inner folds across 4 grid
+.specify/specs\015-parallel-comparison\spec.md:17:requires 2 to 3 hours. Spec 013 (multi-ticker comparison across AAPL, AMZN,
+.specify/specs\015-parallel-comparison\spec.md:18:GOOGL, MSFT, NVDA) is blocked on this runtime: evaluating 5 tickers serially
+.specify/specs\015-parallel-comparison\spec.md:22:`scripts/feature_set_comparison.py` owns diagnostic comparison execution and
+.specify/specs\015-parallel-comparison\spec.md:31:The nested walk-forward evaluation in `scripts/feature_set_comparison.py` has a
+.specify/specs\015-parallel-comparison\spec.md:42:- $G = 4$ hyperparameter grid points per entry
+.specify/specs\015-parallel-comparison\spec.md:53:machine, 8 worker processes each attempting to run 8 threads results in 64
+.specify/specs\015-parallel-comparison\spec.md:56:parallel runs to execute *slower* than single-threaded serial runs.
+.specify/specs\015-parallel-comparison\spec.md:79:The atomic unit of parallelization is a single feature-set prediction run:
+.specify/specs\015-parallel-comparison\spec.md:80:$$(name, task, feature\_set, seed)$$
+.specify/specs\015-parallel-comparison\spec.md:88:- Inner folds and grid search remain localized within each worker process,
+.specify/specs\015-parallel-comparison\spec.md:93:governing thread pools must be set before runtime libraries (NumPy, SciPy,
+.specify/specs\015-parallel-comparison\spec.md:108:operation takes an explicit seed parameter. No implicit global random state."*
+.specify/specs\015-parallel-comparison\spec.md:112:  parallel run is bit-for-bit identical to the serial implementation.
+.specify/specs\015-parallel-comparison\spec.md:116:level in `scripts/feature_set_comparison.py`, not local closures or lambda
+.specify/specs\015-parallel-comparison\spec.md:124:As the project owner, I need `feature_set_comparison.py` to evaluate the 8
+.specify/specs\015-parallel-comparison\spec.md:128:**Acceptance**: Running `feature_set_comparison.py` with `max_workers=None` (or
+.specify/specs\015-parallel-comparison\spec.md:133:As a developer reviewing model comparisons, I need the parallel implementation
+.specify/specs\015-parallel-comparison\spec.md:137:**Acceptance**: A test running both the serial execution and parallel execution
+.specify/specs\015-parallel-comparison\spec.md:142:3. Formatted comparison reports match character-for-character.
+.specify/specs\015-parallel-comparison\spec.md:149:count. Setting `max_workers=1` bypasses process pool creation and runs
+.specify/specs\015-parallel-comparison\spec.md:158:- **FR-001**: `scripts/feature_set_comparison.py` MUST parallelize the evaluation
+.specify/specs\015-parallel-comparison\spec.md:186:- **SC-001**: Running `feature_set_comparison.py` across all 8 configurations on
+.specify/specs\015-parallel-comparison\spec.md:189:- **SC-002**: On the standard test fixture, running with `max_workers=1` and
+.specify/specs\002-backtest-costs-baselines\spec.md:28:| Long-only, one-share execution, entry/exit accounting | Yes (`run_backtest`) |
+.specify/specs\002-backtest-costs-baselines\spec.md:56:**Independent Test**: Run the existing SMA crossover strategy with
+.specify/specs\002-backtest-costs-baselines\spec.md:64:1. **Given** a trade log with entry and exit fills, **When** `run_backtest`
+.specify/specs\002-backtest-costs-baselines\spec.md:70:   defaults), **When** `run_backtest` is called, **Then** the output is
+.specify/specs\002-backtest-costs-baselines\spec.md:73:3. **Given** any run, **When** `summarize_trades` is called, **Then** the
+.specify/specs\002-backtest-costs-baselines\spec.md:88:**Independent Test**: Call `buy_and_hold_signal(prices)` and run it through
+.specify/specs\002-backtest-costs-baselines\spec.md:89:`run_backtest`; the trade log has exactly one trade, entered near the first
+.specify/specs\002-backtest-costs-baselines\spec.md:99:2. **Given** the resulting frame, **When** `run_backtest` is called,
+.specify/specs\002-backtest-costs-baselines\spec.md:109:count as a real strategy, averaged over multiple seeds, so I can tell a real
+.specify/specs\002-backtest-costs-baselines\spec.md:114:comparison is meaningless) and benefits from User Story 2 existing first as
+.specify/specs\002-backtest-costs-baselines\spec.md:118:`random_signal(prices, n_trades=8, avg_holding_days=12, seed=0)` twice with
+.specify/specs\002-backtest-costs-baselines\spec.md:119:the same seed; results are byte-identical. Call it with 20 different seeds;
+.specify/specs\002-backtest-costs-baselines\spec.md:126:1. **Given** `n_trades`, `avg_holding_days`, and `seed`, **When**
+.specify/specs\002-backtest-costs-baselines\spec.md:130:   `Buy_Next_Open`/`Sell_Next_Open` contract `run_backtest` already expects.
+.specify/specs\002-backtest-costs-baselines\spec.md:131:2. **Given** the same arguments and seed, **When** called twice, **Then**
+.specify/specs\002-backtest-costs-baselines\spec.md:132:   the output is identical (determinism convention — explicit seed, no
+.specify/specs\002-backtest-costs-baselines\spec.md:134:3. **Given** `ma_crossover_backtest.py` run end-to-end, **When** it reports
+.specify/specs\002-backtest-costs-baselines\spec.md:137:   least 20 seeds, all computed over the identical period with identical
+.specify/specs\002-backtest-costs-baselines\spec.md:148:  baseline and buy-and-hold must still run without dividing by zero in any
+.specify/specs\002-backtest-costs-baselines\spec.md:162:- **FR-001** *(Rule 3)*: `run_backtest` MUST accept `commission_per_trade`
+.specify/specs\002-backtest-costs-baselines\spec.md:179:  `random_signal(prices, n_trades, avg_holding_days, seed)`, producing
+.specify/specs\002-backtest-costs-baselines\spec.md:181:  using an explicit seed (project determinism convention) via
+.specify/specs\002-backtest-costs-baselines\spec.md:182:  `numpy.random.default_rng(seed)` — no implicit global random state.
+.specify/specs\002-backtest-costs-baselines\spec.md:186:  20 seeds, all over the identical ticker/period with identical cost
+.specify/specs\002-backtest-costs-baselines\spec.md:203:  direction) — inputs to `run_backtest`, echoed back by `summarize_trades`.
+.specify/specs\002-backtest-costs-baselines\spec.md:219:  2-trade log) matches `run_backtest`'s output exactly.
+.specify/specs\002-backtest-costs-baselines\spec.md:220:- **SC-003**: `random_signal(seed=0)` called twice produces identical trade
+.specify/specs\002-backtest-costs-baselines\spec.md:221:  logs; called across 20 seeds produces 20 different, individually valid
+.specify/specs\002-backtest-costs-baselines\spec.md:242:- 20 seeds is the minimum for the random baseline's mean/std to be worth
+.specify/specs\001-data-ingestion\spec.md:28:| Atomic write (temp file + rename) so an interrupted run can't corrupt the cache | Yes |
+.specify/specs\001-data-ingestion\spec.md:61:2. **Given** a ticker yfinance silently drops, **When** the download runs,
+.specify/specs\001-data-ingestion\spec.md:64:3. **Given** all requested tickers are invalid, **When** the download runs,
+.specify/specs\001-data-ingestion\spec.md:74:affordable — without it, every re-run re-downloads and re-hits rate limits.
+.specify/specs\001-data-ingestion\spec.md:87:   `["AAPL", "MSFT"]`), **When** the download runs, **Then** it is treated as
+.specify/specs\001-data-ingestion\spec.md:89:3. **Given** `force_refresh=True`, **When** the download runs, **Then** it
+.specify/specs\001-data-ingestion\spec.md:100:next run is a worse failure than no cache at all — it produces wrong data
+.specify/specs\001-data-ingestion\spec.md:111:   previous complete file or nothing — never a truncated file.
+.specify/specs\001-data-ingestion\spec.md:143:  later run reads as valid.
+.specify/specs\001-data-ingestion\spec.md:191:  cache in a state where a subsequent read returns a truncated/corrupt file.
+.specify/specs\014-scale-free-features\spec.md:26:`scripts/feature_set_comparison.py`, sit *above* the signal and model layers:
+.specify/specs\014-scale-free-features\spec.md:121:Every Phase 3 comparison is measured against it. Spec 014 changes two
+.specify/specs\014-scale-free-features\spec.md:133:prediction improved. Camden runs two scripts on real cached data and pastes
+.specify/specs\014-scale-free-features\spec.md:145:  run of `NaN`, removed by the existing completeness drop; no wider slice is
+.specify/specs\014-scale-free-features\spec.md:189:- **FR-009**: parameter grids MUST keep plain names (`{"alpha": ...}`, not
+.specify/specs\014-scale-free-features\spec.md:199:  `scripts/feature_set_comparison.py` MUST run `nested_walk_forward` for all
+.specify/specs\014-scale-free-features\spec.md:210:  that this is a **screening** threshold — cheap evidence, four comparisons,
+.specify/specs\014-scale-free-features\spec.md:219:- **FR-015** *(Rule 10)*: no `git` is run. This is a local session, not the
+.specify/specs\014-scale-free-features\spec.md:232:- **A paired comparison** — two prediction series over the same trading days,
+.specify/specs\014-scale-free-features\spec.md:233:  under the same splits and seed, differing only in the feature matrix.
+.specify/specs\014-scale-free-features\spec.md:255:- **SC-007**: `feature_set_comparison.py` reports four p-values on real
+.specify/specs\014-scale-free-features\spec.md:260:  the suite. All six were run and all six fail:
+.specify/specs\014-scale-free-features\spec.md:277:  comparison misses.
+.specify/specs\014-scale-free-features\spec.md:290:  013's multi-ticker run, where one window across five tickers is a stronger
+.specify/specs\014-scale-free-features\spec.md:299:  the committed AAPL result was computed on and what spec 013's comparison
+.specify/specs\014-scale-free-features\spec.md:309:  See FR-013. Four comparisons on one ticker at p < 0.10 is a screen; the
+.specify/specs\020-unadjusted-price-data\spec.md:15:The repository's only cache (`data/cache/AAPL-AMZN-GOOGL-MSFT-NVDA_10y.csv`) was downloaded via `yfinance.download(..., auto_adjust=True)`. In that cache, historical prices are retrospectively divided by dividend and split adjustment factors. `scripts/data.py:_tidy` stamps these with `price_basis = "research_adjusted"`. Consequently, **no data in this project can satisfy the backtest guard, and the backtester is completely unrunnable**.
+.specify/specs\020-unadjusted-price-data\spec.md:129:   - Unadjusted `Open`, `Close` for execution in `run_backtest`.
+.specify/specs\020-unadjusted-price-data\spec.md:155:- **Assertion**: Loading unadjusted data for `AAPL` via `load_unadjusted_market_data()`, passing through `execution_price_frame()`, and running `backtest_harness.run_backtest()` succeeds without raising `ValueError`.
+.specify/specs\018-terminal-truthfulness\spec.md:30:| 46 | P0 D | `P(Up) = 54.2%` and `Logit Score = +0.17` literals; indicator sign tests presented as a model's prediction | `reports/api/routes/ml_rundown.py:52-93`, `:170-229`; `MLRundownPane.tsx`; `Header.tsx:90-102` | B, C |
+.specify/specs\018-terminal-truthfulness\spec.md:36:| 49 | P1 D | Gate decoder mismatch; p-value as "chance of luck"; Kelly teaching; unknown correlation shown as 0.00; volume as institutional flow | `CapitalGateView.tsx:60-69`; `FeatureDiagnosticsView.tsx:47-61`, `:203`, `:226`; `MarketDataView.tsx:56`, `:86`; `ml_rundown.py:145-168` | B (rundown), E (rest) |
+.specify/specs\018-terminal-truthfulness\spec.md:38:| 58 | P1 G | Tests assert response shape, not truth; mutation evidence lives outside the repository | `tests/` | C (regression, runner); D (all-NaN oracle) |
+.specify/specs\018-terminal-truthfulness\spec.md:47:| 29 | Inference and multiple testing (proposed 035) | Audit work order 5. A statistics fix to the research comparison; no terminal value depends on it, and all four saved entries lie in the direction the old formula gets right. |
+.specify/specs\018-terminal-truthfulness\spec.md:51:| 54 | Terminal reliability (proposed 038) | Audit work order 6. Honest fold and run labels need the run identity finding 53 introduces there. |
+.specify/specs\018-terminal-truthfulness\spec.md:53:### Lane boundary during the parallel run
+.specify/specs\018-terminal-truthfulness\spec.md:68:  computed* response and screen state. Wiring saved runs, fitted-model
+.specify/specs\018-terminal-truthfulness\spec.md:76:- No experiment is rerun and no metric is reported.
+.specify/specs\018-terminal-truthfulness\spec.md:123:- **FR-002** *(46)*: The rundown returns `model_forecast: {status:
+.specify/specs\018-terminal-truthfulness\spec.md:136:- **FR-004** *(47)*: The gate status response carries `test_run: {status:
+.specify/specs\018-terminal-truthfulness\spec.md:147:  A non-finite trade P&L or total fails. A reconciliation comparison fails
+.specify/specs\018-terminal-truthfulness\spec.md:155:  over HTTP) runs at both the library and HTTP boundaries.
+.specify/specs\018-terminal-truthfulness\spec.md:172:  institutional flow. The rundown's volume narrative went in PR B.
+.specify/specs\018-terminal-truthfulness\spec.md:181:  `get_cache_dir`. API tests serve seeded synthetic panels written to a
+.specify/specs\018-terminal-truthfulness\spec.md:199:- **FR-017**: A mutation runner lives in the repository (finding 58). It
+.specify/specs\018-terminal-truthfulness\spec.md:200:  restores each deleted literal in a copy, runs an unmutated control first,
+.specify/specs\018-terminal-truthfulness\spec.md:216:  - **C**: the remaining screens, the regression and the mutation runner.
+.specify/specs\018-terminal-truthfulness\spec.md:220:  This run delivers A–C.
+.specify/specs\018-terminal-truthfulness\spec.md:221:- **FR-020**: No new runtime dependency (Rule 6). No `git` (Rule 10).
+.specify/specs\018-terminal-truthfulness\spec.md:252:- `/api/ml/rundown` keeps its URL, and `MLInsightItem` its name, so no
+.specify/specs\018-terminal-truthfulness\spec.md:254:- **Mid-run, the core lane changed two contracts the routes consume.**
+.specify/specs\018-terminal-truthfulness\spec.md:257:  - `run_backtest` now requires prices declared as unadjusted dollars. The
+.specify/specs\011-nested-cv-tuning\spec.md:15:declared parameter grid, but nothing yet selects a point from that grid. A
+.specify/specs\011-nested-cv-tuning\spec.md:64:`features.iloc[:outer_test_start - label_horizon]`. That is wrong, and wrong
+.specify/specs\011-nested-cv-tuning\spec.md:129:   bars, **Then** it is at least `label_horizon` — confirming the
+.specify/specs\011-nested-cv-tuning\spec.md:132:   before any embargo exists), **When** the function runs, **Then** its
+.specify/specs\011-nested-cv-tuning\spec.md:138:As the project owner, I need the grid search to score candidates only on
+.specify/specs\011-nested-cv-tuning\spec.md:144:1. **Given** a grid and an outer fold's training positions, **When**
+.specify/specs\011-nested-cv-tuning\spec.md:145:   `tune_on_fold` runs, **Then** it never receives or references the outer
+.specify/specs\011-nested-cv-tuning\spec.md:150:   **When** `tune_on_fold` runs, **Then** it returns the registry's declared
+.specify/specs\011-nested-cv-tuning\spec.md:151:   `default_params` with `tuned=False` recorded — and **never** `grid[0]`.
+.specify/specs\011-nested-cv-tuning\spec.md:159:- **A single candidate in the grid**: still runs the full inner scoring loop
+.specify/specs\011-nested-cv-tuning\spec.md:161:  grid size.
+.specify/specs\011-nested-cv-tuning\spec.md:175:  initial_train_months, test_months, label_horizon, embargo_bars,
+.specify/specs\011-nested-cv-tuning\spec.md:191:  feature_columns, label_column, label_horizon, embargo_bars, random_state,
+.specify/specs\011-nested-cv-tuning\spec.md:192:  ...) -> tuple[dict, bool, pd.DataFrame]` MUST score every grid point from
+.specify/specs\011-nested-cv-tuning\spec.md:193:  `estimators.param_grid_points` over the inner folds and return
+.specify/specs\011-nested-cv-tuning\spec.md:197:  `tuned=False`. It MUST NOT return `grid[0]`, and MUST NOT raise — a short
+.specify/specs\011-nested-cv-tuning\spec.md:212:  single-point grid equal to `logistic_baseline.py`'s own construction, with
+.specify/specs\011-nested-cv-tuning\spec.md:213:  `name="logistic"`, `task="classification"`, `label_horizon=1`,
+.specify/specs\011-nested-cv-tuning\spec.md:230:  purge/embargo-safe at the same horizon as the outer split, produced by the
+.specify/specs\011-nested-cv-tuning\spec.md:232:- **`tuned` flag**: per outer fold, whether a grid point was actually
+.specify/specs\011-nested-cv-tuning\spec.md:243:  `label_horizon`.
+.specify/specs\011-nested-cv-tuning\spec.md:249:  and the returned params are *not* `grid[0]` unless `default_params`
+.specify/specs\011-nested-cv-tuning\spec.md:250:  genuinely is `grid[0]` — asserted against the registry, not against a
+.specify/specs\011-nested-cv-tuning\spec.md:252:- **SC-006**: `nested_walk_forward` with a single-point logistic grid equals
+.specify/specs\011-nested-cv-tuning\spec.md:256:  `labels=[0, 1]`; return `grid[0]` instead of `default_params` on the
+.specify/specs\011-nested-cv-tuning\spec.md:267:- Whether a tuned estimator becomes the default for live runs, or stays an
+.specify/specs\011-nested-cv-tuning\spec.md:268:  explicit choice at the call site, is decided by spec 013's runner — not
+.specify/specs\011-nested-cv-tuning\spec.md:271:- Grid *contents* stay in `estimators.py` (spec 010 FR-001). This spec
+.specify/specs\011-nested-cv-tuning\spec.md:272:  searches a grid; it does not author one.
+.specify/specs\011-nested-cv-tuning\spec.md:273:- **Cost.** One fit per grid point per inner fold per outer fold is
+.specify/specs\011-nested-cv-tuning\spec.md:275:  Recorded here as a known consequence, not optimized around; if a real run
+.specify/specs\011-nested-cv-tuning\spec.md:276:  is impractically slow, shrinking `param_grid` in spec 010 is the lever,
+.specify/specs\012-cost-aware-entry-rule\spec.md:26:`backtest_harness.run_backtest` accepts — and compares a predicted return
+.specify/specs\012-cost-aware-entry-rule\spec.md:57:`run_backtest` *within floating-point tolerance*, and the approximation
+.specify/specs\012-cost-aware-entry-rule\spec.md:88:The context: 014's T032 comparison run met its screening bar on
+.specify/specs\012-cost-aware-entry-rule\spec.md:172:   **When** the rule runs, **Then** it produces exactly one entry and one
+.specify/specs\012-cost-aware-entry-rule\spec.md:185:   `g*`, **When** a one-share round trip is run through the **real**
+.specify/specs\012-cost-aware-entry-rule\spec.md:186:   `backtest_harness.run_backtest` with the same `commission_per_trade` and
+.specify/specs\012-cost-aware-entry-rule\spec.md:202:  here. The comparison is unconditional regardless of prediction size;
+.specify/specs\012-cost-aware-entry-rule\spec.md:217:- **FR-002**: `log_hurdle(...)` MUST return `ln(1 + g*)`, and the comparison
+.specify/specs\012-cost-aware-entry-rule\spec.md:238:- **FR-007** *(ordering)*: The hurdle comparison MUST be applied to the
+.specify/specs\012-cost-aware-entry-rule\spec.md:242:  a net P&L within `1e-9` of zero through the real `run_backtest`.
+.specify/specs\012-cost-aware-entry-rule\spec.md:278:  `1e-9` of zero through the real `run_backtest`.
+.specify/specs\012-cost-aware-entry-rule\spec.md:282:- **SC-006**: An end-to-end run on realistic synthetic data produces a
+.specify/specs\012-cost-aware-entry-rule\spec.md:288:  shift applied before the comparison) fails the test suite for each
+.specify/specs\010-estimator-registry\spec.md:24:and runs one plain (untuned) walk-forward fit/predict loop. It imports
+.specify/specs\010-estimator-registry\spec.md:41:- **The registry carries a parameter grid and a declared default per entry.**
+.specify/specs\010-estimator-registry\spec.md:43:  must invent its own grids, and the "one place a model is declared" property
+.specify/specs\010-estimator-registry\spec.md:45:  (`Phase 3` plan, spec 010) specified `EstimatorSpec` with `param_grid` and
+.specify/specs\010-estimator-registry\spec.md:69:label). Neither can run for `target_kind="return"`: `LogisticRegression` on a
+.specify/specs\010-estimator-registry\spec.md:112:   feature frame, **When** the new loop runs, **Then** its predictions equal
+.specify/specs\010-estimator-registry\spec.md:117:   runs, **Then** every fold's test rows get a finite-float prediction and
+.specify/specs\010-estimator-registry\spec.md:125:As the project owner, I need the model choice, its parameter grid, and its
+.specify/specs\010-estimator-registry\spec.md:128:loop, and so spec 011's tuner has a grid to search without inventing one.
+.specify/specs\010-estimator-registry\spec.md:134:   matching family with `random_state` set to the supplied seed.
+.specify/specs\010-estimator-registry\spec.md:135:2. **Given** any registered `(name, task)`, **When** `param_grid_points` is
+.specify/specs\010-estimator-registry\spec.md:137:   Cartesian product of `param_grid`), every one of which
+.specify/specs\010-estimator-registry\spec.md:140:   **Then** they are a member of that entry's own grid points — so spec
+.specify/specs\010-estimator-registry\spec.md:147:  matching `evaluate_walk_forward`'s existing `RuntimeError` rather than
+.specify/specs\010-estimator-registry\spec.md:155:  explicit seed (Conventions → Determinism), including the ones for which it
+.specify/specs\010-estimator-registry\spec.md:167:  `factory`, `param_grid: dict[str, list]`, and `default_params: dict`.
+.specify/specs\010-estimator-registry\spec.md:173:  `LogisticRegression(max_iter=1000, random_state=seed)` — identical to
+.specify/specs\010-estimator-registry\spec.md:179:- **FR-004**: `param_grid_points(name, *, task)` MUST return the Cartesian
+.specify/specs\010-estimator-registry\spec.md:180:  product of the entry's `param_grid` as a list of complete parameter dicts,
+.specify/specs\010-estimator-registry\spec.md:181:  in a deterministic order. Each entry's grid MUST be small — target ~4
+.specify/specs\010-estimator-registry\spec.md:182:  points, hard cap 8. With this much selection noise a large grid is a
+.specify/specs\010-estimator-registry\spec.md:186:  label_column, task, name, label_horizon, embargo_bars, random_state,
+.specify/specs\010-estimator-registry\spec.md:194:  `label_column="Label"`, `label_horizon=1`, `embargo_bars=1`,
+.specify/specs\010-estimator-registry\spec.md:204:  `param_grid_points` — asserted by test, so the spec-011 fallback cannot
+.specify/specs\010-estimator-registry\spec.md:215:  fitting, the unregistered-pair error, the zero-fold error, grid/default
+.specify/specs\010-estimator-registry\spec.md:216:  consistency (FR-009), seed propagation, and the module-boundary import set.
+.specify/specs\010-estimator-registry\spec.md:226:- **Estimator factory**: a callable taking params and a seed and returning an
+.specify/specs\010-estimator-registry\spec.md:247:- **SC-005**: Every entry's `default_params` is a member of its own grid
+.specify/specs\010-estimator-registry\spec.md:251:  different seeds *or* are provably deterministic — whichever is true is
+.specify/specs\010-estimator-registry\spec.md:265:  grid for 011 to search.
+.specify/specs\010-estimator-registry\spec.md:266:- Grids are deliberately coarse and are not claimed to be well-chosen. They
+.specify/specs\021-finish-spec-019-migration\spec.md:7:**Status**: Draft. Planning only. Nothing is implemented, and no `git` has been run.
+.specify/specs\021-finish-spec-019-migration\spec.md:13:`feature_set_comparison.py` and `multi_ticker_comparison.py` are frozen for
+.specify/specs\021-finish-spec-019-migration\spec.md:14:this spec. Decide whether the `label_horizon` → `label_availability_span`
+.specify/specs\021-finish-spec-019-migration\spec.md:29:019 the Rule 4 random baseline silently stops running.
+.specify/specs\021-finish-spec-019-migration\spec.md:38:| 2026-09-18 ~16:25, first triage run | 158 | 530 | 9 | 127 + 1 parent seen only via subtests |
+.specify/specs\021-finish-spec-019-migration\spec.md:39:| **2026-09-18 16:34:38, final run, tree stable during it** | **156** | **558** | **9** | **128** |
+.specify/specs\021-finish-spec-019-migration\spec.md:66:| `test_feature_set_comparison.py`: production file frozen | 12 | Follow-on ([D-5](#d-5--the-two-frozen-files)) |
+.specify/specs\021-finish-spec-019-migration\spec.md:67:| `test_multi_ticker_comparison.py`: production file frozen | 8 | Follow-on ([D-5](#d-5--the-two-frozen-files)) |
+.specify/specs\021-finish-spec-019-migration\spec.md:74:| **C1** | `starting_capital` is required. The capital base is declared, never taken from a price. | `backtest_harness.py:68-72`; `metrics.py:85-86` | Pass capital explicitly on every `run_backtest` call. Expect equity to be anchored at the declared capital, never at the first close. |
+.specify/specs\021-finish-spec-019-migration\spec.md:75:| **C2** | The third return of `build_target` / `build_features` is the label availability span `h + 1`, not the horizon. | `targets.py:131`; `features.py:180-188`; the guard at `estimators.py:275-280` | Pass the returned span as both purge (`label_horizon=`) and `embargo_bars=`. Never write it as a literal. Never pass it back as `horizon=`. |
+.specify/specs\021-finish-spec-019-migration\spec.md:97:signals". The callers catch the error and print "random baseline not run":
+.specify/specs\021-finish-spec-019-migration\spec.md:98:`ma_crossover_backtest.baseline_results:88-99`, and `multi_ticker_comparison._baseline_rows:138-148`.
+.specify/specs\021-finish-spec-019-migration\spec.md:99:On the sawtooth fixture every seed fails, so Rule 4's second baseline is silently
+.specify/specs\021-finish-spec-019-migration\spec.md:115:| `scripts/ma_crossover_backtest.py` | Declares starting capital and an end-of-data policy beside the cost model. Passes both, identically, to the strategy and both baselines (`:81`, `:92`, `:186`). `baseline_results` takes both as required keyword arguments. `format_comparison` states each once. | C1, C5 |
+.specify/specs\021-finish-spec-019-migration\spec.md:116:| `scripts/logistic_baseline.py` | Reporting only: `main()` (`:297-347`), `_format_ml_comparison` (`:229-294`) and the cost-model constants (`:26-33`) gain capital and the end-of-data policy, as above. Every function that builds the control's frame, label, CV or signal is frozen ([D-2](#d-2--logistic_baselinepy-is-a-frozen-pre-019-control)): `build_features`, `evaluate_walk_forward`, `walk_forward_predictions`, `_signal_from_predictions` and `build_ml_signal`. | C1, C5 |
+.specify/specs\021-finish-spec-019-migration\spec.md:118:| `reports/api/routes/ml_rundown.py` | No code change. It already reports the final session under 019. A test pins that (see the tests table). | C4 (finding 23, consumer half) |
+.specify/specs\021-finish-spec-019-migration\spec.md:121:cannot run end to end. They stop failing on 019's "starting_capital is
+.specify/specs\021-finish-spec-019-migration\spec.md:145:| `test_reports_api.py` | 0 | n/a | `test_ml_rundown` gains an assertion that `as_of_date` is the final cached session |
+.specify/specs\021-finish-spec-019-migration\spec.md:150:### The 11 production files carrying `label_horizon`
+.specify/specs\021-finish-spec-019-migration\spec.md:153:`grep -rc label_horizon --include=*.py scripts reports`. The count of 11 is
+.specify/specs\021-finish-spec-019-migration\spec.md:154:right. The meanings differ, and that difference drives [D-1](#d-1--the-label_horizon-rename-is-deferred-to-a-follow-on-spec).
+.specify/specs\021-finish-spec-019-migration\spec.md:160:| `scripts/multi_ticker_comparison.py` | 5 | holds the returned span | frozen | follow-on |
+.specify/specs\021-finish-spec-019-migration\spec.md:162:| `scripts/feature_set_comparison.py` | 3 | holds the returned span | frozen | follow-on |
+.specify/specs\021-finish-spec-019-migration\spec.md:164:| `reports/api/routes/diagnostics.py` | 3 | forecast horizon `h` (a comment and two kwargs) | no edit; behavior already correct | follow-on |
+.specify/specs\021-finish-spec-019-migration\spec.md:165:| `scripts/features.py` | 2 | forecast horizon `h` (the `build_features` parameter) | no edit | follow-on |
+.specify/specs\021-finish-spec-019-migration\spec.md:167:| `scripts/feature_diagnostics.py` | 1 | forecast horizon `h` | C4 edit only | follow-on |
+.specify/specs\021-finish-spec-019-migration\spec.md:168:| `reports/api/routes/ml_rundown.py` | 1 | forecast horizon `h` | no edit | follow-on |
+.specify/specs\021-finish-spec-019-migration\spec.md:174:| The `label_horizon` → `label_availability_span` rename, and its twin `build_features(label_horizon=)` → `horizon=` | Follow-on spec; proposed `022-purge-span-rename`, number assigned by Camden | [D-1](#d-1--the-label_horizon-rename-is-deferred-to-a-follow-on-spec) |
+.specify/specs\021-finish-spec-019-migration\spec.md:175:| `feature_set_comparison.py`, `multi_ticker_comparison.py` and their 20 failing tests | Follow-on spec(s) | Frozen by directive ([D-5](#d-5--the-two-frozen-files)) |
+.specify/specs\021-finish-spec-019-migration\spec.md:190:   with `label_horizon=1, embargo_bars=1` for an h = 1 label. Once its missing
+.specify/specs\021-finish-spec-019-migration\spec.md:197:3. **Two frozen files degrade Rule 4 today.** `multi_ticker_comparison._baseline_rows`
+.specify/specs\021-finish-spec-019-migration\spec.md:208:### D-1 — The `label_horizon` rename is deferred to a follow-on spec
+.specify/specs\021-finish-spec-019-migration\spec.md:213:   `feature_set_comparison.py:153-172` and `multi_ticker_comparison.py:234-250`
+.specify/specs\021-finish-spec-019-migration\spec.md:214:   call `build_features(label_horizon=)` and `nested_walk_forward(label_horizon=)`.
+.specify/specs\021-finish-spec-019-migration\spec.md:230:- `build_features(label_horizon=)` → `horizon=`;
+.specify/specs\021-finish-spec-019-migration\spec.md:231:- removal of the legacy `attrs["label_horizon"]` fallback reads (`estimators.py:278`
+.specify/specs\021-finish-spec-019-migration\spec.md:259:  the same single grid point and the same span.
+.specify/specs\021-finish-spec-019-migration\spec.md:304:Per directive, 021 does not edit `feature_set_comparison.py` or
+.specify/specs\021-finish-spec-019-migration\spec.md:305:`multi_ticker_comparison.py` beyond Codex's embargo fix, which has already
+.specify/specs\021-finish-spec-019-migration\spec.md:309:**Tension in the request.** The request lists the `feature_set_comparison.py:367`
+.specify/specs\021-finish-spec-019-migration\spec.md:311:production code: `compare_classification` runs `labels.astype(int)` over
+.specify/specs\021-finish-spec-019-migration\spec.md:317:- **`feature_set_comparison.py`**: pairs predictions with `<NA>` labels in the
+.specify/specs\021-finish-spec-019-migration\spec.md:321:- **`multi_ticker_comparison.py`**:
+.specify/specs\021-finish-spec-019-migration\spec.md:322:  - `run_backtest` is called without capital or an end-of-data policy
+.specify/specs\021-finish-spec-019-migration\spec.md:331:and `multi_ticker_comparison._baseline_rows`) caught the error and printed a
+.specify/specs\021-finish-spec-019-migration\spec.md:332:reason in place of the baseline. Every comparison table produced through
+.specify/specs\021-finish-spec-019-migration\spec.md:336:`ma_crossover_backtest`. `multi_ticker_comparison.py` stays frozen, so its
+.specify/specs\021-finish-spec-019-migration\spec.md:341:follow-on — Rule 4 blocker`. The `feature_set_comparison.py:367` cast is a
+.specify/specs\021-finish-spec-019-migration\spec.md:352:  021's only hunk in `test_reports_api.py` is in `test_ml_rundown`. That is a
+.specify/specs\021-finish-spec-019-migration\spec.md:361:- the spec 014 comparison table at `:262-275` (purge = 1, embargo = 1, a
+.specify/specs\021-finish-spec-019-migration\spec.md:363:- the spec 005 AAPL run at `:441-446`.
+.specify/specs\021-finish-spec-019-migration\spec.md:372:- `:349-357`: `(label, task, label_horizon)`, "matches the old label exactly";
+.specify/specs\021-finish-spec-019-migration\spec.md:373:- `:428`, `:482-483`: `label_horizon=1, embargo_bars=1`;
+.specify/specs\021-finish-spec-019-migration\spec.md:382:Camden runs the full suite after 021 merges. Every failure left is on a short,
+.specify/specs\021-finish-spec-019-migration\spec.md:389:**Independent Test**: Run `python -m pytest tests`. Compare the failing IDs to
+.specify/specs\021-finish-spec-019-migration\spec.md:395:   suite runs, **Then** the failing set equals the 21 residual IDs exactly.
+.specify/specs\021-finish-spec-019-migration\spec.md:412:`label_horizon=` or `embargo_bars=`. Only label-free splitter unit tests
+.specify/specs\021-finish-spec-019-migration\spec.md:417:1. **Given** a frame from `build_features`, **When** a test runs CV on it,
+.specify/specs\021-finish-spec-019-migration\spec.md:419:2. **Given** a test that builds a labelled frame by hand, **When** it runs CV,
+.specify/specs\021-finish-spec-019-migration\spec.md:424:### User Story 3 — The Phase 0 comparison has three real rows (Priority: P2)
+.specify/specs\021-finish-spec-019-migration\spec.md:426:Running `ma_crossover_backtest`'s comparison on synthetic data yields three
+.specify/specs\021-finish-spec-019-migration\spec.md:428:every seed. All three share the same capital, costs and end-of-data policy,
+.specify/specs\021-finish-spec-019-migration\spec.md:432:on every seed of the sawtooth fixture, and buy-and-hold would report $0.
+.specify/specs\021-finish-spec-019-migration\spec.md:440:1. **Given** any seed and a feasible trip count, **When** `random_signal`
+.specify/specs\021-finish-spec-019-migration\spec.md:443:2. **Given** the three runs, **When** the report prints, **Then** capital,
+.specify/specs\021-finish-spec-019-migration\spec.md:490:- **An over-long horizon** (300 on 60 rows): every row is kept, none is
+.specify/specs\021-finish-spec-019-migration\spec.md:501:- **FR-001**: Every production and test call to `run_backtest` MUST declare
+.specify/specs\021-finish-spec-019-migration\spec.md:538:  - seeded determinism;
+.specify/specs\021-finish-spec-019-migration\spec.md:559:- **FR-018**: `test_ml_rundown` MUST assert that `as_of_date` equals the final
+.specify/specs\021-finish-spec-019-migration\spec.md:563:  - `feature_set_comparison.py` or `multi_ticker_comparison.py`;
+.specify/specs\021-finish-spec-019-migration\spec.md:592:  - `test_feature_set_comparison.py` (12):
+.specify/specs\021-finish-spec-019-migration\spec.md:596:  - `test_multi_ticker_comparison.py` (8): every currently failing test.
+.specify/specs\021-finish-spec-019-migration\spec.md:601:- **SC-002**: Zero integer literals are passed as `label_horizon=` or
+.specify/specs\021-finish-spec-019-migration\spec.md:606:  - 20 of 20 random seeds run;
+.specify/specs\021-finish-spec-019-migration\spec.md:607:  - each seed has the requested trade count;
+.specify/specs\021-finish-spec-019-migration\spec.md:623:  `DIAGNOSIS_HORIZON_OFFBYONE.md` agree.
+.specify/specs\021-finish-spec-019-migration\spec.md:630:- Implementation re-runs the baseline first. The counts here describe the tree
+.specify/specs\019-funded-ledger-and-timing\spec.md:21:- The h-session label is a forecast horizon, not a claim that hysteresis holds
+.specify/specs\019-funded-ledger-and-timing\spec.md:40:| `exit_at` | $\text{Open}[t+h+1]$ | Execution of exit order for forecast horizon $h$; receives proceeds and pays exit fee atomically. |
+.specify/specs\019-funded-ledger-and-timing\spec.md:50:- **Span, not horizon (Correction 1, R-10):**
+.specify/specs\019-funded-ledger-and-timing\spec.md:51:  - `build_target` returns `(label, task, label_availability_span)` where the third return value is `label_availability_span = h + 1`, never a horizon.
+.specify/specs\019-funded-ledger-and-timing\spec.md:52:  - Span = $h + 1$; callers must never pass this returned span back as `horizon` (which would erroneously generate an $(h+1)$-session target). The availability span is handed back strictly to size purge and embargo intervals.
+.specify/specs\019-funded-ledger-and-timing\spec.md:55:  - $h + 1$ rows is a chosen convention, not a mathematical derivation: it is one row more conservative than `walk_forward_cv.py:98` requires (`t < test_start - label_horizon` with purge $h$ keeps up to $\text{Open}[\text{test\_start}]$, which is known before the decision at that session's close). $h + 1$ is chosen to provide a deliberate safety margin across fold boundaries. Cross-validation refuses any purge/embargo span shorter than feature-frame metadata declares.
+.specify/specs\019-funded-ledger-and-timing\spec.md:62:  - Calendar-preserving features (Finding 23, `AUDIT.md:93`): Status is **library-closed; consumer open (API rundown)**. Core feature creation and CV masks preserve source sessions without row deletion, but the consumer API rundown remains open pending consumer test updates.
+.specify/specs\019-funded-ledger-and-timing\spec.md:73:- **Fixed-horizon policy constraint (Correction 5, R-15):**
+.specify/specs\019-funded-ledger-and-timing\spec.md:74:  - A decision at $t$ with horizon $h$ opens at $\text{Open}[t+1]$ and closes at $\text{Open}[t+h+1]$; no early exit, no extension.
+.specify/specs\019-funded-ledger-and-timing\spec.md:75:  - Under fixed-horizon execution, each trade's pre-cost log return identically equals its entry decision's label ($\log(\text{Exit Price} / \text{Entry Price}) = \text{Label}_t$).
+.specify/specs\019-funded-ledger-and-timing\spec.md:77:  - Variable-duration policy returns and optimal stopping are deferred to work order 5 as their own spec with multi-horizon labels and in-fold policy selection (`AUDIT.md:97, 233`).
+.specify/specs\019-funded-ledger-and-timing\spec.md:116:The plan proposes specs 022–025 and target/data before ledger; this run's user
+.specify/specs\013-multi-ticker-comparison\spec.md:1:# Feature Specification: Multi-Ticker Comparison Table
+.specify/specs\013-multi-ticker-comparison\spec.md:3:**Feature Branch**: `013-multi-ticker-comparison`
+.specify/specs\013-multi-ticker-comparison\spec.md:9:**Input**: Every spec so far in this track (005, 009, 010, 011, 012) has run
+.specify/specs\013-multi-ticker-comparison\spec.md:11:needs them: a five-ticker comparison table."* Specs 010-012 supply, per
+.specify/specs\013-multi-ticker-comparison\spec.md:13:`performance_summary`. Nothing yet runs that pipeline over more than one
+.specify/specs\013-multi-ticker-comparison\spec.md:20:runner script, `scripts/multi_ticker_comparison.py`. It composes
+.specify/specs\013-multi-ticker-comparison\spec.md:24:`backtest_harness.run_backtest`,
+.specify/specs\013-multi-ticker-comparison\spec.md:33:Every existing runnable script (`ma_crossover_backtest.py`,
+.specify/specs\013-multi-ticker-comparison\spec.md:39:   enough to break feature construction, should not take down a run that
+.specify/specs\013-multi-ticker-comparison\spec.md:65:cannot reach Yahoo Finance, so this spec's real multi-ticker run happens on
+.specify/specs\013-multi-ticker-comparison\spec.md:75:### User Story 1 - One ticker's failure does not sink the run (Priority: P1)
+.specify/specs\013-multi-ticker-comparison\spec.md:77:As the project owner, I need the multi-ticker runner to isolate each
+.specify/specs\013-multi-ticker-comparison\spec.md:82:**Independent Test**: Run the pipeline over a synthetic 3-ticker universe
+.specify/specs\013-multi-ticker-comparison\spec.md:91:   walk-forward fold, **When** the runner executes, **Then** the output
+.specify/specs\013-multi-ticker-comparison\spec.md:94:2. **Given** a universe where every ticker succeeds, **When** the runner
+.specify/specs\013-multi-ticker-comparison\spec.md:103:table by Sharpe (not raw P&L) is a comparison of alpha, not of share price.
+.specify/specs\013-multi-ticker-comparison\spec.md:109:   `commission_per_trade` and `slippage_bps`, and the comparison uses
+.specify/specs\013-multi-ticker-comparison\spec.md:121:- **All tickers fail**: the runner still completes and returns/prints an
+.specify/specs\013-multi-ticker-comparison\spec.md:136:- **FR-002**: `run_one_ticker(ticker, ...) -> dict | ComparisonFailure` MUST
+.specify/specs\013-multi-ticker-comparison\spec.md:137:  run the full per-ticker pipeline (features -> tuned estimator -> cost-aware
+.specify/specs\013-multi-ticker-comparison\spec.md:138:  signal -> backtest -> performance summary, plus both Rule 4 baselines run
+.specify/specs\013-multi-ticker-comparison\spec.md:142:- **FR-003**: `run_comparison(tickers=TICKER_UNIVERSE) ->
+.specify/specs\013-multi-ticker-comparison\spec.md:143:  tuple[pd.DataFrame, list]` MUST call `run_one_ticker` for every ticker
+.specify/specs\013-multi-ticker-comparison\spec.md:160:  the random baseline's seed count and dispersion. A metric without these is
+.specify/specs\013-multi-ticker-comparison\spec.md:177:- **Ticker universe**: the fixed list this spec runs over. Explicit, not
+.specify/specs\013-multi-ticker-comparison\spec.md:179:- **Comparison failure**: a (ticker, reason) pair reported instead of a row,
+.specify/specs\013-multi-ticker-comparison\spec.md:208:  `TICKER_UNIVERSE` plus a rerun, so nothing here is hard to revisit.
+.specify/specs\013-multi-ticker-comparison\spec.md:210:  only, against synthetic data. The real run — the one that finally
+.specify/specs\016-quant-terminal-ui\spec.md:23:- Mandatory 3-way baseline comparisons against Buy & Hold and Random Signals ([Rule 4](file:///C:/GitHub/Quant-ML-Bot/.specify/memory/constitution.md#L91-L107)).
+.specify/specs\016-quant-terminal-ui\spec.md:26:However, exploring results currently requires running standalone scripts in the terminal and viewing static PNG plots in `plots/` or inspecting CSV logs.
+.specify/specs\016-quant-terminal-ui\spec.md:53:- **FR-002 (Backtest Tearsheet & Cost Transparency)**: Display the reconciled per-bar equity curve alongside drawdown underwater area charts. Display the mandatory 3-way baseline comparison table (Strategy vs Buy & Hold vs Random Signal) with explicit commission ($1.00) and slippage (5 bps) figures.
+.specify/specs\016-quant-terminal-ui\spec.md:54:- **FR-003 (Feature & Matrix Diagnostics Lab)**: Render VIF scores, condition number comparisons (comparing `levels` vs `scale_free`), and feature correlation matrices. Show paired significance test outcomes (McNemar and Wilcoxon signed-rank).
+.specify/specs\016-quant-terminal-ui\spec.md:66:- Frontend packages (`react`, `vite`, `tailwindcss`, `lightweight-charts`, `lucide-react`, `@radix-ui/*`): Isolated inside `reports/web/package.json`; does not affect Python environment or CI quant runs.
+.specify/specs\009-selectable-target\spec.md:19:`backtest_harness.py`. `targets.py` knows only about prices and a horizon;
+.specify/specs\009-selectable-target\spec.md:37:The horizon is the literal `-1`. It is not a parameter, and nothing connects
+.specify/specs\009-selectable-target\spec.md:38:it to the `label_horizon=1` that the same file passes to
+.specify/specs\009-selectable-target\spec.md:44:tuning work. A selectable target with an unstated horizon would let a caller
+.specify/specs\009-selectable-target\spec.md:68:As the project owner, I need the prediction target and its horizon to be
+.specify/specs\009-selectable-target\spec.md:75:of horizons; assert the returned horizon matches what was asked for and the
+.specify/specs\009-selectable-target\spec.md:82:   horizon it was given.
+.specify/specs\009-selectable-target\spec.md:85:   `"regression"`, and the horizon it was given.
+.specify/specs\009-selectable-target\spec.md:89:4. **Given** `horizon=0` or a negative horizon, **When** any label function
+.specify/specs\009-selectable-target\spec.md:90:   is called, **Then** it raises `ValueError`. A zero-horizon direction label
+.specify/specs\009-selectable-target\spec.md:97:As the project owner, I need the new `direction_label(..., horizon=1)` to
+.specify/specs\009-selectable-target\spec.md:102:**Why this priority**: If the two differ, every comparison in Phase 3 is
+.specify/specs\009-selectable-target\spec.md:105:**Independent Test**: Run both on the same price frame and assert the label
+.specify/specs\009-selectable-target\spec.md:111:1. **Given** any price frame, **When** `direction_label(prices, horizon=1)`
+.specify/specs\009-selectable-target\spec.md:116:   `target_kind="direction", label_horizon=1` and the same window sizes,
+.specify/specs\009-selectable-target\spec.md:133:1. **Given** a frame of `n` rows and `horizon=h`, **When** a label is built,
+.specify/specs\009-selectable-target\spec.md:144:- **Horizon at least as long as the frame.** Every label is null and
+.specify/specs\009-selectable-target\spec.md:146:  asking for a 300-bar horizon on 200 bars gets nothing, which is correct.
+.specify/specs\009-selectable-target\spec.md:165:- **FR-001**: `direction_label(prices, *, horizon)` MUST return an `Int64`
+.specify/specs\009-selectable-target\spec.md:166:  series that is `1` where `Close[t+horizon] > Close[t]`, `0` where it is
+.specify/specs\009-selectable-target\spec.md:167:  not, and `<NA>` where `Close[t+horizon]` does not exist.
+.specify/specs\009-selectable-target\spec.md:168:- **FR-002**: `forward_log_return_label(prices, *, horizon)` MUST return
+.specify/specs\009-selectable-target\spec.md:169:  `log(Close[t+horizon] / Close[t])` as a float series, `NaN` where
+.specify/specs\009-selectable-target\spec.md:172:  `horizon < 1`.
+.specify/specs\009-selectable-target\spec.md:173:- **FR-004**: `build_target(prices, *, kind, horizon)` MUST return
+.specify/specs\009-selectable-target\spec.md:174:  `(label, task, label_horizon)`. Returning the horizon alongside the label
+.specify/specs\009-selectable-target\spec.md:176:  horizon" contract (`walk_forward_cv.py:26-28`) honest once the target is
+.specify/specs\009-selectable-target\spec.md:182:  `volatility_window`, `target_kind`, and `label_horizon` as keyword-only
+.specify/specs\009-selectable-target\spec.md:183:  arguments, and MUST return `(frame, task, label_horizon)`.
+.specify/specs\009-selectable-target\spec.md:187:- **FR-008**: `build_features(..., target_kind="direction", label_horizon=1)`
+.specify/specs\009-selectable-target\spec.md:201:  `h` rows, horizon >= frame length), and the gap case (positional, not
+.specify/specs\009-selectable-target\spec.md:209:- **Label horizon**: bars the label looks forward. Must equal the
+.specify/specs\009-selectable-target\spec.md:210:  `label_horizon` the caller passes to `walk_forward_splits`.
+.specify/specs\009-selectable-target\spec.md:218:- **SC-001**: `direction_label(..., horizon=1)` equals
+.specify/specs\009-selectable-target\spec.md:222:  column for `target_kind="direction", label_horizon=1`.
+.specify/specs\009-selectable-target\spec.md:223:- **SC-003**: For a frame of `n` rows and horizon `h`, exactly the last `h`
+.specify/specs\009-selectable-target\spec.md:227:- **SC-005**: `horizon=0`, a negative horizon, and an unknown target kind
+.specify/specs\009-selectable-target\spec.md:229:- **SC-006**: A horizon at least as long as the frame yields an empty
+.specify/specs\017-position-sizing-risk\spec.md:76:- **It does not wire into `backtest_harness.run_backtest`.** The harness is
+.specify/specs\017-position-sizing-risk\spec.md:82:  metric to attach to. The first spec that runs this layer through a costed
+.specify/specs\017-position-sizing-risk\spec.md:93:conventions, per the run instructions and CLAUDE.md (*"the answer belongs in
+.specify/specs\017-position-sizing-risk\spec.md:372:  weekly drawdown against the week's running high-water mark (anchor
+.specify/specs\017-position-sizing-risk\spec.md:386:  evaluation MUST be implemented by running the streaming guard, not as a
+.specify/specs\017-position-sizing-risk\spec.md:390:  state, and the configuration, and MUST truncate the price history at that
+.specify/specs\017-position-sizing-risk\spec.md:397:  `multi_ticker_comparison`, or `data`. It MUST NOT compute a fill, a trade,
+.specify/specs\017-position-sizing-risk\spec.md:475:  (`multi_ticker_comparison.TICKER_UNIVERSE`). This module does not import

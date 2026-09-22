@@ -1,0 +1,96 @@
+{
+  "generated_at_utc": "2026-09-22T16:17:41.389541+00:00",
+  "scope": "Current partial spec-033 implementation; AST parsing is static evidence, not runtime verification",
+  "files": [
+    {
+      "path": "scripts/trial_registry.py",
+      "sha256": "c34c2738dcc95c63ce4600e79553228329a863b7c2520a314891dc1dd8896cc7",
+      "lines": 260
+    },
+    {
+      "path": "scripts/trial_runner.py",
+      "sha256": "96d3216967893fb54729427a37a3b1322e3e66b5b36f3dcd68261216b48e0205",
+      "lines": 128
+    },
+    {
+      "path": "scripts/trial_backfill.py",
+      "sha256": "cd5450e6d2054685f3ed32fdd2787a0923f94d8176b1529862113e6aaa298e46",
+      "lines": 74
+    },
+    {
+      "path": "scripts/selection_bias.py",
+      "sha256": "2a2cf8b6d9ce908a5028305170d88a770ceb86b9008af8c4ce7d8a07a03c26e3",
+      "lines": 114
+    },
+    {
+      "path": "scripts/ma_crossover_backtest.py",
+      "sha256": "e927760f0dee8fd00a71b2b8645d32260166d2fff0198de1993f1fc13f3ae897",
+      "lines": 283
+    },
+    {
+      "path": "scripts/logistic_baseline.py",
+      "sha256": "a81832f1ecddfebb81657aedebc45cf84c5d95df4aaba0e8b3d26b05ae87e2be",
+      "lines": 368
+    },
+    {
+      "path": "scripts/model_cv.py",
+      "sha256": "f0bf4df33159f2f495496aafd407a51aaf0cbb495de63aea4e17ce5fa8b76aea",
+      "lines": 521
+    },
+    {
+      "path": "scripts/feature_set_comparison.py",
+      "sha256": "c11a845410ce7211567240e0c8bd3a1af69488815f1f90627f500068951bdaca",
+      "lines": 977
+    },
+    {
+      "path": "scripts/multi_ticker_comparison.py",
+      "sha256": "9865eb527f1b10e97c7de6c0ee695291cd894d7b1734ad7ffea9d0f4192b1339",
+      "lines": 396
+    },
+    {
+      "path": "reports/api/routes/backtest.py",
+      "sha256": "9a6b6eace184a883fe84d86c97ea28f5c74b69d36dde045ac508c4ced4c6c32e",
+      "lines": 176
+    },
+    {
+      "path": "tests/conftest.py",
+      "sha256": "0229da1e88fec891d320d359cf265d9e70bc050e1da7b21611eef32f5177b33e",
+      "lines": 59
+    },
+    {
+      "path": "tests/test_trial_registry.py",
+      "sha256": "977a428ec707bcb3c7073e49504c80743455c36fa1f77727f419dc48c86a36b1",
+      "lines": 13
+    },
+    {
+      "path": "tests/spec033_support.py",
+      "sha256": "d3657499dfe7e81e46d61d7e1aa56d5698a61e21729e49fcf5c28b4c958b07e7",
+      "lines": 37
+    },
+    {
+      "path": "tests/test_033_backfill.py",
+      "sha256": "12887a14334f049f7311e8bee979e0b9efec1f7be98dd7f94f2689af965d4367",
+      "lines": 53
+    },
+    {
+      "path": "tests/test_033_dsr.py",
+      "sha256": "33222e5722256f8a7592a4cd81f209f83edac787f449ee8b85855172787944a8",
+      "lines": 120
+    },
+    {
+      "path": "tests/test_033_trial_instrumentation.py",
+      "sha256": "29d920b65534bd1b69292206cfc69fca8d591a3f455934afae9cbf97c126da30",
+      "lines": 60
+    },
+    {
+      "path": "tests/test_033_trial_ledger.py",
+      "sha256": "c687f002c2cf725c92d44774495cb2bc358c3b2528984faa448f3b2546a6bb80",
+      "lines": 196
+    },
+    {
+      "path": "tests/test_model_cv.py",
+      "sha256": "dbbffec3dc60538d27839fd697bbcc2f95d18b7ac26786e7a4ab644dc81cb097",
+      "lines": 1045
+    }
+  ]
+}

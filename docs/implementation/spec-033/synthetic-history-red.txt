@@ -1,0 +1,17 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_ test_implicit_synthetic_attempts_do_not_accumulate_unrelated_class_history __
+
+    def test_implicit_synthetic_attempts_do_not_accumulate_unrelated_class_history():
+        from trial_runner import current_ledger, injected_ledger
+        first, second = current_ledger(), current_ledger()
+        assert first.synthetic and second.synthetic
+>       assert first.path != second.path
+E       AssertionError: assert WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-35/test_implicit_synthetic_attemp0/spec033-research/docs/trials/trials.jsonl') != WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-35/test_implicit_synthetic_attemp0/spec033-research/docs/trials/trials.jsonl')
+E        +  where WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-35/test_implicit_synthetic_attemp0/spec033-research/docs/trials/trials.jsonl') = <trial_registry.TrialLedger object at 0x0000018015454EC0>.path
+E        +  and   WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-35/test_implicit_synthetic_attemp0/spec033-research/docs/trials/trials.jsonl') = <trial_registry.TrialLedger object at 0x000001807EEEFB10>.path
+
+tests\test_033_trial_ledger.py:193: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_033_trial_ledger.py::test_implicit_synthetic_attempts_do_not_accumulate_unrelated_class_history
+1 failed in 0.78s

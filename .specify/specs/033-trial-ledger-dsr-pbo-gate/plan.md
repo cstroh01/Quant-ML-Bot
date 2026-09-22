@@ -356,7 +356,7 @@ the intended missing behavior, not an import/setup accident.
 
 The integration fixture keeps candidate returns, costs, dates, PBO, and
 t-statistic fixed. The `N = 88` selection history gives paper-example
-`DSR ~= 0.905` and must fail specifically on DSR. The `N = 46` clean control
+`DSR ~= 0.910153014744707` and must fail specifically on DSR. The `N = 46` clean control
 must pass. Then an isolated copied module is mutated twice:
 
 1. `DSR >= 0.95` becomes `DSR > 0`; and

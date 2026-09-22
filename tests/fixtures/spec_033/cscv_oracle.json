@@ -1,0 +1,170 @@
+{
+  "label": "EXAMPLE — NOT A RESULT",
+  "source": "Independent two-strategy analytic oracle: every block repeats [-1,1] plus means 2 and 1; first strategy wins IS and OOS on every split",
+  "block_rows": [
+    [
+      -1,
+      0
+    ],
+    [
+      1,
+      2
+    ]
+  ],
+  "column_offsets": [
+    2,
+    0
+  ],
+  "expected_relative_rank": 0.6666666666666666,
+  "expected_pbo": 0,
+  "blocks": 16,
+  "overfit_counterexample": {
+    "label": "EXAMPLE — NOT A RESULT",
+    "source": "Independent closed-form synthetic oracle, not a strategy result: eight +1 mean blocks and eight -1 mean blocks; B reverses A means; within each block both have residuals [-1,+1].",
+    "values": [
+      [
+        0,
+        -2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -2
+      ],
+      [
+        2,
+        0
+      ],
+      [
+        -2,
+        0
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        -2,
+        0
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        -2,
+        0
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        -2,
+        0
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        -2,
+        0
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        -2,
+        0
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        -2,
+        0
+      ],
+      [
+        0,
+        2
+      ],
+      [
+        -2,
+        0
+      ],
+      [
+        0,
+        2
+      ]
+    ],
+    "columns": [
+      "a",
+      "b"
+    ],
+    "total_splits": 12870,
+    "tie_splits": 4900,
+    "all_other_splits": "IS winner must be the OOS loser: complement reverses the column means with identical variance.",
+    "oos_relative_rank_nontie": 0.3333333333333333,
+    "oos_relative_rank_tie": 0.5,
+    "rank_logit_nontie": -0.6931471805599453,
+    "rank_logit_tie": 0.0,
+    "expected_pbo_at_logit_lte_zero": 1.0,
+    "tie_policy_to_test": "IS exact tie: lexicographically smallest stable trial ID; OOS average rank.",
+    "integration_status": "Implemented and verified by tests/test_033_pbo.py; see T052 red and T055 green logs, 2026-09-22"
+  },
+  "convention_source": "Bailey et al., The Probability of Backtest Overfitting, https://www.davidhbailey.com/dhbpapers/backtest-prob.pdf: ascending rank/(M+1), logit, PBO at logit <= 0. Exact ties: preregistered stable trial-ID IS winner and average OOS rank; fixture tests pin both."
+}
