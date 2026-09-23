@@ -1,11 +1,35 @@
 {
   "schema_version": 1,
-  "status": "draft_incomplete",
-  "author": "Codex; NOT approved by Camden",
-  "generated_at_utc": "2026-09-22T16:15:42.367906+00:00",
-  "approval": null,
-  "formula": "sum full Cartesian campaign upper bounds times rerun bounds; choose remembered upper endpoints; next power of two; double; max previous approved count",
-  "count_policy": "Raw lifetime count, no clustering; possible executions, no saved-output/config deduplication. Unknown ceilings remain null. Observed counts are lower-bound evidence only, not accepted upper bounds.",
+  "status": "approved_for_t032",
+  "author": "Codex; bounds supplied and digest-approved by Camden Paul Stroh",
+  "generated_at_utc": "2026-09-22T22:57:18.1011870Z",
+  "approval": {
+    "author": "Camden Paul Stroh",
+    "approved_at_utc": "2026-09-22T23:04:33.4931090+00:00",
+    "approved_manifest_sha256": "54b45a0ad11f59a768d6a84e503612bc5dc5f958237c2dee5cd4d6323606ba04",
+    "approved_n_backfill": 16777216,
+    "statement": "I approve manifest SHA-256 54b45a0ad11f59a768d6a84e503612bc5dc5f958237c2dee5cd4d6323606ba04 and N_backfill = 16777216"
+  },
+  "supersedes_backfill_id": "a6abdb76-5ec9-43db-b563-c5f66b67637f",
+  "supersession_reason": "Correct post-approval state labels while preserving the approved bounds and N_backfill; the immutable earlier artifact remains retained.",
+  "formula": "max(previous approved count, 2 * next_power_of_two(sum(max(cartesian_upper_bound * rerun_upper_bound, remembered_range upper endpoint, chosen_upper_bound))))",
+  "count_policy": "Raw lifetime count, no clustering; possible executions, no saved-output/config deduplication. Camden-supplied recollection bounds close previously unknown ceilings. Observed counts remain lower-bound evidence, not accepted upper bounds.",
+  "bounds_provenance": {
+    "source": "Camden Paul Stroh direct recollection supplied in the 2026-09-22 T031 review continuation",
+    "small_one_off_campaigns": "rerun_upper_bound = 10 for each of pre-spec-sma, ma-crossover-costed, logistic-baseline, model-cv-search, multi-ticker-comparison, and api-backtest; conservative individual allocation of Camden's 0-10 combined estimate",
+    "screening_campaigns": "rerun_upper_bound = 2 for each of feature-set-comparison, screen-014-inspected, screen-2026-09-06-interrupted, screen-015-serial, screen-015-parallel, and screen-previous-partial; upper endpoint of Camden's 1-2 executions per campaign",
+    "ad_hoc_campaigns": "remembered_range = [10, 20] and chosen_upper_bound = 20 for each of audit-2026-09-18-history-gap and manual-ai-off-repo; Camden's requested conservative individual allocation of roughly 10-20 informal tries total",
+    "audit_reinspection": "rerun_upper_bound = 1 for audit-2026-09-12; one evidenced audit pass and no repeated re-inspection",
+    "baseline_promotion": "rerun_upper_bound = 1 for required-baselines-promotion-uncertain; baselines ran mechanically and never influenced strategy or feature selection"
+  },
+  "approved_calculation": {
+    "campaign_sum": 6129725,
+    "upward_power_of_two": 8388608,
+    "doubling_reserve_multiplier": 2,
+    "proposed_n_backfill": 16777216,
+    "previous_approved_count_max": 0,
+    "effective_proposed_n_backfill": 16777216
+  },
   "campaigns": [
     {
       "campaign_id": "pre-spec-sma",
@@ -31,10 +55,10 @@
         "ticker": 1
       },
       "cartesian_upper_bound": 1,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 10,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "Original parameter/window/date variants and rerun ceiling not recoverable from current checkout.",
+      "chosen_upper_bound": 10,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -147,10 +171,10 @@
         "ticker": 1
       },
       "cartesian_upper_bound": 1,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 10,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "chosen_upper_bound": 10,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -263,10 +287,10 @@
         "ticker": 1
       },
       "cartesian_upper_bound": 2,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 10,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "chosen_upper_bound": 20,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -379,10 +403,10 @@
         "grid_points": 4
       },
       "cartesian_upper_bound": 16,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 10,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "chosen_upper_bound": 160,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -495,10 +519,10 @@
         "grid_points": 4
       },
       "cartesian_upper_bound": 20,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 10,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "chosen_upper_bound": 200,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -594,10 +618,10 @@
         "candidate_strategy": 1
       },
       "cartesian_upper_bound": 1,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 10,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "chosen_upper_bound": 10,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -713,10 +737,10 @@
         "inner_folds_upper": 113
       },
       "cartesian_upper_bound": 510760,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 2,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "No defensible upper bound on historical reruns or arbitrary exposed configuration changes; Camden must bound or leave incomplete.",
+      "chosen_upper_bound": 1021520,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -750,10 +774,10 @@
         "inner_folds_upper": 113
       },
       "cartesian_upper_bound": 510760,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 2,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "chosen_upper_bound": 1021520,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -783,10 +807,10 @@
         "inner_folds_upper": 113
       },
       "cartesian_upper_bound": 510760,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 2,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "chosen_upper_bound": 1021520,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -812,10 +836,10 @@
         "inner_folds_upper": 113
       },
       "cartesian_upper_bound": 510760,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 2,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "chosen_upper_bound": 1021520,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -845,10 +869,10 @@
         "inner_folds_upper": 113
       },
       "cartesian_upper_bound": 510760,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 2,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "chosen_upper_bound": 1021520,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -878,10 +902,10 @@
         "inner_folds_upper": 113
       },
       "cartesian_upper_bound": 510760,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 2,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "One evidenced opportunity is not a proven lifetime rerun ceiling; confirm count and any additional attempts. The full batch is counted even for interrupted execution.",
+      "chosen_upper_bound": 1021520,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -974,10 +998,10 @@
         "buy_hold_plus_random_seeds": 21
       },
       "cartesian_upper_bound": 147,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 1,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "Baseline roles historically unrecorded. Count conservatively if performance influenced strategy selection; promotion/reruns require review.",
+      "chosen_upper_bound": 147,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -1023,10 +1047,10 @@
         "tearsheet_modes": 1
       },
       "cartesian_upper_bound": 8,
-      "rerun_upper_bound": null,
+      "rerun_upper_bound": 1,
       "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "Probe artifact proves inspection but not all repeated probe executions.",
+      "chosen_upper_bound": 8,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -1052,10 +1076,13 @@
         "unresolved_campaign_placeholder": 1
       },
       "cartesian_upper_bound": 1,
-      "rerun_upper_bound": null,
-      "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "Static audit is not itself a backtest; it documents that the historical research count is incomplete.",
+      "rerun_upper_bound": 0,
+      "remembered_range": [
+        10,
+        20
+      ],
+      "chosen_upper_bound": 20,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     },
     {
@@ -1081,10 +1108,13 @@
         "unresolved_campaign_placeholder": 1
       },
       "cartesian_upper_bound": 1,
-      "rerun_upper_bound": null,
-      "remembered_range": null,
-      "chosen_upper_bound": null,
-      "unresolved_reason": "No defensible finite bound from repository. Camden recollection of manual, AI, notebook, off-repo, horizon, seed, ticker, cost and refold variations required.",
+      "rerun_upper_bound": 0,
+      "remembered_range": [
+        10,
+        20
+      ],
+      "chosen_upper_bound": 20,
+      "unresolved_reason": null,
       "observed_executions_at_least": 1
     }
   ],
@@ -1690,9 +1720,5 @@
     }
   ],
   "missing_spec_numbers": "022-031 absent; do not fabricate campaigns",
-  "review_required": [
-    "Supply finite rerun/configuration upper bounds or leave incomplete.",
-    "Confirm baseline promotions and off-repo/AI/manual work.",
-    "Approve exact finalized manifest digest explicitly before an immutable count artifact is written."
-  ]
+  "review_required": []
 }
