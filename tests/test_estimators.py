@@ -252,7 +252,7 @@ class TestClassificationEquivalence(unittest.TestCase):
 
 
 class TestKnownClassificationLabelTruncation(unittest.TestCase):
-    def test_continuous_labels_are_currently_truncated_before_classification_fit(self):
+    def test_fractional_labels_are_rounded_before_classification_fit(self):
         frame = pd.DataFrame(
             {
                 "Date": pd.date_range("2024-01-01", periods=3),
@@ -291,11 +291,9 @@ class TestKnownClassificationLabelTruncation(unittest.TestCase):
                 random_state=0,
             )
 
-        # Known open item: continuous classification labels are silently
-        # truncated here; a dedicated spec must define the correction.
         pd.testing.assert_series_equal(
             estimator.fitted_labels,
-            pd.Series([0, 0], index=[0, 1], name="Label"),
+            pd.Series([1, 0], index=[0, 1], name="Label"),
         )
 
 

@@ -3,7 +3,7 @@
 **Feature Branch**: `020-unadjusted-price-data`  
 **Specification File**: `.specify/specs/020-unadjusted-price-data/spec.md`  
 **Created**: 2026-09-12  
-**Status**: Draft / Ready for Review  
+**Status**: Implemented (enforced end-to-end via UNADJUSTED_PRICE_BASIS in scripts/data.py and downstream modules; not through Merge Gate)  
 **Authority**: Audit 2026-09-12 Work Orders 2 & 3; Findings 13, 14, 15, 21. Feeds the frozen execution-price and corporate-action contract defined in `.specify/specs/019-funded-ledger-and-timing/spec.md`.
 
 ---

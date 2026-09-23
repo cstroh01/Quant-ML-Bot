@@ -262,9 +262,15 @@ class FreshnessTests(GateTestCase):
         decision = gate.evaluate_order(snap, make_intent("AAPL", 1.0), now=at())
         self.assertEqual(decision.reason, DENY_BROKER_STATUS)
 
-    def test_non_positive_equity_denies(self):
+    def test_zero_equity_denies_before_sizing_division(self):
         gate = self.gate()
         snap = make_snapshot(at(), 0.0, prices={"AAPL": 10.0})
+        decision = gate.evaluate_order(snap, make_intent("AAPL", 1.0), now=at())
+        self.assertEqual(decision.reason, DENY_NON_POSITIVE_EQUITY)
+
+    def test_negative_equity_denies_before_sizing_division(self):
+        gate = self.gate()
+        snap = make_snapshot(at(), -100.0, prices={"AAPL": 10.0})
         decision = gate.evaluate_order(snap, make_intent("AAPL", 1.0), now=at())
         self.assertEqual(decision.reason, DENY_NON_POSITIVE_EQUITY)
 
@@ -314,6 +320,24 @@ class ExposureLimitTests(GateTestCase):
         second = gate.evaluate_order(snap, make_intent("AAPL", 10.0, "order-2"), now=at())
         # worst case: 10 (position) + 5 (reserved order-1) + 10 (candidate) = 25 -> 250/1000 == 0.25
         self.assertEqual(second.reason, DENY_MAX_POSITION_PCT)
+
+    def test_unfilled_pending_sell_does_not_create_capacity_for_new_buy(self):
+        gate = self.gate(make_config(max_position_pct=0.60, max_gross_pct=1.0))
+        snap = make_snapshot(
+            at(), 2000.0, positions={"AAPL": 100.0}, prices={"AAPL": 10.0}
+        )
+        pending_sell = gate.evaluate_order(
+            snap, make_intent("AAPL", -50.0, "pending-sell"), now=at()
+        )
+        self.assertEqual(pending_sell.outcome, ALLOW)
+
+        candidate = gate.evaluate_order(
+            snap, make_intent("AAPL", 60.0, "new-buy"), now=at()
+        )
+
+        # The sell is still unfilled: worst case remains 100 + 60 shares,
+        # not 100 - 50 + 60. 1600 / 2000 breaches the 60% position cap.
+        self.assertEqual(candidate.reason, DENY_MAX_POSITION_PCT)
 
     def test_two_orders_that_each_pass_alone_cannot_jointly_exceed_gross(self):
         gate = self.gate(make_config(max_position_pct=0.5, max_gross_pct=0.5))
@@ -606,6 +630,49 @@ class KillSwitchTests(GateTestCase):
                 now=at(day=9, hour=15),
             )
 
+    def test_both_latches_clear_inner_rolling_then_outer_kill(self):
+        gate = self.gate(make_config(rolling_drawdown_pct=0.10, daily_loss_pct=0.5))
+        gate.evaluate_order(
+            make_snapshot(at(day=8, hour=14), 100_000.0, prices={"AAPL": 10.0}),
+            make_intent("AAPL", 0.0001, "both-d1"),
+            now=at(day=8, hour=14),
+        )
+        gate.evaluate_order(
+            make_snapshot(at(day=9, hour=14), 88_000.0, prices={"AAPL": 10.0}),
+            make_intent("AAPL", 0.0001, "both-d2"),
+            now=at(day=9, hour=14),
+        )
+        gate.request_kill(operator="camden", reason="same incident", now=at(day=9, hour=15))
+
+        with self.assertRaises(ValueError):
+            gate.reset_kill(
+                operator="camden",
+                reason="wrong order",
+                broker_disable_independently_verified=True,
+                now=at(day=9, hour=15),
+            )
+
+        recovered = make_snapshot(
+            at(day=10, hour=14), 100_000.0, prices={"AAPL": 10.0}
+        )
+        gate.reset_rolling_halt(
+            recovered,
+            operator="camden",
+            reason="drawdown reviewed and recovered",
+            now=at(day=10, hour=14),
+        )
+        inner_cleared = gate.status()
+        self.assertFalse(inner_cleared["rolling_halt_active"])
+        self.assertTrue(inner_cleared["kill_latched"])
+
+        gate.reset_kill(
+            operator="camden",
+            reason="outer latch cleared last",
+            broker_disable_independently_verified=True,
+            now=at(day=10, hour=14),
+        )
+        self.assertFalse(gate.status()["kill_latched"])
+
 
 # ---------------------------------------------------------------------------
 # Durable state survives restart (REQ-006) -- the exact audit finding this
@@ -739,6 +806,34 @@ class MutationTests(unittest.TestCase):
             lsg,
             'exposure["instrument_notional"] / equity >= self._config.max_position_pct:',
             'exposure["instrument_notional"] / equity > self._config.max_position_pct:',
+            oracle,
+        )
+
+    def test_nonpositive_equity_guard_is_actually_before_any_division(self):
+        def oracle():
+            for equity in (0.0, -100.0):
+                with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
+                    gate = lsg.SafetyGate(Path(tmp) / "gate.db", self._config(lsg))
+                    try:
+                        snap = self._snapshot(lsg, at(), equity, prices={"AAPL": 10.0})
+                        try:
+                            decision = gate.evaluate_order(
+                                snap, self._intent(lsg, "AAPL", 1.0), now=at()
+                            )
+                        except Exception as exc:
+                            raise AssertionError(
+                                f"equity {equity} must deny, not raise {type(exc).__name__}"
+                            ) from exc
+                        assert decision.reason == lsg.DENY_NON_POSITIVE_EQUITY, (
+                            f"equity {equity} must fail closed before sizing"
+                        )
+                    finally:
+                        gate.close()
+
+        mutation_support_032.killed(
+            lsg,
+            "if not math.isfinite(snapshot.equity) or snapshot.equity <= 0.0:",
+            "if not math.isfinite(snapshot.equity):",
             oracle,
         )
 

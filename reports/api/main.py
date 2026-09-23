@@ -20,6 +20,7 @@ from reports.api.routes.capital_gate import router as capital_gate_router
 from reports.api.routes.data import router as data_router
 from reports.api.routes.diagnostics import router as diagnostics_router
 from reports.api.routes.ml_rundown import router as ml_rundown_router
+from reports.api.routes.safety import router as safety_router
 
 # Production build of the web terminal, present only after `npm run build`.
 DIST_DIR = REPO_ROOT / "reports" / "web" / "dist"
@@ -58,6 +59,7 @@ def create_app(*, dist_dir: Path | None = DIST_DIR) -> FastAPI:
     app.include_router(backtest_router)
     app.include_router(capital_gate_router)
     app.include_router(ml_rundown_router)
+    app.include_router(safety_router)
     app.get("/api/health")(health_check)
 
     if dist_dir is not None and dist_dir.exists():

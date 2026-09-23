@@ -847,15 +847,21 @@ compared a simple return against a log-return target.
   full universe rather than `["AAPL"]` so they hit this cache key instead of
   triggering a download.
 - Run `scripts/ma_crossover_backtest.py` locally to produce the real AAPL
-  three-way costed comparison. This has been outstanding since Phase 2:
-  the repo has a correct cost model and still no costed result to show for
-  it. Whether the SMA rule survives its own costs is a finding either way.
+  three-way costed comparison. Spec 033's trial-ledger backfill
+  (`docs/implementation/spec-033/BACKFILL_REVIEW.md`) accounted for
+  `ma-crossover-costed` with a 10-rerun ceiling as a conservative lifetime
+  counting bound for the Deflated Sharpe Ratio gate (multiple-testing
+  penalty), not as a performance result. The real costed run itself remains
+  unexecuted and unpublished — and is currently blocked until migrated to
+  unadjusted dollar prices under the spec 019 funded ledger contract.
 
 **Still true from earlier phases:**
 
-1. Rule 10 and the Actions lane carve-out (CLAUDE.md) is a documented
-   exception, not a constitutional amendment, until Camden makes it one
-   in `.specify/memory/constitution.md` directly.
+1. Rule 10 was formally amended into `.specify/memory/constitution.md` directly
+   on 2026-09-06: agents do not run `git` outside the GitHub Actions lane
+   (which is strictly limited to `git add`, `git commit`, and `git push` on
+   an open PR feature branch). In all other contexts, version control is
+   strictly human-owned.
 2. The agent lane cannot reach Yahoo Finance. Every real multi-ticker run
    (spec 013) and any other real-data run happens on Camden's machine,
    not in an agent session or CI.

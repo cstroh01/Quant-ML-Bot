@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class NotComputed(BaseModel):
@@ -157,3 +158,64 @@ class MLRundownResponse(BaseModel):
     summary_verdict: str
     verdict_status: str
     insights: list[MLInsightItem]
+
+
+# Gate 5 operational API (spec 034). These models are additive: Gate 3's
+# CapitalGateItem and CapitalGateStatusResponse remain unchanged above.
+
+
+class SafetyTimedRequest(BaseModel):
+    now: datetime
+
+    @field_validator("now")
+    @classmethod
+    def _now_must_be_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("now must be timezone-aware")
+        return value
+
+
+class SafetyBrokerSnapshot(BaseModel):
+    as_of: datetime
+    status: str = Field(min_length=1)
+    equity: float
+    external_cash_flow: float
+    positions: dict[str, float]
+    prices: dict[str, float]
+
+    @field_validator("as_of")
+    @classmethod
+    def _as_of_must_be_aware(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("snapshot.as_of must be timezone-aware")
+        return value
+
+
+class SafetyBrokerKillQuery(BaseModel):
+    working_orders_terminal: bool
+    disable_status: bool | None
+
+
+class SafetyKillRequest(SafetyTimedRequest):
+    operator: str = Field(min_length=1)
+    reason: str = Field(min_length=1)
+
+
+class SafetyKillConfirmRequest(SafetyTimedRequest):
+    query: SafetyBrokerKillQuery | None = None
+
+
+class SafetyKillResetRequest(SafetyKillRequest):
+    broker_disable_independently_verified: bool = False
+
+
+class SafetyRollingHaltResetRequest(SafetyKillRequest):
+    snapshot: SafetyBrokerSnapshot
+
+
+class SafetyActionResponse(BaseModel):
+    status: str = Field(min_length=1)
+
+
+class SafetyStatusResponse(BaseModel):
+    state: dict[str, Any]

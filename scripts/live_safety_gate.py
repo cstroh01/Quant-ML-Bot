@@ -501,8 +501,16 @@ class SafetyGate:
         )
 
     def _read_pending(self) -> dict[str, float]:
+        """Return exposure-increasing reservations by instrument.
+
+        An unfilled sell cannot reduce broker-confirmed exposure: it may be
+        cancelled, rejected, or partially filled. Its signed row remains in
+        ``pending_orders`` for lifecycle/duplicate control, but contributes
+        zero until a later broker snapshot confirms the smaller position.
+        """
         rows = self._conn.execute(
-            "SELECT instrument, SUM(quantity) FROM pending_orders WHERE terminal = 0 "
+            "SELECT instrument, SUM(CASE WHEN quantity > 0 THEN quantity ELSE 0 END) "
+            "FROM pending_orders WHERE terminal = 0 "
             "GROUP BY instrument"
         ).fetchall()
         return {instrument: float(total) for instrument, total in rows}
@@ -968,9 +976,11 @@ class SafetyGate:
     ) -> None:
         """Operator-authenticated reset of a latched rolling-drawdown halt.
 
-        Rejected if the current rolling drawdown still breaches the limit,
-        reconciliation is incomplete, or the kill switch is active. Does not
-        erase the historical breach from the evidence log.
+        Rejected if the current rolling drawdown still breaches the limit or
+        reconciliation is incomplete. The kill switch is deliberately the
+        outer latch: it remains active while this inner latch clears, so this
+        reset cannot itself resume trading. Does not erase the historical
+        breach from the evidence log.
         """
         _require_nonempty_str("operator", operator)
         _require_nonempty_str("reason", reason)
@@ -989,9 +999,7 @@ class SafetyGate:
                 trading_day = _trading_day(snapshot.as_of, self._config.timezone)
                 breach = self._observe_equity_locked(snapshot, trading_day=trading_day, now=now)
                 state = self._read_state()
-                if state["kill_latched"]:
-                    error = ValueError("cannot reset a rolling halt while the kill switch is active.")
-                elif state["reconciliation_halt"]:
+                if state["reconciliation_halt"]:
                     error = ValueError(
                         "cannot reset a rolling halt while a reconciliation halt is active."
                     )
@@ -1231,3 +1239,9 @@ class SafetyGate:
 def new_client_order_id() -> str:
     """A durable, unique client order ID (REQ-007). Not broker-specific."""
     return uuid.uuid4().hex
+
+
+# Spec 034's order-gateway and API contracts use the role-explicit public name.
+# Preserve ``SafetyGate`` for every existing caller while exposing one class,
+# not a wrapper or second state authority.
+LiveSafetyGate = SafetyGate
