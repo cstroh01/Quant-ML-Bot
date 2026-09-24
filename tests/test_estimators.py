@@ -196,8 +196,8 @@ class TestUnregisteredPairs(unittest.TestCase):
                 label_column="Label",
                 task="ranking",
                 name="logistic",
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
                 random_state=42,
             )
 
@@ -217,8 +217,8 @@ class TestClassificationEquivalence(unittest.TestCase):
             label_column="Label",
             task=CLASSIFICATION,
             name="logistic",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+            embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             random_state=42,
             # Spec 014: the ("logistic", classification) entry now declares
             # scale=True. The pinned control was measured without a scaler,
@@ -240,8 +240,8 @@ class TestClassificationEquivalence(unittest.TestCase):
             label_column="Label",
             task=CLASSIFICATION,
             name="logistic",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+            embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             random_state=42,
             scale=False,
         )
@@ -273,6 +273,9 @@ class TestKnownClassificationLabelTruncation(unittest.TestCase):
                 return np.zeros(len(features), dtype=int)
 
         estimator = RecordingEstimator()
+        # This hand-built label has no price horizon; the mocked split only
+        # exercises label rounding, so keep its width named at the call site.
+        split_width = 1
         with (
             patch(
                 "estimators.walk_forward_splits",
@@ -286,8 +289,8 @@ class TestKnownClassificationLabelTruncation(unittest.TestCase):
                 label_column="Label",
                 task=CLASSIFICATION,
                 name="logistic",
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=split_width,
+                embargo_bars=split_width,
                 random_state=0,
             )
 
@@ -308,7 +311,7 @@ class TestOneFitPerFold(unittest.TestCase):
 
     def test_one_estimator_is_constructed_per_fold(self):
         frame = _synthetic_features("2024-01-01", "2024-10-31")
-        folds = list(walk_forward_splits(frame, label_horizon=1, embargo_bars=1))
+        folds = list(walk_forward_splits(frame, label_horizon=1, embargo_bars=1))  # R-9 exemption: label-free synthetic splitter fixture
         self.assertGreater(len(folds), 1)
 
         import estimators
@@ -328,8 +331,8 @@ class TestOneFitPerFold(unittest.TestCase):
                 label_column="Label",
                 task=CLASSIFICATION,
                 name="logistic",
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
                 random_state=42,
             )
         finally:
@@ -346,7 +349,7 @@ class TestOneFitPerFold(unittest.TestCase):
         """
         prices = _price_walk(500)
         frame, task, span = build_features(
-            prices, target_kind="return", label_horizon=1
+            prices, target_kind="return", label_horizon=1  # SC-002: forecast h, not a purge width
         )
         # Purge and embargo are the label availability span (C2), never a
         # literal (FR-003).
@@ -378,7 +381,7 @@ class TestRegressionPath(unittest.TestCase):
     def setUp(self):
         prices = _price_walk(500)
         self.frame, self.task, self.span = build_features(
-            prices, target_kind="return", label_horizon=1
+            prices, target_kind="return", label_horizon=1  # SC-002: forecast h, not a purge width
         )
 
     def test_task_and_span_come_through_from_build_features(self):
@@ -454,7 +457,7 @@ class TestGradientBoosting(unittest.TestCase):
     def test_hgb_regression_runs_and_differs_from_ridge(self):
         prices = _price_walk(500)
         frame, task, span = build_features(
-            prices, target_kind="return", label_horizon=1
+            prices, target_kind="return", label_horizon=1  # SC-002: forecast h, not a purge width
         )
         common = dict(
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
@@ -477,7 +480,7 @@ class TestGradientBoosting(unittest.TestCase):
     def test_hgb_classification_runs_and_predicts_labels(self):
         prices = _price_walk(500)
         frame, task, span = build_features(
-            prices, target_kind="direction", label_horizon=1
+            prices, target_kind="direction", label_horizon=1  # SC-002: forecast h, not a purge width
         )
         predictions = fit_predict_walk_forward(
             frame,
@@ -501,7 +504,7 @@ class TestDeterminism(unittest.TestCase):
     def test_repeated_runs_agree(self):
         prices = _price_walk(400)
         frame, task, span = build_features(
-            prices, target_kind="return", label_horizon=1
+            prices, target_kind="return", label_horizon=1  # SC-002: forecast h, not a purge width
         )
         kwargs = dict(
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
@@ -520,7 +523,7 @@ class TestDeterminism(unittest.TestCase):
         # Guards the mutation where `params` is accepted and then ignored.
         prices = _price_walk(400)
         frame, task, span = build_features(
-            prices, target_kind="return", label_horizon=1
+            prices, target_kind="return", label_horizon=1  # SC-002: forecast h, not a purge width
         )
         common = dict(
             feature_columns=SCALE_FREE_FEATURE_COLUMNS,
@@ -549,8 +552,8 @@ class TestZeroFolds(unittest.TestCase):
                 label_column="Label",
                 task=CLASSIFICATION,
                 name="logistic",
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
                 random_state=42,
             )
         self.assertIn("no folds", str(caught.exception))

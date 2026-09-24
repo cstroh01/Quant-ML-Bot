@@ -165,6 +165,7 @@ The following tests in `tests/test_020_unadjusted_data.py` must fail against the
      - (a) Querying SEC EDGAR / company investor relations filings.
      - (b) Sourcing from a secondary API (e.g., Alpaca Corporate Actions or Polygon.io).
      - (c) A curated, immutable historical payment date table committed for the 5 tickers.
+   - *Proposed resolution (2026-09-23, awaiting Camden's sign-off)*: Norgate also has no pay-date field. Rather than sourcing one, implement spec 019's declared conservative bound (019 `spec.md:94`). See D-7 and research R-8 in `.specify/specs/NNN-unadjusted-caller-wiring/`.
 2. **Vendor Dividend Nominal Representation (Pre- vs Post-Split)**:
    Vendors differ in whether historical per-share dividends are reported in nominal dollars as of the ex-date or retroactively split-adjusted. Spec 019 requires "dollars per post-split share".
    - *Question*: Does yfinance with `auto_adjust=False` report pre-split or post-split dividend amounts? The ingestion suite must verify this convention against primary filings.

@@ -25,7 +25,6 @@ from features import (
     build_features,
 )
 from logistic_baseline import FEATURE_COLUMNS as BASELINE_FEATURE_COLUMNS
-from logistic_baseline import walk_forward_predictions
 from model_cv import (
     INNER_SCORE_COLUMNS,
     inner_splits_over,
@@ -64,12 +63,12 @@ def _learnable_frame(
     vacuously — the trap spec 010's plan recorded. Selection tests use this
     instead.
 
-    `feature_set` defaults to the project default. The equivalence tests
-    against `logistic_baseline` pass `"levels"`, because that is the set the
-    committed control was computed on.
+    `feature_set` defaults to the project default. The one-point tuner check
+    passes `"levels"` to match its in-contract untuned reference; those are
+    also the frozen pre-019 control's feature columns.
     """
     frame, _task, _horizon = build_features(
-        _price_walk(n), target_kind=kind, label_horizon=1, feature_set=feature_set
+        _price_walk(n), target_kind=kind, label_horizon=1, feature_set=feature_set  # SC-002: forecast h, not a purge width
     )
     return frame
 
@@ -130,7 +129,7 @@ class TestStrictlyIncreasingAssertion(unittest.TestCase):
         positions = np.array([0, 5, 3, 9])
         with self.assertRaises(ValueError) as caught:
             inner_splits_over(
-                self.frame, positions, label_horizon=1, embargo_bars=1
+                self.frame, positions, label_horizon=1, embargo_bars=1  # R-9 exemption: label-free synthetic splitter fixture
             )
         self.assertIn("strictly increasing", str(caught.exception))
 
@@ -138,7 +137,7 @@ class TestStrictlyIncreasingAssertion(unittest.TestCase):
         positions = np.array([0, 1, 1, 2])
         with self.assertRaises(ValueError):
             inner_splits_over(
-                self.frame, positions, label_horizon=1, embargo_bars=1
+                self.frame, positions, label_horizon=1, embargo_bars=1  # R-9 exemption: label-free synthetic splitter fixture
             )
 
     def test_the_check_is_eager_not_deferred_to_first_next(self):
@@ -152,8 +151,8 @@ class TestStrictlyIncreasingAssertion(unittest.TestCase):
             inner_splits_over(
                 self.frame,
                 np.array([9, 3, 1]),
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             )
 
     def test_two_dimensional_positions_raise(self):
@@ -161,8 +160,8 @@ class TestStrictlyIncreasingAssertion(unittest.TestCase):
             inner_splits_over(
                 self.frame,
                 np.arange(20).reshape(4, 5),
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             )
 
     def test_empty_positions_yield_no_folds_without_raising(self):
@@ -170,8 +169,8 @@ class TestStrictlyIncreasingAssertion(unittest.TestCase):
             inner_splits_over(
                 self.frame,
                 np.array([], dtype=int),
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             )
         )
         self.assertEqual(splits, [])
@@ -198,8 +197,8 @@ class TestInnerSplitMembership(unittest.TestCase):
                 positions,
                 initial_train_months=3,
                 test_months=1,
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             )
         )
         self.assertGreater(len(splits), 0)
@@ -215,15 +214,15 @@ class TestInnerSplitMembership(unittest.TestCase):
             positions,
             initial_train_months=3,
             test_months=1,
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+            embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
         ):
             self.assertEqual(set(inner_train.tolist()) & hole, set())
             self.assertEqual(set(inner_val.tolist()) & hole, set())
 
     def test_real_outer_folds_produce_member_only_inner_folds(self):
         """The same property against folds the real splitter produced."""
-        outer = list(walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1))
+        outer = list(walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1))  # R-9 exemption: label-free synthetic splitter fixture
         self.assertGreater(len(outer), 2)
         # Later outer folds genuinely carry holes; if they did not, this test
         # would be checking the contiguous case under another name.
@@ -237,8 +236,8 @@ class TestInnerSplitMembership(unittest.TestCase):
                 train_indices,
                 initial_train_months=3,
                 test_months=1,
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             ):
                 with self.subTest(fold=fold):
                     self.assertTrue(set(inner_train.tolist()) <= member)
@@ -257,8 +256,8 @@ class TestInnerSplitOrderingAndSeparation(unittest.TestCase):
                 self.positions,
                 initial_train_months=3,
                 test_months=1,
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             )
         )
         self.assertGreater(len(self.splits), 0)
@@ -290,8 +289,8 @@ class TestInnerSplitOrderingAndSeparation(unittest.TestCase):
                 self.positions,
                 initial_train_months=3,
                 test_months=1,
-                label_horizon=5,
-                embargo_bars=5,
+                label_horizon=5,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=5,  # R-9 exemption: label-free synthetic splitter fixture
             )
         )
         self.assertGreater(len(splits), 0)
@@ -315,8 +314,8 @@ class TestContiguousEquivalence(unittest.TestCase):
                 positions,
                 initial_train_months=3,
                 test_months=1,
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             )
         )
         expected = list(
@@ -324,8 +323,8 @@ class TestContiguousEquivalence(unittest.TestCase):
                 frame.iloc[:cutoff].reset_index(drop=True),
                 3,
                 1,
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             )
         )
         self.assertGreater(len(expected), 0)
@@ -526,8 +525,8 @@ class TestZeroInnerFoldFallback(unittest.TestCase):
             task=CLASSIFICATION,
             feature_columns=BASELINE_FEATURE_COLUMNS,
             label_column="Label",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+            embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             random_state=42,
         )
 
@@ -582,7 +581,7 @@ class TestSingleCandidateGrid(unittest.TestCase):
 
     def test_no_short_circuit_on_a_one_point_grid(self):
         frame = _synthetic_features("2024-01-01", "2024-12-31")
-        outer = list(walk_forward_splits(frame, label_horizon=1, embargo_bars=1))
+        outer = list(walk_forward_splits(frame, label_horizon=1, embargo_bars=1))  # R-9 exemption: label-free synthetic splitter fixture
         train_indices = outer[-1][0]
         expected_inner = len(
             list(
@@ -591,8 +590,8 @@ class TestSingleCandidateGrid(unittest.TestCase):
                     train_indices,
                     initial_train_months=6,
                     test_months=1,
-                    label_horizon=1,
-                    embargo_bars=1,
+                    label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                    embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
                 )
             )
         )
@@ -607,8 +606,8 @@ class TestSingleCandidateGrid(unittest.TestCase):
                     task=CLASSIFICATION,
                     feature_columns=BASELINE_FEATURE_COLUMNS,
                     label_column="Label",
-                    label_horizon=1,
-                    embargo_bars=1,
+                    label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                    embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
                     random_state=42,
                 )
 
@@ -620,7 +619,7 @@ class TestSingleCandidateGrid(unittest.TestCase):
 
     def test_the_full_grid_costs_one_fit_per_point_per_inner_fold(self):
         frame = _synthetic_features("2024-01-01", "2024-12-31")
-        outer = list(walk_forward_splits(frame, label_horizon=1, embargo_bars=1))
+        outer = list(walk_forward_splits(frame, label_horizon=1, embargo_bars=1))  # R-9 exemption: label-free synthetic splitter fixture
         train_indices = outer[-1][0]
         grid_points = len(estimators.param_grid_points("logistic", task=CLASSIFICATION))
         expected_inner = len(
@@ -630,8 +629,8 @@ class TestSingleCandidateGrid(unittest.TestCase):
                     train_indices,
                     initial_train_months=6,
                     test_months=1,
-                    label_horizon=1,
-                    embargo_bars=1,
+                    label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                    embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
                 )
             )
         )
@@ -644,8 +643,8 @@ class TestSingleCandidateGrid(unittest.TestCase):
                 task=CLASSIFICATION,
                 feature_columns=BASELINE_FEATURE_COLUMNS,
                 label_column="Label",
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
                 random_state=42,
             )
 
@@ -714,13 +713,13 @@ class TestNestedWalkForward(unittest.TestCase):
             label_column="Label",
             task=CLASSIFICATION,
             name="logistic",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+            embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             random_state=42,
         )
 
     def test_covered_positions_equal_the_concatenated_outer_test_indices(self):
-        outer = list(walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1))
+        outer = list(walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1))  # R-9 exemption: label-free synthetic splitter fixture
         expected = np.concatenate([test_idx for _, test_idx in outer])
         np.testing.assert_array_equal(self.covered, expected)
 
@@ -735,7 +734,7 @@ class TestNestedWalkForward(unittest.TestCase):
         self.assertEqual(str(self.predictions.dtype), "Int64")
 
     def test_one_result_row_per_outer_fold(self):
-        outer = list(walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1))
+        outer = list(walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1))  # R-9 exemption: label-free synthetic splitter fixture
         self.assertEqual(len(self.fold_results), len(outer))
         self.assertEqual(
             self.fold_results["Fold"].tolist(), list(range(1, len(outer) + 1))
@@ -784,8 +783,8 @@ class TestNestedWalkForward(unittest.TestCase):
                 label_column="Label",
                 task=CLASSIFICATION,
                 name="logistic",
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+                embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
                 random_state=42,
             )
         self.assertIn("no folds", str(caught.exception))
@@ -794,8 +793,8 @@ class TestNestedWalkForward(unittest.TestCase):
         common = dict(
             feature_columns=BASELINE_FEATURE_COLUMNS,
             label_column="Label",
-            label_horizon=1,
-            embargo_bars=1,
+            label_horizon=1,  # R-9 exemption: label-free synthetic splitter fixture
+            embargo_bars=1,  # R-9 exemption: label-free synthetic splitter fixture
             random_state=42,
         )
         with self.assertRaises(ValueError):
@@ -851,38 +850,22 @@ class TestDeterminism(unittest.TestCase):
 
 
 class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
-    """T015 — tuning is the only possible source of divergence. (SC-006)
+    """A one-point tuner matches the in-contract untuned logistic loop.
 
-    Spec 010's FR-006 already pinned the *untuned* loop against
-    `logistic_baseline.walk_forward_predictions`. Restricting the grid to the
-    single point that baseline constructs (`C=1.0`, the scikit-learn default
-    it gets by not passing `C` at all) removes selection from the picture, so
-    any later divergence is attributable to the tuner and nothing else.
-
-    **On the fixture.** These run on a learnable frame — real price-walk
-    features from `build_features` — and not on `_synthetic_features`, whose
-    random features and alternating labels give a model nothing to fit. Spec
-    010's plan recorded that a "fit once and reuse across folds" defect
-    survived an output-equality test on that fixture: with nothing learnable,
-    every fold fits near-identical coefficients, so equality proves the loop
-    produced *some* logistic predictions, not that it produced per-fold ones.
-    `test_the_fixture_discriminates_between_folds` guards the fixture itself,
-    and `test_one_outer_fit_per_fold_on_top_of_the_tuning_fits` adds the
-    structural check that output equality cannot supply.
-
-    `features.LEVEL_FEATURE_COLUMNS` and `logistic_baseline.SCALE_FREE_FEATURE_COLUMNS`
-    are the same five names (`test_targets.py` asserts it), which is what lets
-    `walk_forward_predictions` run on a `build_features` frame at all — so
-    this fixture is built with `feature_set="levels"`, and every call below
-    passes `scale=False`. Spec 014 changed both defaults; the control was
-    measured under neither, and saying so here is what keeps the goalpost
-    where `docs/PROJECT_CONTEXT.md` recorded it.
+    `test_estimators.py::test_matches_logistic_baseline_element_for_element`
+    links that untuned loop to the frozen pre-019 control on label-agnostic
+    synthetic frames. This price-derived fixture uses the 019 full calendar,
+    train-eligible masks, level columns, and returned label span. It separates
+    first and last fold fits so output equality cannot pass vacuously.
     """
 
     def setUp(self):
         self.frame = _learnable_frame(kind="direction", feature_set="levels")
+        self.span = self.frame.attrs["label_availability_span"]
         self.outer = list(
-            walk_forward_splits(self.frame, label_horizon=1, embargo_bars=1)
+            walk_forward_splits(
+                self.frame, label_horizon=self.span, embargo_bars=self.span
+            )
         )
         self.assertGreater(len(self.outer), 1)
 
@@ -890,6 +873,8 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
         """If every fold fit alike, the equality tests below prove nothing."""
         coefficients = []
         for train_indices, _ in self.outer:
+            eligible = self.frame["Train_Eligible"].to_numpy(dtype=bool)
+            train_indices = train_indices[eligible[train_indices]]
             model = estimators.build_estimator(
                 "logistic",
                 task=CLASSIFICATION,
@@ -907,8 +892,22 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
             "fixture is not discriminating: first and last fold fit alike",
         )
 
-    def test_single_point_grid_reproduces_the_baseline_element_for_element(self):
-        expected = walk_forward_predictions(self.frame)
+    def _untuned_predictions(self):
+        return estimators.fit_predict_walk_forward(
+            self.frame,
+            feature_columns=LEVEL_FEATURE_COLUMNS,
+            label_column="Label",
+            task=CLASSIFICATION,
+            name="logistic",
+            params={"C": 1.0},
+            scale=False,
+            label_horizon=self.span,
+            embargo_bars=self.span,
+            random_state=42,
+        )
+
+    def test_single_point_grid_reproduces_the_untuned_loop_element_for_element(self):
+        expected = self._untuned_predictions()
 
         with _grid("logistic", CLASSIFICATION, {"C": [1.0]}):
             actual, _covered, results = nested_walk_forward(
@@ -917,8 +916,8 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
                 label_column="Label",
                 task=CLASSIFICATION,
                 name="logistic",
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=self.span,
+                embargo_bars=self.span,
                 random_state=42,
                 scale=False,
             )
@@ -945,8 +944,8 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
                     inner_splits_over(
                         self.frame,
                         train_indices,
-                        label_horizon=1,
-                        embargo_bars=1,
+                        label_horizon=self.span,
+                        embargo_bars=self.span,
                     )
                 )
             )
@@ -962,9 +961,10 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
                     label_column="Label",
                     task=CLASSIFICATION,
                     name="logistic",
-                    label_horizon=1,
-                    embargo_bars=1,
+                    label_horizon=self.span,
+                    embargo_bars=self.span,
                     random_state=42,
+                    scale=False,
                 )
 
         self.assertEqual(len(calls), expected_inner + len(self.outer))
@@ -972,7 +972,7 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
     def test_null_placement_matches_too(self):
         # Separate from value equality: a loop that predicted everywhere
         # would still match on the covered rows.
-        expected = walk_forward_predictions(self.frame)
+        expected = self._untuned_predictions()
         with _grid("logistic", CLASSIFICATION, {"C": [1.0]}):
             actual, _covered, _results = nested_walk_forward(
                 self.frame,
@@ -980,8 +980,8 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
                 label_column="Label",
                 task=CLASSIFICATION,
                 name="logistic",
-                label_horizon=1,
-                embargo_bars=1,
+                label_horizon=self.span,
+                embargo_bars=self.span,
                 random_state=42,
                 scale=False,
             )

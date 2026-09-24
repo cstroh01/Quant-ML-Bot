@@ -334,8 +334,8 @@ hand-derived values.
     - Each fold's scaler is fitted on that fold's train-eligible rows.
     - `test_scaler_statistics_differ_from_the_whole_frame` stays as the internal control.
 - [x] T035 [US2] In `tests/test_feature_scaling.py`, the C2 tests: the four in `TestScalingChangesTheAnswer` and `TestScaleReachesEveryFit`. Take the span from `frame.attrs["label_availability_span"]`; the local `_frame` helper may also return it. Pass it as purge and embargo. Depends on T034.
-- [ ] T036 [US4] **(a) open, see Evidence → PR-D: the mutant as specified survives.** Red evidence, recorded in [Evidence → PR-D](#pr-d-lane-d):
-  - **(a) `TestNonFiniteGuard`.** An in-memory mutant of `features.py` drops the ±inf → NaN replacement at `:174-175`. The guard fails and the `levels` control passes.
+- [x] T036 [US4] Red evidence, recorded in [Evidence → PR-D](#pr-d-lane-d):
+  - **(a) `TestNonFiniteGuard`.** An in-memory mutant of `features.py` drops the ±inf → NaN replacement at `:174-175`. The zero-only fixture cannot reach infinity because 0/0 is already NaN. The added positive subnormal-volume row reaches +inf by underflow of its trailing mean; its guard fails, and the `levels` control passes.
   - **(b) `TestScalerIsFitOnTrainingRowsOnly`.** The planted defect fits the scaler on the whole frame. The gate fails.
 - [x] T037 [US1] In `tests/test_reports_api.py::test_ml_rundown` only, closing finding 23's consumer half (FR-018):
   - Assert `data["as_of_date"]` equals the last `Date` of the fixture panel's AAPL rows, formatted `YYYY-MM-DD`.
@@ -390,20 +390,20 @@ only**.
 
 **Precondition:** T002(b), D-2 signed, **and** PR-C and PR-E both merged.
 
-- [ ] T044 [US1] Re-read spec.md D-2 as signed.
+- [x] T044 [US1] Re-read spec.md D-2 as signed.
   - If Camden amended it, stop and update research.md R-8 and this phase before editing.
   - Snapshot the two files (T003).
-- [ ] T045 [US1] In `tests/test_targets.py::TestEquivalenceWithLogisticBaseline`, per R-8:
+- [x] T045 [US1] In `tests/test_targets.py::TestEquivalenceWithLogisticBaseline`, per R-8:
   - Keep `test_level_feature_columns_match` and `test_the_default_feature_set_is_not_the_level_set`.
   - Replace `test_direction_label_matches_the_baseline_label` with `test_label_divergence_from_the_pre_019_control_is_exactly_the_open_basis`. Use a hand-worked frame with a row where `Close[t+1] > Close[t]` but `Open[t+2] < Open[t+1]`.
   - Replace `test_build_features_reproduces_the_baseline_frame` with `test_baseline_rows_are_a_date_subset_of_the_full_calendar_frame`. The shared level columns must be equal on those rows.
   - Rewrite the class docstring and the module docstring: the control is frozen pre-019, and the divergence is pinned.
-- [ ] T046 [US1] In `tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline`, per R-8:
+- [x] T046 [US1] In `tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline`, per R-8:
   - The reference becomes `estimators.fit_predict_walk_forward(name="logistic", task=CLASSIFICATION, params={"C": 1.0}, scale=False, label_horizon=span, embargo_bars=span, random_state=42)`.
   - The fixture-discrimination guard fits train-eligible rows.
   - `test_one_outer_fit_per_fold_on_top_of_the_tuning_fits` uses the span.
   - Rewrite the class docstring. It names the chain via `test_estimators.py:212`, and drops the claim that it pins `logistic_baseline.walk_forward_predictions` directly.
-- [ ] T047 [US4] Red evidence, recorded in [Evidence → PR-G](#pr-g-lane-g):
+- [x] T047 [US4] Red evidence, recorded in [Evidence → PR-G](#pr-g-lane-g):
   - **(a) Divergence.** An in-memory mutant of `targets._executable_endpoints` returns close-based endpoints. The divergence test fails.
   - **(b) Tuner equivalence.** An in-memory mutant of `model_cv.tune_on_fold` returns `{"C": 0.5}`. The equivalence test fails.
   - The controls pass for both.
@@ -418,25 +418,25 @@ criterion holds.
 
 **Precondition:** every PR-A to PR-G merged.
 
-- [ ] T049 [US1] Run quickstart.md §5. The failing IDs in `final.xml` must equal the 21 residual IDs in research.md R-1, with zero errors outside them (SC-001).
+- [x] T049 [US1] Run quickstart.md §5. The failing IDs in `final.xml` must equal the 21 residual IDs in research.md R-1, with zero errors outside them (SC-001).
   - Any extra ID is a 021 defect. Fix it in the owning lane's file.
   - Any residual ID that is now passing: record which owner landed it.
-- [ ] T050 [P] [US2] Run quickstart.md §4's grep (SC-002). Every hit must carry an exemption comment.
-- [ ] T051 [P] [US1] Check the collected count (SC-006). It must be ≥ the T001 count, minus the D-2 replacements, plus the new tests. List every rename and replacement from lanes A–G in [Evidence → Gate](#gate).
+- [x] T050 [P] [US2] Run quickstart.md §4's grep (SC-002). Every hit must carry an exemption comment.
+- [x] T051 [P] [US1] Check the collected count (SC-006). It must be ≥ the T001 count, minus the D-2 replacements, plus the new tests. List every rename and replacement from lanes A–G in [Evidence → Gate](#gate).
 - [ ] T052 [P] [US1] Re-run the T004 fingerprints. Every digest must be unchanged (FR-019, FR-020).
-- [ ] T053 [P] [US4] Confirm the Evidence section has a red outcome and a green control for every gate in research.md R-10 (SC-003).
-- [ ] T054 [P] [US5] Re-read every docstring and comment in the touched files against C1–C7 (FR-017).
+- [x] T053 [P] [US4] Confirm the Evidence section has a red outcome and a green control for every gate in research.md R-10 (SC-003).
+- [x] T054 [P] [US5] Re-read every docstring and comment in the touched files against C1–C7 (FR-017).
 
 ---
 
 ## Phase 10: Polish and handoff
 
-- [ ] T055 In [Evidence → Handoff](#handoff), record the inputs for the follow-ons, so each starts from facts rather than re-triage. **Do not create those specs.** Camden assigns numbers.
+- [x] T055 In [Evidence → Handoff](#handoff), record the inputs for the follow-ons, so each starts from facts rather than re-triage. **Do not create those specs.** Camden assigns numbers.
   - **Rename** (research.md R-3, "What the follow-on inherits"): the call sites, now all span variables, and the three legacy `attrs` fallbacks.
   - **Frozen files** (spec D-5): the `:367` and `:428` NaN-label scoring; `multi_ticker_comparison`'s capital and policy gap at `:133`, `:141` and `:269`; its 020 loader at `:230`.
   - **Docs and Rule 11** (spec D-7): the `PROJECT_CONTEXT.md` passages.
   - **020 wiring:** the two entry points that now stop on 020's named reason.
-- [ ] T056 Update spec.md's **Status** line. Name the merged PRs, the final baseline numbers, and the residual count.
+- [x] T056 Update spec.md's **Status** line. Name the merged PRs, the final baseline numbers, and the residual count.
 
 ---
 
@@ -546,34 +546,42 @@ real output; never summarize a run you did not make.
 
 | Region / file | SHA-256 at T004 | SHA-256 at T052 |
 |---|---|---|
-| `tests/test_backtest_harness.py::make_signalled_prices` | `6cb623eef88bff4b…` | |
-| `tests/test_ma_crossover_backtest.py::COSTS` | `2e09810d01cef672…` | |
-| `tests/test_ma_crossover_backtest.py::make_prices` | `a27c4a368df05181…` | |
-| `tests/test_ma_crossover_backtest.py::sawtooth_prices` | `8b12175087a46c59…` | |
-| `tests/test_logistic_baseline.py::_synthetic_features` | `3ee48868c980dd7f…` | |
-| `scripts/logistic_baseline.py::FEATURE_COLUMNS` | `7f16a355f78ed532…` | |
-| `scripts/logistic_baseline.py::SHORT_WINDOW` | `0bdc96b33acbafad…` | |
-| `scripts/logistic_baseline.py::LONG_WINDOW` | `88273bfff5ea5c01…` | |
-| `scripts/logistic_baseline.py::VOLATILITY_WINDOW` | `a781d06afac1adcb…` | |
-| `scripts/logistic_baseline.py::build_features` | `591d1dc1842879e4…` | |
-| `scripts/logistic_baseline.py::evaluate_walk_forward` | `0c8cc808f9b1e3e2…` | |
-| `scripts/logistic_baseline.py::walk_forward_predictions` | `1dfb952abb624e73…` | |
-| `scripts/logistic_baseline.py::_signal_from_predictions` | `86958020aa3369fd…` | |
-| `scripts/logistic_baseline.py::build_ml_signal` | `27e37b4c09919ce4…` | |
-| `scripts/backtest_harness.py` | `84dce49de93fd03b…` | |
-| `scripts/targets.py` | `2b455778e3b150e5…` | |
-| `scripts/features.py` | `3aea331409667b1b…` | |
-| `scripts/estimators.py` | `884ec1c1c0c3b72a…` | |
-| `scripts/model_cv.py` | `ece3ce1b4a6cf0e7…` | |
-| `scripts/walk_forward_cv.py` | `2744be2e971947cd…` | |
-| `scripts/metrics.py` | `af42f6074cb4ea99…` | |
-| `scripts/ml_signal.py` | `aeb766e8b15bf219…` | |
-| `scripts/feature_set_comparison.py` | `de1e53acb2382074…` | |
-| `scripts/multi_ticker_comparison.py` | `5ef8d26d2245e30a…` | |
-| `reports/api/routes/backtest.py` | `c7c8a3d164d5ef7c…` | |
-| `requirements.txt` | `816ab9586ad6f145…` | |
-| `requirements-dev.txt` | `39a274047a205e6e…` | |
-| `docs/PROJECT_CONTEXT.md` | `b3aea859acb06db5…` | |
+| `tests/test_backtest_harness.py::make_signalled_prices` | `6cb623eef88bff4b…` | matches T004 prefix |
+| `tests/test_ma_crossover_backtest.py::COSTS` | `2e09810d01cef672…` | matches T004 prefix |
+| `tests/test_ma_crossover_backtest.py::make_prices` | `a27c4a368df05181…` | matches T004 prefix |
+| `tests/test_ma_crossover_backtest.py::sawtooth_prices` | `8b12175087a46c59…` | matches T004 prefix |
+| `tests/test_logistic_baseline.py::_synthetic_features` | `3ee48868c980dd7f…` | matches T004 prefix |
+| `scripts/logistic_baseline.py::FEATURE_COLUMNS` | `7f16a355f78ed532…` | matches T004 prefix |
+| `scripts/logistic_baseline.py::SHORT_WINDOW` | `0bdc96b33acbafad…` | matches T004 prefix |
+| `scripts/logistic_baseline.py::LONG_WINDOW` | `88273bfff5ea5c01…` | matches T004 prefix |
+| `scripts/logistic_baseline.py::VOLATILITY_WINDOW` | `a781d06afac1adcb…` | matches T004 prefix |
+| `scripts/logistic_baseline.py::build_features` | `591d1dc1842879e4…` | matches T004 prefix |
+| `scripts/logistic_baseline.py::evaluate_walk_forward` | `0c8cc808f9b1e3e2…` | matches T004 prefix |
+| `scripts/logistic_baseline.py::walk_forward_predictions` | `1dfb952abb624e73…` | matches T004 prefix |
+| `scripts/logistic_baseline.py::_signal_from_predictions` | `86958020aa3369fd…` | matches T004 prefix |
+| `scripts/logistic_baseline.py::build_ml_signal` | `27e37b4c09919ce4…` | matches T004 prefix |
+| `scripts/backtest_harness.py` | `84dce49de93fd03b…` | matches T004 prefix |
+| `scripts/targets.py` | `2b455778e3b150e5…` | matches T004 prefix |
+| `scripts/features.py` | `3aea331409667b1b…` | matches T004 prefix |
+| `scripts/estimators.py` | `884ec1c1c0c3b72a…` | `d8bcfc703ebfda8b…` (drift before this close-out) |
+| `scripts/model_cv.py` | `ece3ce1b4a6cf0e7…` | `f0bf4df33159f2f4…` (drift before this close-out) |
+| `scripts/walk_forward_cv.py` | `2744be2e971947cd…` | matches T004 prefix |
+| `scripts/metrics.py` | `af42f6074cb4ea99…` | matches T004 prefix |
+| `scripts/ml_signal.py` | `aeb766e8b15bf219…` | matches T004 prefix |
+| `scripts/feature_set_comparison.py` | `de1e53acb2382074…` | `c11a845410ce7211…` (drift before this close-out) |
+| `scripts/multi_ticker_comparison.py` | `5ef8d26d2245e30a…` | `9865eb527f1b10e9…` (drift before this close-out) |
+| `reports/api/routes/backtest.py` | `c7c8a3d164d5ef7c…` | `9a6b6eace184a883…` (drift before this close-out) |
+| `requirements.txt` | `816ab9586ad6f145…` | matches T004 prefix |
+| `requirements-dev.txt` | `39a274047a205e6e…` | matches T004 prefix |
+| `docs/PROJECT_CONTEXT.md` | `b3aea859acb06db5…` | `47cc9a072534691a…` (drift before this close-out) |
+
+T052 re-ran the exact AST source-segment and whole-file SHA-256 methods from
+T004. All other recorded prefixes match, including every frozen fixture and
+every frozen `logistic_baseline.py` region. Six whole-file digests above no
+longer match T004; these files were not edited in this close-out. The historical
+"every digest unchanged" condition therefore remains unsatisfied.
+Camden directed on 2026-09-23 to leave T052 open, with no replacement
+baseline for those six files.
 
 ### PR-B (lane B)
 
@@ -610,8 +618,8 @@ real output; never summarize a run you did not make.
 |---|---|---|---|
 | T031 on pre-fix code | both measures: `does not match "SVD did not converge"` | | |
 | T033 non-finite refusal | refusal disabled (`if False:`): KILLED | complete rows measure: pass | |
-| **T036(a) as specified** | drop ±inf→NaN at `features.py:174-175`: **SURVIVED**. On non-negative data every ratio is 0/0 = NaN (trailing mean includes the current row), so inf is unreachable and the replacement is dead code | `levels` control pass | |
-| T036(a) substitute (not yet accepted) | impute undefined ratio as 0.0: KILLED, `rel_volume.isna().all()` false | pass | |
+| T036(a), original zero-only fixture | drop ±inf→NaN at `features.py:174-175`: **SURVIVED** because 0/0 is already NaN | `levels` control pass | |
+| T036(a), added positive subnormal row | `killed(features, 'features[column] = features[column].replace([np.inf, -np.inf], np.nan)', 'features[column] = features[column]', oracle)` → **KILLED**: `Rel_Volume at row 129 must be NaN`. Minimum positive float / rounded-zero 30-row mean reaches +inf. Source digest unchanged. | unmutated guard and `levels` control pass; `3 passed` in `TestNonFiniteGuard` | +23 incremental |
 | T036(b) scaler fit | fit on the whole eligible frame in `estimators`: KILLED, assert_allclose mismatch. Test now reads the production fit site via `fit_predict_walk_forward` (deviation from T034) | `…_differ_from_the_whole_frame` pass | |
 | T037 rundown | `features_df.iloc[-2]`: KILLED, `'2024-03-22' != '2024-03-25'` | | |
 | Focused run | `69 passed, 1 deselected, 58 subtests`; 17/17 R-1 rows pass; `test_reports_api.py` single hunk `@@ -136,6 +136,13 @@` in `test_ml_rundown` | | diagnostics 42, feature_scaling 241, reports_api 7 = **290** |
@@ -629,18 +637,37 @@ real output; never summarize a run you did not make.
 
 | Gate / check | Red | Green control | Lines |
 |---|---|---|---|
+| T044 | D-2 approval re-read in T002; `test_targets.py` and `test_model_cv.py` snapshotted to scratch before edits | pre-edit equivalence classes: `6 failed, 2 passed` | |
+| T047(a) executable endpoint | in-memory `_executable_endpoints` mutant `return prices.Close, prices.Close.shift(-1)` → **KILLED** by pinned divergence test; source digest unchanged | unmutated divergence test passes | |
+| T047(b) tuner result | in-memory `model_cv.tune_on_fold` wrapper returns `{'C': 0.5}` → **KILLED**, `{'C': 0.5} != {'C': 1.0}` | unmutated one-point equivalence passes | |
+| Focused run | `python -m pytest tests/test_targets.py::TestEquivalenceWithLogisticBaseline tests/test_model_cv.py::TestEquivalenceWithLogisticBaseline tests/test_feature_scaling.py::TestNonFiniteGuard -q --tb=short` → `11 passed`; all six gated R-1 IDs cleared | | target and CV edits below 400 lines combined |
 
 ### Gate
 
 | Criterion | Result |
 |---|---|
-| SC-001: failing set = residual (21) | |
-| SC-002: grep hits all exempt | |
-| SC-003: every R-10 gate has red and green | |
-| SC-004: 20/20 seeds, buy-and-hold 1 trade, stated once | |
-| SC-005: every PR ≤ 400 lines | |
-| SC-006: collected count, with renames and replacements listed | |
-| SC-007: no metric quoted in any PR | |
+| SC-001: failing set = residual (21) | `python -m pytest tests -q --tb=no --junitxml=C:\Users\Owner\AppData\Local\Temp\spec021-finish-20260923\final-stable.xml` → `12 failed, 840 passed, 9 errors, 1386 subtests passed in 359.38s`. XML set: 21 actual = 21 R-1 residual; unexpected `[]`, missing `[]`. Against spec-034's 18/833/9 baseline: six exact old equivalence IDs cleared; no new failing or error ID; +7 passes includes the new T036 guard. The subsequent SC-002 edit changed comments and replaced two literal widths with the same named value; its affected focused tests passed. |
+| SC-002: grep hits all exempt | Initial raw grep had 70 hits. After replacing the hand-built label test's two literals with a named `split_width` and annotating every remaining hit: 68 lines (17 `test_estimators`, 44 `test_model_cv`, 5 `test_feature_scaling`, 2 `test_targets`, 0 `test_ml_signal`), with zero unannotated. Fourteen lines are forecast `h` passed to `build_features`, not purge; 54 literal CV lines are on R-9's label-free synthetic fixture. `ast.parse` passed for all five files, and the affected focused run was `12 passed`. No price-derived CV literal was found. |
+| SC-003: every R-10 gate has red and green | PR-B T007/T012, PR-C T028, PR-D T033/T036, PR-E T042, and PR-G T047 have a killed mutant plus a passing control. The old zero-only T036 mutant survival is preserved as diagnostic evidence; its new subnormal case kills the specified mutant. |
+| SC-004: 20/20 seeds, buy-and-hold 1 trade, stated once | `python -m pytest tests/test_ma_crossover_backtest.py -k "baseline or random or stated_once" -q --tb=short` → `8 passed, 4 deselected`; PR-B's count/format tests provide the assertions. |
+| SC-005: every lane ≤ 400 lines | Recorded A 322, B 307, C 170. D recorded 290 plus 33 incremental = 323. E recorded 135 plus at most 122 SC-002 changed lines and the named-width edit, still below 400. G's two-file snapshot diff after SC-002 comments = 276 changed lines (added and removed). |
+| SC-006: collected count, with renames and replacements listed | `python -m pytest tests --collect-only -q` → `861 tests collected`; spec-034's immediately preceding full run collected 860. D-2 replaced four old test names with four new names and retained four other class cases; T036 added one collected test. See replacement list below. |
+| SC-007: no metric quoted in any PR | No spec-021 PR exists in the queried GitHub PR list (2026-09-23). This handoff reports test counts only, no strategy metric. |
+
+SC-006 replacement ledger (no test silently deleted): B replaced the forced
+terminal-close test with explicit-liquidation semantics and the empty-frame
+test with the harness-refusal test; A renamed terminal-close costs, non-range
+index, and final-bar forced-flat tests; C renamed the returned-horizon,
+last-horizon-null, overlong-empty-frame, close-label, nonpositive-close, and
+missing-close tests to their span/open/full-calendar counterparts; D renamed
+the dropped-zero-volume test to NaN-and-ineligible; E renamed the
+task-and-horizon assertion to task-and-span. G replaced
+`test_direction_label_matches_the_baseline_label` with
+`test_label_divergence_from_the_pre_019_control_is_exactly_the_open_basis`,
+`test_build_features_reproduces_the_baseline_frame` with
+`test_baseline_rows_are_a_date_subset_of_the_full_calendar_frame`, and
+`test_single_point_grid_reproduces_the_baseline_element_for_element` with
+`test_single_point_grid_reproduces_the_untuned_loop_element_for_element`.
 
 ### Handoff
 
@@ -664,3 +691,30 @@ It carries a **Rule 4 compliance blocker**, not a known limitation:
   `:428`) cast `<NA>` labels to int over covered rows. Not fixed in 021: the
   file is frozen, and a test-side fix would hide it. Recommended fix: score
   only rows with a known label, and report the unscored count.
+
+**TODO(spec-NNN, number assigned by Camden): purge/span naming follow-on.**
+Research R-3 defers two distinct keyword renames: the forecast input
+`build_features(label_horizon=)` becomes `horizon=`, while splitter/tuner purge
+inputs need a name such as `purge_bars=` or `label_availability_span=`.
+Migrated CV call sites now take span variables. Remove three legacy
+`attrs["label_horizon"]` fallbacks (one in `estimators.py`, two in the frozen
+comparison modules), revisit the library docstrings and
+`walk_forward_cv.main()`'s literal demo, and make the span guard unbypassable
+when frame attrs are absent. The frozen pre-019 logistic control remains a
+separate decision.
+
+**TODO(spec-NNN, number assigned by Camden): docs and 020 wiring.**
+`docs/PROJECT_CONTEXT.md` still has the old spec-014 comparison at `:262-275`,
+the AAPL run at `:441-446`, contract prose at `:349-357`, literal purge and
+embargo examples at `:428` and `:482-483`, and a terminal-close statement at
+`:631`. Rule 11 requires the missing source artifacts to be regenerated or
+these figures removed before that document is touched. Both
+`ma_crossover_backtest.main()` and `logistic_baseline.main()` now move past
+019's missing-capital check but still require spec 020's declared unadjusted
+dollar-price loader; the named failure is `funded ledger requires declared
+unadjusted dollar prices`. The `ma_crossover_backtest.py` data source is not
+changed in this spec.
+
+**Close-out limits.** The GitHub PR list has no merged spec-021 PR; PR-A–PR-G
+are labels in this task record. T052's six historical frozen-file digest
+mismatches remain open. The full-suite residual ID and SC-002 grep gates pass.

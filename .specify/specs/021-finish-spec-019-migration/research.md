@@ -546,7 +546,7 @@ it must take the span from `build_target` (FR-004).
 | `TestOffByOne` pair (`test_targets.py:214-280`) | `Open` | Already re-armed. **Do not regress.** Lane C re-runs `TestOffByOneGuardsFireOnARealBug` | Unmutated `targets.py` passes |
 | `TestScalerIsFitOnTrainingRowsOnly` | scaler `mean_` / `scale_` of train-eligible rows | Fit the scaler on the whole frame | Per-fold fit passes. `…_differ_from_the_whole_frame` stays as the internal control |
 | `TestTuneOnFoldIsolation` | labels and features outside `outer_train_indices` | Let `inner_splits_over` see one outside row | `…_would_be_visible_if_it_leaked` stays green |
-| `TestNonFiniteGuard` | `Rel_Volume` on zero-volume rows | Stop the ±inf → NaN replacement (`features.py:174-175`) | `levels` keeps the rows eligible |
+| `TestNonFiniteGuard` | `Rel_Volume` on zero-volume rows and a positive subnormal-volume row | Stop the ±inf → NaN replacement (`features.py:174-175`). Exact zero gives 0/0 = NaN already; minimum positive float divided by its 30-row mean rounded to zero reaches +inf and kills this mutant. | `levels` keeps both rows eligible |
 | `feature_diagnostics` non-finite refusal (new) | `standardized_matrix` input | Feed one NaN row | Complete rows measure |
 | `random_signal` same-row guard (new) | `Buy_Next_Open` & `Sell_Next_Open` per row | `spread = h - 1` | Unmutated passes |
 | Random-baseline count guard (FR-012) | `len(random_summaries)` | Make `random_signal` raise for every seed | Unmutated gives 20 |

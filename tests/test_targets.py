@@ -1,9 +1,8 @@
-"""Tests for scripts/targets.py and scripts/features.py (spec 009).
+"""Tests for targets and features under the spec 019 executable-open contract.
 
-The equivalence tests against `logistic_baseline` are the load-bearing ones:
-its AAPL result is the control every Phase 3 comparison is measured against,
-so a silent divergence here would move the goalpost without anything saying
-so.
+The pre-019 `logistic_baseline` control stays frozen. Its shared level features
+must agree by date, while its close-based label and retained-row policy have
+explicitly pinned differences from the full-calendar 019 frame.
 """
 
 import ast
@@ -349,7 +348,7 @@ class TestBoundaries(unittest.TestCase):
         unknown); the third value is the span 300 + 1 = 301 (C2).
         """
         frame, task, span = build_features(
-            _walk(60), target_kind="direction", label_horizon=300
+            _walk(60), target_kind="direction", label_horizon=300  # SC-002: forecast h, not a purge width
         )
         self.assertEqual(len(frame), 60)
         self.assertFalse(frame.Train_Eligible.any())
@@ -480,12 +479,7 @@ class TestGapCase(unittest.TestCase):
 
 
 class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
-    """SC-001 / SC-002 — the committed control result is not moved.
-
-    `docs/PROJECT_CONTEXT.md` quotes an AAPL result produced by
-    `logistic_baseline.build_features`. If the new path diverges from it,
-    every Phase 3 comparison is against a moved goalpost and nothing says so.
-    """
+    """Pin the exact contract divergence from the frozen pre-019 control."""
 
     def setUp(self):
         self.prices = _walk(200)
@@ -507,47 +501,71 @@ class TestEquivalenceWithLogisticBaseline(unittest.TestCase):
         self.assertEqual(feature_columns(), SCALE_FREE_FEATURE_COLUMNS)
         self.assertNotEqual(feature_columns(), LEVEL_FEATURE_COLUMNS)
 
-    def test_direction_label_matches_the_baseline_label(self):
-        """SC-001 — element for element, dtype included."""
+    def test_label_divergence_from_the_pre_019_control_is_exactly_the_open_basis(self):
+        """The control reads next Close; 019 reads entry and exit Open."""
         import logistic_baseline
 
-        old = logistic_baseline.build_features(self.prices)
-        new_label = direction_label(self.prices, horizon=1)
+        prices = pd.DataFrame({
+            "Date": pd.bdate_range("2024-01-02", periods=80),
+            "Close": 100.0 + np.arange(80, dtype=float),
+            "Open": 101.0 + np.arange(80, dtype=float),
+            "Volume": np.full(80, 1_000_000),
+        })
+        prices.loc[32, "Open"] = 90.0
+        old = logistic_baseline.build_features(prices)
+        new_label = direction_label(prices, horizon=1)
+        positions = pd.Index(prices["Date"]).get_indexer(old["Date"])
+        self.assertTrue((positions >= 0).all())
+        old_label = old[LABEL_COLUMN].reset_index(drop=True)
+        aligned = new_label.iloc[positions].reset_index(drop=True)
 
-        # The old frame drops warm-up rows; compare over the rows it kept, by
-        # matching on Date rather than assuming a shared offset.
-        aligned = new_label.reindex(
-            pd.Index(self.prices["Date"]).get_indexer(old["Date"])
-        ).reset_index(drop=True)
-
+        # At t=30, Close[31]=131 > Close[30]=130, while
+        # Open[32]=90 < Open[31]=132. The sole changed Open reverses that row.
+        self.assertEqual(int(old_label.iloc[0]), 1)
+        self.assertEqual(int(aligned.iloc[0]), 0)
+        expected_old = (prices.Close.shift(-1) > prices.Close).astype("Int64")
+        expected_new = (prices.Open.shift(-2) > prices.Open.shift(-1)).astype("Int64")
+        expected_new[prices.Open.shift(-2).isna()] = pd.NA
         pd.testing.assert_series_equal(
-            old[LABEL_COLUMN].reset_index(drop=True),
-            aligned,
+            old_label,
+            expected_old.iloc[positions].reset_index(drop=True),
             check_names=False,
         )
+        pd.testing.assert_series_equal(
+            aligned,
+            expected_new.iloc[positions].reset_index(drop=True),
+            check_names=False,
+        )
+        self.assertEqual(
+            np.flatnonzero(old_label.ne(aligned).fillna(False).to_numpy()).tolist(),
+            [0],
+        )
+        self.assertEqual(aligned.isna().sum(), 1)  # t=78 lacks Open[80].
 
-    def test_build_features_reproduces_the_baseline_frame(self):
-        """SC-002 — every shared column, row for row."""
+    def test_baseline_rows_are_a_date_subset_of_the_full_calendar_frame(self):
+        """019 retains every session; common level features still agree."""
         import logistic_baseline
 
         old = logistic_baseline.build_features(self.prices)
-        new, task, horizon = build_features(
+        new, task, span = build_features(
             self.prices,
             target_kind="direction",
-            label_horizon=1,
+            label_horizon=1,  # SC-002: forecast h, not a purge width
             short_window=logistic_baseline.SHORT_WINDOW,
             long_window=logistic_baseline.LONG_WINDOW,
             volatility_window=logistic_baseline.VOLATILITY_WINDOW,
             feature_set="levels",
         )
 
-        self.assertEqual((task, horizon), ("classification", 1))
-        self.assertEqual(len(new), len(old))
-
-        shared = [column for column in old.columns if column in new.columns]
-        self.assertIn(LABEL_COLUMN, shared)
-        self.assertTrue(set(LEVEL_FEATURE_COLUMNS).issubset(shared))
-        pd.testing.assert_frame_equal(new[shared], old[shared])
+        self.assertEqual((task, span), ("classification", 2))
+        self.assertEqual(len(new), len(self.prices))
+        self.assertLess(len(old), len(new))
+        positions = pd.Index(new["Date"]).get_indexer(old["Date"])
+        self.assertTrue((positions >= 0).all())
+        pd.testing.assert_frame_equal(
+            new.iloc[positions][LEVEL_FEATURE_COLUMNS].reset_index(drop=True),
+            old[LEVEL_FEATURE_COLUMNS].reset_index(drop=True),
+        )
 
 
 class TestRuleOneShape(unittest.TestCase):

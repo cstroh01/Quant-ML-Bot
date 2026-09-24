@@ -100,7 +100,7 @@ def _rescaled(prices: pd.DataFrame, *, price: float, volume: float) -> pd.DataFr
 
 def _frame(prices: pd.DataFrame, *, feature_set: str, kind: str = "return"):
     frame, _task, _span = build_features(
-        prices, target_kind=kind, label_horizon=1, feature_set=feature_set
+        prices, target_kind=kind, label_horizon=1, feature_set=feature_set  # SC-002: forecast h, not a purge width
     )
     return frame
 
@@ -133,7 +133,7 @@ class TestFeatureSetRegistry(unittest.TestCase):
             build_features(
                 _trending_prices(120),
                 target_kind="return",
-                label_horizon=1,
+                label_horizon=1,  # SC-002: forecast h, not a purge width
                 feature_set="nope",
             )
 
@@ -252,14 +252,14 @@ class TestRatioDefinitions(unittest.TestCase):
         prices = _trending_prices()
         default = _frame(prices, feature_set="scale_free")
         explicit, _task, _span = build_features(
-            prices, target_kind="return", label_horizon=1, volume_window=30
+            prices, target_kind="return", label_horizon=1, volume_window=30  # SC-002: forecast h, not a purge width
         )
         np.testing.assert_allclose(
             default["Rel_Volume"].to_numpy(), explicit["Rel_Volume"].to_numpy()
         )
 
         different, _task, _span = build_features(
-            prices, target_kind="return", label_horizon=1, volume_window=90
+            prices, target_kind="return", label_horizon=1, volume_window=90  # SC-002: forecast h, not a purge width
         )
         # No row is dropped (019 C4), so the longer window shows up in
         # eligibility, not length. Warm-up is window - 1 rows: 600 - 29 = 571
@@ -273,7 +273,7 @@ class TestRatioDefinitions(unittest.TestCase):
             build_features(
                 _trending_prices(120),
                 target_kind="return",
-                label_horizon=1,
+                label_horizon=1,  # SC-002: forecast h, not a purge width
                 volume_window=0,
             )
 
@@ -524,6 +524,29 @@ class TestNonFiniteGuard(unittest.TestCase):
         """
         levels = _frame(self.prices, feature_set="levels")
         self.assertTrue(levels.loc[self.zero_window, "Inference_Eligible"].all())
+
+    def test_a_positive_subnormal_volume_cannot_leave_an_infinite_ratio(self):
+        """One positive minimum float divided by a rounded-zero mean is +inf.
+
+        The trailing 30-bar mean at row 129 is min_subnormal / 30, rounded
+        to zero. This reaches the ±inf replacement that a run of exact zeros
+        cannot: zero / zero is already NaN before replacement.
+        """
+        prices = self.prices.copy()
+        row = prices.index[129]
+        prices["Volume"] = prices["Volume"].astype(float)
+        prices.loc[row, "Volume"] = np.nextafter(0.0, 1.0)
+        frame = _frame(prices, feature_set="scale_free")
+        self.assertTrue(
+            np.isnan(frame.loc[row, "Rel_Volume"]),
+            f"Rel_Volume at row {row} must be NaN",
+        )
+        self.assertFalse(
+            bool(frame.loc[row, "Inference_Eligible"]),
+            f"Inference_Eligible at row {row} must be false",
+        )
+        levels = _frame(prices, feature_set="levels")
+        self.assertTrue(bool(levels.loc[row, "Inference_Eligible"]))
 
 
 class TestScalerIsFitOnTrainingRowsOnly(unittest.TestCase):

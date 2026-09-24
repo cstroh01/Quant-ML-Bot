@@ -4,8 +4,13 @@
 
 **Created**: 2026-09-18
 
-**Status**: Draft. Planning only. Nothing is implemented, and no `git` has been run.
-D-2 needs Camden's sign-off before the tasks it gates can start.
+**Status**: Consumer migration implemented locally; D-2 was approved by Camden
+on 2026-09-18. Merged spec-021 PRs: none found in the GitHub PR list on
+2026-09-23 (PR-A–PR-G are lane labels in the task record). Final full-suite
+baseline: 12 failed, 840 passed, 9 errors; exactly 21 R-1 residual IDs.
+SC-002 passes; T052's historical frozen-file digests remain open by Camden's
+2026-09-23 direction; see
+tasks.md Gate and HANDOFF.md. No `git` command was run.
 
 **Input**: Camden, 2026-09-18: "Scope a spec that completes the consumer side of
 spec 019. The library side is done and correct. Production call sites, test

@@ -1,12 +1,43 @@
 # Quant-ML-Bot — Project Context
 
-_Last updated: 2026-09-18_
+_Last updated: 2026-09-23_
 
 ## Known issues
 
 - `scripts/estimators.py` silently truncates continuous labels with `astype(int)`
   on the classification path; `tests/test_estimators.py` pins this current
   behavior until a dedicated spec defines the correction.
+
+## Data vendor access (2026-09-22/23)
+
+Villanova's Gmelich Lab for Financial Markets platforms (FactSet, and by
+extension WRDS/CRSP/Compustat) are under an academic license restricted to
+teaching and academic-research use only — confirmed by Dr. David Ratigan
+(Director, Gmelich Lab, david.ratigan@villanova.edu) after Camden asked
+whether personal-project access outside coursework was possible. **Not
+available for this project.** The lab enforces this actively (a prior
+incident involving an adjunct listing FactSet on a company webpage is why
+they're strict about it), so this is closed, not pending — do not propose
+routing spec 020's unadjusted OHLCV / corporate-actions data or any
+point-in-time fundamentals through WRDS, CRSP, Compustat, or FactSet.
+
+Vendor alternatives identified as viable, non-academic-licensed substitutes
+for spec 020 and later point-in-time-fundamentals work (none yet adopted or
+integrated):
+
+- **Norgate Data** — EOD price data, survivorship-bias-free (includes
+  delisted names), ~$30-80/mo. Best fit for the unadjusted-dollar-price /
+  corporate-actions need spec 020 is blocked on.
+- **Sharadar** (via Nasdaq Data Link or direct) — point-in-time US
+  fundamentals, ~$29+/mo. Closest available substitute for
+  CRSP/Compustat-style PIT fundamentals.
+- yfinance remains the free bridge in `scripts/data.py` for now; it has no
+  survivorship-bias protection and is already flagged as a known gap
+  elsewhere in this doc — not sufficient once spec 020 needs unadjusted
+  dollar prices with corporate actions.
+
+Decision on which paid vendor to adopt is still open; raise before spec 020
+is scoped in detail rather than defaulting to yfinance by inertia.
 
 ## Spec 032 — Live-trading safety layer: BUILT, not through the Merge Gate
 
