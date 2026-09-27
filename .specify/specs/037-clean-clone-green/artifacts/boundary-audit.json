@@ -1,0 +1,45 @@
+{
+  "docs/SCOPE-V1.md": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  "docs/V1-FINISH-PLAN.md": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  "docs/HANDOFF-2026-09-25.md": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  ".specify/memory/constitution.md": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  "CLAUDE.md": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  "README.md": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  "docs/PROJECT_CONTEXT.md": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  "reports/api/routes/capital_gate.py": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  "scripts/order_gateway.py": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  "reports/api/routes/safety.py": {
+    "unchanged_after_removing_authorized_readme_sentence": true
+  },
+  "timeouts": {
+    "test": 20,
+    "web": 10
+  },
+  "inventory": {
+    "flat_script_modules": 31,
+    "license_exists": false,
+    "pyproject_exists": false
+  },
+  "run_id": "spec037-20260926-boundary-audit",
+  "utc": "2026-09-26T18:40:07.321342+00:00",
+  "final_recheck_utc": "2026-09-26T18:49:22.305970+00:00",
+  "final_code_matches_tested_snapshot": true
+}

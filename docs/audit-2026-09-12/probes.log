@@ -1,3 +1,4 @@
+# NOTE: In these frozen 2026-09-12 artifacts, shared_bars uses the OLD definition (bars covered) and is not comparable to a current run.
 {
   "duplicate_column_vif": {
     "a": 0.2499999999999999,

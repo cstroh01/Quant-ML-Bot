@@ -5,9 +5,7 @@ description: "Task list: wire funded-ledger callers to the unadjusted pipeline"
 
 # Tasks: Wire Funded-Ledger Callers to the Unadjusted Pipeline
 
-**Spec number**: NNN, a placeholder. **Camden assigns it** (the 021 T055
-convention). Rename the directory when it is assigned. No test file name
-carries the number, so the rename touches only this directory.
+**Spec number**: 036, assigned by Camden; D-1 through D-7 approved on 2026-09-26.
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md),
 [data-model.md](data-model.md), [contracts/cli-and-api.md](contracts/cli-and-api.md),
@@ -28,7 +26,7 @@ then implement.
 
 ## Phase 0: Gate (blocks everything)
 
-- [ ] T001 Camden signs off on spec D-1 through D-7 (D-7 is recorded here but implemented under spec 020 or the Norgate-adapter spec) and assigns the spec number. Record each answer in the **Status** line of `.specify/specs/NNN-unadjusted-caller-wiring/spec.md`, and rename the directory. Also record a pointer to this spec in the "020 wiring" bullet of spec 021's T055 handoff (`.specify/specs/021-finish-spec-019-migration/tasks.md`). If D-3 is accepted, mark 018 T024 "superseded by NNN" in `.specify/specs/018-terminal-truthfulness/tasks.md`. **Camden's call; an agent does not do this.**
+- [x] T001 Camden signs off on spec D-1 through D-7 (D-7 is recorded here but implemented under spec 020 or the Norgate-adapter spec) and assigns the spec number. Record each answer in the **Status** line of `.specify/specs/036-unadjusted-caller-wiring/spec.md`, and rename the directory. Also record a pointer to this spec in the "020 wiring" bullet of spec 021's T055 handoff (`.specify/specs/021-finish-spec-019-migration/tasks.md`). If D-3 is accepted, mark 018 T024 "superseded by 036" in `.specify/specs/018-terminal-truthfulness/tasks.md`. **Camden's call; an agent does not do this.**
 
 ## Phase 1: Setup
 
@@ -161,7 +159,7 @@ then implement.
 
 ## Phase 6: Polish and gate
 
-- [ ] T019 [P] Update `.specify/specs/NNN-unadjusted-caller-wiring/quickstart.md` if any test name or command changed during implementation.
+- [ ] T019 [P] Update `.specify/specs/036-unadjusted-caller-wiring/quickstart.md` if any test name or command changed during implementation.
 - [ ] T020 Run `python -m pytest tests`. Compare against the T002 baseline, and record the diff in [Evidence → Gate](#gate). The only permitted changes are: `test_backtest_tearsheet` moves from error to pass (if D-3 was accepted), and new tests pass (SC-006).
 - [ ] T021 Run the quickstart §6 manual smoke test against the real, empty `data/cache/unadjusted/`. Record the stderr line and the exit code. Confirm `docs/trials/trials.jsonl` has the same line count before and after (SC-001).
 - [ ] T022 Draft the PR description(s), per CLAUDE.md:
@@ -213,7 +211,11 @@ T001 (Camden) → T002, T003 → T004 → T005 ─┬─→ US1: T006–T009 [P]
 
 ### Baseline
 
-(T002)
+Attempted 2026-09-26 after the required dependency installation.
+
+`python -m pytest tests -q --junitxml=.specify/specs/036-unadjusted-caller-wiring/baseline.xml` stopped during collection: **0 passed / 0 failed / 1 error**, ID `tests/test_multi_ticker_comparison.py`. Line 23 contains byte `0x97` without an encoding declaration. See `baseline.log` and `baseline.xml`. The supplied 886/1 baseline could not be reproduced. T002 remains unchecked; implementation stopped under Camden's protected-file instruction. No production code or test was edited.
+
+Dependency installation exited 0; pip warned that the pre-existing numba 0.65.1 requires numpy<2.5, while the project pins numpy 2.5.2. No dependency files were changed.
 
 ### Mutants
 

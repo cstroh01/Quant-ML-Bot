@@ -1,0 +1,200 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\Owner\AppData\Local\Temp\quant-spec037-20260925\final
+plugins: anyio-4.15.1
+collected 887 items
+
+tests\test_019_calendar.py .......                                       [  0%]
+tests\test_019_conventions.py .....................Synthetic baseline P&L: {'policy': -0.02200000000000557, 'buy_hold': 4.175899999999999} random mean/std: -0.024799999999997446 0.001239694359615175
+.                     [  3%]
+tests\test_019_ledger.py ...........                                     [  4%]
+tests\test_019_metrics.py ......                                         [  5%]
+tests\test_019_prices.py .......                                         [  5%]
+tests\test_019_targets.py ..............                                 [  7%]
+tests\test_020_unadjusted_price_data.py ...............                  [  9%]
+tests\test_033_backfill.py .............                                 [ 10%]
+tests\test_033_dsr.py .....................                              [ 13%]
+tests\test_033_pbo.py ............................                       [ 16%]
+tests\test_033_trial_instrumentation.py ....                             [ 16%]
+tests\test_033_trial_ledger.py ...................................       [ 20%]
+tests\test_backtest_harness.py ....................                      [ 22%]
+tests\test_clean_clone_037.py ........................                   [ 25%]
+tests\test_collection_guards.py .........                                [ 26%]
+tests\test_cost_utils.py ......................                          [ 29%]
+tests\test_data.py ..............................................        [ 34%]
+tests\test_data_pipeline_sanity_check.py ......                          [ 34%]
+tests\test_estimators.py ...............................                 [ 38%]
+tests\test_feature_scaling.py .......................................... [ 43%]
+................                                                         [ 44%]
+tests\test_feature_set_comparison.py ................................... [ 48%]
+......                                                                   [ 49%]
+tests\test_live_safety_gate.py ......................................... [ 54%]
+........................                                                 [ 56%]
+tests\test_logistic_baseline.py .........                                [ 57%]
+tests\test_ma_crossover_backtest.py ............                         [ 59%]
+tests\test_metrics.py .............................                      [ 62%]
+tests\test_ml_signal.py .............................................    [ 67%]
+tests\test_model_cv.py .............................................     [ 72%]
+tests\test_multi_ticker_comparison.py ...........                        [ 73%]
+tests\test_no_fabricated_values.py .......                               [ 74%]
+tests\test_order_gateway.py ......                                       [ 75%]
+tests\test_portfolio_risk.py ........................................... [ 80%]
+........................................................................ [ 88%]
+..........                                                               [ 89%]
+tests\test_reports_api.py F............                                  [ 90%]
+tests\test_return_stats.py ....                                          [ 91%]
+tests\test_safety_router.py ......                                       [ 92%]
+tests\test_signals.py ........................                           [ 94%]
+tests\test_targets.py .................................                  [ 98%]
+tests\test_trial_registry.py ..                                          [ 98%]
+tests\test_walk_forward_cv.py ...........                                [100%]
+
+================================== FAILURES ===================================
+___________________ TestReportsApi.test_backtest_tearsheet ____________________
+
+self = <test_reports_api.TestReportsApi testMethod=test_backtest_tearsheet>
+
+    def test_backtest_tearsheet(self):
+>       response = self.client.get(
+            "/api/backtest/tearsheet?ticker=AAPL&short_window=10&long_window=30&commission=1.0&slippage_bps=5.0"
+        )
+
+tests\test_reports_api.py:104: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+..\test-env\Lib\site-packages\httpx\_client.py:1053: in get
+    return self.request(
+..\test-env\Lib\site-packages\starlette\testclient.py:463: in request
+    return super().request(
+..\test-env\Lib\site-packages\httpx\_client.py:825: in request
+    return self.send(request, auth=auth, follow_redirects=follow_redirects)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\test-env\Lib\site-packages\httpx\_client.py:914: in send
+    response = self._send_handling_auth(
+..\test-env\Lib\site-packages\httpx\_client.py:942: in _send_handling_auth
+    response = self._send_handling_redirects(
+..\test-env\Lib\site-packages\httpx\_client.py:979: in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\test-env\Lib\site-packages\httpx\_client.py:1014: in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\test-env\Lib\site-packages\starlette\testclient.py:360: in handle_request
+    raise exc
+..\test-env\Lib\site-packages\starlette\testclient.py:357: in handle_request
+    portal.call(self.app, scope, receive, send)
+..\test-env\Lib\site-packages\anyio\from_thread.py:340: in call
+    return cast(T_Retval, self.start_task_soon(func, *args).result())
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\..\..\..\Roaming\uv\python\cpython-3.12-windows-x86_64-none\Lib\concurrent\futures\_base.py:456: in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+..\..\..\..\Roaming\uv\python\cpython-3.12-windows-x86_64-none\Lib\concurrent\futures\_base.py:401: in __get_result
+    raise self._exception
+..\test-env\Lib\site-packages\anyio\from_thread.py:265: in _call_func
+    retval = await retval_or_awaitable
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+..\test-env\Lib\site-packages\fastapi\applications.py:1163: in __call__
+    await super().__call__(scope, receive, send)
+..\test-env\Lib\site-packages\starlette\applications.py:96: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\test-env\Lib\site-packages\starlette\middleware\errors.py:186: in __call__
+    raise exc
+..\test-env\Lib\site-packages\starlette\middleware\errors.py:164: in __call__
+    await self.app(scope, receive, _send)
+..\test-env\Lib\site-packages\starlette\middleware\cors.py:91: in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+..\test-env\Lib\site-packages\starlette\middleware\cors.py:149: in simple_response
+    await self.app(scope, receive, send)
+..\test-env\Lib\site-packages\starlette\middleware\exceptions.py:63: in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+..\test-env\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\test-env\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\test-env\Lib\site-packages\fastapi\middleware\asyncexitstack.py:18: in __call__
+    await self.app(scope, receive, send)
+..\test-env\Lib\site-packages\starlette\routing.py:676: in __call__
+    await self.middleware_stack(scope, receive, send)
+..\test-env\Lib\site-packages\fastapi\routing.py:2734: in app
+    await route.handle(scope, receive, send)
+..\test-env\Lib\site-packages\fastapi\routing.py:1780: in handle
+    await self.original_router.handle(scope, receive, send)
+..\test-env\Lib\site-packages\fastapi\routing.py:2789: in handle
+    await included_router._handle_selected(scope, receive, send)
+..\test-env\Lib\site-packages\fastapi\routing.py:1800: in _handle_selected
+    await original_route.handle(scope, receive, send)
+..\test-env\Lib\site-packages\fastapi\routing.py:1279: in handle
+    await app(scope, receive, send)
+..\test-env\Lib\site-packages\fastapi\routing.py:158: in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+..\test-env\Lib\site-packages\starlette\_exception_handler.py:53: in wrapped_app
+    raise exc
+..\test-env\Lib\site-packages\starlette\_exception_handler.py:42: in wrapped_app
+    await app(scope, receive, sender)
+..\test-env\Lib\site-packages\fastapi\routing.py:144: in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+..\test-env\Lib\site-packages\fastapi\routing.py:706: in app
+    raw_response = await run_endpoint_function(
+..\test-env\Lib\site-packages\fastapi\routing.py:354: in run_endpoint_function
+    return await run_in_threadpool(dependant.call, **values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\test-env\Lib\site-packages\starlette\concurrency.py:34: in run_in_threadpool
+    return await anyio.to_thread.run_sync(func)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+..\test-env\Lib\site-packages\anyio\to_thread.py:65: in run_sync
+    return await get_async_backend().run_sync_in_worker_thread(
+..\test-env\Lib\site-packages\anyio\_backends\_asyncio.py:2706: in run_sync_in_worker_thread
+    return await future
+           ^^^^^^^^^^^^
+..\test-env\Lib\site-packages\anyio\_backends\_asyncio.py:1100: in run
+    result = context.run(func, *args)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+reports\api\routes\backtest.py:55: in get_backtest_tearsheet
+    trade_log = run_backtest(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+prices =           Date        Open  ...  Buy_Next_Open  Sell_Next_Open
+0   2023-01-03  100.733346  ...          False         ...          False           False
+319 2024-03-25   65.314593  ...          False           False
+
+[320 rows x 12 columns]
+commission_per_trade = 1.0, slippage_bps = 5.0, starting_capital = None
+shares = 1, liquidate = False
+
+    def run_backtest(
+        prices: pd.DataFrame,
+        *,
+        commission_per_trade: float = 0.0,
+        slippage_bps: float = 0.0,
+        starting_capital: float | None = None,
+        shares: int = 1,
+        liquidate: bool = False,
+    ) -> pd.DataFrame:
+        """Fund already-shifted orders; return closed trades with an event ledger.
+    
+        Long-only, immediate fills, no borrowing or pending orders. Buying power
+        equals cash. An unaffordable entry is recorded as rejected, never resized.
+        Starting capital must be chosen explicitly before the first open.
+        Open positions are marked unless terminal liquidation is requested.
+        Dates identify sessions; Phase identifies initial/open/close events.
+        """
+        missing = [c for c in REQUIRED_PRICE_COLUMNS if c not in prices]
+        if missing or prices.empty:
+            raise ValueError(f"nonempty prices required; missing columns: {missing}")
+        validate_costs(commission_per_trade, slippage_bps)
+        if prices.attrs.get("price_basis") != "unadjusted_dollars":
+>           raise ValueError("funded ledger requires declared unadjusted dollar prices")
+E           ValueError: funded ledger requires declared unadjusted dollar prices
+
+scripts\backtest_harness.py:38: ValueError
+============================== warnings summary ===============================
+..\test-env\Lib\site-packages\fastapi\testclient.py:1
+  C:\Users\Owner\AppData\Local\Temp\quant-spec037-20260925\test-env\Lib\site-packages\fastapi\testclient.py:1: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient as TestClient  # noqa
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: C:\GitHub\Quant-ML-Bot\.specify\specs\037-clean-clone-green\artifacts\final.xml -
+=========================== short test summary info ===========================
+FAILED tests/test_reports_api.py::TestReportsApi::test_backtest_tearsheet - V...
+============ 1 failed, 886 passed, 1 warning in 619.53s (0:10:19) =============

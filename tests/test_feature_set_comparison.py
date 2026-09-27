@@ -18,13 +18,13 @@ would fail on a single differing bit.
 The fixture is synthetic and generated in-process. No test here downloads
 anything (CLAUDE.md, *Conventions → Tests*), and none reads `data/cache/`.
 
-**Runtime.** This file is slower than its neighbours — it runs the full eight
-unit comparison four times, once per execution mode, and spawns worker
-processes. That is the cost of testing the thing the spec is actually about;
-the fixture is sized down to roughly 250 bars and five outer folds to keep it
-to tens of seconds rather than minutes.
+**Runtime.** Spec 037 captures the units from two real orchestrator runs,
+one synchronous and one spawned pool, instead of fitting the same units again
+for each assertion. The short fixture still covers every registry entry and
+both feature sets; tuning itself is independently tested in test_model_cv.py.
 """
 
+import ast
 import concurrent.futures
 import dataclasses
 import math
@@ -32,6 +32,7 @@ import multiprocessing
 import os
 import pickle
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 import pandas as pd
@@ -56,11 +57,9 @@ from feature_set_comparison import (
     pair_results,
 )
 
-# Sized so the whole eight-unit comparison runs in single-digit seconds while
-# still producing several outer folds, real inner tuning, and a non-trivial
-# number of paired bars. Too short and `nested_walk_forward` supports no outer
-# folds at all; too long and this file dominates the suite.
-FIXTURE_BARS = 250
+# Two outer windows, including observable and unknown terminal outcomes;
+# no redundant inner grid search is needed to prove scheduler equivalence.
+FIXTURE_BARS = 160
 
 
 def synthetic_prices(bars: int = FIXTURE_BARS, seed: int = 7) -> pd.DataFrame:
@@ -109,33 +108,11 @@ def _report_child_thread_state(_ignored=None) -> dict:
         from sklearn.utils._openmp_helpers import _openmp_effective_n_threads
 
         state["effective_threads"] = _openmp_effective_n_threads()
-    except Exception:
+    except ImportError:
         # A private scikit-learn helper. If it moves, the test that reads
         # this skips rather than failing for the wrong reason.
         state["effective_threads"] = None
     return state
-
-
-def _run_units_in_pool(
-    prices: pd.DataFrame, tasks: list[ComparisonTask], workers: int
-) -> dict[tuple[str, str, str], tuple[pd.Series, pd.Series, int]]:
-    """Run the given units through a real process pool, keyed by identity.
-
-    Uses the same executor construction the production orchestrator uses —
-    including `initializer=_worker_init` — because a pool without the
-    initializer would not be testing the configuration that ships.
-    """
-    results = {}
-    with concurrent.futures.ProcessPoolExecutor(
-        max_workers=workers, initializer=_worker_init
-    ) as executor:
-        futures = [
-            executor.submit(_evaluate_feature_set_task, prices, task) for task in tasks
-        ]
-        for future in concurrent.futures.as_completed(futures):
-            name, task, feature_set, predicted, labels, folds = future.result()
-            results[(name, task, feature_set)] = (predicted, labels, folds)
-    return results
 
 
 class TestWorkerInitialization(unittest.TestCase):
@@ -245,7 +222,9 @@ class TestParentSideThreadPinning(unittest.TestCase):
         because inheritance happens before the child's first import and an
         initializer does not."""
         with _pinned_thread_environment():
-            with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
+            with concurrent.futures.ProcessPoolExecutor(
+                max_workers=1, mp_context=multiprocessing.get_context("spawn")
+            ) as executor:
                 state = executor.submit(_report_child_thread_state).result()
         self.assertEqual(state["OMP_NUM_THREADS"], "1")
 
@@ -257,7 +236,8 @@ class TestParentSideThreadPinning(unittest.TestCase):
         will actually use."""
         with _pinned_thread_environment():
             with concurrent.futures.ProcessPoolExecutor(
-                max_workers=1, initializer=_worker_init
+                max_workers=1, initializer=_worker_init,
+                mp_context=multiprocessing.get_context("spawn"),
             ) as executor:
                 state = executor.submit(_report_child_thread_state).result()
 
@@ -449,36 +429,35 @@ class TestSynchronousPathCreatesNoProcesses(unittest.TestCase):
 class TestSerialParallelEquivalence(unittest.TestCase):
     """T009 / FR-005 / SC-002 — the correctness gate for the whole spec.
 
-    Four runs of the same comparison over one fixture:
-
-    - the eight units executed in this process, one after another;
-    - the eight units executed through a two-worker pool;
-    - the orchestrator in its synchronous mode (`max_workers=1`);
-    - the orchestrator in its parallel mode (`max_workers=2`).
-
-    Every number every one of them produces must match every other exactly.
-    Note that this also exercises the thread-limit difference, not just the
-    process boundary: the in-process runs use whatever thread count this
-    machine's OpenMP and BLAS defaults give, and the pooled runs are pinned to
-    one thread by `_worker_init`. If any estimator's output depended on thread
-    count, these tests are where it would surface.
+    Two real orchestrator runs capture their units at the shared pairing
+    boundary. Serial computation uses the parent's native thread count;
+    spawned computation uses pinned workers. No estimator or fit is mocked.
     """
 
     @classmethod
     def setUpClass(cls):
         cls.prices = synthetic_prices()
         cls.tasks = build_tasks()
+        cls.serial_units, cls.parallel_units = {}, {}
+        cls.snapshots = []
+        original = fsc.pair_results
 
-        cls.serial_units = {
-            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
-                cls.prices, task
-            )[3:]
-            for task in cls.tasks
-        }
-        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+        def capture(units):
+            def pair(**kwargs):
+                for feature_set, result in ((FEATURE_SET_A, "result_a"),
+                                            (FEATURE_SET_B, "result_b")):
+                    units[(kwargs["name"], kwargs["task"], feature_set)] = kwargs[result]
+                return original(**kwargs)
+            return pair
 
-        cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
-        cls.parallel_results = compare_all_entries_parallel(cls.prices, max_workers=2)
+        with patch.object(fsc, "pair_results", capture(cls.serial_units)):
+            cls.serial_results = compare_all_entries(cls.prices, max_workers=1)
+        with patch.object(fsc, "pair_results", capture(cls.parallel_units)):
+            cls.parallel_results = compare_all_entries_parallel(
+                cls.prices, max_workers=2,
+                on_pair=lambda done: cls.snapshots.append(
+                    [(r["name"], r["task"]) for r in done]),
+            )
 
     def _assert_exactly_equal(self, actual, expected, label):
         """Exact equality, with NaN treated as equal to NaN.
@@ -499,6 +478,15 @@ class TestSerialParallelEquivalence(unittest.TestCase):
         self.assertEqual(actual, expected, label)
         self.assertIs(type(actual), type(expected), f"{label}: type differs")
 
+    def test_fixture_has_real_folds_and_unknown_terminal_truth(self):
+        self.assertEqual(set(self.serial_units), {
+            (t.name, t.task, t.feature_set) for t in self.tasks})
+        for predicted, labels, folds in self.serial_units.values():
+            self.assertGreaterEqual(folds, 2)
+            self.assertTrue(predicted.notna().all())
+            self.assertTrue(labels.notna().any())
+            self.assertTrue(labels.isna().any())
+
     def test_prediction_series_are_identical(self):
         """SC-002, stated in the spec's own terms: `assert_series_equal`."""
         self.assertEqual(set(self.parallel_units), set(self.serial_units))
@@ -506,8 +494,8 @@ class TestSerialParallelEquivalence(unittest.TestCase):
             parallel_predicted, parallel_labels, parallel_folds = self.parallel_units[
                 key
             ]
-            pd.testing.assert_series_equal(parallel_predicted, predicted, obj=str(key))
-            pd.testing.assert_series_equal(parallel_labels, labels, obj=str(key))
+            pd.testing.assert_series_equal(parallel_predicted, predicted, check_exact=True, obj=str(key))
+            pd.testing.assert_series_equal(parallel_labels, labels, check_exact=True, obj=str(key))
             self.assertEqual(parallel_folds, folds, key)
 
     def test_prediction_dtypes_and_index_survive_the_process_boundary(self):
@@ -582,23 +570,22 @@ class TestSerialParallelEquivalence(unittest.TestCase):
     def test_the_fr_007_alias_produces_the_same_results(self):
         """`compare_all_entries` is a delegation, and this is what keeps it
         one. Runs synchronously, so it costs a serial pass and no spawn."""
-        results = compare_all_entries(self.prices, max_workers=1)
-        for actual, expected in zip(results, self.serial_results):
-            for key in expected:
-                self._assert_exactly_equal(
-                    actual[key], expected[key], f"alias:{expected['name']}:{key}"
-                )
+        # The real serial control above entered via the alias. Check exact
+        # argument forwarding separately without repeating every model fit.
+        with patch.object(fsc, "compare_all_entries_parallel",
+                          return_value=self.serial_results) as runner:
+            results = compare_all_entries(self.prices, max_workers=1)
+        runner.assert_called_once_with(
+            self.prices, max_workers=1, random_state=fsc.RANDOM_STATE,
+            on_pair=None, verbose=False,
+        )
+        self.assertIs(results, self.serial_results)
 
     def test_on_pair_reports_completed_comparisons_in_report_order(self):
         """The checkpoint hook. Each call must be a prefix of the final
         report order — a checkpoint written mid-run has to be readable as
         the same file the serial run would have written."""
-        seen: list[list[tuple[str, str]]] = []
-        compare_all_entries_parallel(
-            self.prices,
-            max_workers=2,
-            on_pair=lambda done: seen.append([(r["name"], r["task"]) for r in done]),
-        )
+        seen = self.snapshots
 
         expected = sorted(ESTIMATOR_REGISTRY)
         self.assertEqual(len(seen), len(expected))
@@ -683,14 +670,23 @@ class TestNoNewDependency(unittest.TestCase):
         source = (SCRIPTS_DIR / "feature_set_comparison.py").read_text(
             encoding="utf-8"
         )
-        for line in source.splitlines():
-            stripped = line.strip()
-            if not (stripped.startswith("import ") or stripped.startswith("from ")):
-                continue
-            for banned in self.FORBIDDEN:
-                self.assertNotIn(
-                    banned, stripped, f"{banned} imported at: {stripped}"
-                )
+        self.assertEqual(self._forbidden_imports(source), set())
+
+    def _forbidden_imports(self, source):
+        imported = set()
+        for node in ast.walk(ast.parse(source)):
+            if isinstance(node, ast.Import):
+                imported.update(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                imported.add(node.module.split(".")[0])
+        return imported.intersection(self.FORBIDDEN)
+
+    def test_dependency_guard_distinguishes_stdlib_and_rejects_real_banned_imports(self):
+        self.assertEqual(self._forbidden_imports("import multiprocessing"), set())
+        for name in self.FORBIDDEN:
+            for source in (f"import {name} as executor",
+                           f"def worker():\n    from {name} import Pool as executor"):
+                self.assertEqual(self._forbidden_imports(source), {name})
 
     def test_the_parallel_machinery_comes_from_concurrent_futures(self):
         self.assertIs(fsc.concurrent.futures, concurrent.futures)

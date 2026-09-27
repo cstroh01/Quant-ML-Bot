@@ -45,6 +45,7 @@ loop for whichever ticker happens to be first.
 from __future__ import annotations
 
 from trial_runner import research_attempt, research_config
+import argparse
 import dataclasses
 
 import numpy as np
@@ -114,6 +115,8 @@ def _baseline_rows(
     ml_prices: pd.DataFrame,
     ml_trade_log: pd.DataFrame,
     *,
+    starting_capital: float,
+    liquidate: bool,
     commission_per_trade: float,
     slippage_bps: float,
     seed_count: int,
@@ -132,7 +135,8 @@ def _baseline_rows(
     holding_bars = mean_holding_bars(ml_prices, ml_trade_log)
 
     with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="buy_and_hold_baseline") as attempt:
-        hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs)
+        hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs,
+                                starting_capital=starting_capital, liquidate=liquidate)
         attempt.account(hold_log)
     hold_summary = performance_summary(ml_prices, hold_log, **costs)
 
@@ -142,7 +146,8 @@ def _baseline_rows(
         for seed in range(seed_count):
             signalled = random_signal(ml_prices, n_trades, holding_bars, seed)
             with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="random_signal_baseline") as attempt:
-                trade_log = run_backtest(signalled, **costs)
+                trade_log = run_backtest(signalled, **costs,
+                                         starting_capital=starting_capital, liquidate=liquidate)
                 attempt.account(trade_log)
             random_summaries.append(performance_summary(ml_prices, trade_log, **costs))
     except ValueError as error:
@@ -216,6 +221,8 @@ def _baseline_rows(
 def run_one_ticker(
     ticker: str,
     *,
+    starting_capital: float,
+    liquidate: bool,
     period: str = PERIOD,
     commission_per_trade: float = COMMISSION_PER_TRADE,
     slippage_bps: float = SLIPPAGE_BPS,
@@ -230,6 +237,10 @@ def run_one_ticker(
     and a frame too short for a single walk-forward fold both surface as
     ordinary exceptions here and are deliberately not special-cased apart
     (spec.md Edge Cases: "treated the same way").
+
+    Funding and end-of-data policy are caller choices, never inferred from
+    future prices. Legacy adjusted downloads remain rejected by the ledger;
+    this contract repair does not claim to implement unadjusted data wiring.
     """
     try:
         prices = download_market_data([ticker], period=period)
@@ -273,7 +284,8 @@ def run_one_ticker(
 
         costs = {"commission_per_trade": commission_per_trade, "slippage_bps": slippage_bps}
         with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="candidate") as attempt:
-            ml_trade_log = run_backtest(ml_prices, **costs)
+            ml_trade_log = run_backtest(ml_prices, **costs,
+                                        starting_capital=starting_capital, liquidate=liquidate)
             attempt.account(ml_trade_log)
         ml_summary = performance_summary(ml_prices, ml_trade_log, **costs)
 
@@ -296,6 +308,8 @@ def run_one_ticker(
             ticker,
             ml_prices,
             ml_trade_log,
+            starting_capital=starting_capital,
+            liquidate=liquidate,
             commission_per_trade=commission_per_trade,
             slippage_bps=slippage_bps,
             seed_count=seed_count,
@@ -322,6 +336,8 @@ def run_one_ticker(
 def run_comparison(
     tickers: list[str] = TICKER_UNIVERSE,
     *,
+    starting_capital: float,
+    liquidate: bool,
     period: str = PERIOD,
     commission_per_trade: float = COMMISSION_PER_TRADE,
     slippage_bps: float = SLIPPAGE_BPS,
@@ -341,6 +357,8 @@ def run_comparison(
     for ticker in tickers:
         result = run_one_ticker(
             ticker,
+            starting_capital=starting_capital,
+            liquidate=liquidate,
             period=period,
             commission_per_trade=commission_per_trade,
             slippage_bps=slippage_bps,
@@ -366,6 +384,10 @@ def _output_filename(tickers: list[str]) -> str:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--starting-capital", type=float, required=True)
+    parser.add_argument("--liquidate", action=argparse.BooleanOptionalAction, required=True)
+    args = parser.parse_args()
     universe_cache = cache_path(
         f"{'-'.join(sorted(set(TICKER_UNIVERSE)))}_{PERIOD}.csv"
     )
@@ -380,7 +402,8 @@ def main() -> None:
             f"{TICKER_UNIVERSE!r}, period={PERIOD!r})\""
         )
 
-    results_frame, failures = run_comparison()
+    results_frame, failures = run_comparison(
+        starting_capital=args.starting_capital, liquidate=args.liquidate)
 
     output_path = cache_path(_output_filename(TICKER_UNIVERSE))
     results_frame.to_csv(output_path, index=False)

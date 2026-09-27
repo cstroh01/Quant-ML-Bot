@@ -1,6 +1,29 @@
 # Quant-ML-Bot — Project Context
 
-_Last updated: 2026-09-23_
+_Last updated: 2026-09-25_
+
+## Scope — rewritten 2026-09-25 (read this before anything below)
+
+`docs/SCOPE-V1.md` is now the authority on scope, constraints, and the definition
+of done. Where any section of this document conflicts with it, that file wins and
+this one is stale.
+
+What changed:
+
+- **Charter.** Primary purpose is a free-data quantitative **research framework**
+  shipped publicly as a finished artifact — research and learning vehicle first,
+  credential second, running system third. The earlier "capable of earning real
+  money over time" framing is retired as the primary goal because a solo
+  part-time builder on free daily bars has no structural edge in the most
+  saturated problem in public markets.
+- **Capital path retained.** The capital gate stays binding and unreached. Paper
+  trading begins at v1.1; real capital only after every gate step passes.
+- **Two releases.** v1.0 = complete research framework, tagged public. v1.1 =
+  paper-trading loop. The deadline for v1.0 is days, not weeks, which is why the
+  paper loop is split out rather than crammed in.
+- **Free data only, permanently** — see the data-access section below.
+- **Every remaining item is a numbered spec**, including spec 032's bug fixes.
+  No ad hoc patching, no relaxed merge gate, no shortcut toward capital.
 
 ## Known issues
 
@@ -8,36 +31,29 @@ _Last updated: 2026-09-23_
   on the classification path; `tests/test_estimators.py` pins this current
   behavior until a dedicated spec defines the correction.
 
-## Data vendor access (2026-09-22/23)
+## Data access — settled 2026-09-25: free data only, permanently
 
-Villanova's Gmelich Lab for Financial Markets platforms (FactSet, and by
-extension WRDS/CRSP/Compustat) are under an academic license restricted to
-teaching and academic-research use only — confirmed by Dr. David Ratigan
-(Director, Gmelich Lab, david.ratigan@villanova.edu) after Camden asked
-whether personal-project access outside coursework was possible. **Not
-available for this project.** The lab enforces this actively (a prior
-incident involving an adjunct listing FactSet on a company webpage is why
-they're strict about it), so this is closed, not pending — do not propose
-routing spec 020's unadjusted OHLCV / corporate-actions data or any
-point-in-time fundamentals through WRDS, CRSP, Compustat, or FactSet.
+**No paid data vendor will be adopted.** Norgate Data and Sharadar are out of
+scope, not deferred purchases. WRDS/CRSP/Compustat/FactSet remain closed —
+Villanova's Gmelich Lab academic license forbids non-coursework use, confirmed by
+Dr. David Ratigan on 2026-09-22, and the lab enforces it actively. Do not
+re-propose any of these; the constraint is now a scope decision, not a budget
+question. See `docs/SCOPE-V1.md` §2.
 
-Vendor alternatives identified as viable, non-academic-licensed substitutes
-for spec 020 and later point-in-time-fundamentals work (none yet adopted or
-integrated):
+The free stack, and what it costs the project:
 
-- **Norgate Data** — EOD price data, survivorship-bias-free (includes
-  delisted names), ~$30-80/mo. Best fit for the unadjusted-dollar-price /
-  corporate-actions need spec 020 is blocked on.
-- **Sharadar** (via Nasdaq Data Link or direct) — point-in-time US
-  fundamentals, ~$29+/mo. Closest available substitute for
-  CRSP/Compustat-style PIT fundamentals.
-- yfinance remains the free bridge in `scripts/data.py` for now; it has no
-  survivorship-bias protection and is already flagged as a known gap
-  elsewhere in this doc — not sufficient once spec 020 needs unadjusted
-  dollar prices with corporate actions.
-
-Decision on which paid vendor to adopt is still open; raise before spec 020
-is scoped in detail rather than defaulting to yfinance by inertia.
+- **Unadjusted daily OHLCV** — `yfinance` with `auto_adjust=False`, plus
+  `.actions` for splits and dividends. This satisfies spec 020's contract; it was
+  never necessary to buy data to unblock the backtester.
+- **Rule 14 reconciliation** — the second corporate-action source must be free
+  (SEC EDGAR, exchange notices, or a verified free-tier feed). **Which free tiers
+  currently expose corporate actions is unverified** and must be checked before
+  the fetch spec is written rather than assumed. Actions that cannot be
+  reconciled are disclosed as unreconciled, per Rule 16.
+- **Point-in-time fundamentals** — unavailable free, therefore out of scope.
+  Features stay price- and volume-based.
+- **Survivorship bias** — unsolved and now permanent. The five-ticker survivor
+  basket is a machinery smoke test, disclosed as such everywhere results appear.
 
 ## Spec 032 — Live-trading safety layer: BUILT, not through the Merge Gate
 

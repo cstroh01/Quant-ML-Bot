@@ -81,6 +81,7 @@ import contextlib
 import dataclasses
 import json
 import math
+import multiprocessing
 import os
 from collections.abc import Callable
 from pathlib import Path
@@ -302,9 +303,9 @@ def _worker_init() -> None:
     Passed as `ProcessPoolExecutor(initializer=...)`, per FR-002 and the
     spec's Design Constraint 2, and retained because it is genuinely the
     belt to `_pinned_thread_environment`'s braces: it guarantees the
-    variables are set in the child whatever the start method, including a
-    `fork` child that inherited a parent whose environment had since been
-    restored.
+    variables are set in the child. The orchestrator explicitly uses `spawn`:
+    a `fork` child inherits initialized native pools that these environment
+    assignments cannot resize (spec 037).
 
     It is *not*, on its own, sufficient to pin anything — read
     `_pinned_thread_environment` for the measurement and the reason. Do not
@@ -352,6 +353,31 @@ def _evaluate_feature_set_task(
     )
 
 
+def _scoreable_pairs(
+    labels: pd.Series, predicted_a: pd.Series, predicted_b: pd.Series
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Select observable truth jointly; never invent a target or lose pairing.
+
+    Inference covers rows whose future outcome is unknown. Only missing truth
+    is an abstention: infinity, or missing predictions on known truth, is an error.
+    """
+    if (not labels.index.is_unique
+            or not labels.index.equals(predicted_a.index)
+            or not labels.index.equals(predicted_b.index)):
+        raise ValueError("paired series must have the same unique index")
+    truth = labels.to_numpy(dtype=float, na_value=np.nan)
+    if np.isinf(truth).any():
+        raise ValueError("observed labels must be finite")
+    observed = ~np.isnan(truth)
+    if not observed.any():
+        raise ValueError("no observable paired outcomes")
+    a = predicted_a.to_numpy(dtype=float, na_value=np.nan)[observed]
+    b = predicted_b.to_numpy(dtype=float, na_value=np.nan)[observed]
+    if not np.isfinite(a).all() or not np.isfinite(b).all():
+        raise ValueError("predictions on observed outcomes must be finite")
+    return truth[observed], a, b
+
+
 def compare_classification(
     labels: pd.Series, predicted_a: pd.Series, predicted_b: pd.Series
 ) -> dict:
@@ -366,9 +392,11 @@ def compare_classification(
     one-sided figure is derived rather than re-implemented — and reported
     beside the two-sided one so a reader can see both.
     """
-    truth = labels.astype(int).to_numpy()
-    correct_a = predicted_a.astype(int).to_numpy() == truth
-    correct_b = predicted_b.astype(int).to_numpy() == truth
+    truth, values_a, values_b = _scoreable_pairs(labels, predicted_a, predicted_b)
+    if not all(np.isin(values, [0, 1]).all() for values in (truth, values_a, values_b)):
+        raise ValueError("classification labels and predictions must be binary")
+    correct_a = values_a == truth
+    correct_b = values_b == truth
 
     # b_wins: A wrong, B right. a_wins: A right, B wrong. These two cells are
     # the entire evidence; the concordant cells cancel.
@@ -427,9 +455,9 @@ def compare_regression(
     standard treatment and the conservative one: a bar where both feature
     sets erred identically is evidence for neither.
     """
-    truth = labels.to_numpy(dtype=float)
-    error_a = (predicted_a.to_numpy(dtype=float) - truth) ** 2
-    error_b = (predicted_b.to_numpy(dtype=float) - truth) ** 2
+    truth, estimate_a, estimate_b = _scoreable_pairs(labels, predicted_a, predicted_b)
+    error_a = (estimate_a - truth) ** 2
+    error_b = (estimate_b - truth) ** 2
     difference = error_b - error_a
 
     if not np.any(difference != 0.0):
@@ -510,7 +538,8 @@ def pair_results(
         {
             "name": name,
             "task": task,
-            "shared_bars": len(shared),
+            "shared_bars": result["n"],
+            "unscored_bars": len(shared) - result["n"],
             "outer_folds_a": folds_a,
             "outer_folds_b": folds_b,
             "purge_bars_a": predicted_a.attrs.get("purge_bars"),
@@ -691,7 +720,8 @@ def compare_all_entries_parallel(
         # submitted, and each one inherits the environment as it exists at
         # the moment it is created.
         with _pinned_thread_environment(), concurrent.futures.ProcessPoolExecutor(
-            max_workers=workers, initializer=_worker_init
+            max_workers=workers, initializer=_worker_init,
+            mp_context=multiprocessing.get_context("spawn"),
         ) as executor:
             futures = {
                 executor.submit(_evaluate_feature_set_task, prices, task_spec): task_spec
@@ -782,6 +812,8 @@ def format_report(results: list[dict]) -> str:
             f"{result['outer_folds_b']} ({FEATURE_SET_B}); "
             f"paired bars: {result['shared_bars']}"
         )
+        if "unscored_bars" in result:
+            lines.append(f"  covered bars with unknown outcome: {result['unscored_bars']}")
         for suffix, feature_set in (("a", FEATURE_SET_A), ("b", FEATURE_SET_B)):
             purge = result.get(f"purge_bars_{suffix}")
             embargo = result.get(f"embargo_bars_{suffix}")

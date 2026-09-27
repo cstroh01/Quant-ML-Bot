@@ -1,0 +1,25 @@
+{
+  "run_id": "spec037-20260925-final",
+  "files": {
+    "baseline-environment.json": "e4d69e95a328d70b17e58fe06c6ee57d9b66db977374499591114b4ba4c15a00",
+    "baseline.txt": "f7597e884a2eeea81d89bd170513bfd120a6943e665e8693b5a8779896a00c63",
+    "baseline.xml": "a2ddc1204ee9521dbec8c586f7bba6f65539f2c35f57edf3f3bf8301fb9754f5",
+    "boundary-audit.json": "5f3a09963556e8a3277b95c25d6a92bd77d7b65fdce2bdfa9e23317a30f99372",
+    "comparison-first-run.txt": "dc7db75ba94ce8dae658406392af1108e5f4d2ef93bfa8bc778931dc7bf92319",
+    "final-acceptance.json": "1e4ab19b5c89cdbb0319477e66034ac6889d1c04398e47b785f30cfeff4b86b1",
+    "final-environment.json": "22170f871f1f245ac8c5bedd257640e5d9eeeeda21eb5204cd13f4e93ad8f2c6",
+    "final-source.json": "3d2828d2145b4e06a5d411519af1f3fd9bc428acf4943f4830554379478ad9ac",
+    "final.txt": "05957750a647ed01e05fb2f92c59f4ea3d897159d953f6b6979be574b1e2cc49",
+    "final.xml": "2bc910bfe6c20e7f7dc803e6f3ab1c35c507cfb546331706f3e58e88650d5785",
+    "funding-green.txt": "9375119d25b2598061a522d5b74bf8c235406be47b737f8c79f24936d961522a",
+    "funding-red.txt": "41ef16bdeca923ce15319ee963275c5610b460bcb1421c34624a5110d4bd3b61",
+    "implementation.diff": "1721b53370d5106f028fc82bb12ab2d270fb0b61dabb39f0fee1b778756e6eae",
+    "initial-provenance.json": "c9479e10c155c2f128747cd522ee80bf147190284accf368c61f20fed9d6e9ee",
+    "initialized-pool.json": "11c9f6f71e441f51edf5fef429700dd247340d770485900106c0467a1cf1c1bb",
+    "install.txt": "20bb4fc763bf4d2e95df4983bd75946728d56df267059a3da7186e030e6114da",
+    "mutation-green.txt": "4a3e6873711350c7f8824c9b3c20b166e669177320e42f24871243ad465a82c8",
+    "pinning-red.txt": "a74b4274b1befb62480cae04417e32c6b4901959cd354d2c9f2c637540aeb639",
+    "python-floor.json": "d2955c247396d4ec06011b954c258f6a6af1fbf30e0185d60e0231b88e0b59cc",
+    "scoring-red.txt": "37668bf0ea6f9aef66dfbf5d394dbac8617892150e289b95f9e106c4b4e3ad15"
+  }
+}

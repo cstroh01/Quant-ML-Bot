@@ -1,0 +1,18 @@
+{
+  "run_id": "spec037-20260925-final",
+  "created_utc": "2026-09-26T18:36:52.430300+00:00",
+  "base_head": "54e6e0bca572cfc96a477308fa0a3d71414fdd42",
+  "source": "fresh HEAD tracked-file export plus listed working-tree patch; no local cache or environment copied",
+  "overlay_sha256": {
+    "scripts/feature_set_comparison.py": "f1872d5eab036c39920e4e5df6481cf4d1ae2c0a5306248d27e215bd80fa8cd1",
+    "scripts/multi_ticker_comparison.py": "d80e32fdd6ff3c571b978251eb29c5ad8733131c4c98f145844f9b0d23bf9709",
+    "tests/test_feature_set_comparison.py": "21be2f3ccb58430a0fcee870ac5442170693a236ecdbb0a3652bb7f706b77d52",
+    "tests/test_multi_ticker_comparison.py": "cd5bcef96e5b2cc25bf0457aae26821fe6525c22052799a15c5c829a36b083bb",
+    "tests/test_clean_clone_037.py": "03b133633ce819db8281927fa96a9d26c124ad8f71e66b29e9729982cb23b9e7",
+    ".github/workflows/test.yml": "1f8207c40a9c365789f2718df5dda6b86cc9ca0fbbb9abba386357eee17576bf",
+    "README.md": "d2e8c6724b93730d5c01326c9de10b9b0b0e34b8e071391e24a04c3b73b62d1e"
+  },
+  "readme_note": "overlay retains pre-existing governance edits, plus one authorized setup sentence",
+  "snapshot": "C:\\Users\\Owner\\AppData\\Local\\Temp\\quant-spec037-20260925\\final",
+  "legacy_tearsheet": "unchanged; Spec 036 boundary; pending user decision"
+}

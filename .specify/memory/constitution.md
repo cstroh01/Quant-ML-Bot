@@ -290,8 +290,16 @@ dividend adjustments, and 100× currency/pricing errors. Backtests run on
 unverified corporate action data produce phantom alpha or catastrophic
 drawdowns from unadjusted price jumps. Any corporate action adjustments applied
 to a traded universe must be reconciled against an independent second source
-(e.g. SEC EDGAR filings, exchange notices, or reference feeds like
-CRSP/Compustat or Norgate) before results are reported.
+before results are reported.
+
+_Amended 2026-09-25 (free-data-only scope, `docs/SCOPE-V1.md` §2)._ CRSP,
+Compustat and Norgate are no longer acceptable reconciliation sources, because
+they are out of scope as paid or licensed feeds. The second source must be free:
+SEC EDGAR filings, exchange notices, or a free-tier reference feed whose
+corporate-action coverage has been verified rather than assumed. Where a free
+second source cannot cover an action, the action is **disclosed as
+unreconciled** in every surface reporting a result derived from it, per Rule 16
+— never silently accepted, and never used as grounds to skip the check.
 
 Citation: `claude/research-solo-quant-edge-and-survival.md`, section "The 5-bullet plan", item 3 ("Fix data and costs, the two places a daily-bar backtest lies most").
 
@@ -315,6 +323,34 @@ luck.
 Citation: `claude/research-solo-quant-edge-and-survival.md`, section "The 5-bullet plan", item 1 ("Build the false-discovery gate before any new alpha: a lifetime trial ledger, Deflated Sharpe and PBO").
 
 _Added 2026-09-18, per report finding: strategy Sharpe ratios require Deflated Sharpe Ratio gating (DSR ≥ 0.95) once spec 033 exists, and must be flagged as provisional/undeflated until then._
+
+## Rule 16 — Stated limitations travel with the results
+
+**Every surface that reports a result also names the data limitations that
+bound it.** A number is not honest merely because its arithmetic is correct and
+its provenance is stamped; it is honest when a reader cannot mistake what it
+does and does not evidence.
+
+The limitations that must travel with any reported result from this project, for
+as long as they hold, are listed in `docs/SCOPE-V1.md` §6: a static survivor
+basket with no delisted names, free-tier corporate-action data, no
+point-in-time fundamentals, daily bars only, and modeled rather than
+fill-calibrated costs.
+
+Concretely: a tearsheet, terminal panel, report, README table, or spec results
+section carries the applicable limitation inline or by an unmissable reference
+on the same surface. A footnote three documents away does not satisfy this.
+Removing a limitation from the register requires evidence that it no longer
+holds, in the PR that removes it.
+
+Rule 11 makes a figure cite where it came from. This rule makes it admit what it
+cannot show. A survivorship-biased Sharpe with perfect provenance is still a
+number that will be quoted as if it generalized.
+
+_Added 2026-09-25. The project's scope is now explicitly a free-data research
+framework (`docs/SCOPE-V1.md`), which makes several limitations permanent rather
+than temporary gaps awaiting a vendor — permanent limitations need a permanent
+disclosure rule._
 
 ---
 

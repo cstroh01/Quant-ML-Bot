@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="4.855" timestamp="2026-09-26T16:23:05.553348-04:00" hostname="CamdenComputer"><testcase classname="" name="tests.test_multi_ticker_comparison" time="0.000"><error message="collection failure">C:\Users\Owner\anaconda3\Lib\site-packages\_pytest\python.py:508: in importtestmodule
+    mod = import_path(
+C:\Users\Owner\anaconda3\Lib\site-packages\_pytest\pathlib.py:596: in import_path
+    importlib.import_module(module_name)
+C:\Users\Owner\anaconda3\Lib\importlib\__init__.py:88: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen importlib._bootstrap&gt;:1406: in _gcd_import
+    ???
+&lt;frozen importlib._bootstrap&gt;:1371: in _find_and_load
+    ???
+&lt;frozen importlib._bootstrap&gt;:1342: in _find_and_load_unlocked
+    ???
+&lt;frozen importlib._bootstrap&gt;:938: in _load_unlocked
+    ???
+C:\Users\Owner\anaconda3\Lib\site-packages\_pytest\assertion\rewrite.py:179: in exec_module
+    source_stat, co = _rewrite_test(fn, self.config)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\anaconda3\Lib\site-packages\_pytest\assertion\rewrite.py:348: in _rewrite_test
+    tree = ast.parse(source, filename=strfn)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+C:\Users\Owner\anaconda3\Lib\ast.py:46: in parse
+    return compile(source, filename, mode, flags,
+E     File "C:\GitHub\Quant-ML-Bot\tests\test_multi_ticker_comparison.py", line 23
+E       # EXAMPLE � NOT A RESULT: chosen cash for synthetic funded-ledger fixtures.
+E                 ^
+E   SyntaxError: Non-UTF-8 code starting with '\x97' on line 23, but no encoding declared; see https://peps.python.org/pep-0263/ for details</error></testcase></testsuite></testsuites>

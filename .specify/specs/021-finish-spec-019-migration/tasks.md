@@ -435,7 +435,7 @@ criterion holds.
   - **Rename** (research.md R-3, "What the follow-on inherits"): the call sites, now all span variables, and the three legacy `attrs` fallbacks.
   - **Frozen files** (spec D-5): the `:367` and `:428` NaN-label scoring; `multi_ticker_comparison`'s capital and policy gap at `:133`, `:141` and `:269`; its 020 loader at `:230`.
   - **Docs and Rule 11** (spec D-7): the `PROJECT_CONTEXT.md` passages.
-  - **020 wiring:** the two entry points that now stop on 020's named reason.
+  - **020 wiring:** assigned to [spec 036](../036-unadjusted-caller-wiring/spec.md), approved 2026-09-26; the two entry points that now stop on 020's named reason.
 - [x] T056 Update spec.md's **Status** line. Name the merged PRs, the final baseline numbers, and the residual count.
 
 ---
@@ -703,7 +703,7 @@ comparison modules), revisit the library docstrings and
 when frame attrs are absent. The frozen pre-019 logistic control remains a
 separate decision.
 
-**TODO(spec-NNN, number assigned by Camden): docs and 020 wiring.**
+**TODO (docs: number remains Camden-owned; crossover wiring: spec 036).**
 `docs/PROJECT_CONTEXT.md` still has the old spec-014 comparison at `:262-275`,
 the AAPL run at `:441-446`, contract prose at `:349-357`, literal purge and
 embargo examples at `:428` and `:482-483`, and a terminal-close statement at

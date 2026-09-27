@@ -9,6 +9,8 @@ own docstring notes for `hgb` at ten years of real data.
 """
 
 import unittest
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -17,6 +19,9 @@ import pandas as pd
 from context import SCRIPTS_DIR  # noqa: F401  (import for the sys.path effect)
 
 import multi_ticker_comparison as mtc
+
+# EXAMPLE � NOT A RESULT: chosen cash for synthetic funded-ledger fixtures.
+TEST_CAPITAL = 10_000.0
 
 
 def _price_walk(n: int, seed: int = 11) -> pd.DataFrame:
@@ -29,7 +34,7 @@ def _price_walk(n: int, seed: int = 11) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     dates = pd.bdate_range("2022-01-03", periods=n)
     close = 100.0 + np.cumsum(rng.normal(scale=0.8, size=n))
-    return pd.DataFrame(
+    frame = pd.DataFrame(
         {
             "Date": dates,
             "Open": close,
@@ -37,6 +42,8 @@ def _price_walk(n: int, seed: int = 11) -> pd.DataFrame:
             "Volume": rng.integers(1_000_000, 5_000_000, size=n),
         }
     )
+    frame.attrs["price_basis"] = "unadjusted_dollars"
+    return frame
 
 
 def _long_history(seed: int = 11) -> pd.DataFrame:
@@ -78,7 +85,10 @@ class TestIsolatedFailure(unittest.TestCase):
         }
         with patch.object(mtc, "download_market_data", _fake_download(frames)):
             results_frame, failures = mtc.run_comparison(
-                tickers=["GOOD1", "BAD", "GOOD2"], seed_count=3
+                starting_capital=TEST_CAPITAL,
+                liquidate=True,
+                tickers=["GOOD1", "BAD", "GOOD2"],
+                seed_count=3,
             )
 
         self.assertEqual([failure.ticker for failure in failures], ["BAD"])
@@ -101,7 +111,10 @@ class TestAllSucceed(unittest.TestCase):
         frames = {"A": _long_history(seed=1), "B": _long_history(seed=2)}
         with patch.object(mtc, "download_market_data", _fake_download(frames)):
             results_frame, failures = mtc.run_comparison(
-                tickers=["A", "B"], seed_count=3
+                starting_capital=TEST_CAPITAL,
+                liquidate=True,
+                tickers=["A", "B"],
+                seed_count=3,
             )
 
         self.assertEqual(failures, [])
@@ -124,7 +137,10 @@ class TestAllFail(unittest.TestCase):
         frames = {"BAD1": _short_history(seed=1), "BAD2": _empty_frame()}
         with patch.object(mtc, "download_market_data", _fake_download(frames)):
             results_frame, failures = mtc.run_comparison(
-                tickers=["BAD1", "BAD2"], seed_count=3
+                starting_capital=TEST_CAPITAL,
+                liquidate=True,
+                tickers=["BAD1", "BAD2"],
+                seed_count=3,
             )
 
         self.assertEqual({failure.ticker for failure in failures}, {"BAD1", "BAD2"})
@@ -139,6 +155,8 @@ class TestCostParameterConsistency(unittest.TestCase):
         frames = {"A": _long_history(seed=1), "B": _long_history(seed=2)}
         with patch.object(mtc, "download_market_data", _fake_download(frames)):
             results_frame, failures = mtc.run_comparison(
+                starting_capital=TEST_CAPITAL,
+                liquidate=True,
                 tickers=["A", "B"],
                 commission_per_trade=1.25,
                 slippage_bps=7.0,
@@ -153,10 +171,15 @@ class TestCostParameterConsistency(unittest.TestCase):
         frames = {"GOOD": _long_history(seed=1), "BAD": _short_history()}
         with patch.object(mtc, "download_market_data", _fake_download(frames)):
             results_frame, _failures = mtc.run_comparison(
-                tickers=["GOOD", "BAD"], seed_count=3
+                starting_capital=TEST_CAPITAL,
+                liquidate=True,
+                tickers=["GOOD", "BAD"],
+                seed_count=3,
             )
 
-        self.assertTrue((results_frame["commission_per_trade"] == mtc.COMMISSION_PER_TRADE).all())
+        self.assertTrue(
+            (results_frame["commission_per_trade"] == mtc.COMMISSION_PER_TRADE).all()
+        )
         self.assertTrue((results_frame["slippage_bps"] == mtc.SLIPPAGE_BPS).all())
 
 
@@ -166,13 +189,23 @@ class TestHonestyColumns(unittest.TestCase):
     def test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry(self):
         frames = {"A": _long_history(seed=1)}
         with patch.object(mtc, "download_market_data", _fake_download(frames)):
-            results_frame, failures = mtc.run_comparison(tickers=["A"], seed_count=3)
+            results_frame, failures = mtc.run_comparison(
+                starting_capital=TEST_CAPITAL,
+                liquidate=True,
+                tickers=["A"],
+                seed_count=3,
+            )
 
         self.assertEqual(failures, [])
         ml_row = results_frame[results_frame["Strategy"] == mtc.STRATEGY_ML].iloc[0]
         self.assertGreater(ml_row["fold_count"], 0)
-        self.assertEqual(ml_row["purge_bars"], mtc.LABEL_HORIZON)
-        self.assertEqual(ml_row["embargo_bars"], mtc.EMBARGO_BARS)
+        expected_span = 2
+        _, _, span = mtc.build_features(
+            frames["A"], target_kind=mtc.TARGET_KIND, label_horizon=mtc.LABEL_HORIZON
+        )
+        self.assertEqual(ml_row["purge_bars"], expected_span)
+        self.assertEqual(ml_row["embargo_bars"], expected_span)
+        self.assertEqual(span, expected_span)
         self.assertEqual(ml_row["random_state"], mtc.RANDOM_STATE)
         self.assertEqual(ml_row["random_baseline_seed_count"], 3)
         self.assertFalse(np.isnan(ml_row["Median hurdle (bps)"]))
@@ -181,7 +214,12 @@ class TestHonestyColumns(unittest.TestCase):
     def test_baseline_rows_carry_nan_for_the_ml_only_columns(self):
         frames = {"A": _long_history(seed=1)}
         with patch.object(mtc, "download_market_data", _fake_download(frames)):
-            results_frame, _failures = mtc.run_comparison(tickers=["A"], seed_count=3)
+            results_frame, _failures = mtc.run_comparison(
+                starting_capital=TEST_CAPITAL,
+                liquidate=True,
+                tickers=["A"],
+                seed_count=3,
+            )
 
         baseline_rows = results_frame[results_frame["Strategy"] != mtc.STRATEGY_ML]
         self.assertTrue(baseline_rows["Median hurdle (bps)"].isna().all())
@@ -204,18 +242,19 @@ class TestCsvRoundTrip(unittest.TestCase):
         frames = {"A": _long_history(seed=1), "B": _long_history(seed=2)}
         with patch.object(mtc, "download_market_data", _fake_download(frames)):
             results_frame, failures = mtc.run_comparison(
-                tickers=["A", "B"], seed_count=3
+                starting_capital=TEST_CAPITAL,
+                liquidate=True,
+                tickers=["A", "B"],
+                seed_count=3,
             )
         self.assertEqual(failures, [])
 
-        path = mtc.cache_path(mtc._output_filename(["A", "B"]))
-        try:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / mtc._output_filename(["A", "B"])
             results_frame.to_csv(path, index=False)
             reloaded = pd.read_csv(path)
             self.assertEqual(reloaded.shape, results_frame.shape)
             self.assertEqual(list(reloaded.columns), list(results_frame.columns))
-        finally:
-            path.unlink(missing_ok=True)
 
 
 class TestMutations(unittest.TestCase):
@@ -243,19 +282,26 @@ class TestMutations(unittest.TestCase):
                     task=task,
                     name=mtc.ESTIMATOR_NAME,
                     label_horizon=horizon,
-                    embargo_bars=mtc.EMBARGO_BARS,
+                    embargo_bars=horizon,
                     random_state=mtc.RANDOM_STATE,
                 )
 
             # And confirm the real (isolated) path converts that same
             # exception into a reported failure rather than raising it.
-            result = mtc.run_one_ticker("BAD")
+            result = mtc.run_one_ticker(
+                "BAD", starting_capital=TEST_CAPITAL, liquidate=True
+            )
         self.assertIsInstance(result, mtc.ComparisonFailure)
 
     def test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion(self):
         frames = {"A": _long_history(seed=1)}
         with patch.object(mtc, "download_market_data", _fake_download(frames)):
-            results_frame, failures = mtc.run_comparison(tickers=["A"], seed_count=3)
+            results_frame, failures = mtc.run_comparison(
+                starting_capital=TEST_CAPITAL,
+                liquidate=True,
+                tickers=["A"],
+                seed_count=3,
+            )
         self.assertEqual(failures, [])
 
         # The defect this guards: a version of `run_one_ticker` that returns

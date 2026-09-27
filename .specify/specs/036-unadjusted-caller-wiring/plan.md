@@ -1,11 +1,9 @@
 # Implementation Plan: Wire Funded-Ledger Callers to the Unadjusted Pipeline
 
 **Branch**: none; Camden creates it | **Date**: 2026-09-23 | **Spec**: [spec.md](spec.md)
-**Spec number**: NNN, a placeholder. **Camden assigns it.** See spec D-1.
+**Spec number**: 036, assigned by Camden; D-1 through D-7 approved on 2026-09-26.
 
-**Input**: [spec.md](spec.md). The plan assumes D-1 through D-6 are accepted as
-recommended. If D-3 is rejected, drop PR-2 and the tasks marked `[D-3]`. Nothing
-else changes.
+**Input**: [spec.md](spec.md). Camden accepted D-1 through D-7 as recommended on 2026-09-26. D-3 is included; D-7 implementation stays outside this spec.
 
 ## Summary
 
@@ -61,7 +59,7 @@ No violations. The Complexity Tracking table is empty.
 ### Documentation (this feature)
 
 ```text
-.specify/specs/NNN-unadjusted-caller-wiring/
+.specify/specs/036-unadjusted-caller-wiring/
 ├── spec.md
 ├── plan.md              # this file
 ├── research.md          # R-1 … R-7

@@ -1,0 +1,94 @@
+FFFFFFF.FFF                                                              [100%]
+================================== FAILURES ===================================
+_ TestIsolatedFailure.test_the_short_ticker_fails_by_name_and_the_others_complete _
+
+self = <test_multi_ticker_comparison.TestIsolatedFailure testMethod=test_the_short_ticker_fails_by_name_and_the_others_complete>
+
+>   ???
+E   TypeError: run_comparison() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:87: TypeError
+________ TestAllSucceed.test_every_ticker_produces_exactly_three_rows _________
+
+self = <test_multi_ticker_comparison.TestAllSucceed testMethod=test_every_ticker_produces_exactly_three_rows>
+
+>   ???
+E   TypeError: run_comparison() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:110: TypeError
+____ TestAllFail.test_every_ticker_failing_still_returns_a_complete_report ____
+
+self = <test_multi_ticker_comparison.TestAllFail testMethod=test_every_ticker_failing_still_returns_a_complete_report>
+
+>   ???
+E   TypeError: run_comparison() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:133: TypeError
+_ TestCostParameterConsistency.test_commission_and_slippage_match_across_tickers_and_strategies _
+
+self = <test_multi_ticker_comparison.TestCostParameterConsistency testMethod=test_commission_and_slippage_match_across_tickers_and_strategies>
+
+>   ???
+E   TypeError: run_comparison() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:148: TypeError
+_ TestCostParameterConsistency.test_isolated_failure_still_matches_costs_for_completed_tickers _
+
+self = <test_multi_ticker_comparison.TestCostParameterConsistency testMethod=test_isolated_failure_still_matches_costs_for_completed_tickers>
+
+>   ???
+E   TypeError: run_comparison() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:162: TypeError
+___ TestHonestyColumns.test_baseline_rows_carry_nan_for_the_ml_only_columns ___
+
+self = <test_multi_ticker_comparison.TestHonestyColumns testMethod=test_baseline_rows_carry_nan_for_the_ml_only_columns>
+
+>   ???
+E   TypeError: run_comparison() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:193: TypeError
+_ TestHonestyColumns.test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry _
+
+self = <test_multi_ticker_comparison.TestHonestyColumns testMethod=test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry>
+
+>   ???
+E   TypeError: run_comparison() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:176: TypeError
+______________ TestCsvRoundTrip.test_round_trip_preserves_shape _______________
+
+self = <test_multi_ticker_comparison.TestCsvRoundTrip testMethod=test_round_trip_preserves_shape>
+
+>   ???
+E   TypeError: run_comparison() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:215: TypeError
+_ TestMutations.test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion _
+
+self = <test_multi_ticker_comparison.TestMutations testMethod=test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion>
+
+>   ???
+E   TypeError: run_comparison() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:266: TypeError
+_ TestMutations.test_letting_one_tickers_exception_propagate_breaks_isolation _
+
+self = <test_multi_ticker_comparison.TestMutations testMethod=test_letting_one_tickers_exception_propagate_breaks_isolation>
+
+>   ???
+E   TypeError: run_one_ticker() got an unexpected keyword argument 'starting_capital'
+
+tests\test_multi_ticker_comparison.py:260: TypeError
+=========================== short test summary info ===========================
+FAILED tests/test_multi_ticker_comparison.py::TestIsolatedFailure::test_the_short_ticker_fails_by_name_and_the_others_complete
+FAILED tests/test_multi_ticker_comparison.py::TestAllSucceed::test_every_ticker_produces_exactly_three_rows
+FAILED tests/test_multi_ticker_comparison.py::TestAllFail::test_every_ticker_failing_still_returns_a_complete_report
+FAILED tests/test_multi_ticker_comparison.py::TestCostParameterConsistency::test_commission_and_slippage_match_across_tickers_and_strategies
+FAILED tests/test_multi_ticker_comparison.py::TestCostParameterConsistency::test_isolated_failure_still_matches_costs_for_completed_tickers
+FAILED tests/test_multi_ticker_comparison.py::TestHonestyColumns::test_baseline_rows_carry_nan_for_the_ml_only_columns
+FAILED tests/test_multi_ticker_comparison.py::TestHonestyColumns::test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry
+FAILED tests/test_multi_ticker_comparison.py::TestCsvRoundTrip::test_round_trip_preserves_shape
+FAILED tests/test_multi_ticker_comparison.py::TestMutations::test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion
+FAILED tests/test_multi_ticker_comparison.py::TestMutations::test_letting_one_tickers_exception_propagate_breaks_isolation
+10 failed, 1 passed in 18.32s

@@ -1,0 +1,30 @@
+...........................................................F.            [100%]
+================================== FAILURES ===================================
+____ TestNoNewDependency.test_no_external_parallelism_library_is_imported _____
+
+self = <test_feature_set_comparison.TestNoNewDependency testMethod=test_no_external_parallelism_library_is_imported>
+
+    def test_no_external_parallelism_library_is_imported(self):
+        source = (SCRIPTS_DIR / "feature_set_comparison.py").read_text(
+            encoding="utf-8"
+        )
+        for line in source.splitlines():
+            stripped = line.strip()
+            if not (stripped.startswith("import ") or stripped.startswith("from ")):
+                continue
+            for banned in self.FORBIDDEN:
+>               self.assertNotIn(
+                    banned, stripped, f"{banned} imported at: {stripped}"
+                )
+E               AssertionError: 'multiprocess' unexpectedly found in 'import multiprocessing' : multiprocess imported at: import multiprocessing
+
+tests\test_feature_set_comparison.py:677: AssertionError
+============================= slowest 5 durations =============================
+18.45s setup    tests/test_feature_set_comparison.py::TestSerialParallelEquivalence::test_discordant_counts_and_p_values_are_equal
+8.34s call     tests/test_feature_set_comparison.py::TestSynchronousPathCreatesNoProcesses::test_the_synchronous_path_runs_in_the_calling_process
+7.98s call     tests/test_feature_set_comparison.py::TestSynchronousPathCreatesNoProcesses::test_no_executor_is_constructed
+7.76s call     tests/test_feature_set_comparison.py::TestParentSideThreadPinning::test_the_orchestrator_leaves_this_process_unpinned
+4.66s call     tests/test_feature_set_comparison.py::TestWorkerErrorPropagation::test_parallel_failure_names_the_work_unit
+=========================== short test summary info ===========================
+FAILED tests/test_feature_set_comparison.py::TestNoNewDependency::test_no_external_parallelism_library_is_imported
+1 failed, 60 passed in 80.90s (0:01:20)

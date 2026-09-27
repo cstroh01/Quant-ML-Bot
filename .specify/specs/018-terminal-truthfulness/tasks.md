@@ -92,7 +92,7 @@ two PRs, the split is by hunk and is named in the task.
 ## PR D: Malformed input (03, 04, 50, 58). Not started.
 
 - [ ] T023 Camden decides whether spec 019 absorbs the library halves of 03 and 04 (`backtest_harness.py`, `metrics.py`, `ml_signal.py`), or 018 takes them after 019 merges. Read 019's final harness first: its in-flight `run_backtest` already validates costs, dates, prices and actions.
-- [ ] T024 Reconcile the tearsheet route with the funded-ledger contract, `prices.attrs["price_basis"] == "unadjusted_dollars"`.
+- [ ] T024 **Superseded by 036** (Camden approved D-3, 2026-09-26). Reconcile the tearsheet route with the funded-ledger contract, `prices.attrs["price_basis"] == "unadjusted_dollars"`.
   - The route reads the adjusted cache (finding 13), so it must not declare otherwise.
   - The likely outcome is an explicit *unavailable* state until unadjusted prices exist.
   - This restores `test_backtest_tearsheet`.

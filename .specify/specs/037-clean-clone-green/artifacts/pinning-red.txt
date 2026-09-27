@@ -1,0 +1,38 @@
+F                                                                        [100%]
+================================== FAILURES ===================================
+_______ test_orchestrator_uses_spawn_before_native_libraries_initialize _______
+
+    def test_orchestrator_uses_spawn_before_native_libraries_initialize():
+        """Fork inherits an already sized OpenMP pool; later env edits cannot resize it."""
+        class InspectedPool(Exception):
+            pass
+    
+        def inspect_pool(*args, **kwargs):
+            selected = kwargs.get("mp_context")
+            assert selected is not None, "implicit platform start method can fork initialized OpenMP"
+            assert selected.get_start_method() == "spawn"
+            raise InspectedPool
+    
+        with patch.object(fsc.concurrent.futures, "ProcessPoolExecutor", inspect_pool):
+            with pytest.raises(InspectedPool):
+>               fsc.compare_all_entries_parallel(pd.DataFrame(), max_workers=2)
+
+tests\test_clean_clone_037.py:140: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+scripts\feature_set_comparison.py:693: in compare_all_entries_parallel
+    with _pinned_thread_environment(), concurrent.futures.ProcessPoolExecutor(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+args = ()
+kwargs = {'max_workers': 2, 'initializer': <function _worker_init at 0x00000286BFE4FD80>}
+
+    def inspect_pool(*args, **kwargs):
+        selected = kwargs.get("mp_context")
+>       assert selected is not None, "implicit platform start method can fork initialized OpenMP"
+E       AssertionError: implicit platform start method can fork initialized OpenMP
+E       assert None is not None
+
+tests\test_clean_clone_037.py:134: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_clean_clone_037.py::test_orchestrator_uses_spawn_before_native_libraries_initialize
+1 failed, 20 deselected in 2.48s

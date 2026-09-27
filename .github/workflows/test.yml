@@ -7,6 +7,7 @@ on:
 
 jobs:
   test:
+    timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -19,6 +20,7 @@ jobs:
       - run: python -m pytest tests
 
   web:
+    timeout-minutes: 10
     # The Python job never needs reports/web/dist: the API tests serve a
     # directory they create. Only this job builds the terminal.
     runs-on: ubuntu-latest

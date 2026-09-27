@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [x] No [NEEDS CLARIFICATION] markers remain. *Open choices are recorded as D-1 to D-7, each with a recommendation. See note 2.*
+- [x] No [NEEDS CLARIFICATION] markers remain. *D-1 to D-7 are DECIDED with Camden-approved recommendations. See note 2.*
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic. *See note 1.*
@@ -35,9 +35,7 @@
    line numbers. That is the house convention (see specs 019 to 021), and the
    reader is Camden reviewing a code change, not a business stakeholder. These
    items are judged against that convention, not against the generic template.
-2. **Clarifications.** Per CLAUDE.md ("the answer belongs in the spec"), open
-   questions are recorded as decisions with recommendations, not raised in
-   chat. Camden signs off on D-1 to D-7 before implementation starts.
+2. **Clarifications.** Per CLAUDE.md ("the answer belongs in the spec"), decisions and recommendations are recorded in the spec. Camden signed off on D-1 to D-7 on 2026-09-26.
 3. **Known blocker.** B-1 (no payment-date source) means the success path is
    exercised only on synthetic bundles. This is intended, and it is stated in
    SC-005.

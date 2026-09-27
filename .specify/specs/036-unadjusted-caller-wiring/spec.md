@@ -2,18 +2,11 @@
 
 **Feature Branch**: none. Camden creates it.
 
-**Spec number**: **NNN. Not assigned.** Camden assigns it, per the convention in
-spec 021 T055 ("Do not create those specs. Camden assigns numbers."). The
-directory name `NNN-unadjusted-caller-wiring` is a placeholder. Rename it when
-the number is set. Whether this should be a spec at all, or tasks on 020 or
-021, is [D-1](#d-1--a-new-spec-not-a-task-appended-to-021).
+**Spec number**: **036**, assigned by Camden on 2026-09-26.
 
 **Created**: 2026-09-23
 
-**Status**: Draft. Planning only. Nothing is implemented, and no `git` has been
-run. D-1 through D-7 need Camden's sign-off. [Blocker B-1](#b-1--no-dividend-paying-ticker-can-produce-a-bundle-today)
-means the success path cannot run on real AAPL data when this spec ships. Only
-the fail-closed path can.
+**Status**: T001 complete; T002 blocked by a protected test-file encoding error (see tasks.md Evidence). T003-T023 not started. Approved for implementation, 2026-09-26. Camden accepted D-1 through D-7 as written; each is DECIDED below. B-1 remains open in code; success is tested on fixtures only. D-7 implementation belongs to the spec 020 follow-up. No Git commands run.
 
 **Input**: Camden, 2026-09-23: "`scripts/ma_crossover_backtest.py` still calls
 data.py's legacy `download_market_data`, which stamps
@@ -105,7 +98,7 @@ loader. This spec does not deprecate it.
   Availability", `020 spec.md:162-167`), which is still unanswered.
 - **A proposed resolution is [D-7](#d-7--dividend-pay-date-a-declared-conservative-bound-not-a-required-vendor-field)**:
   spec 019's declared conservative bound replaces a vendor-sourced pay date.
-  It is awaiting sign-off.
+  It is approved; implementation remains outside spec 036.
 
 **Consequence:** once this spec ships, the AAPL crossover and the tearsheet
 **fail closed on every real run** until 020 Q1 is decided. The spec still has
@@ -136,9 +129,11 @@ next to them.
 
 ## Decisions
 
-Each decision has a recommendation. None is final until Camden signs off.
+D-1 through D-7 are DECIDED: Camden approved every recommendation as written on 2026-09-26. Recommendation text is preserved. Historical Norgate references do not override docs/SCOPE-V1.md: implementation uses free sources only.
 
 ### D-1 — A new spec, not a task appended to 021
+
+**DECIDED (Camden, 2026-09-26):** New spec 036; pointer in 021 T055.
 
 **Recommendation: a new spec, numbered by Camden.** Do not append it to spec
 021. Record a pointer in 021 T055's "020 wiring" handoff bullet.
@@ -159,6 +154,8 @@ Each decision has a recommendation. None is final until Camden signs off.
   route, not the CLI. See D-3.
 
 ### D-2 — The signal reads `Research_Close`; fills read nominal `Open`
+
+**DECIDED (Camden, 2026-09-26):** Signals read Research_Close; fills read nominal Open.
 
 **Recommendation.**
 
@@ -181,6 +178,8 @@ forbids it.
 
 ### D-3 — This spec absorbs 018 T024 (the tearsheet route)
 
+**DECIDED (Camden, 2026-09-26):** Absorb 018 T024; 503 unavailable and funded 200 with provenance.
+
 **Recommendation.** This spec delivers T024's predicted outcome: "an explicit
 *unavailable* state until unadjusted prices exist" (`018 tasks.md:95-98`).
 
@@ -188,7 +187,7 @@ forbids it.
   ticker and the reason.
 - **Valid bundle:** 200. The route passes the same starting capital and
   end-of-data policy that 021 D-3/D-4 set for the CLI.
-- **Status line:** Camden marks 018 T024 "superseded by NNN".
+- **Status line:** Camden marks 018 T024 "superseded by 036".
 - **Stays in 018:** T025 (4xx request domain), T026 (the NaN oracle) and T029
   (fill-derived cost totals).
 
@@ -197,6 +196,8 @@ and the CLI, and the route keeps returning a 500 until 018 resumes.
 
 ### D-4 — `logistic_baseline.py` stays out
 
+**DECIDED (Camden, 2026-09-26):** Keep logistic_baseline.py out of scope, gated by 021 D-2.
+
 **Recommendation.** Out of scope. Its features and label are built on
 adjusted `Close` and frozen as the pre-019 control (021 D-2, still awaiting
 sign-off). Switching its data source changes the control. The harness guard
@@ -204,6 +205,8 @@ already stops it before any P&L is produced. Record it in the handoff with 021
 D-2 as the gate.
 
 ### D-5 — Resolve data before opening the trial attempt
+
+**DECIDED (Camden, 2026-09-26):** Resolve and validate before research_attempt.
 
 **Recommendation.**
 
@@ -217,6 +220,8 @@ D-2 as the gate.
 but it inflates the attempt count that the DSR gate (Rule 15) deflates by.
 
 ### D-6 — Manifest resolution: exactly one bundle, or fail closed
+
+**DECIDED (Camden, 2026-09-26):** Exactly one manifest or fail closed; explicit CLI override.
 
 **Recommendation.** `data.py` gains one resolver that maps
 (ticker, cache directory) to a manifest path.
@@ -233,6 +238,8 @@ The CLI accepts an explicit manifest path that overrides the resolver.
   explicit, separate step (`download_unadjusted_market_data`).
 
 ### D-7 — Dividend pay date: a declared conservative bound, not a required vendor field
+
+**DECIDED (Camden, 2026-09-26):** Option C1 now, C2 later with cited bound; implementation deferred to spec 020 follow-up.
 
 Added 2026-09-23. It resolves B-1 and spec 020 Q1. The full analysis is
 [research R-8](research.md#r-8-does-anything-need-a-dividend-payment-date-analysis-behind-d-7).

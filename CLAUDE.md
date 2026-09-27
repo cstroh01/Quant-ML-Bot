@@ -5,7 +5,10 @@ Operating instructions for any agent working in this repository.
 ## Read this first
 
 `.specify/memory/constitution.md` holds the non-negotiable rules. Read it before
-writing code. It governs correctness (lookahead, cross-validation, costs,
+writing code. `docs/SCOPE-V1.md` holds the project's scope, hard constraints,
+and definition of done — read it before proposing work, and treat it as
+authoritative wherever an older roadmap, README line, or spec status contradicts
+it. It governs correctness (lookahead, cross-validation, costs,
 baselines), process (tests, dependencies, merge gate), and boundaries
 (execution code, version control). Nothing in this file overrides it.
 
@@ -49,12 +52,28 @@ constitution's own text is the current authority on the rule.
 
 ## What this project is
 
-An ML-driven trading system built in dependency order: backtest → paper trading
-→ small live capital. No phase is skipped because a backtest looked good.
+A **quantitative research framework** built to industry standards on **free data
+only**, shipped publicly as a finished, reproducible artifact. The machinery is
+the deliverable: anti-lookahead discipline, purged/embargoed cross-validation,
+false-discovery correction, realistic cost modeling, and an execution safety
+layer.
 
-The build order is deliberate. Mechanics are proven with a simple baseline
-before a model is introduced, because a model on a broken pipeline disguises
-bugs as bad predictions.
+It is built in dependency order — backtest -> paper trading -> small live
+capital — and no phase is skipped because a backtest looked good. Mechanics are
+proven with a simple baseline before a model is introduced, because a model on a
+broken pipeline disguises bugs as bad predictions.
+
+**Scope is fixed by `docs/SCOPE-V1.md`.** The short version:
+
+- **Free data only.** No paid vendor, no paid API tier. Norgate and Sharadar are
+  out of scope, not pending purchases; WRDS/CRSP/Compustat/FactSet are closed.
+- **Two releases.** v1.0 is the complete research framework, publicly tagged.
+  v1.1 adds the paper-trading loop and starts the capital gate's paper clock.
+- **The capital gate is retained and unreached.** No real capital until every
+  step of it passes. A deadline never relaxes a gate.
+- **Limitations are disclosed, not solved.** A static survivor basket, free-tier
+  corporate actions, no point-in-time fundamentals, daily bars only, modeled
+  rather than calibrated costs. Every surface reporting a result says so.
 
 ## Layout
 
@@ -76,6 +95,10 @@ data/cache/                       Generated output (gitignored)
 | `scripts/backtest_harness.py` | Fills, trades, P&L | How a signal was produced |
 | `scripts/portfolio_risk.py` | Position sizing, correlation overlap, loss-cap halts | Raw data, fills, P&L, broker calls |
 | `scripts/live_safety_gate.py` | Independent pre-order safety checks, durable halts, reservations, kill switch | Signal generation, sizing, fills, P&L, broker credentials or network |
+| `scripts/metrics.py` | Performance and significance statistics, HAC standard errors | Data fetching, signals, fills, sizing |
+| `scripts/selection_bias.py` | CSCV / PBO and deflated-Sharpe selection-bias math | Where a trial came from, execution, sizing |
+| `scripts/trial_registry.py`, `scripts/trial_runner.py` | Append-only hash-chained trial ledger and instrumented run recording | Strategy logic, fills, P&L accounting |
+| `scripts/order_gateway.py` | Submitting orders through the safety gate | Signal generation, model internals, broker credentials |
 | `scripts/plotting.py` | Headless figures | Everything else |
 
 These boundaries are load-bearing. They are what let a model replace a rule

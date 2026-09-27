@@ -1,0 +1,716 @@
+--- HEAD/scripts/feature_set_comparison.py
+
++++ scripts/feature_set_comparison.py
+
+@@ -81,6 +81,7 @@
+
+ import dataclasses
+ import json
+ import math
++import multiprocessing
+ import os
+ from collections.abc import Callable
+ from pathlib import Path
+@@ -302,9 +303,9 @@
+
+     Passed as `ProcessPoolExecutor(initializer=...)`, per FR-002 and the
+     spec's Design Constraint 2, and retained because it is genuinely the
+     belt to `_pinned_thread_environment`'s braces: it guarantees the
+-    variables are set in the child whatever the start method, including a
+-    `fork` child that inherited a parent whose environment had since been
+-    restored.
++    variables are set in the child. The orchestrator explicitly uses `spawn`:
++    a `fork` child inherits initialized native pools that these environment
++    assignments cannot resize (spec 037).
+ 
+     It is *not*, on its own, sufficient to pin anything â€” read
+     `_pinned_thread_environment` for the measurement and the reason. Do not
+@@ -352,6 +353,31 @@
+
+     )
+ 
+ 
++def _scoreable_pairs(
++    labels: pd.Series, predicted_a: pd.Series, predicted_b: pd.Series
++) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
++    """Select observable truth jointly; never invent a target or lose pairing.
++
++    Inference covers rows whose future outcome is unknown. Only missing truth
++    is an abstention: infinity, or missing predictions on known truth, is an error.
++    """
++    if (not labels.index.is_unique
++            or not labels.index.equals(predicted_a.index)
++            or not labels.index.equals(predicted_b.index)):
++        raise ValueError("paired series must have the same unique index")
++    truth = labels.to_numpy(dtype=float, na_value=np.nan)
++    if np.isinf(truth).any():
++        raise ValueError("observed labels must be finite")
++    observed = ~np.isnan(truth)
++    if not observed.any():
++        raise ValueError("no observable paired outcomes")
++    a = predicted_a.to_numpy(dtype=float, na_value=np.nan)[observed]
++    b = predicted_b.to_numpy(dtype=float, na_value=np.nan)[observed]
++    if not np.isfinite(a).all() or not np.isfinite(b).all():
++        raise ValueError("predictions on observed outcomes must be finite")
++    return truth[observed], a, b
++
++
+ def compare_classification(
+     labels: pd.Series, predicted_a: pd.Series, predicted_b: pd.Series
+ ) -> dict:
+@@ -366,9 +392,11 @@
+
+     one-sided figure is derived rather than re-implemented â€” and reported
+     beside the two-sided one so a reader can see both.
+     """
+-    truth = labels.astype(int).to_numpy()
+-    correct_a = predicted_a.astype(int).to_numpy() == truth
+-    correct_b = predicted_b.astype(int).to_numpy() == truth
++    truth, values_a, values_b = _scoreable_pairs(labels, predicted_a, predicted_b)
++    if not all(np.isin(values, [0, 1]).all() for values in (truth, values_a, values_b)):
++        raise ValueError("classification labels and predictions must be binary")
++    correct_a = values_a == truth
++    correct_b = values_b == truth
+ 
+     # b_wins: A wrong, B right. a_wins: A right, B wrong. These two cells are
+     # the entire evidence; the concordant cells cancel.
+@@ -427,9 +455,9 @@
+
+     standard treatment and the conservative one: a bar where both feature
+     sets erred identically is evidence for neither.
+     """
+-    truth = labels.to_numpy(dtype=float)
+-    error_a = (predicted_a.to_numpy(dtype=float) - truth) ** 2
+-    error_b = (predicted_b.to_numpy(dtype=float) - truth) ** 2
++    truth, estimate_a, estimate_b = _scoreable_pairs(labels, predicted_a, predicted_b)
++    error_a = (estimate_a - truth) ** 2
++    error_b = (estimate_b - truth) ** 2
+     difference = error_b - error_a
+ 
+     if not np.any(difference != 0.0):
+@@ -510,7 +538,8 @@
+
+         {
+             "name": name,
+             "task": task,
+-            "shared_bars": len(shared),
++            "shared_bars": result["n"],
++            "unscored_bars": len(shared) - result["n"],
+             "outer_folds_a": folds_a,
+             "outer_folds_b": folds_b,
+             "purge_bars_a": predicted_a.attrs.get("purge_bars"),
+@@ -691,7 +720,8 @@
+
+         # submitted, and each one inherits the environment as it exists at
+         # the moment it is created.
+         with _pinned_thread_environment(), concurrent.futures.ProcessPoolExecutor(
+-            max_workers=workers, initializer=_worker_init
++            max_workers=workers, initializer=_worker_init,
++            mp_context=multiprocessing.get_context("spawn"),
+         ) as executor:
+             futures = {
+                 executor.submit(_evaluate_feature_set_task, prices, task_spec): task_spec
+@@ -782,6 +812,8 @@
+
+             f"{result['outer_folds_b']} ({FEATURE_SET_B}); "
+             f"paired bars: {result['shared_bars']}"
+         )
++        if "unscored_bars" in result:
++            lines.append(f"  covered bars with unknown outcome: {result['unscored_bars']}")
+         for suffix, feature_set in (("a", FEATURE_SET_A), ("b", FEATURE_SET_B)):
+             purge = result.get(f"purge_bars_{suffix}")
+             embargo = result.get(f"embargo_bars_{suffix}")
+--- HEAD/scripts/multi_ticker_comparison.py
+
++++ scripts/multi_ticker_comparison.py
+
+@@ -45,6 +45,7 @@
+
+ from __future__ import annotations
+ 
+ from trial_runner import research_attempt, research_config
++import argparse
+ import dataclasses
+ 
+ import numpy as np
+@@ -114,6 +115,8 @@
+
+     ml_prices: pd.DataFrame,
+     ml_trade_log: pd.DataFrame,
+     *,
++    starting_capital: float,
++    liquidate: bool,
+     commission_per_trade: float,
+     slippage_bps: float,
+     seed_count: int,
+@@ -132,7 +135,8 @@
+
+     holding_bars = mean_holding_bars(ml_prices, ml_trade_log)
+ 
+     with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="buy_and_hold_baseline") as attempt:
+-        hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs)
++        hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs,
++                                starting_capital=starting_capital, liquidate=liquidate)
+         attempt.account(hold_log)
+     hold_summary = performance_summary(ml_prices, hold_log, **costs)
+ 
+@@ -142,7 +146,8 @@
+
+         for seed in range(seed_count):
+             signalled = random_signal(ml_prices, n_trades, holding_bars, seed)
+             with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="random_signal_baseline") as attempt:
+-                trade_log = run_backtest(signalled, **costs)
++                trade_log = run_backtest(signalled, **costs,
++                                         starting_capital=starting_capital, liquidate=liquidate)
+                 attempt.account(trade_log)
+             random_summaries.append(performance_summary(ml_prices, trade_log, **costs))
+     except ValueError as error:
+@@ -216,6 +221,8 @@
+
+ def run_one_ticker(
+     ticker: str,
+     *,
++    starting_capital: float,
++    liquidate: bool,
+     period: str = PERIOD,
+     commission_per_trade: float = COMMISSION_PER_TRADE,
+     slippage_bps: float = SLIPPAGE_BPS,
+@@ -230,6 +237,10 @@
+
+     and a frame too short for a single walk-forward fold both surface as
+     ordinary exceptions here and are deliberately not special-cased apart
+     (spec.md Edge Cases: "treated the same way").
++
++    Funding and end-of-data policy are caller choices, never inferred from
++    future prices. Legacy adjusted downloads remain rejected by the ledger;
++    this contract repair does not claim to implement unadjusted data wiring.
+     """
+     try:
+         prices = download_market_data([ticker], period=period)
+@@ -273,7 +284,8 @@
+
+ 
+         costs = {"commission_per_trade": commission_per_trade, "slippage_bps": slippage_bps}
+         with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="candidate") as attempt:
+-            ml_trade_log = run_backtest(ml_prices, **costs)
++            ml_trade_log = run_backtest(ml_prices, **costs,
++                                        starting_capital=starting_capital, liquidate=liquidate)
+             attempt.account(ml_trade_log)
+         ml_summary = performance_summary(ml_prices, ml_trade_log, **costs)
+ 
+@@ -296,6 +308,8 @@
+
+             ticker,
+             ml_prices,
+             ml_trade_log,
++            starting_capital=starting_capital,
++            liquidate=liquidate,
+             commission_per_trade=commission_per_trade,
+             slippage_bps=slippage_bps,
+             seed_count=seed_count,
+@@ -322,6 +336,8 @@
+
+ def run_comparison(
+     tickers: list[str] = TICKER_UNIVERSE,
+     *,
++    starting_capital: float,
++    liquidate: bool,
+     period: str = PERIOD,
+     commission_per_trade: float = COMMISSION_PER_TRADE,
+     slippage_bps: float = SLIPPAGE_BPS,
+@@ -341,6 +357,8 @@
+
+     for ticker in tickers:
+         result = run_one_ticker(
+             ticker,
++            starting_capital=starting_capital,
++            liquidate=liquidate,
+             period=period,
+             commission_per_trade=commission_per_trade,
+             slippage_bps=slippage_bps,
+@@ -366,6 +384,10 @@
+
+ 
+ 
+ def main() -> None:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--starting-capital", type=float, required=True)
++    parser.add_argument("--liquidate", action=argparse.BooleanOptionalAction, required=True)
++    args = parser.parse_args()
+     universe_cache = cache_path(
+         f"{'-'.join(sorted(set(TICKER_UNIVERSE)))}_{PERIOD}.csv"
+     )
+@@ -380,7 +402,8 @@
+
+             f"{TICKER_UNIVERSE!r}, period={PERIOD!r})\""
+         )
+ 
+-    results_frame, failures = run_comparison()
++    results_frame, failures = run_comparison(
++        starting_capital=args.starting_capital, liquidate=args.liquidate)
+ 
+     output_path = cache_path(_output_filename(TICKER_UNIVERSE))
+     results_frame.to_csv(output_path, index=False)
+--- HEAD/tests/test_feature_set_comparison.py
+
++++ tests/test_feature_set_comparison.py
+
+@@ -18,13 +18,13 @@
+
+ The fixture is synthetic and generated in-process. No test here downloads
+ anything (CLAUDE.md, *Conventions â†’ Tests*), and none reads `data/cache/`.
+ 
+-**Runtime.** This file is slower than its neighbours â€” it runs the full eight
+-unit comparison four times, once per execution mode, and spawns worker
+-processes. That is the cost of testing the thing the spec is actually about;
+-the fixture is sized down to roughly 250 bars and five outer folds to keep it
+-to tens of seconds rather than minutes.
++**Runtime.** Spec 037 captures the units from two real orchestrator runs,
++one synchronous and one spawned pool, instead of fitting the same units again
++for each assertion. The short fixture still covers every registry entry and
++both feature sets; tuning itself is independently tested in test_model_cv.py.
+ """
+ 
++import ast
+ import concurrent.futures
+ import dataclasses
+ import math
+@@ -32,6 +32,7 @@
+
+ import os
+ import pickle
+ import unittest
++from unittest.mock import patch
+ 
+ import numpy as np
+ import pandas as pd
+@@ -56,11 +57,9 @@
+
+     pair_results,
+ )
+ 
+-# Sized so the whole eight-unit comparison runs in single-digit seconds while
+-# still producing several outer folds, real inner tuning, and a non-trivial
+-# number of paired bars. Too short and `nested_walk_forward` supports no outer
+-# folds at all; too long and this file dominates the suite.
+-FIXTURE_BARS = 250
++# Two outer windows, including observable and unknown terminal outcomes;
++# no redundant inner grid search is needed to prove scheduler equivalence.
++FIXTURE_BARS = 160
+ 
+ 
+ def synthetic_prices(bars: int = FIXTURE_BARS, seed: int = 7) -> pd.DataFrame:
+@@ -109,33 +108,11 @@
+
+         from sklearn.utils._openmp_helpers import _openmp_effective_n_threads
+ 
+         state["effective_threads"] = _openmp_effective_n_threads()
+-    except Exception:
++    except ImportError:
+         # A private scikit-learn helper. If it moves, the test that reads
+         # this skips rather than failing for the wrong reason.
+         state["effective_threads"] = None
+     return state
+-
+-
+-def _run_units_in_pool(
+-    prices: pd.DataFrame, tasks: list[ComparisonTask], workers: int
+-) -> dict[tuple[str, str, str], tuple[pd.Series, pd.Series, int]]:
+-    """Run the given units through a real process pool, keyed by identity.
+-
+-    Uses the same executor construction the production orchestrator uses â€”
+-    including `initializer=_worker_init` â€” because a pool without the
+-    initializer would not be testing the configuration that ships.
+-    """
+-    results = {}
+-    with concurrent.futures.ProcessPoolExecutor(
+-        max_workers=workers, initializer=_worker_init
+-    ) as executor:
+-        futures = [
+-            executor.submit(_evaluate_feature_set_task, prices, task) for task in tasks
+-        ]
+-        for future in concurrent.futures.as_completed(futures):
+-            name, task, feature_set, predicted, labels, folds = future.result()
+-            results[(name, task, feature_set)] = (predicted, labels, folds)
+-    return results
+ 
+ 
+ class TestWorkerInitialization(unittest.TestCase):
+@@ -245,7 +222,9 @@
+
+         because inheritance happens before the child's first import and an
+         initializer does not."""
+         with _pinned_thread_environment():
+-            with concurrent.futures.ProcessPoolExecutor(max_workers=1) as executor:
++            with concurrent.futures.ProcessPoolExecutor(
++                max_workers=1, mp_context=multiprocessing.get_context("spawn")
++            ) as executor:
+                 state = executor.submit(_report_child_thread_state).result()
+         self.assertEqual(state["OMP_NUM_THREADS"], "1")
+ 
+@@ -257,7 +236,8 @@
+
+         will actually use."""
+         with _pinned_thread_environment():
+             with concurrent.futures.ProcessPoolExecutor(
+-                max_workers=1, initializer=_worker_init
++                max_workers=1, initializer=_worker_init,
++                mp_context=multiprocessing.get_context("spawn"),
+             ) as executor:
+                 state = executor.submit(_report_child_thread_state).result()
+ 
+@@ -449,36 +429,35 @@
+
+ class TestSerialParallelEquivalence(unittest.TestCase):
+     """T009 / FR-005 / SC-002 â€” the correctness gate for the whole spec.
+ 
+-    Four runs of the same comparison over one fixture:
+-
+-    - the eight units executed in this process, one after another;
+-    - the eight units executed through a two-worker pool;
+-    - the orchestrator in its synchronous mode (`max_workers=1`);
+-    - the orchestrator in its parallel mode (`max_workers=2`).
+-
+-    Every number every one of them produces must match every other exactly.
+-    Note that this also exercises the thread-limit difference, not just the
+-    process boundary: the in-process runs use whatever thread count this
+-    machine's OpenMP and BLAS defaults give, and the pooled runs are pinned to
+-    one thread by `_worker_init`. If any estimator's output depended on thread
+-    count, these tests are where it would surface.
++    Two real orchestrator runs capture their units at the shared pairing
++    boundary. Serial computation uses the parent's native thread count;
++    spawned computation uses pinned workers. No estimator or fit is mocked.
+     """
+ 
+     @classmethod
+     def setUpClass(cls):
+         cls.prices = synthetic_prices()
+         cls.tasks = build_tasks()
+-
+-        cls.serial_units = {
+-            (task.name, task.task, task.feature_set): _evaluate_feature_set_task(
+-                cls.prices, task
+-            )[3:]
+-            for task in cls.tasks
+-        }
+-        cls.parallel_units = _run_units_in_pool(cls.prices, cls.tasks, workers=2)
+-
+-        cls.serial_results = compare_all_entries_parallel(cls.prices, max_workers=1)
+-        cls.parallel_results = compare_all_entries_parallel(cls.prices, max_workers=2)
++        cls.serial_units, cls.parallel_units = {}, {}
++        cls.snapshots = []
++        original = fsc.pair_results
++
++        def capture(units):
++            def pair(**kwargs):
++                for feature_set, result in ((FEATURE_SET_A, "result_a"),
++                                            (FEATURE_SET_B, "result_b")):
++                    units[(kwargs["name"], kwargs["task"], feature_set)] = kwargs[result]
++                return original(**kwargs)
++            return pair
++
++        with patch.object(fsc, "pair_results", capture(cls.serial_units)):
++            cls.serial_results = compare_all_entries(cls.prices, max_workers=1)
++        with patch.object(fsc, "pair_results", capture(cls.parallel_units)):
++            cls.parallel_results = compare_all_entries_parallel(
++                cls.prices, max_workers=2,
++                on_pair=lambda done: cls.snapshots.append(
++                    [(r["name"], r["task"]) for r in done]),
++            )
+ 
+     def _assert_exactly_equal(self, actual, expected, label):
+         """Exact equality, with NaN treated as equal to NaN.
+@@ -499,6 +478,15 @@
+
+         self.assertEqual(actual, expected, label)
+         self.assertIs(type(actual), type(expected), f"{label}: type differs")
+ 
++    def test_fixture_has_real_folds_and_unknown_terminal_truth(self):
++        self.assertEqual(set(self.serial_units), {
++            (t.name, t.task, t.feature_set) for t in self.tasks})
++        for predicted, labels, folds in self.serial_units.values():
++            self.assertGreaterEqual(folds, 2)
++            self.assertTrue(predicted.notna().all())
++            self.assertTrue(labels.notna().any())
++            self.assertTrue(labels.isna().any())
++
+     def test_prediction_series_are_identical(self):
+         """SC-002, stated in the spec's own terms: `assert_series_equal`."""
+         self.assertEqual(set(self.parallel_units), set(self.serial_units))
+@@ -506,8 +494,8 @@
+
+             parallel_predicted, parallel_labels, parallel_folds = self.parallel_units[
+                 key
+             ]
+-            pd.testing.assert_series_equal(parallel_predicted, predicted, obj=str(key))
+-            pd.testing.assert_series_equal(parallel_labels, labels, obj=str(key))
++            pd.testing.assert_series_equal(parallel_predicted, predicted, check_exact=True, obj=str(key))
++            pd.testing.assert_series_equal(parallel_labels, labels, check_exact=True, obj=str(key))
+             self.assertEqual(parallel_folds, folds, key)
+ 
+     def test_prediction_dtypes_and_index_survive_the_process_boundary(self):
+@@ -582,23 +570,22 @@
+
+     def test_the_fr_007_alias_produces_the_same_results(self):
+         """`compare_all_entries` is a delegation, and this is what keeps it
+         one. Runs synchronously, so it costs a serial pass and no spawn."""
+-        results = compare_all_entries(self.prices, max_workers=1)
+-        for actual, expected in zip(results, self.serial_results):
+-            for key in expected:
+-                self._assert_exactly_equal(
+-                    actual[key], expected[key], f"alias:{expected['name']}:{key}"
+-                )
++        # The real serial control above entered via the alias. Check exact
++        # argument forwarding separately without repeating every model fit.
++        with patch.object(fsc, "compare_all_entries_parallel",
++                          return_value=self.serial_results) as runner:
++            results = compare_all_entries(self.prices, max_workers=1)
++        runner.assert_called_once_with(
++            self.prices, max_workers=1, random_state=fsc.RANDOM_STATE,
++            on_pair=None, verbose=False,
++        )
++        self.assertIs(results, self.serial_results)
+ 
+     def test_on_pair_reports_completed_comparisons_in_report_order(self):
+         """The checkpoint hook. Each call must be a prefix of the final
+         report order â€” a checkpoint written mid-run has to be readable as
+         the same file the serial run would have written."""
+-        seen: list[list[tuple[str, str]]] = []
+-        compare_all_entries_parallel(
+-            self.prices,
+-            max_workers=2,
+-            on_pair=lambda done: seen.append([(r["name"], r["task"]) for r in done]),
+-        )
++        seen = self.snapshots
+ 
+         expected = sorted(ESTIMATOR_REGISTRY)
+         self.assertEqual(len(seen), len(expected))
+@@ -683,14 +670,23 @@
+
+         source = (SCRIPTS_DIR / "feature_set_comparison.py").read_text(
+             encoding="utf-8"
+         )
+-        for line in source.splitlines():
+-            stripped = line.strip()
+-            if not (stripped.startswith("import ") or stripped.startswith("from ")):
+-                continue
+-            for banned in self.FORBIDDEN:
+-                self.assertNotIn(
+-                    banned, stripped, f"{banned} imported at: {stripped}"
+-                )
++        self.assertEqual(self._forbidden_imports(source), set())
++
++    def _forbidden_imports(self, source):
++        imported = set()
++        for node in ast.walk(ast.parse(source)):
++            if isinstance(node, ast.Import):
++                imported.update(alias.name.split(".")[0] for alias in node.names)
++            elif isinstance(node, ast.ImportFrom) and node.module:
++                imported.add(node.module.split(".")[0])
++        return imported.intersection(self.FORBIDDEN)
++
++    def test_dependency_guard_distinguishes_stdlib_and_rejects_real_banned_imports(self):
++        self.assertEqual(self._forbidden_imports("import multiprocessing"), set())
++        for name in self.FORBIDDEN:
++            for source in (f"import {name} as executor",
++                           f"def worker():\n    from {name} import Pool as executor"):
++                self.assertEqual(self._forbidden_imports(source), {name})
+ 
+     def test_the_parallel_machinery_comes_from_concurrent_futures(self):
+         self.assertIs(fsc.concurrent.futures, concurrent.futures)
+--- HEAD/tests/test_multi_ticker_comparison.py
+
++++ tests/test_multi_ticker_comparison.py
+
+@@ -9,6 +9,8 @@
+
+ """
+ 
+ import unittest
++import tempfile
++from pathlib import Path
+ from unittest.mock import patch
+ 
+ import numpy as np
+@@ -17,6 +19,9 @@
+
+ from context import SCRIPTS_DIR  # noqa: F401  (import for the sys.path effect)
+ 
+ import multi_ticker_comparison as mtc
++
++# EXAMPLE — NOT A RESULT: chosen cash for synthetic funded-ledger fixtures.
++TEST_CAPITAL = 10_000.0
+ 
+ 
+ def _price_walk(n: int, seed: int = 11) -> pd.DataFrame:
+@@ -29,7 +34,7 @@
+
+     rng = np.random.default_rng(seed)
+     dates = pd.bdate_range("2022-01-03", periods=n)
+     close = 100.0 + np.cumsum(rng.normal(scale=0.8, size=n))
+-    return pd.DataFrame(
++    frame = pd.DataFrame(
+         {
+             "Date": dates,
+             "Open": close,
+@@ -37,6 +42,8 @@
+
+             "Volume": rng.integers(1_000_000, 5_000_000, size=n),
+         }
+     )
++    frame.attrs["price_basis"] = "unadjusted_dollars"
++    return frame
+ 
+ 
+ def _long_history(seed: int = 11) -> pd.DataFrame:
+@@ -77,7 +84,7 @@
+
+             "GOOD2": _long_history(seed=2),
+         }
+         with patch.object(mtc, "download_market_data", _fake_download(frames)):
+-            results_frame, failures = mtc.run_comparison(
++            results_frame, failures = mtc.run_comparison(starting_capital=TEST_CAPITAL, liquidate=True, 
+                 tickers=["GOOD1", "BAD", "GOOD2"], seed_count=3
+             )
+ 
+@@ -100,7 +107,7 @@
+
+     def test_every_ticker_produces_exactly_three_rows(self):
+         frames = {"A": _long_history(seed=1), "B": _long_history(seed=2)}
+         with patch.object(mtc, "download_market_data", _fake_download(frames)):
+-            results_frame, failures = mtc.run_comparison(
++            results_frame, failures = mtc.run_comparison(starting_capital=TEST_CAPITAL, liquidate=True, 
+                 tickers=["A", "B"], seed_count=3
+             )
+ 
+@@ -123,7 +130,7 @@
+
+     def test_every_ticker_failing_still_returns_a_complete_report(self):
+         frames = {"BAD1": _short_history(seed=1), "BAD2": _empty_frame()}
+         with patch.object(mtc, "download_market_data", _fake_download(frames)):
+-            results_frame, failures = mtc.run_comparison(
++            results_frame, failures = mtc.run_comparison(starting_capital=TEST_CAPITAL, liquidate=True, 
+                 tickers=["BAD1", "BAD2"], seed_count=3
+             )
+ 
+@@ -138,7 +145,7 @@
+
+     def test_commission_and_slippage_match_across_tickers_and_strategies(self):
+         frames = {"A": _long_history(seed=1), "B": _long_history(seed=2)}
+         with patch.object(mtc, "download_market_data", _fake_download(frames)):
+-            results_frame, failures = mtc.run_comparison(
++            results_frame, failures = mtc.run_comparison(starting_capital=TEST_CAPITAL, liquidate=True, 
+                 tickers=["A", "B"],
+                 commission_per_trade=1.25,
+                 slippage_bps=7.0,
+@@ -152,7 +159,7 @@
+
+     def test_isolated_failure_still_matches_costs_for_completed_tickers(self):
+         frames = {"GOOD": _long_history(seed=1), "BAD": _short_history()}
+         with patch.object(mtc, "download_market_data", _fake_download(frames)):
+-            results_frame, _failures = mtc.run_comparison(
++            results_frame, _failures = mtc.run_comparison(starting_capital=TEST_CAPITAL, liquidate=True, 
+                 tickers=["GOOD", "BAD"], seed_count=3
+             )
+ 
+@@ -166,13 +173,15 @@
+
+     def test_ml_row_carries_hurdle_and_prediction_columns_and_fold_geometry(self):
+         frames = {"A": _long_history(seed=1)}
+         with patch.object(mtc, "download_market_data", _fake_download(frames)):
+-            results_frame, failures = mtc.run_comparison(tickers=["A"], seed_count=3)
++            results_frame, failures = mtc.run_comparison(starting_capital=TEST_CAPITAL, liquidate=True, tickers=["A"], seed_count=3)
+ 
+         self.assertEqual(failures, [])
+         ml_row = results_frame[results_frame["Strategy"] == mtc.STRATEGY_ML].iloc[0]
+         self.assertGreater(ml_row["fold_count"], 0)
+-        self.assertEqual(ml_row["purge_bars"], mtc.LABEL_HORIZON)
+-        self.assertEqual(ml_row["embargo_bars"], mtc.EMBARGO_BARS)
++        _, _, span = mtc.build_features(
++            frames["A"], target_kind=mtc.TARGET_KIND, label_horizon=mtc.LABEL_HORIZON)
++        self.assertEqual(ml_row["purge_bars"], span)
++        self.assertEqual(ml_row["embargo_bars"], span)
+         self.assertEqual(ml_row["random_state"], mtc.RANDOM_STATE)
+         self.assertEqual(ml_row["random_baseline_seed_count"], 3)
+         self.assertFalse(np.isnan(ml_row["Median hurdle (bps)"]))
+@@ -181,7 +190,7 @@
+
+     def test_baseline_rows_carry_nan_for_the_ml_only_columns(self):
+         frames = {"A": _long_history(seed=1)}
+         with patch.object(mtc, "download_market_data", _fake_download(frames)):
+-            results_frame, _failures = mtc.run_comparison(tickers=["A"], seed_count=3)
++            results_frame, _failures = mtc.run_comparison(starting_capital=TEST_CAPITAL, liquidate=True, tickers=["A"], seed_count=3)
+ 
+         baseline_rows = results_frame[results_frame["Strategy"] != mtc.STRATEGY_ML]
+         self.assertTrue(baseline_rows["Median hurdle (bps)"].isna().all())
+@@ -203,19 +212,18 @@
+
+     def test_round_trip_preserves_shape(self):
+         frames = {"A": _long_history(seed=1), "B": _long_history(seed=2)}
+         with patch.object(mtc, "download_market_data", _fake_download(frames)):
+-            results_frame, failures = mtc.run_comparison(
++            results_frame, failures = mtc.run_comparison(starting_capital=TEST_CAPITAL, liquidate=True, 
+                 tickers=["A", "B"], seed_count=3
+             )
+         self.assertEqual(failures, [])
+ 
+-        path = mtc.cache_path(mtc._output_filename(["A", "B"]))
+-        try:
++        with tempfile.TemporaryDirectory() as directory:
++            path = Path(directory) / mtc._output_filename(["A", "B"])
+             results_frame.to_csv(path, index=False)
+             reloaded = pd.read_csv(path)
+             self.assertEqual(reloaded.shape, results_frame.shape)
+             self.assertEqual(list(reloaded.columns), list(results_frame.columns))
+-        finally:
+-            path.unlink(missing_ok=True)
++
+ 
+ 
+ class TestMutations(unittest.TestCase):
+@@ -243,19 +251,19 @@
+
+                     task=task,
+                     name=mtc.ESTIMATOR_NAME,
+                     label_horizon=horizon,
+-                    embargo_bars=mtc.EMBARGO_BARS,
++                    embargo_bars=horizon,
+                     random_state=mtc.RANDOM_STATE,
+                 )
+ 
+             # And confirm the real (isolated) path converts that same
+             # exception into a reported failure rather than raising it.
+-            result = mtc.run_one_ticker("BAD")
++            result = mtc.run_one_ticker("BAD", starting_capital=TEST_CAPITAL, liquidate=True)
+         self.assertIsInstance(result, mtc.ComparisonFailure)
+ 
+     def test_dropping_a_baseline_is_caught_by_the_strategy_set_assertion(self):
+         frames = {"A": _long_history(seed=1)}
+         with patch.object(mtc, "download_market_data", _fake_download(frames)):
+-            results_frame, failures = mtc.run_comparison(tickers=["A"], seed_count=3)
++            results_frame, failures = mtc.run_comparison(starting_capital=TEST_CAPITAL, liquidate=True, tickers=["A"], seed_count=3)
+         self.assertEqual(failures, [])
+ 
+         # The defect this guards: a version of `run_one_ticker` that returns
+--- HEAD/.github/workflows/test.yml
+
++++ .github/workflows/test.yml
+
+@@ -7,6 +7,7 @@
+
+ 
+ jobs:
+   test:
++    timeout-minutes: 20
+     runs-on: ubuntu-latest
+     steps:
+       - uses: actions/checkout@v6
+@@ -19,6 +20,7 @@
+
+       - run: python -m pytest tests
+ 
+   web:
++    timeout-minutes: 10
+     # The Python job never needs reports/web/dist: the API tests serve a
+     # directory they create. Only this job builds the terminal.
+     runs-on: ubuntu-latest
