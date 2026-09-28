@@ -11,7 +11,7 @@ python -m pip install -r requirements.txt -r requirements-dev.txt
 ## 1. Record the pre-change baseline
 
 ```
-python -m pytest tests -q
+python -m pytest tests
 ```
 
 Record the failing set in `tasks.md` → Evidence **before** any edit. SC-006 is
@@ -65,10 +65,10 @@ python -m pytest tests
 
 Expected: no failure outside the baseline recorded in step 1.
 
-## 6. Manual smoke test (real cache, optional)
+## 6. Manual smoke test (real cache)
 
 ```
-python scripts/ma_crossover_backtest.py ; echo "exit=$?"
+python scripts/ma_crossover_backtest.py
 ```
 
 Expected **today**: exit 1, and stderr reads

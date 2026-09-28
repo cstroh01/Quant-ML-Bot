@@ -6,7 +6,7 @@
 
 **Created**: 2026-09-23
 
-**Status**: T001 complete; T002 blocked by a protected test-file encoding error (see tasks.md Evidence). T003-T023 not started. Approved for implementation, 2026-09-26. Camden accepted D-1 through D-7 as written; each is DECIDED below. B-1 remains open in code; success is tested on fixtures only. D-7 implementation belongs to the spec 020 follow-up. No Git commands run.
+**Status**: T001-T023 implemented locally in four reviewable units; no PR opened and no Git commands run. The 2026-09-27 full gate is 902 passed / 1 failed / 0 errors versus the 885 passed / 2 failed / 0 errors baseline; the remaining failure is the pre-existing spec 037 mutation test on the currently formatted multi-ticker source. Camden accepted D-1 through D-7 as written. B-1's D-7 implementation remains for spec 041; real AAPL still fails closed. F-1 remains for a Rule 14 second-source follow-on; D-4 leaves `logistic_baseline.py` gated by 021 D-2.
 
 **Input**: Camden, 2026-09-23: "`scripts/ma_crossover_backtest.py` still calls
 data.py's legacy `download_market_data`, which stamps

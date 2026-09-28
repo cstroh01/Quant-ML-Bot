@@ -1,4 +1,34 @@
-# Spec 036 stopped at the baseline gate
+# Spec 036 implementation handoff — 2026-09-27
+
+T001 was completed before this resumption. T002-T023 are complete locally. Camden reviews and commits in GitKraken; no Git command or PR creation occurred here.
+
+## Verification
+
+- Pre-change full suite: 887 collected; **885 passed, 2 failed, 0 errors** in 449.24s. Failing IDs: `tests/test_reports_api.py::TestReportsApi::test_backtest_tearsheet` and `tests/test_clean_clone_037.py::test_changed_baseline_funding_mutant_is_killed`.
+- Post-change full suite: 903 collected; **902 passed, 1 failed, 0 errors** in 355.59s. The tearsheet passes and all 16 new tests pass. Only the same clean-clone mutation ID fails; its expected inline source fragment is absent from the currently reformatted `scripts/multi_ticker_comparison.py`. That source and `tests/test_multi_ticker_comparison.py` were not edited in this lane.
+- Focused: 68 passed plus 27 subtests for resolver/spec 020/data; 24 passed for CLI/legacy crossover; 17 passed for reports API. Six mutation controls passed; all seven spec 036 mutants were killed; source hashes were identical before/after mutation runs.
+- Real-cache smoke: `data/cache/unadjusted/` absent; CLI stderr was `AAPL: unadjusted price data unavailable (missing): C:\GitHub\Quant-ML-Bot\data\cache\unadjusted`, exit 1. Production ledger remained 174 lines with identical SHA-256.
+
+## Review units and seams
+
+1. **Resolver and synthetic fixture** — `scripts/data.py`, `tests/unadjusted_fixtures.py`, resolver/loader portion of `tests/test_unadjusted_caller_wiring.py`. Seam: a ticker resolves to one validated manifest or raises `UnadjustedDataUnavailable`.
+2. **CLI and signal** — `scripts/ma_crossover_backtest.py`, CLI/signal portion of `tests/test_unadjusted_caller_wiring.py`. Seam: the loaded nominal frame funds every strategy/baseline, while causal `Research_Close` drives the SMA.
+3. **Tearsheet** — `reports/api/routes/backtest.py`, `reports/api/schemas.py`, `tests/api_fixtures.py`, `tests/test_reports_api.py`. Seam: the route maps bundle unavailability to 503 and returns a funded 200 with provenance.
+4. **Mutation and evidence** — `tests/mutation/run_unadjusted_wiring_mutants.py`, this handoff, `tasks.md`, `spec.md`, `quickstart.md`. Seam: isolated mutant proofs and full-suite comparison.
+
+Each unit is under the approximately 400 changed-line review limit. Review in that order; the second and third units depend on the resolver.
+
+## PR description draft for Camden
+
+**Spec 036 — wire funded callers to validated unadjusted bundles.** The AAPL crossover CLI and tearsheet now load a single manifest-backed bundle, fail closed on missing/ambiguous/invalid data, compute SMA signals from causal `Research_Close`, and fund only nominal Open/Close dollars. The route returns documented 503 details or a funded 200 with source provenance. The CLI resolves before opening a trial, so unavailable runs leave the trial ledger unchanged. No fallback to adjusted prices remains in these callers. The split signal and all seven wiring gates have red/green and mutation proof.
+
+No metrics reported: real data is unavailable (B-1); synthetic P&L is a test oracle. No new dependencies. B-1 awaits spec 041's approved dividend-pay-date bound; F-1 awaits Rule 14 second-source verification. The unrelated spec 037 mutation test remains red in this checkout on its old source fragment. Four sequential review units are listed above; no PR was opened.
+
+## Files touched in this resumption
+
+`scripts/data.py`; `scripts/ma_crossover_backtest.py`; `reports/api/routes/backtest.py`; `reports/api/schemas.py`; `tests/unadjusted_fixtures.py`; `tests/test_unadjusted_caller_wiring.py`; `tests/api_fixtures.py`; `tests/test_reports_api.py`; `tests/mutation/run_unadjusted_wiring_mutants.py`; `.specify/specs/036-unadjusted-caller-wiring/{HANDOFF.md,spec.md,tasks.md,quickstart.md}`.
+
+## Prior stopped state (archived)
 
 ## Completed
 

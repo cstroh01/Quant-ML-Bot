@@ -134,9 +134,16 @@ def _baseline_rows(
     n_trades = len(ml_trade_log)
     holding_bars = mean_holding_bars(ml_prices, ml_trade_log)
 
-    with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="buy_and_hold_baseline") as attempt:
-        hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs,
-                                starting_capital=starting_capital, liquidate=liquidate)
+    with research_attempt(
+        research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()),
+        role="buy_and_hold_baseline",
+    ) as attempt:
+        hold_log = run_backtest(
+            buy_and_hold_signal(ml_prices),
+            **costs,
+            starting_capital=starting_capital,
+            liquidate=liquidate,
+        )
         attempt.account(hold_log)
     hold_summary = performance_summary(ml_prices, hold_log, **costs)
 
@@ -145,9 +152,18 @@ def _baseline_rows(
     try:
         for seed in range(seed_count):
             signalled = random_signal(ml_prices, n_trades, holding_bars, seed)
-            with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="random_signal_baseline") as attempt:
-                trade_log = run_backtest(signalled, **costs,
-                                         starting_capital=starting_capital, liquidate=liquidate)
+            with research_attempt(
+                research_config(
+                    "scripts/multi_ticker_comparison.py:run_backtest", locals()
+                ),
+                role="random_signal_baseline",
+            ) as attempt:
+                trade_log = run_backtest(
+                    signalled,
+                    **costs,
+                    starting_capital=starting_capital,
+                    liquidate=liquidate,
+                )
                 attempt.account(trade_log)
             random_summaries.append(performance_summary(ml_prices, trade_log, **costs))
     except ValueError as error:
@@ -165,14 +181,18 @@ def _baseline_rows(
             np.mean([row["total_return"] for row in random_summaries])
         )
         sharpe_values = [
-            row["sharpe_ratio"] for row in random_summaries if not np.isnan(row["sharpe_ratio"])
+            row["sharpe_ratio"]
+            for row in random_summaries
+            if not np.isnan(row["sharpe_ratio"])
         ]
         # Every seed can legitimately produce an empty trade log (the cost
         # hurdle declines nearly every trade -- spec 012's own finding), which
         # makes every Sharpe `nan`. `np.nanmean` on an all-`nan` array warns
         # and still returns `nan`; filtering first reaches the same `nan`
         # without the warning.
-        random_row["sharpe_ratio"] = float(np.mean(sharpe_values)) if sharpe_values else float("nan")
+        random_row["sharpe_ratio"] = (
+            float(np.mean(sharpe_values)) if sharpe_values else float("nan")
+        )
         random_row["max_drawdown"] = float(
             np.mean([row["max_drawdown"] for row in random_summaries])
         )
@@ -194,7 +214,10 @@ def _baseline_rows(
         }
         random_pnl_dispersion = float("nan")
 
-    honesty_columns = {"Median hurdle (bps)": float("nan"), "|pred| q90 (bps)": float("nan")}
+    honesty_columns = {
+        "Median hurdle (bps)": float("nan"),
+        "|pred| q90 (bps)": float("nan"),
+    }
     random_baseline_columns = {
         "random_baseline_seed_count": seed_count,
         "random_baseline_pnl_dispersion": random_pnl_dispersion,
@@ -247,26 +270,34 @@ def run_one_ticker(
         if prices.empty:
             raise ValueError(f"no market data returned for {ticker!r}")
 
-        frame, task, label_horizon = build_features(
+        frame, task, availability_span = build_features(
             prices, target_kind=TARGET_KIND, label_horizon=LABEL_HORIZON
         )
 
         embargo_bars = frame.attrs.get(
-            "label_availability_span", frame.attrs.get("label_horizon", label_horizon)
+            "label_availability_span",
+            frame.attrs.get("label_horizon", availability_span),
         )
 
-        with research_attempt(research_config("scripts/multi_ticker_comparison.py:nested_walk_forward", locals()), role="candidate") as attempt:
+        with research_attempt(
+            research_config(
+                "scripts/multi_ticker_comparison.py:nested_walk_forward", locals()
+            ),
+            role="candidate",
+        ) as attempt:
             predictions, covered, fold_results = nested_walk_forward(
                 frame,
                 feature_columns=feature_columns(),
                 label_column="Label",
                 task=task,
                 name=ESTIMATOR_NAME,
-                label_horizon=label_horizon,
+                label_horizon=availability_span,
                 embargo_bars=embargo_bars,
                 random_state=random_state,
             )
-        assert task == REGRESSION, "ml_signal's hurdle comparison expects a continuous prediction"
+        assert (
+            task == REGRESSION
+        ), "ml_signal's hurdle comparison expects a continuous prediction"
 
         hurdle = log_hurdle(
             frame["Close"],
@@ -282,10 +313,22 @@ def run_one_ticker(
         ml_prices["Buy_Next_Open"] = buy_next_open
         ml_prices["Sell_Next_Open"] = sell_next_open
 
-        costs = {"commission_per_trade": commission_per_trade, "slippage_bps": slippage_bps}
-        with research_attempt(research_config("scripts/multi_ticker_comparison.py:run_backtest", locals()), role="candidate") as attempt:
-            ml_trade_log = run_backtest(ml_prices, **costs,
-                                        starting_capital=starting_capital, liquidate=liquidate)
+        costs = {
+            "commission_per_trade": commission_per_trade,
+            "slippage_bps": slippage_bps,
+        }
+        with research_attempt(
+            research_config(
+                "scripts/multi_ticker_comparison.py:run_backtest", locals()
+            ),
+            role="candidate",
+        ) as attempt:
+            ml_trade_log = run_backtest(
+                ml_prices,
+                **costs,
+                starting_capital=starting_capital,
+                liquidate=liquidate,
+            )
             attempt.account(ml_trade_log)
         ml_summary = performance_summary(ml_prices, ml_trade_log, **costs)
 
@@ -320,7 +363,7 @@ def run_one_ticker(
         # consistency check has the same columns to compare on every row.
         shared_columns = {
             "fold_count": len(fold_results),
-            "purge_bars": label_horizon,
+            "purge_bars": availability_span,
             "embargo_bars": embargo_bars,
             "random_state": random_state,
             **random_baseline_columns,
@@ -329,7 +372,9 @@ def run_one_ticker(
         for row in rows:
             row.update(shared_columns)
         return rows
-    except Exception as error:  # noqa: BLE001 -- the deliberate isolation boundary (FR-002)
+    except (
+        Exception
+    ) as error:  # noqa: BLE001 -- the deliberate isolation boundary (FR-002)
         return ComparisonFailure(ticker=ticker, reason=str(error))
 
 
@@ -386,7 +431,9 @@ def _output_filename(tickers: list[str]) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--starting-capital", type=float, required=True)
-    parser.add_argument("--liquidate", action=argparse.BooleanOptionalAction, required=True)
+    parser.add_argument(
+        "--liquidate", action=argparse.BooleanOptionalAction, required=True
+    )
     args = parser.parse_args()
     universe_cache = cache_path(
         f"{'-'.join(sorted(set(TICKER_UNIVERSE)))}_{PERIOD}.csv"
@@ -396,14 +443,15 @@ def main() -> None:
             "No cached market data for the ticker universe. This lane cannot "
             "reach Yahoo Finance (specs 002, 006) -- run this once on a "
             "machine with network access:\n\n"
-            "  ./venv/Scripts/python.exe -c \"import sys; "
+            '  ./venv/Scripts/python.exe -c "import sys; '
             "sys.path.insert(0,'scripts'); from data import "
             "download_market_data; download_market_data("
-            f"{TICKER_UNIVERSE!r}, period={PERIOD!r})\""
+            f'{TICKER_UNIVERSE!r}, period={PERIOD!r})"'
         )
 
     results_frame, failures = run_comparison(
-        starting_capital=args.starting_capital, liquidate=args.liquidate)
+        starting_capital=args.starting_capital, liquidate=args.liquidate
+    )
 
     output_path = cache_path(_output_filename(TICKER_UNIVERSE))
     results_frame.to_csv(output_path, index=False)

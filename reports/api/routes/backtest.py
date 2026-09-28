@@ -8,7 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 # Ensure repo root and scripts are in path
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -17,17 +17,20 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from backtest_harness import run_backtest, summarize_trades
+from data import UnadjustedDataUnavailable, load_unadjusted_for_ticker
 from trial_runner import research_attempt, research_config
-from ma_crossover_backtest import baseline_results, mean_holding_bars
+from ma_crossover_backtest import (
+    LIQUIDATE_AT_END, STARTING_CAPITAL, baseline_results, mean_holding_bars,
+    research_close_signal,
+)
 from metrics import equity_curve, performance_summary
-from reports.api.routes.data import get_cache_dir, get_cached_ticker_data
+from reports.api.routes.data import get_cache_dir
 from reports.api.schemas import (
     BacktestTearsheetResponse,
     BaselineComparisonRow,
     EquityPoint,
     TradeRecord,
 )
-from signals import sma_crossover_signal
 
 router = APIRouter(prefix="/api/backtest", tags=["backtest"])
 
@@ -42,13 +45,16 @@ def get_backtest_tearsheet(
     cache_dir: Path = Depends(get_cache_dir),
 ) -> BacktestTearsheetResponse:
     """Run baseline backtest with 3-way baseline comparisons and reconciled equity curve."""
-    raw_df = get_cached_ticker_data(ticker.upper(), cache_dir)
-
-    # Ensure price frame has required columns and 0-based RangeIndex
-    prices = raw_df[["Date", "Open", "High", "Low", "Close", "Volume"]].copy().reset_index(drop=True)
+    try:
+        prices = load_unadjusted_for_ticker(ticker, cache_dir / "unadjusted")
+    except UnadjustedDataUnavailable as error:
+        raise HTTPException(status_code=503, detail={
+            "error": "unadjusted_price_data_unavailable",
+            "ticker": error.ticker, "reason": error.reason, "check": error.check,
+        }) from error
 
     # 1. Generate signal
-    signalled = sma_crossover_signal(prices, short_window=short_window, long_window=long_window)
+    signalled = research_close_signal(prices, short_window, long_window)
 
     # 2. Run harness
     with research_attempt(research_config("reports/api/routes/backtest.py:run_backtest", locals()), role="candidate") as attempt:
@@ -56,6 +62,8 @@ def get_backtest_tearsheet(
             signalled,
             commission_per_trade=commission,
             slippage_bps=slippage_bps,
+            starting_capital=STARTING_CAPITAL,
+            liquidate=LIQUIDATE_AT_END,
         )
         attempt.account(trade_log)
 
@@ -65,23 +73,27 @@ def get_backtest_tearsheet(
         trade_log,
         commission_per_trade=commission,
         slippage_bps=slippage_bps,
+        starting_capital=STARTING_CAPITAL,
     )
     summary = performance_summary(
         prices,
         trade_log,
         commission_per_trade=commission,
         slippage_bps=slippage_bps,
+        starting_capital=STARTING_CAPITAL,
     )
 
     # 4. Generate 3-Way Baseline comparisons (Rule 4)
     holding_bars = mean_holding_bars(prices, trade_log)
     baselines = baseline_results(
-        prices=prices,
+        prices=signalled,
         n_trades=len(trade_log),
         holding_bars=holding_bars,
         commission_per_trade=commission,
         slippage_bps=slippage_bps,
         seed_count=20,
+        starting_capital=STARTING_CAPITAL,
+        liquidate=LIQUIDATE_AT_END,
     )
 
     hold_summary = baselines["buy_and_hold"]
@@ -164,6 +176,13 @@ def get_backtest_tearsheet(
         strategy_name=f"SMA Crossover ({short_window}/{long_window})",
         commission_per_trade=commission,
         slippage_bps=slippage_bps,
+        starting_capital=STARTING_CAPITAL,
+        liquidate_at_end=LIQUIDATE_AT_END,
+        source_name=prices.attrs["source_name"],
+        downloaded_at_utc=prices.attrs["downloaded_at_utc"],
+        capital_gate_eligible=prices.attrs["capital_gate_eligible"],
+        source_limitations=list(prices.attrs["source_limitations"]),
+        source_manifest_sha256=prices.attrs["source_manifest_sha256"],
         capital_base=float(round(summary["capital_base"], 2)),
         total_return=float(round(summary["total_return"] * 100, 2)),
         total_pnl=float(round(summary["total_pnl"], 2)),

@@ -848,6 +848,49 @@ def load_unadjusted_market_data(manifest_path: Path) -> pd.DataFrame:
     return result
 
 
+class UnadjustedDataUnavailable(LookupError):
+    """Name a missing, ambiguous, or invalid funded-price bundle."""
+
+    def __init__(self, ticker: str, reason: str, check: str):
+        self.ticker = ticker
+        self.reason = reason
+        self.check = check
+        super().__init__(f"{ticker}: unadjusted price data unavailable ({reason}): {check}")
+
+
+def resolve_unadjusted_manifest(
+    ticker: str, cache_dir: Path = UNADJUSTED_CACHE_DIR,
+) -> Path:
+    """Resolve exactly one local manifest; no network, writes, or fallback."""
+    canonical = ticker.strip().upper()
+    if not re.fullmatch(r"[A-Z0-9.-]+", canonical):
+        raise UnadjustedDataUnavailable(ticker, "invalid", "ticker check failed: canonical symbol required")
+    root = Path(cache_dir)
+    if not root.is_dir():
+        raise UnadjustedDataUnavailable(canonical, "missing", str(root))
+    pattern = re.compile(
+        rf"^{re.escape(canonical)}_\d{{4}}-\d{{2}}-\d{{2}}_\d{{4}}-\d{{2}}-\d{{2}}\.manifest\.json$"
+    )
+    matches = sorted(path for path in root.iterdir() if path.is_file() and pattern.fullmatch(path.name))
+    if not matches:
+        raise UnadjustedDataUnavailable(canonical, "missing", str(root))
+    if len(matches) > 1:
+        raise UnadjustedDataUnavailable(canonical, "ambiguous", ", ".join(map(str, matches)))
+    return matches[0]
+
+
+def load_unadjusted_for_ticker(
+    ticker: str, cache_dir: Path = UNADJUSTED_CACHE_DIR,
+    *, manifest_path: Path | None = None,
+) -> pd.DataFrame:
+    """Load a verified local bundle; no network, writes, or adjusted fallback."""
+    path = Path(manifest_path) if manifest_path is not None else resolve_unadjusted_manifest(ticker, cache_dir)
+    try:
+        return load_unadjusted_market_data(path)
+    except (FileNotFoundError, ValueError) as error:
+        raise UnadjustedDataUnavailable(ticker.strip().upper(), "invalid", str(error)) from error
+
+
 def cache_unadjusted_market_data(
     adapter: UnadjustedDailySource,
     ticker: str,

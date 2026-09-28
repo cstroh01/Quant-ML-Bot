@@ -86,4 +86,6 @@ def fixture_client(
 
     app = create_app(dist_dir=dist_dir)
     app.dependency_overrides[data_routes.get_cache_dir] = lambda: cache_dir
-    return TestClient(app)
+    client = TestClient(app)
+    client.fixture_cache_dir = cache_dir
+    return client

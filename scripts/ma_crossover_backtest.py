@@ -1,16 +1,21 @@
-"""Phase 0 moving-average crossover backtest for AAPL.
+"""Phase 0 moving-average crossover backtest for an AAPL spec 020 bundle.
 
 This is intentionally a simple plumbing baseline. It is not meant to be a
 production trading strategy or investment recommendation.
 """
 
 from trial_runner import research_attempt, research_config
+import argparse
+from pathlib import Path
 import statistics
 
 import pandas as pd
 
 from backtest_harness import run_backtest, summarize_trades
-from data import cache_path, download_market_data
+from data import (
+    UNADJUSTED_CACHE_DIR, UnadjustedDataUnavailable, cache_path,
+    execution_price_frame, load_unadjusted_for_ticker,
+)
 from plotting import plt, save_figure
 from signals import buy_and_hold_signal, random_signal, sma_crossover_signal
 
@@ -45,6 +50,23 @@ RANDOM_BASELINE_SEEDS = 20
 # Every dollar column in the trade log is printed the same way, so the format
 # is declared once rather than repeated per column.
 CURRENCY_COLUMNS = ["Entry Price", "Exit Price", "P&L", "Cumulative P&L"]
+
+
+def research_close_signal(
+    nominal: pd.DataFrame, short_window: int, long_window: int,
+) -> pd.DataFrame:
+    """Signal on causal total-return units while preserving nominal funded bars."""
+    research = execution_price_frame(nominal)
+    signal_input = research.copy()
+    signal_input["Close"] = research["Research_Close"]
+    signal = sma_crossover_signal(signal_input, short_window, long_window)
+    result = nominal.copy()
+    result["Research_Close"] = research["Research_Close"]
+    result["Buy_Next_Open"] = signal["Buy_Next_Open"]
+    result["Sell_Next_Open"] = signal["Sell_Next_Open"]
+    result["Short_SMA_Research"] = signal["Short_SMA"]
+    result["Long_SMA_Research"] = signal["Long_SMA"]
+    return result
 
 
 def mean_holding_bars(prices: pd.DataFrame, trade_log: pd.DataFrame) -> int:
@@ -210,15 +232,16 @@ def format_comparison(sma_summary: dict, baselines: dict, *, seed_count: int) ->
     return "\n".join(lines)
 
 
-def main():
-    market_data = download_market_data([TICKER])
-    prices = market_data[market_data["Ticker"] == TICKER].copy()
-    prices = prices.sort_values("Date").reset_index(drop=True)
+def main(argv=None, *, cache_dir=UNADJUSTED_CACHE_DIR):
+    parser = argparse.ArgumentParser(description="Run the AAPL crossover on a verified unadjusted bundle")
+    parser.add_argument("--manifest", type=Path, help="explicit unadjusted manifest path")
+    args = parser.parse_args(argv)
+    nominal = load_unadjusted_for_ticker(TICKER, cache_dir, manifest_path=args.manifest)
 
     # A 10-day average reacts fairly quickly, while a 30-day average gives a
     # little more trend context. These are illustrative defaults, not tuned
     # parameters; tuning them here would make this baseline less useful.
-    prices = sma_crossover_signal(prices, SHORT_WINDOW, LONG_WINDOW)
+    prices = research_close_signal(nominal, SHORT_WINDOW, LONG_WINDOW)
     costs = {
         "commission_per_trade": COMMISSION_PER_TRADE,
         "slippage_bps": SLIPPAGE_BPS,
@@ -230,6 +253,9 @@ def main():
     trade_log.to_csv(cache_path("phase0_aapl_ma_crossover_trades.csv"), index=False)
 
     print(f"{TICKER} SMA crossover backtest")
+    for key in ("source_name", "source_method", "downloaded_at_utc",
+                "capital_gate_eligible", "source_limitations", "source_manifest_sha256"):
+        print(f"{key}: {prices.attrs[key]}")
     print(f"SMA windows: {SHORT_WINDOW} and {LONG_WINDOW} trading days")
     print("Position: long one share or flat; prices below are net of costs")
     print("\nTrade log:")
@@ -258,26 +284,33 @@ def main():
     print("\nSummary, against both required baselines:\n")
     print(format_comparison(summary, baselines, seed_count=RANDOM_BASELINE_SEEDS))
 
-    figure, axis = plt.subplots(figsize=(10, 5))
-    axis.plot(prices["Date"], prices["Close"], label="Adjusted close", color="black")
-    axis.plot(prices["Date"], prices["Short_SMA"], label=f"SMA {SHORT_WINDOW}")
-    axis.plot(prices["Date"], prices["Long_SMA"], label=f"SMA {LONG_WINDOW}")
+    figure, (research_axis, nominal_axis) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
+    research_axis.plot(prices["Date"], prices["Research_Close"], label="Research Close", color="black")
+    research_axis.plot(prices["Date"], prices["Short_SMA_Research"], label=f"SMA {SHORT_WINDOW}")
+    research_axis.plot(prices["Date"], prices["Long_SMA_Research"], label=f"SMA {LONG_WINDOW}")
+    research_axis.set_ylabel("Causal total-return index (research units)")
+    research_axis.grid(True, alpha=0.3)
+    research_axis.legend()
+    nominal_axis.plot(prices["Date"], prices["Open"], label="Nominal Open", color="black")
 
     # Markers sit at the Open, because that is the bar the shifted signal
     # actually trades at — plotting them on the Close would draw a fill the
     # backtest never took.
     buys = prices.loc[prices["Buy_Next_Open"]]
     sells = prices.loc[prices["Sell_Next_Open"]]
-    axis.scatter(buys["Date"], buys["Open"], marker="^", color="green", label="Buy")
-    axis.scatter(sells["Date"], sells["Open"], marker="v", color="red", label="Sell")
-    axis.set_title(f"{TICKER} SMA Crossover Backtest")
-    axis.set_xlabel("Date")
-    axis.set_ylabel("Adjusted price (USD)")
-    axis.grid(True, alpha=0.3)
-    axis.legend()
+    nominal_axis.scatter(buys["Date"], buys["Open"], marker="^", color="green", label="Buy")
+    nominal_axis.scatter(sells["Date"], sells["Open"], marker="v", color="red", label="Sell")
+    research_axis.set_title(f"{TICKER} SMA Crossover Backtest")
+    nominal_axis.set_xlabel("Date")
+    nominal_axis.set_ylabel("Nominal price (USD)")
+    nominal_axis.grid(True, alpha=0.3)
+    nominal_axis.legend()
 
     save_figure(figure, cache_path("phase0_aapl_ma_crossover.png"))
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except UnadjustedDataUnavailable as error:
+        raise SystemExit(str(error)) from error

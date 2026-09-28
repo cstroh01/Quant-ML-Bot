@@ -103,6 +103,13 @@ class BacktestTearsheetResponse(BaseModel):
     strategy_name: str
     commission_per_trade: float
     slippage_bps: float
+    starting_capital: float
+    liquidate_at_end: bool
+    source_name: str
+    downloaded_at_utc: str
+    capital_gate_eligible: bool
+    source_limitations: list[str]
+    source_manifest_sha256: str
     capital_base: float
     total_return: float
     total_pnl: float

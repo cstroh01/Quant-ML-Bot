@@ -10,6 +10,9 @@ finding 57).
 
 from __future__ import annotations
 
+from datetime import date
+import hashlib
+import math
 import re
 import tempfile
 import unittest
@@ -17,6 +20,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from api_fixtures import FIXTURE_A, fixture_client, synthetic_panel
+from unadjusted_fixtures import publish_bundle, session_prices
+import data
 import reports.api.routes.data as data_routes
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -25,7 +30,6 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 class TestReportsApi(unittest.TestCase):
     def setUp(self):
         self.panel = synthetic_panel(**FIXTURE_A)
-        self.panel.attrs["price_basis"] = "unadjusted_dollars"
         self.client = fixture_client(self, self.panel)
 
     def test_health_check(self):
@@ -101,21 +105,65 @@ class TestReportsApi(unittest.TestCase):
             self.assertEqual(set(data), {"ticker", "status", "reason"})
 
     def test_backtest_tearsheet(self):
+        sessions = data.trading_days(date(2024, 1, 2), date(2024, 9, 30))[:160]
+        closes = [100.0 + 8.0 * math.sin(i / 4.0) for i in range(len(sessions))]
+        prices = session_prices("AAPL", sessions[0], sessions[-1], closes)
+        manifest = publish_bundle(self.client.fixture_cache_dir / "unadjusted", "AAPL", prices)
         response = self.client.get(
             "/api/backtest/tearsheet?ticker=AAPL&short_window=10&long_window=30&commission=1.0&slippage_bps=5.0"
         )
         self.assertEqual(response.status_code, 200)
-        data = response.json()
-        self.assertEqual(data["ticker"], "AAPL")
-        self.assertTrue(data["reconciliation_passed"])
-        self.assertGreater(len(data["equity_curve"]), 50)
-        self.assertGreater(len(data["trade_log"]), 0)
+        payload = response.json()
+        self.assertEqual(payload["ticker"], "AAPL")
+        self.assertTrue(payload["reconciliation_passed"])
+        self.assertGreater(len(payload["equity_curve"]), 50)
+        self.assertGreater(len(payload["trade_log"]), 0)
+        for field in ("starting_capital", "liquidate_at_end", "source_name",
+                      "downloaded_at_utc", "capital_gate_eligible",
+                      "source_limitations", "source_manifest_sha256"):
+            self.assertIn(field, payload)
+        self.assertEqual(payload["starting_capital"], 10000.0)
+        self.assertTrue(payload["liquidate_at_end"])
+        self.assertFalse(payload["capital_gate_eligible"])
+        self.assertEqual(payload["source_manifest_sha256"], hashlib.sha256(manifest.read_bytes()).hexdigest())
 
         # Verify 3-way baseline table (Rule 4)
-        comparison = {row["strategy_name"]: row for row in data["comparison_table"]}
+        comparison = {row["strategy_name"]: row for row in payload["comparison_table"]}
         self.assertTrue(any("SMA Crossover" in k for k in comparison))
         self.assertIn("Buy & Hold (Baseline 1)", comparison)
         self.assertTrue(any("Random Signal" in k for k in comparison))
+
+    def assert_unavailable(self, response, reason: str):
+        self.assertEqual(response.status_code, 503)
+        detail = response.json()["detail"]
+        self.assertEqual(set(detail), {"error", "ticker", "reason", "check"})
+        self.assertEqual(detail["error"], "unadjusted_price_data_unavailable")
+        self.assertEqual(detail["ticker"], "AAPL" if reason != "ticker" else "../x")
+        self.assertEqual(detail["reason"], "invalid" if reason == "ticker" else reason)
+        self.assertTrue(detail["check"])
+
+    def test_tearsheet_503_missing(self):
+        self.assert_unavailable(self.client.get("/api/backtest/tearsheet?ticker=AAPL"), "missing")
+
+    def test_tearsheet_503_ambiguous(self):
+        root = self.client.fixture_cache_dir / "unadjusted"
+        for start, end, count in ((date(2024, 1, 2), date(2024, 1, 5), 4),
+                                  (date(2024, 1, 8), date(2024, 1, 12), 5)):
+            publish_bundle(root, "AAPL", session_prices("AAPL", start, end, [100.0] * count))
+        self.assert_unavailable(self.client.get("/api/backtest/tearsheet?ticker=AAPL"), "ambiguous")
+
+    def test_tearsheet_503_invalid(self):
+        root = self.client.fixture_cache_dir / "unadjusted"
+        prices = session_prices("AAPL", date(2024, 1, 2), date(2024, 1, 5), [100.0] * 4)
+        manifest = publish_bundle(root, "AAPL", prices)
+        data_file = manifest.with_name(manifest.name.replace(".manifest.json", ".ohlcv.csv"))
+        data_file.write_bytes(data_file.read_bytes() + b"x")
+        response = self.client.get("/api/backtest/tearsheet?ticker=AAPL")
+        self.assert_unavailable(response, "invalid")
+        self.assertIn("data file hash check failed", response.json()["detail"]["check"])
+
+    def test_tearsheet_503_invalid_ticker(self):
+        self.assert_unavailable(self.client.get("/api/backtest/tearsheet?ticker=../x"), "ticker")
 
     def test_capital_gate_status(self):
         response = self.client.get("/api/capital_gate/status")
