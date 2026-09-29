@@ -6,20 +6,22 @@ phases do not authorize Git operations or parallel agents.
 
 ## Phase 0: Precondition
 
-- [ ] T000 Confirm spec 036 has merged (Camden). Do not start otherwise: 036 and
-  041 both edit `scripts/data.py`.
-- [ ] T001 Re-measure: run `python -m pytest tests` and record the passed count as
-  041's baseline in this file. Confirm `data.py:634-635`, `:886-888` and
-  `:985-988` still hold the B-1 lines, and update the references if 036 moved them.
+- [x] T000 Sequencing cleared by Camden's 2026-09-28 instruction to begin 041:
+  this is the sole running lane and `scripts/data.py` is exclusively owned here.
+  Git merge state was not queried; no Git command is authorized.
+- [x] T001 Re-measure: run `python -m pytest tests` and record the passed count as
+  041's baseline in this file. Verified B-1 at `data.py:634-635` (strict null
+  rejection), `:929-931` (validation before writing), and `:1029-1031` (adapter
+  retains a null vendor pay date). Earlier `:886-888` / `:985-988` refs moved.
 
 ## Phase 1: Red tests (`tests/test_041_pay_date_bound.py`)
 
-- [ ] T002 SC-004: parametrized FR-004 table, with exact message fragments and a
+- [x] T002 SC-004: parametrized FR-004 table, with exact message fragments and a
   green control. Must fail today: a version-2 bound dividend is rejected, and
   there is no basis column yet.
-- [ ] T003 SC-002: offline twin of the AAPL flow via `ticker_factory`. Must fail
+- [x] T003 SC-002: offline twin of the AAPL flow via `ticker_factory`. Must fail
   today with `dividend payment date missing`.
-- [ ] T004 SC-003: the three fail-closed scenarios, each asserting that the cache
+- [x] T004 SC-003: the three fail-closed scenarios, each asserting that the cache
   directory is empty afterwards.
 - [ ] T005 SC-005 oracles for M1 (full-allocation re-entry inside the ex→pay
   window), M2 and M3, written against `tests/mutation_support_019.killed`.
@@ -62,10 +64,32 @@ phases do not authorize Git operations or parallel agents.
 - [ ] T018 **Camden, online, once:** run SC-001 and save
   `artifacts/aapl-bundle.txt` with the date and commit. If it fails on a
   non-pay-date check, record the finding. Do not relax.
-- [ ] T019 Hand off, stating that Rule 14 is still owed and Q-1 is open (if unanswered).
+- [ ] T019 Hand off, stating that Rule 14 is still owed and Q-1 is confirmed: `unbounded`.
 
 ## Dependencies & Execution Order
 
 T000 → T001 → T002–T006 (red) → T007 → T008 → T009 → T010 → T011 → T012 → T013 →
 T014 → T015–T017 → T018 → T019. Spec 040 may not start until T017 is green and
 this spec has merged.
+
+## Unit 1 evidence (2026-09-28)
+
+Source: [unit-1.md](artifacts/unit-1.md), run `spec041-unit1-20260928T205954-0400`.
+Windows, Python 3.14.6, pytest 9.1.1. This is a tests-first checkpoint, not a
+green implementation or permission to use bound bundles.
+
+- T001: `python -m pytest tests`: **903 passed, 0 failed, exit 0** (363.11s).
+- New tests: **53 cases** = 23 table rows x 2 policies + 3 legacy cases +
+  1 offline flow + 3 fail-closed cases. New-file run: **6 passed, 47 failed**.
+- All 46 v2 cases currently fail at the unsupported-version guard; their deeper
+  semantic checks are not reached yet. The offline flow fails with
+  `dividend payment date missing`. No other new test failed.
+- Combined run with the unchanged Spec 020 module: **21 passed, 47 failed**;
+  all 15 existing Spec 020 tests pass. Its old yfinance refusal assertion will
+  need a narrow update when T009 changes that declared-policy behavior.
+- Full collection: **956 cases = 903 + 53**, exit 0. No post-edit full execution
+  is claimed; the deliberate red tests precede T005–T014 implementation work.
+- Every run preserved both trial artifact hashes, both 174 counts, and the
+  absent `returns/` directory. Protected/pinned files checked by hash are unchanged.
+- T002–T004 are checked as written and observed; v2 green controls, funded-flow
+  completion, and M1–M4 proof remain pending. Next unit starts with T005.

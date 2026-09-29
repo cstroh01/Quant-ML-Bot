@@ -545,5 +545,8 @@ equivalence fixture, under `spawn`. It asserts:
 
 - Renaming any module, splitting `data.py`, or any refactor beyond §5.
 - Rewriting old specs, audit artifacts or the ledger.
+- Guarding production-ledger writes, and the alias-assignment bypass note once
+  kept here: see [spec 043](../043-ledger-write-guard/spec.md). 043 lands
+  before 040, and its §6 lists the amendments 040 needs at that point.
 - Publishing to PyPI.
 - The repo split in ADR 0001 (v1.0 DoD item 6).

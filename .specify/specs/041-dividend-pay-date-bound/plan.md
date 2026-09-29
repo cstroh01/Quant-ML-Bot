@@ -20,7 +20,8 @@ exactly one cell of its rule table. Harness and metrics arithmetic are unchanged
 **Testing**: `python -m pytest tests`, offline; in-memory mutants via `tests/mutation_support_019.py`.
 **Constraints**: no Git; no network in tests; no change to `exec/`, `live_safety_gate.py` or `portfolio_risk.py`.
 **Scale/Scope**: `data.py`, one field and one event column in `backtest_harness.py`,
-and the 036 provenance renderer. Expected PR size: 250–400 lines, including tests.
+and the 036 provenance renderer. Review units stay below roughly 400 changed lines,
+including tests and evidence; stop and report after each unit.
 
 ## Constitution Check
 
@@ -66,6 +67,26 @@ tests/test_041_pay_date_bound.py    all new tests (SC-002 to SC-007)
    (verified 2026-09-27: the directory does not exist).
 
 ## Execution
+
+### Authorized review units (Camden, 2026-09-28)
+
+1. T001–T004: verify the baseline and trial artifacts, then add the validator
+   table, offline bundle flow, and fail-closed tests. Stop at the red checkpoint.
+2. T005–T006: add mutation oracles through `mutation_support_019.killed` and
+   direction tests before production edits. No new mutation harness.
+3. T007–T012: implement policy, validation, manifest v2, and loader resolution;
+   split further before exceeding the review budget, keeping red proofs paired.
+4. T013–T017: recording, disclosure, and final verification in bounded units.
+5. T018 remains Camden's manual online step. T019 records the remaining scope.
+
+For every pytest run, compare the ledger and head hashes/counts before and after,
+and require `docs/trials/returns/` to remain absent. Execute repository code only
+inside pytest; no ad-hoc research/backtest calls, server, or entry-point runs.
+The addendum protects `docs/trials/**`, `trial_runner.py`, `trial_registry.py`,
+`tests/conftest.py`, specs 040/042/043, and the original protected paths.
+Q-1 is settled: D-7 is `unbounded`.
+
+### Task order
 
 1. Re-read 036's merged `data.py` and renderer. Update line references in `tasks.md` if they moved.
 2. Write the FR-004 table test and the M1–M3 oracles. Observe them fail against the unmodified code (red first).

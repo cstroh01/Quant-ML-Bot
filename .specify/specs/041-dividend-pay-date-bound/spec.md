@@ -3,7 +3,8 @@
 **Feature Branch**: `041-dividend-pay-date-bound` (name only; Camden owns Git)
 **Spec number**: 041, assigned by Camden.
 **Created**: 2026-09-27
-**Status**: Draft. Not implemented. Nothing in `scripts/` or `tests/` was changed by writing it.
+**Status**: Unit 1, 2026-09-28: baseline verified and T002–T004 red tests added.
+Production implementation and T005 onward remain pending. See tasks and evidence.
 **Input**: Camden, 2026-09-27: implement spec 036 D-7 (DECIDED) so that a
 dividend-paying ticker can produce an unadjusted bundle. The decision is not reopened here.
 **Blocks**: the v1.0 tag (`docs/SCOPE-V1.md` §3 item 1: "the backtester runs").
@@ -18,10 +19,10 @@ blocked by it.
 ## Why this spec exists (spec 036 B-1, verified 2026-09-27)
 
 - `YFinanceUnadjustedAdapter.fetch` writes `Dividend_Pay_Date = pd.NaT` for every
-  dividend (`scripts/data.py:985-988`). The comment there says "Never substitute."
+  dividend (`scripts/data.py:1029-1031`). The comment there says "Never substitute."
 - `_validate_corporate_actions` rejects any dividend that has no pay date
   (`data.py:634-635`).
-- `cache_unadjusted_market_data` validates before it writes (`data.py:886-888`).
+- `cache_unadjusted_market_data` validates before it writes (`data.py:929-931`).
 - So `download_unadjusted_market_data("AAPL", ...)` raises, and
   `data/cache/unadjusted/` is never written. Once 036 ships, every real run of the
   AAPL crossover and the tearsheet fails closed. The wiring is correct, but
@@ -64,7 +65,7 @@ What D-7 established:
   rejection is a visible `rejected` ledger event, and equity-based metrics are
   unaffected. Today's one-share callers are not materially affected.
 
-### Reconciling this spec's prompt with D-7 (flagged, not silently resolved)
+### Reconciling this spec's prompt with D-7 (confirmed 2026-09-28)
 
 The prompt that commissioned this spec describes C1 as "a declared conservative
 bound (ex_date + declared_lag)". In D-7's decided text, `ex_date + N` is **C2**,
@@ -81,8 +82,8 @@ prompt instructs ("read D-7 … copy its reasoning"):
     (`SCOPE-V1.md` §2, verified 2026-09-25).
   - A *typical* lag (for example, "AAPL usually pays about a week after the
     ex-date") is not an upper bound. It would be an unsourced figure (Rule 11).
-- **Open question Q-1 for Camden:** if a finite lag was intended *now*, that is
-  C2 and needs a citation first. The spec does not adopt one.
+- **Q-1 confirmed by Camden, 2026-09-28:** D-7 is `unbounded`. A finite
+  lag remains C2 and requires a cited primary-filing upper bound.
 
 ## Direction of the bound, and what a wrong direction leaks
 
@@ -370,8 +371,7 @@ timing is a declared bound and not vendor data (Rule 16).
   settled cash comes from the broker, not from this model.
 - Packaging (spec 040), which runs after this.
 
-## Open questions for Camden
+## Confirmed decisions
 
-- **Q-1**: Was `ex_date + declared_lag` meant as a finite lag *now*? If so, that
-  is C2 and needs a cited upper bound before any value is set. This spec ships C1
-  (unbounded), as D-7 decided.
+- **Q-1 (Camden, 2026-09-28):** D-7 is `unbounded`. This spec ships C1;
+  no finite lag is selected.

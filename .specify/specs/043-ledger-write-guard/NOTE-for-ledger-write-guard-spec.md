@@ -1,9 +1,9 @@
 # Note for the ledger-write-guard spec (not 040 work)
 
 Recorded 2026-09-28 during 040 task review. **Nothing here is in 040's scope.**
-It predates the migration and belongs to the future spec that guards writes to
-the production ledger. Move this file into that spec's directory when the spec
-exists.
+It predates the migration. Moved on 2026-09-28 from
+`.specify/specs/040-installable-package/` into spec 043, which owns it: see
+spec.md D-3(a) and FR-012.
 
 ## 1. Alias-assignment bypass in the instrumentation guard
 
@@ -41,5 +41,5 @@ scripts called `multi_ticker_comparison._baseline_rows` outside pytest and
 appended 21 synthetic trials: 42 ledger records, a new head, and 21 return
 sidecars.
 
-The session inventory of every path that reaches the ledger was reported in
-chat on 2026-09-28. The new spec should re-run it rather than trust it.
+The inventory of every path that reaches the ledger is now spec.md §2. T004
+re-runs it rather than trusting it.
