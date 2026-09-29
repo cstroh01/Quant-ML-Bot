@@ -190,9 +190,17 @@ def test_changed_baseline_funding_mutant_is_killed():
     import multi_ticker_comparison as mtc
     killed(
         mtc,
-        'hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs,\n'
-        '                                starting_capital=starting_capital, liquidate=liquidate)',
-        'hold_log = run_backtest(buy_and_hold_signal(ml_prices), **costs,\n'
-        '                                starting_capital=starting_capital * 2, liquidate=liquidate)',
+        'hold_log = run_backtest(\n'
+        '            buy_and_hold_signal(ml_prices),\n'
+        '            **costs,\n'
+        '            starting_capital=starting_capital,\n'
+        '            liquidate=liquidate,\n'
+        '        )',
+        'hold_log = run_backtest(\n'
+        '            buy_and_hold_signal(ml_prices),\n'
+        '            **costs,\n'
+        '            starting_capital=starting_capital * 2,\n'
+        '            liquidate=liquidate,\n'
+        '        )',
         test_all_baselines_receive_the_callers_account_policy,
     )

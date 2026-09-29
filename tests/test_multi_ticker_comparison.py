@@ -20,7 +20,7 @@ from context import SCRIPTS_DIR  # noqa: F401  (import for the sys.path effect)
 
 import multi_ticker_comparison as mtc
 
-# EXAMPLE � NOT A RESULT: chosen cash for synthetic funded-ledger fixtures.
+# EXAMPLE — NOT A RESULT: chosen cash for synthetic funded-ledger fixtures.
 TEST_CAPITAL = 10_000.0
 
 

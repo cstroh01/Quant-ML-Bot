@@ -253,6 +253,8 @@ and from this spec's own measurements.
 | `__file__` depth | `data.py:52`, `feature_set_comparison.py:866-868`, `trial_registry.py:19-20`, `trial_runner.py:68` (inherits `ROOT`), `autocorrelation_check.py:14`, `stationarity_check.py:17` | T020–T025 |
 | Ledger identity | `trial_registry.py:96` (L2); 12 runner literals (L3) | T026–T027 |
 | AST/introspection tests | `test_targets.py:605-643`; `test_order_gateway.py:33-49`, `:135-147`; `test_033_trial_instrumentation.py:7-53` plus `tests/fixtures/spec_033/runner_inventory.json` (19 paths); `test_collection_guards.py:35-48` | T030–T033 |
+| Import-boundary helpers (first-segment reduction, so `qmb.x` reads as `qmb` and `from . import x` is skipped) | `test_estimators.py:576`, `test_ml_signal.py:693`, `test_model_cv.py:1007`, `test_portfolio_risk.py:274`, `test_targets.py:620` | T046 (with T030) |
+| Scanning guards without a count | `test_no_fabricated_values.py:157`, `:163`; `test_collection_guards.py:35`, `:41` | T047, T033 |
 | `SCRIPTS_DIR` path users (not in INV) | `test_estimators.py:571`, `test_feature_set_comparison.py:670`, `test_ml_signal.py:688`, `test_model_cv.py:1002`, `test_portfolio_risk.py:269`, `:475` (package dir); `test_033_trial_instrumentation.py:7`, `test_033_dsr.py:71`, `test_033_trial_ledger.py:125`, `:160`, `:180`, `test_trial_registry.py:7`, `spec033_pbo_profile.py:31-32` (**`.parent` used as the repo root**) | T034 |
 | Dynamic imports | `tests/spec033_support.py:18-22` (`find_spec` with a bare string) | T035 |
 | Mutation engines | `mutation_support_019.py`, `mutation_support_032.py` (8 suites); `tests/mutation/run_mutation_check.py:51`, `:63`; `run_spec_018_mutants.py:22-26` | T036–T038 |

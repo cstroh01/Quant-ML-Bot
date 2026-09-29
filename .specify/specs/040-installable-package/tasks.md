@@ -35,7 +35,7 @@ and 041 merge.
   an insert), and 036's CLI subprocess test that invokes
   `python scripts/ma_crossover_backtest.py`.
 - [ ] T006 **Close the allowlist.** Write `ac1-allowlist.json`: every non-import
-  edit from T020–T045, plus T005's additions, as `{path, before, after}`. Also
+  edit from T020–T047, plus T005's additions, as `{path, before, after}`. Also
   write the file manifest (spec §7). **Camden reviews this file.** It is the
   human-sized review surface of the whole migration. After T006, any need for an
   edit not on the list means stopping and amending the spec, not the list.
@@ -75,7 +75,7 @@ and 041 merge.
 
 ## Phase 3: THE MIGRATION — one atomic unit
 
-Do all of T019–T045 in one working-tree change, then run Phase 4. No
+Do all of T019–T047 in one working-tree change, then run Phase 4. No
 intermediate state is committed or gated.
 
 - [ ] T019 Move the 29 modules `scripts/<m>.py` → `src/qmb/<m>.py`. Move the two
@@ -198,9 +198,57 @@ intermediate state is committed or gated.
   - Non-vacuity: the real scan visits at least 29 files.
   - `tests/fixtures/spec_033/runner_inventory.json`: 19 `"scripts/<file>.py"` →
     `"src/qmb/<file>.py"` (a prefix-rule file).
-- [ ] T033 `tests/test_collection_guards.py:35-48`: **no edit.** Verify that no
-  `test*.py` or `*_test.py` file exists under `src/qmb/`. The guard's real run
-  over the new layout is its green control.
+- [ ] T033 `tests/test_collection_guards.py:35-48`: the walk itself is unchanged.
+  Verify that no `test*.py` or `*_test.py` file exists under `src/qmb/`. The
+  guard's real run over the new layout is its green control. Add non-vacuity to
+  both real-tree guards (spec §5 rule):
+  - `:35` `test_python_tests_live_under_tests`: assert that
+    `python_test_files(REPO)` yielded at least one file under `TESTS` before
+    checking `misplaced`.
+  - `:41` `test_each_test_module_collects_cases`: assert that
+    `python_test_files(TESTS)` yielded at least one file, and that
+    `collected_test_paths` is non-empty.
+  Red check: point either walk at an empty `tmp_path`. The assertion fails
+  instead of passing with an empty `misplaced` or `missing` list.
+- [ ] T046 **Import-boundary helpers: qualified and relative imports.** Five AST
+  helpers reduce every import to its first dotted segment. After T019 they read
+  `from qmb.walk_forward_cv import …` as `"qmb"`, and they skip `from . import x`
+  (`node.module is None`). Every `… & forbidden == set()` test then passes
+  vacuously, which is the Rule 12 failure spec §5 names. Sites, anchored by text
+  (`elif isinstance(node, ast.ImportFrom) and node.module:`):
+  - `tests/test_estimators.py:576` (`TestModuleBoundaries._imported_modules`)
+  - `tests/test_ml_signal.py:693` (`_imported_modules`)
+  - `tests/test_model_cv.py:1007` (`_imported_modules`)
+  - `tests/test_portfolio_risk.py:274` (`_imported_modules`)
+  - `tests/test_targets.py:620` (`_imported_module_names`). T030 already covers
+    the qualified forms here. This task adds the relative forms and the count.
+
+  Each helper resolves every form to the project-local module name:
+  ```python
+  # import qmb.x / import qmb.x as y  -> "x"      (T030's _project_local)
+  # from qmb.x import y               -> "x"
+  # from qmb import x                 -> "x"
+  # from .x import y   (level >= 1)   -> "x"
+  # from . import x    (level >= 1)   -> "x"      (currently skipped)
+  # import numpy / from numpy.linalg import y -> "numpy"   (unchanged)
+  ```
+  **Non-vacuity**: each helper counts the files it parsed and the import nodes
+  it visited, and each boundary test asserts that the file count is nonzero and
+  that at least one import node was seen. A missing or renamed target must fail
+  loudly, not produce an empty set. The declared expected sets are unchanged.
+  Red checks, each in a copied module under `tmp_path`: a planted
+  `from qmb.backtest_harness import x` and a planted `from . import backtest_harness`
+  each make that file's forbidden-module test fail. The unmodified copy is the
+  green control.
+- [ ] T047 `tests/test_no_fabricated_values.py:157` and `:163`: add non-vacuity to
+  both source scans (spec §5 rule). `reports/` does not move, so this protects
+  against a renamed or emptied directory, not against T019 itself.
+  - `:157` `ROUTES_DIR.glob("*.py")`: assert that the scan visited at least one
+    route module.
+  - `:163` `WEB_SRC.rglob("*.ts*")`: assert that the scan visited at least one
+    component file.
+  Red check: with `ROUTES_DIR` / `WEB_SRC` patched to an empty `tmp_path`, each
+  test fails on the count, not on `found == []`.
 
 ### `SCRIPTS_DIR` users (not in the inventory)
 
@@ -340,6 +388,6 @@ intermediate state is committed or gated.
 ## Dependencies & Execution Order
 
 T001 → T002 → T003 → T004 → T005 → T006 (Camden reviews) → T010–T014 (gates
-red-proven) → T015–T018 → **[T019–T045 as one unit]** → T050 → T051 → T052 →
+red-proven) → T015–T018 → **[T019–T047 as one unit]** → T050 → T051 → T052 →
 T053 → T054 → T055 → T056 → T057. No step replaces a failed or unexecuted gate
 with a focused green claim.
