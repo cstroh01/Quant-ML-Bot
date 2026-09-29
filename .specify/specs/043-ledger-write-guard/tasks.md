@@ -2,8 +2,8 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [NOTE-for-ledger-write-guard-spec.md](NOTE-for-ledger-write-guard-spec.md)
 **Organization**: single-threaded. Template phases do not authorize Git
-operations or parallel agents. **Implementation is blocked until T001 records
-Camden's choices for D-1 to D-5.** Tasks marked *(per D-n)* take the chosen
+operations or parallel agents. **T001 recorded Camden's choices for D-1 to D-5 on
+2026-09-28; implementation still waits on the spec's hard preconditions.** Tasks marked *(per D-n)* take the chosen
 option's shape.
 
 Line numbers are as of 2026-09-28. **Every site is anchored by its exact text**,
@@ -17,8 +17,9 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 
 ## Phase 0: Decisions, preconditions and measurement
 
-- [ ] T001 **Camden decides D-1 to D-5** (spec §4). Record each choice and its
-  date in spec §4, under the decision's table. No later task starts before this.
+- [x] T001 **Camden decides D-1 to D-5** (spec §4). Decided 2026-09-28 and
+  recorded in spec §4: D-1 B, D-2 A1, D-3 (a) 1 and (b) iii, D-4 a + c in one
+  shared helper, D-5 a.
 - [ ] T002 **Measure the real ledger, read-only** (hashing and `verify()` only;
   nothing that can call `start` or `finish`):
   - the line count and SHA-256 of `trials.jsonl`;
@@ -168,7 +169,9 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
   passed equal to T003 plus the new tests.
 - [ ] T033 D-5 side effect: in T032's output, the pytest header's `rootdir:`
   and `configfile:` lines match T003's, or any difference is explained and
-  shown harmless: same node IDs, same counts.
+  shown harmless: same node IDs, same counts. The **collected test count** is
+  unchanged by the presence of `pyproject.toml` (903 when D-5 was decided;
+  compare against T003's recorded baseline).
 - [ ] T034 **AC-4**: re-measure T002 read-only and compare it to
   `artifacts/ledger-pre.json`. Every value is identical.
 - [ ] T035 AC-1, AC-2, AC-3, AC-5, AC-7 to AC-10 are green in T032. Each

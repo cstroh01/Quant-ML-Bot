@@ -3,8 +3,9 @@
 **Feature Branch**: `041-dividend-pay-date-bound` (name only; Camden owns Git)
 **Spec number**: 041, assigned by Camden.
 **Created**: 2026-09-27
-**Status**: Unit 1, 2026-09-28: baseline verified and T002–T004 red tests added.
-Production implementation and T005 onward remain pending. See tasks and evidence.
+**Status**: Units 1–2, 2026-09-28: baseline verified; T002–T006 red tests added
+(T005's `killed()` wiring deferred to T015). Production implementation (T007
+onward) remains pending. See tasks and evidence.
 **Input**: Camden, 2026-09-27: implement spec 036 D-7 (DECIDED) so that a
 dividend-paying ticker can produce an unadjusted bundle. The decision is not reopened here.
 **Blocks**: the v1.0 tag (`docs/SCOPE-V1.md` §3 item 1: "the backtester runs").

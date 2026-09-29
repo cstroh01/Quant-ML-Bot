@@ -4,9 +4,10 @@
 **Spec number**: 043. 042 is reserved for harness brittleness. 035, 038 and 039
 are planned in `docs/HANDOFF-2026-09-25.md` but not yet written.
 **Created**: 2026-09-28
-**Status**: Draft. **Decisions D-1 to D-5 are open; Camden decides.** No
-implementation starts until each has a recorded choice. No code was written and
-no test or script was run to produce this document.
+**Status**: Draft. **Decisions D-1 to D-5 are DECIDED (Camden, 2026-09-28; see
+§4).** Implementation still waits on the preconditions above (T002
+measurement, and spec 041 landing first). No code was written and no test or
+script was run to produce this document.
 **Input**: Camden, 2026-09-28. Evidence: the 2026-09-28 incident (§1), a
 read-only inventory of ledger write paths taken the same day (§2), and
 [NOTE-for-ledger-write-guard-spec.md](NOTE-for-ledger-write-guard-spec.md),
@@ -198,10 +199,13 @@ None writes production today. The edge cases:
 - **FR-012 Alias-assignment bypass in the instrumentation guard**: per
   **D-3(a)**. If D-3(a) excludes it, it stays recorded in the moved note file.
 
-## 4. Decisions (all OPEN; Camden decides)
+## 4. Decisions (all DECIDED 2026-09-28)
 
 Each decision lists options, tradeoffs and a recommendation. The
-recommendation is not a decision.
+recommendation is not a decision; each section ends with a **Decision** line
+that records Camden's choice. The identifiers `LedgerWriteRefused`,
+`production_recording`, `--record-trial` and version `0.0.0.dev0` are
+placeholder names, open to renaming at review.
 
 ### D-1. The default when `SPEC033_SYNTHETIC_ROOT` is unset
 
@@ -218,6 +222,11 @@ deliberate act lives**.
 **Recommendation: B.** Inherited process state was the 2026-09-28 accident
 vector. A per-invocation flag makes enabling a visible act for each run, and
 the explicit spawn token is a small, testable cost.
+
+**Decision (Camden, 2026-09-28): B.** Production writes are refused by default
+and allowed only by a per-run flag (`--record-trial` on the CLIs) or by
+`production_recording()` in library code. There is no environment-variable
+switch. E4's spawned workers receive an explicit enable token as an argument.
 
 ### D-2. Should a read-only route (`GET /tearsheet`) ever append a trial?
 
@@ -247,6 +256,12 @@ the explicit spawn token is a small, testable cost.
 routes, and it makes N count deliberate evaluations without touching FR-026.
 If Camden prefers B, the FR-026 conflict must be resolved in 033 first, not
 inside 043.
+
+**Decision (Camden, 2026-09-28): A1.** `GET /tearsheet` never writes. It shows
+an already-recorded configuration (looked up by `config_hash`) and otherwise
+returns 409 with the recording command. Recording is a CLI step under D-1.
+Option B (write-time deduplication) is rejected: it conflicts with spec 033
+FR-026.
 
 ### D-3. Scope
 
@@ -293,6 +308,12 @@ comparison against `"EXAMPLE — NOT A RESULT"`).
     mismatch) proves the change.
   - The hardening lands with 043, before 040, instead of late.
 
+**Decision (Camden, 2026-09-28): (a) 1 and (b) iii.**
+- (a) The alias-assignment bypass is included as its own review unit (U6).
+- (b) The synthetic label is defined once as an ASCII-escaped `\u2014` literal
+  and compared exactly. The marker hardening moves here from spec 038, which
+  becomes a pure disclosure sweep.
+
 ### D-4. Isolation for mutation drivers that do not copy `conftest.py`
 
 **Affected drivers**: `tests/mutation/run_spec_018_mutants.py` (its `COPIED`
@@ -317,6 +338,12 @@ list omits `tests/conftest.py` and has no `pyproject.toml`) and
 enablement. Put both in one shared driver helper so the three drivers cannot
 drift.
 
+**Decision (Camden, 2026-09-28): a + c.** The drivers copy `tests/conftest.py`
+and `pyproject.toml` and run with the child's environment stripped of every
+enablement. Each driver hashes the real `docs/trials/` manifest before and
+after. All of it lives in ONE shared helper that reuses
+`tests/mutation_support_019.py`. No third harness.
+
 ### D-5. Who creates `pyproject.toml` before 040 (added by this spec)
 
 FR-006's marker needs `pyproject.toml` to exist, and today it does not. 040
@@ -329,6 +356,12 @@ T015 creates the full file.
 | **c. A different marker file** | No packaging overlap | Contradicts the coordination rule (the root is found by `pyproject.toml`) and forks 040 R1 |
 
 **Recommendation: a.**
+
+**Decision (Camden, 2026-09-28): a.** 043 creates a minimal `pyproject.toml`
+with no `[build-system]` and no packages, so nothing is half-installable.
+040 T015 later expands it. T033 must show the collected test count is
+unchanged by the file's presence (903 when D-5 was decided; T003 records the
+baseline actually in force when 043 starts).
 
 ## 5. Acceptance criteria (each gate has a planted defect and a control, per Rule 12)
 

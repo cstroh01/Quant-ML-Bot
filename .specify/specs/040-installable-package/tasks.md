@@ -56,16 +56,23 @@ and 041 merge.
 - [ ] T014 `tests/test_040_installability.py`: AC-5's import sweep
   (`control` / `planted_flat_import`, with a masking `PYTHONPATH` entry in the
   planted case). The copy includes `pyproject.toml`, so `project_root()` resolves
-  to the copy. It also holds AC-6's spawn test, plus `project_root()` cases: env
-  override, the marker via `__file__`, `ProjectRootNotFound` with neither, and
-  the fact that cwd is never consulted. Red until Phase 3.
+  to the copy. It also holds AC-6's spawn test. The `project_root()` cases (env override,
+  the marker via `__file__`, `ProjectRootNotFound` with neither, cwd never
+  consulted) **already exist from spec 043 (its AC-5 tests)**. 040 keeps them,
+  retargeted from `scripts/_project.py` to `qmb._project`, and adds none.
+  Red until Phase 3.
 
 ## Phase 2: New files (inert until Phase 3)
 
-- [ ] T015 `pyproject.toml` exactly as in spec §4.
-- [ ] T016 `src/qmb/__init__.py` (docstring only) and `src/qmb/_project.py`
-  (spec §1.5 R1; stdlib `tomllib`; no caching, so an env change in a test takes
-  effect).
+- [ ] T015 `pyproject.toml`: **edit** the minimal marker file that spec 043
+  T020 created (`[project] name = "quant-ml-bot"`, `version = "0.0.0.dev0"`)
+  into exactly spec §4's content. `[project] name` stays unchanged: it is the
+  root marker.
+- [ ] T016 `src/qmb/__init__.py` (docstring only) is new. `src/qmb/_project.py`
+  is a **move** of `scripts/_project.py` (created by spec 043 T021) with the
+  import rewrite only. The contract is unchanged (spec §1.5 R1; stdlib
+  `tomllib`; no caching, so an env change in a test takes effect). The AC-1 (a)
+  module set gains `_project`.
 - [ ] T017 `tests/repo_paths.py`: `REPO_ROOT = Path(__file__).resolve().parents[1]`,
   `PACKAGE_DIR = REPO_ROOT / "src" / "qmb"`. No `sys.path` access; a test asserts
   this by AST.
@@ -108,7 +115,10 @@ intermediate state is committed or gated.
   # from qmb.data import download_market_data  ->  from qmb.data import CACHE_DIR, download_market_data
   ```
   This reuses the single source of truth that `data.py:48-51` documents.
-- [ ] T022 `src/qmb/trial_registry.py:19-20` (**L1: ledger root**)
+- [ ] T022 `src/qmb/trial_registry.py:19-20` (**L1: ledger root**).
+  **After spec 043, `ROOT = project_root()` is already in place.** This task
+  reduces to the import rewrite (`project_root` now imported from
+  `qmb._project`). The before/after below shows the state before 043.
   ```python
   # before
   ROOT = Path(__file__).resolve().parents[1]
@@ -306,7 +316,11 @@ intermediate state is committed or gated.
 - [ ] T038 `tests/mutation/run_spec_018_mutants.py:22-26` `COPIED`: `"scripts"` →
   `"src"`, `"tests/context.py"` → `"tests/repo_paths.py"`, and add
   `"pyproject.toml"`. Apply the same `PYTHONPATH` and non-vacuity treatment as
-  T037.
+  T037. Spec 043 D-4 already gives these drivers a shared isolation helper
+  (conftest and `pyproject.toml` copy, stripped child environment, real-ledger
+  tripwire). T037/T038 keep the `PYTHONPATH` and non-vacuity requirements and
+  do not duplicate a copy the helper already performs; the tripwire is the
+  backstop if this treatment regresses.
 
 ### Spawned workers
 

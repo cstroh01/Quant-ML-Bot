@@ -23,28 +23,32 @@ phases do not authorize Git operations or parallel agents.
   today with `dividend payment date missing`.
 - [x] T004 SC-003: the three fail-closed scenarios, each asserting that the cache
   directory is empty afterwards.
-- [ ] T005 SC-005 oracles for M1 (full-allocation re-entry inside the ex→pay
+- [x] T005 SC-005 oracles for M1 (full-allocation re-entry inside the ex→pay
   window), M2 and M3, written against `tests/mutation_support_019.killed`.
-- [ ] T006 SC-006: direction checks for `unbounded` and for `bound_sessions:N` with
-  a test-only synthetic citation.
+  Oracles written and tested directly (2026-09-28, Unit 2). **The `killed()`
+  wiring is deferred to T015**, because its `old` strings are production lines
+  that do not exist yet. Rule 12 proof for M1–M3 is not claimed until then.
+- [x] T006 SC-006: direction checks for `unbounded` and for `bound_sessions:N` with
+  a test-only synthetic citation. Unit 2 also added the SC-005 M4 / FR-002
+  configuration cases and five v2 manifest-field cases (see `artifacts/unit-2.md`).
 
 ## Phase 2: Implementation (`scripts/data.py`)
 
-- [ ] T007 FR-001: `DIVIDEND_PAY_DATE_DECLARED_LAG_SESSIONS = None`,
+- [x] T007 FR-001: `DIVIDEND_PAY_DATE_DECLARED_LAG_SESSIONS = None`,
   `DIVIDEND_PAY_DATE_BOUND_SOURCE = None`, one policy-derivation function, and
   the `UNBOUNDED_PAY_DATE` sentinel. No literal lag at any call site.
-- [ ] T008 FR-002: refuse a finite lag without a citation, a zero lag, and a
+- [x] T008 FR-002: refuse a finite lag without a citation, a zero lag, and a
   negative lag (M4).
-- [ ] T009 FR-003: add `Dividend_Pay_Date_Basis` to the action columns; add
+- [x] T009 FR-003: add `Dividend_Pay_Date_Basis` to the action columns; add
   `dividend_pay_date_policy` to `UnadjustedSourceSnapshot` (default
   `"sourced"`); make the yfinance adapter declare the policy and write basis
   `bound`.
-- [ ] T010 FR-004: `_validate_corporate_actions(..., pay_date_policy="sourced")`.
+- [x] T010 FR-004: `_validate_corporate_actions(..., pay_date_policy="sourced")`.
   Keep every existing check verbatim and add only the one relaxed cell plus the
   new basis checks.
-- [ ] T011 FR-003: manifest version 2 (policy and conditional bound source), and
+- [x] T011 FR-003: manifest version 2 (policy and conditional bound source), and
   version-1 strict compatibility in `_validate_manifest_bundle`.
-- [ ] T012 FR-005: loader resolution and the new `attrs` keys.
+- [x] T012 FR-005: loader resolution and the new `attrs` keys.
 
 ## Phase 3: Recording and disclosure
 
@@ -93,3 +97,28 @@ green implementation or permission to use bound bundles.
   absent `returns/` directory. Protected/pinned files checked by hash are unchanged.
 - T002–T004 are checked as written and observed; v2 green controls, funded-flow
   completion, and M1–M4 proof remain pending. Next unit starts with T005.
+
+## Unit 2 evidence (2026-09-28)
+
+Source: [unit-2.md](artifacts/unit-2.md). Tests only; no production file changed.
+New file: 71 cases (53 + 18). Linux/Python 3.12 run in a copy: 7 passed, 64 failed
+(17 new red, 1 new green control). Collection: 974 = 903 + 71. Full suite not run.
+The Windows gate has not been run for this unit.
+
+## Unit 3 evidence (2026-09-28)
+
+Source: [unit-3.md](artifacts/unit-3.md). Production edits in `scripts/data.py`
+(+185 / -13) and one authorized assertion change in
+`tests/test_020_unadjusted_price_data.py` (+7 / -1). Windows, repository venv.
+
+- T007-T012 are checked because their tests are green. These are the rule table,
+  version-1 strictness, M1-M3 oracles, M4/FR-002, finite-bound and unbounded
+  direction, and the manifest-field cases.
+- Focused 041 + 020 run: **85 passed, 1 failed**. Full suite `python -m pytest tests`:
+  **973 passed, 1 failed, exit 1** (974 = 903 + 71). The one failure is the
+  offline flow test at its `Pay_Date_Basis` ledger assertion, owed by T013.
+- Ledger tripwire matched before and after every run: 174 lines, both hashes,
+  and `returns/` absent. The pinned 019 files are byte-identical.
+- Open flags for T015 and Camden are in unit-3.md. They cover the sentinel
+  conflict, the M2 oracle gap, new gates still lacking red proof, and the manual
+  `tests/mutation/run_mutation_check.py` target string, which no longer matches.

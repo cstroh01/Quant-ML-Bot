@@ -11,7 +11,10 @@ inventory was incomplete.
 
 ## Hard preconditions
 
-1. **Spec 036 has merged, and spec 041 has merged.** 040 implements after both.
+1. **Specs 036, 041 and 043 have merged.** 040 implements after all three. 043
+   creates the minimal `pyproject.toml` marker and `scripts/_project.py`, and
+   puts the ledger root on marker-based resolution before 040 moves anything
+   (043 §6).
 2. **Single-threaded, with no other lane open.** 040 touches an import line in
    nearly every Python file in the repository. Any concurrent branch conflicts
    with it everywhere, and a conflict resolved by hand is exactly how a flat
@@ -179,7 +182,7 @@ uses it. It lives in `reports/api/`, which does not move, so it stays correct.
 
 ---
 
-## 4. `pyproject.toml` (new; normative content)
+## 4. `pyproject.toml` (created by 043 as a minimal marker; 040 edits it into this normative content)
 
 ```toml
 [build-system]
@@ -399,8 +402,9 @@ AC-3a a permanent gate, not a one-time check.
 ### AC-4 — The ledger chain validates, and the lifetime count is unchanged
 
 - **AC-4a (bytes).** Every file under `docs/trials/` at `PRE` has the same SHA-256
-  after the migration. The only new path there is `runner-renames.json`. This is
-  enforced by AC-1, and by the T004 hash listing compared at T061.
+  after the migration. The only new path there is `runner-renames.json`. 043 adds no
+  file under `docs/trials/`, so the `PRE` state already includes every 043 file
+  state. This is enforced by AC-1, and by the T004 hash listing compared at T061.
 - **AC-4b (production, read-only, in the suite).** `tests/test_040_ledger_boundary.py`:
   - `TrialLedger().verify()`, imported as `qmb.trial_registry`, succeeds.
     `TrialLedger().path` equals `REPO_ROOT / "docs/trials/trials.jsonl"`.
@@ -501,13 +505,14 @@ equivalence fixture, under `spawn`. It asserts:
 ## 7. File manifest (closed at T006; AC-1 treats anything else as an error)
 
 - **Moved, content changed only per AC-1 (a) to (d)**: `scripts/<m>.py` →
-  `src/qmb/<m>.py` for the 29 modules in INV §5 rows 1-21 and 24-31.
+  `src/qmb/<m>.py` for the 29 modules in INV §5 rows 1-21 and 24-31, **and**
+  `scripts/_project.py` → `src/qmb/_project.py` (created by 043, so it is a
+  move and not a new file). The module set in AC-1 (a) therefore gains
+  `_project`; T005/T006 re-derive the set.
 - **Moved, byte-identical**: `scripts/scratch_aapl_correlations.py`,
   `scripts/scratch_multiticker_collinearity.py` → `scratch/`.
 - **New**:
-  - `pyproject.toml`
   - `src/qmb/__init__.py`
-  - `src/qmb/_project.py`
   - `docs/trials/runner-renames.json`
   - `tests/repo_paths.py`
   - `tests/test_040_installability.py`
@@ -517,7 +522,9 @@ equivalence fixture, under `spawn`. It asserts:
     `ac1-allowlist.json`
 - **Deleted**: `tests/context.py`, and the now-empty `scripts/`.
 - **Edited**: exactly the files named in §5's table, each limited to the
-  allowlist.
+  allowlist, **and** `pyproject.toml` (created by 043 T020; T015 edits it into
+  §4's content and leaves `[project] name` unchanged, since that name is the
+  marker).
 
 ## Decisions
 

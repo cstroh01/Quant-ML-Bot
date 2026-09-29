@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from datetime import date, datetime, timezone
 import json
 from pathlib import Path
@@ -272,10 +273,15 @@ class YFinanceAdapterTests(unittest.TestCase):
         snapshot = adapter.fetch("TEST", date(2024, 1, 2), date(2024, 1, 5))
         dividend = snapshot.corporate_actions.query("Action_Type == 'dividend'").iloc[0]
         self.assertTrue(pd.isna(dividend["Dividend_Pay_Date"]))
+
+        class SourcedPolicy:  # spec 041: the null date is refused under the strict policy
+            def fetch(self, *args):
+                return replace(adapter.fetch(*args), dividend_pay_date_policy="sourced")
+
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(ValueError, "dividend payment date missing"):
                 data.cache_unadjusted_market_data(
-                    adapter,
+                    SourcedPolicy(),
                     "TEST",
                     date(2024, 1, 2),
                     date(2024, 1, 5),

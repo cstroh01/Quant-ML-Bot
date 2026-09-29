@@ -4,8 +4,10 @@ from dataclasses import replace
 from datetime import date
 import hashlib
 import json
+from pathlib import Path
 import re
 import socket
+import tempfile
 
 import pandas as pd
 import pytest
@@ -241,3 +243,211 @@ def test_failed_download_writes_nothing(tmp_path, defect, exception, message):
     with pytest.raises(exception, match=re.escape(message)):
         download(cache, adapter)
     assert list(cache.iterdir()) == []
+
+
+# ---------------------------------------------------------------------------
+# Unit 2 (T005-T006): SC-005 oracles, SC-006 direction, FR-002 (SC-005 M4).
+# Tests only. Every value below is EXAMPLE — NOT A RESULT.
+#
+# The oracles are no-argument callables that raise AssertionError on failure,
+# because tests/mutation_support_019.killed() catches only AssertionError. The
+# killed() wiring for M1-M3 needs the production source lines they mutate, so
+# it lands with the implementation (tasks.md T015). These oracles are tested
+# directly here, and M1's oracle is proven sensitive by a control that passes
+# on today's code.
+# ---------------------------------------------------------------------------
+
+CITATION = "EXAMPLE — NOT A RESULT: synthetic test citation, not a filing"
+LAG_CONSTANT = "DIVIDEND_PAY_DATE_DECLARED_LAG_SESSIONS"
+SOURCE_CONSTANT = "DIVIDEND_PAY_DATE_BOUND_SOURCE"
+POLICY_FIELD = "manifest dividend_pay_date_policy check failed"
+SOURCE_FIELD = "manifest dividend_pay_date_bound_source check failed"
+UNCITED_LAG = "requires a cited upper-bound source"
+BAD_LAG = "must be a positive number of sessions"
+
+
+def raises_containing(call, fragment):
+    """Oracle-safe raise check: a miss is an AssertionError, which killed() catches."""
+    try:
+        call()
+    except ValueError as error:
+        assert fragment in str(error), str(error)
+        return
+    raise AssertionError(f"expected ValueError containing {fragment!r}")
+
+
+def unpaid_dividend():
+    """Five dollars per share, ex-dated 2024-01-03, with no vendor pay date."""
+    return dividend_actions(
+        Date=pd.Timestamp("2024-01-03"), Value=5.0,
+        Dividend_Pay_Date=pd.NaT, Dividend_Pay_Date_Basis="bound",
+    )
+
+
+def paid_dividend():
+    """The same dividend with a vendor pay date of 2024-01-04."""
+    return dividend_actions(
+        Date=pd.Timestamp("2024-01-03"), Value=5.0,
+        Dividend_Pay_Date=pd.Timestamp("2024-01-04"),
+    )
+
+
+def reentry_ledger(actions, *, version, policy):
+    """Fully allocated account: buy 01-02, hold through the ex-date, sell 01-04, re-buy 01-05.
+
+    Capital 101 buys one 100-dollar share plus a 1-dollar commission, so cash is
+    zero. After the sale cash is 99 and the re-buy needs 101. Only a 5-dollar
+    dividend that has already become cash makes the re-buy affordable.
+    """
+    with tempfile.TemporaryDirectory() as directory:
+        path = contract_bundle(Path(directory), actions, version=version, policy=policy)
+        frame = data.load_unadjusted_market_data(path)
+    frame["Buy_Next_Open"] = [True, False, False, True]
+    frame["Sell_Next_Open"] = [False, False, True, False]
+    trades = run_backtest(frame, starting_capital=101.0, commission_per_trade=1.0,
+                          slippage_bps=0.0, liquidate=False)
+    return trades.attrs["ledger"]
+
+
+def oracle_m1_unpaid_dividend_cannot_fund_a_reentry():
+    """M1 (option B via the loader): an unbounded dividend must stay Receivable."""
+    ledger = reentry_ledger(unpaid_dividend(), version=2, policy="unbounded")
+    events = ledger["Event"].tolist()
+    assert events.count("rejected") == 1, events
+    assert "payment" not in events, events
+    final = ledger.iloc[-1]
+    assert (final["Cash"], final["Receivable"], final["Quantity"]) == (99.0, 5.0, 0.0), dict(final)
+
+
+def oracle_m2_a_null_pay_date_needs_a_declared_policy():
+    """M2 (pass-through validator): version 1 and a sourced or mislabelled row stay strict."""
+    null_date = dividend_actions(Dividend_Pay_Date=pd.NaT)
+    with tempfile.TemporaryDirectory() as directory:
+        for number, (version, policy) in enumerate([(1, None), (2, "sourced"), (2, "unbounded")]):
+            root = Path(directory) / str(number)
+            root.mkdir()
+            path = contract_bundle(root, null_date, version=version, policy=policy)
+            raises_containing(lambda: data.load_unadjusted_market_data(path), MISSING_PAY)
+
+
+def oracle_m3_bound_rows_are_never_relabelled_sourced():
+    """M3 (provenance laundering): a row whose on-disk date is null keeps basis bound."""
+    actions = pd.concat([
+        dividend_actions(Date=pd.Timestamp("2024-01-03"),
+                         Dividend_Pay_Date=pd.Timestamp("2024-01-05")),
+        dividend_actions(Date=pd.Timestamp("2024-01-04"), Dividend_Pay_Date=pd.NaT,
+                         Dividend_Pay_Date_Basis="bound"),
+    ], ignore_index=True)
+    with tempfile.TemporaryDirectory() as directory:
+        path = contract_bundle(Path(directory), actions, policy="unbounded")
+        frame = data.load_unadjusted_market_data(path)
+    rows = frame.loc[frame["Dividend"].gt(0)].set_index("Date")
+    assert rows.loc[pd.Timestamp("2024-01-04"), "Dividend_Pay_Date_Basis"] == "bound"
+    assert rows.loc[pd.Timestamp("2024-01-04"), "Dividend_Pay_Date"] > frame["Date"].max()
+    assert rows.loc[pd.Timestamp("2024-01-03"), "Dividend_Pay_Date_Basis"] == "sourced"
+    assert rows.loc[pd.Timestamp("2024-01-03"), "Dividend_Pay_Date"] == pd.Timestamp("2024-01-05")
+    assert (frame.attrs["dividends_bound"], frame.attrs["dividends_sourced"]) == (1, 1)
+
+
+def test_m1_oracle():
+    oracle_m1_unpaid_dividend_cannot_fund_a_reentry()
+
+
+def test_m1_oracle_control_a_paid_dividend_admits_the_reentry():
+    """Green today: the M1 scenario really does hinge on when the dividend becomes cash."""
+    events = reentry_ledger(paid_dividend(), version=1, policy=None)["Event"].tolist()
+    assert events.count("rejected") == 0, events
+    assert events.count("payment") == 1, events
+    assert events.count("buy") == 2, events
+
+
+def test_m2_oracle():
+    oracle_m2_a_null_pay_date_needs_a_declared_policy()
+
+
+def test_m3_oracle():
+    oracle_m3_bound_rows_are_never_relabelled_sourced()
+
+
+@pytest.mark.parametrize("lag, source, fragment", [
+    (5, None, UNCITED_LAG),
+    (5, "", UNCITED_LAG),
+    (5, "   ", UNCITED_LAG),
+    (0, CITATION, BAD_LAG),
+    (-1, CITATION, BAD_LAG),
+])
+def test_m4_an_uncited_or_nonpositive_lag_cannot_write_a_bundle(
+        tmp_path, monkeypatch, lag, source, fragment):
+    monkeypatch.setattr(data, LAG_CONSTANT, lag)
+    monkeypatch.setattr(data, SOURCE_CONSTANT, source)
+    cache = tmp_path / "bundle"
+    cache.mkdir()
+    with pytest.raises(ValueError, match=re.escape(fragment)):
+        download(cache, fake_adapter(synthetic_history(), []))
+    assert list(cache.iterdir()) == []
+
+
+# Ex-dates 2024-01-04 (with a same-day split) and 2024-01-05 (the final session).
+# Hand-counted NYSE sessions after each ex-date; 2024-01-15 is a market holiday,
+# so N=8 crosses it and lands past the bundle's end.
+FINITE_BOUND_CASES = [
+    (1, ["2024-01-05", "2024-01-08"], ["2024-01-05"]),
+    (3, ["2024-01-09", "2024-01-10"], []),
+    (8, ["2024-01-17", "2024-01-18"], []),
+]
+
+
+@pytest.mark.parametrize("lag, resolved, payments", FINITE_BOUND_CASES)
+def test_finite_bound_resolves_n_sessions_after_the_ex_date(tmp_path, monkeypatch, lag, resolved, payments):
+    monkeypatch.setattr(data, LAG_CONSTANT, lag)
+    monkeypatch.setattr(data, SOURCE_CONSTANT, CITATION)
+    path = download(tmp_path, fake_adapter(synthetic_history(), []))
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    assert manifest["dividend_pay_date_policy"] == f"bound_sessions:{lag}"
+    assert manifest["dividend_pay_date_bound_source"] == CITATION
+    # The loader must read the policy from the manifest, never from the constants.
+    monkeypatch.setattr(data, LAG_CONSTANT, None)
+    monkeypatch.setattr(data, SOURCE_CONSTANT, None)
+    frame = data.load_unadjusted_market_data(path)
+    assert frame.attrs["dividend_pay_date_policy"] == f"bound_sessions:{lag}"
+    assert frame.attrs["dividend_pay_date_bound_source"] == CITATION
+    rows = frame.loc[frame["Dividend"].gt(0)]
+    assert rows["Dividend_Pay_Date_Basis"].tolist() == ["bound", "bound"]
+    assert rows["Dividend_Pay_Date"].tolist() == [pd.Timestamp(day) for day in resolved]
+    assert (rows["Dividend_Pay_Date"] > rows["Date"]).all()
+    frame["Buy_Next_Open"] = [True, False, False, False]
+    frame["Sell_Next_Open"] = False
+    trades = run_backtest(frame, starting_capital=101.0, commission_per_trade=1.0,
+                          slippage_bps=0.0, liquidate=False)
+    ledger = trades.attrs["ledger"]
+    paid = ledger.loc[ledger["Event"].eq("payment"), "Date"]
+    assert paid.tolist() == [pd.Timestamp(day) for day in payments]
+
+
+def test_unbounded_bound_dividends_never_become_cash_in_the_run(tmp_path, monkeypatch):
+    path = download(tmp_path, fake_adapter(synthetic_history(), []))
+    # A later, finite constant must not reinterpret a bundle written as unbounded.
+    monkeypatch.setattr(data, LAG_CONSTANT, 2)
+    monkeypatch.setattr(data, SOURCE_CONSTANT, CITATION)
+    frame = data.load_unadjusted_market_data(path)
+    assert frame.attrs["dividend_pay_date_policy"] == "unbounded"
+    rows = frame.loc[frame["Dividend"].gt(0)]
+    assert (rows["Dividend_Pay_Date"] > frame["Date"].max()).all()
+    frame["Buy_Next_Open"] = [True, False, False, False]
+    frame["Sell_Next_Open"] = False
+    trades = run_backtest(frame, starting_capital=101.0, commission_per_trade=1.0,
+                          slippage_bps=0.0, liquidate=True)
+    assert "payment" not in trades.attrs["ledger"]["Event"].tolist()
+
+
+@pytest.mark.parametrize("policy, fragment", [
+    (None, POLICY_FIELD),
+    ("typical_lag", POLICY_FIELD),
+    ("bound_sessions:0", POLICY_FIELD),
+    ("bound_sessions:-1", POLICY_FIELD),
+    ("bound_sessions:3", SOURCE_FIELD),
+])
+def test_v2_manifest_policy_fields_are_validated(tmp_path, policy, fragment):
+    path = contract_bundle(tmp_path, dividend_actions(), policy=policy)
+    with pytest.raises(ValueError, match=re.escape(fragment)):
+        data.load_unadjusted_market_data(path)

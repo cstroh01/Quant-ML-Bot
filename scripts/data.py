@@ -62,9 +62,30 @@ CORPORATE_ACTION_COLUMNS = [
     "Action_Type",
     "Value",
     "Dividend_Pay_Date",
+    "Dividend_Pay_Date_Basis",
 ]
-UNADJUSTED_MANIFEST_VERSION = 1
+# Version-1 bundles predate the per-dividend basis marker (spec 041).
+_V1_CORPORATE_ACTION_COLUMNS = CORPORATE_ACTION_COLUMNS[:5]
+PAY_DATE_BASES = frozenset({"sourced", "bound"})
+# Version 2 (spec 041) adds the pay-date policy and the basis column. Version 1
+# bundles still load, strictly, with every dividend requiring a vendor date.
+UNADJUSTED_MANIFEST_VERSION = 2
 UNADJUSTED_PRICE_BASIS = "unadjusted_dollars"
+
+# Spec 036 D-7 option C1 (DECIDED 2026-09-26); spec 041.
+# None = unbounded: a dividend with no vendor pay date never converts to cash
+# within the run. It is strictly conservative and involves no figure (Rule 11).
+# A finite value is option C2 and requires DIVIDEND_PAY_DATE_BOUND_SOURCE to
+# cite primary-filing evidence that it is an UPPER bound over every dividend
+# in the bundle. A typical lag is not enough.
+DIVIDEND_PAY_DATE_DECLARED_LAG_SESSIONS: int | None = None
+DIVIDEND_PAY_DATE_BOUND_SOURCE: str | None = None
+# The resolved pay date of an unbounded dividend (spec 041 FR-005). It is the
+# latest midnight datetime64[ns] can hold, deliberately not a plausible date.
+# The loader refuses a bundle whose sessions reach it, so it always lies after
+# every session of any bundle it is attached to.
+UNBOUNDED_PAY_DATE = pd.Timestamp.max.normalize()
+_BOUND_POLICY = re.compile(r"bound_sessions:[1-9][0-9]*")
 # A real split creates a large nominal discontinuity. This deliberately
 # fail-closed tolerance permits an ordinary overnight move while rejecting an
 # adjusted series whose split discontinuity has been smoothed away.
@@ -87,6 +108,10 @@ class UnadjustedSourceSnapshot:
     downloaded_at_utc: datetime
     capital_gate_eligible: bool
     limitations: tuple[str, ...] = ()
+    # Strict by default: an adapter that declares nothing gets vendor-only pay
+    # dates (spec 041 FR-003). The source is required for bound_sessions:N.
+    dividend_pay_date_policy: str = "sourced"
+    dividend_pay_date_bound_source: str | None = None
 
 
 class UnadjustedDailySource(Protocol):
@@ -103,6 +128,9 @@ class _ValidatedUnadjustedBundle:
     manifest_sha256: str
     prices: pd.DataFrame
     corporate_actions: pd.DataFrame
+    # None for a version-1 manifest, which declares no policy and has no basis.
+    pay_date_policy: str | None = None
+    pay_date_bound_source: str | None = None
 
 # Juneteenth became a market holiday in 2022. Applying it to earlier years
 # would excuse a genuinely missing bar on every June 19th before that — a
@@ -579,6 +607,47 @@ def _validate_unadjusted_prices(prices: pd.DataFrame, ticker: str) -> pd.DataFra
     return result.reset_index(drop=True)
 
 
+def declared_dividend_pay_date_policy() -> str:
+    """Return the pay-date policy that newly written yfinance bundles declare.
+
+    Derived only from the two FR-001 constants: ``"unbounded"`` when the lag is
+    None, else ``"bound_sessions:N"``. A zero, negative or non-integer lag, or a
+    finite lag without a non-blank citation, raises ``ValueError`` so no bundle
+    can be written under it (spec 041 FR-002). Loaders never call this; they
+    read the policy a bundle's manifest recorded.
+    """
+    lag = DIVIDEND_PAY_DATE_DECLARED_LAG_SESSIONS
+    if lag is None:
+        return "unbounded"
+    if isinstance(lag, bool) or not isinstance(lag, int) or lag <= 0:
+        raise ValueError("dividend pay-date lag check failed: lag must be a positive number of sessions")
+    source = DIVIDEND_PAY_DATE_BOUND_SOURCE
+    if not isinstance(source, str) or not source.strip():
+        raise ValueError("dividend pay-date lag check failed: a finite lag requires a cited upper-bound source")
+    return f"bound_sessions:{lag}"
+
+
+def _validated_pay_date_policy(policy: object, bound_source: object, origin: str) -> tuple[str, str | None]:
+    """Accept sourced, unbounded, or bound_sessions:N (N >= 1) with a cited source."""
+    if policy in ("sourced", "unbounded"):
+        if bound_source is not None:
+            raise ValueError(
+                f"{origin} dividend_pay_date_bound_source check failed: only bound_sessions:N carries a source"
+            )
+        return str(policy), None
+    if not isinstance(policy, str) or not _BOUND_POLICY.fullmatch(policy):
+        raise ValueError(
+            f"{origin} dividend_pay_date_policy check failed: "
+            "sourced, unbounded, or bound_sessions:N with N a positive integer required"
+        )
+    if not isinstance(bound_source, str) or not bound_source.strip():
+        raise ValueError(
+            f"{origin} dividend_pay_date_bound_source check failed: "
+            f"{policy} requires a cited upper-bound source"
+        )
+    return policy, bound_source
+
+
 def _empty_corporate_actions() -> pd.DataFrame:
     return pd.DataFrame(
         {
@@ -587,6 +656,7 @@ def _empty_corporate_actions() -> pd.DataFrame:
             "Action_Type": pd.Series(dtype="object"),
             "Value": pd.Series(dtype="float64"),
             "Dividend_Pay_Date": pd.Series(dtype="datetime64[ns]"),
+            "Dividend_Pay_Date_Basis": pd.Series(dtype="object"),
         }
     )
 
@@ -595,14 +665,25 @@ def _validate_corporate_actions(
     actions: pd.DataFrame,
     ticker: str,
     price_sessions: pd.Series,
+    *,
+    pay_date_policy: str = "sourced",
+    manifest_version: int = UNADJUSTED_MANIFEST_VERSION,
 ) -> pd.DataFrame:
-    missing = set(CORPORATE_ACTION_COLUMNS) - set(actions.columns)
+    """Validate ex-date action rows; version 1 has no basis column and stays strict.
+
+    A dividend's pay date may be null only when its basis is ``bound`` and the
+    policy is not ``sourced`` (spec 041 FR-004). Every other rule is unchanged.
+    """
+    if pay_date_policy not in ("sourced", "unbounded") and not _BOUND_POLICY.fullmatch(str(pay_date_policy)):
+        raise ValueError("corporate-actions pay-date policy check failed: unknown policy")
+    columns = CORPORATE_ACTION_COLUMNS if manifest_version >= 2 else _V1_CORPORATE_ACTION_COLUMNS
+    missing = set(columns) - set(actions.columns)
     if missing:
         raise ValueError(f"corporate-actions schema check failed: missing columns {sorted(missing)}")
     if actions.empty:
-        return _empty_corporate_actions()
+        return _empty_corporate_actions()[columns]
 
-    result = actions[CORPORATE_ACTION_COLUMNS].copy()
+    result = actions[columns].copy()
     result["Date"] = _session_series(result, "Date", "corporate-actions ex-date")
     if result["Ticker"].isna().any() or set(result["Ticker"].astype(str)) != {ticker}:
         raise ValueError(f"corporate-actions ticker check failed: expected only {ticker}")
@@ -631,13 +712,25 @@ def _validate_corporate_actions(
     pay_dates = pay_dates.astype("datetime64[ns]")
     dividends = result["Action_Type"].eq("dividend")
     splits = result["Action_Type"].eq("split")
-    if pay_dates[dividends].isna().any():
+    bound = pd.Series(False, index=result.index)
+    if "Dividend_Pay_Date_Basis" in columns:
+        basis = result["Dividend_Pay_Date_Basis"]
+        if not basis[dividends].isin(PAY_DATE_BASES).all():
+            raise ValueError("corporate-actions pay-date basis check failed: dividend pay-date basis missing or invalid")
+        if basis[splits].notna().any():
+            raise ValueError("corporate-actions pay-date basis check failed: split must not have a pay-date basis")
+        bound = dividends & basis.eq("bound")
+    # Spec 041 FR-004, the single relaxation: bound basis under a declared policy.
+    null_pay_date_allowed = bound & (pay_date_policy != "sourced")
+    if pay_dates[dividends & ~null_pay_date_allowed].isna().any():
         raise ValueError("corporate-actions payment-date check failed: dividend payment date missing")
     if pay_dates[splits].notna().any():
         raise ValueError("corporate-actions payment-date check failed: split must not have a payment date")
+    if pay_dates[bound].notna().any():
+        raise ValueError("corporate-actions payment-date check failed: bound dividend must not have a payment date")
     if (pay_dates[dividends] < result.loc[dividends, "Date"]).any():
         raise ValueError("corporate-actions payment-date check failed: payment precedes ex-date")
-    for payment in pay_dates[dividends]:
+    for payment in pay_dates[dividends].dropna():
         if trading_days(payment.date(), payment.date()) != [payment.date()]:
             raise ValueError("corporate-actions payment-date check failed: payment is not a market session")
     result["Dividend_Pay_Date"] = pay_dates
@@ -724,8 +817,17 @@ def _validate_manifest_bundle(manifest_path: Path) -> _ValidatedUnadjustedBundle
     missing = required - set(manifest)
     if missing:
         raise ValueError(f"manifest schema check failed: missing fields {sorted(missing)}")
-    if manifest["manifest_version"] != UNADJUSTED_MANIFEST_VERSION:
+    version = manifest["manifest_version"]
+    if version not in (1, UNADJUSTED_MANIFEST_VERSION):
         raise ValueError("manifest version check failed: unsupported manifest_version")
+    pay_date_policy, pay_date_bound_source = None, None
+    if version == UNADJUSTED_MANIFEST_VERSION:
+        # Version 1 ignores any stray policy field and stays strict.
+        pay_date_policy, pay_date_bound_source = _validated_pay_date_policy(
+            manifest.get("dividend_pay_date_policy"),
+            manifest.get("dividend_pay_date_bound_source"),
+            "manifest",
+        )
     if manifest["price_basis"] != UNADJUSTED_PRICE_BASIS:
         raise ValueError("manifest price-basis check failed: unadjusted_dollars required")
     for field in ("source_name", "source_method", "created_by_revision"):
@@ -770,7 +872,10 @@ def _validate_manifest_bundle(manifest_path: Path) -> _ValidatedUnadjustedBundle
         raise ValueError("corporate-actions file parse check failed: valid action CSV required") from error
 
     prices = _validate_unadjusted_prices(prices, ticker)
-    actions = _validate_corporate_actions(actions, ticker, prices["Date"])
+    actions = _validate_corporate_actions(
+        actions, ticker, prices["Date"],
+        pay_date_policy=pay_date_policy or "sourced", manifest_version=version,
+    )
     if len(prices) != manifest["row_count"]:
         raise ValueError(
             f"manifest row-count check failed: expected {manifest['row_count']}, got {len(prices)}"
@@ -795,19 +900,53 @@ def _validate_manifest_bundle(manifest_path: Path) -> _ValidatedUnadjustedBundle
         manifest_sha256=_sha256_bytes(manifest_payload),
         prices=prices,
         corporate_actions=actions,
+        pay_date_policy=pay_date_policy,
+        pay_date_bound_source=pay_date_bound_source,
     )
+
+
+def _nth_session_after(day: date, sessions: int) -> date:
+    """Return the ``sessions``-th NYSE session strictly after ``day``.
+
+    Uses the market calendar, not a bundle's rows, so the answer is correct
+    past a bundle's final session and across holidays.
+    """
+    span = 2 * sessions + 14
+    while True:
+        following = trading_days(day + timedelta(days=1), day + timedelta(days=span))
+        if len(following) >= sessions:
+            return following[sessions - 1]
+        span *= 2
 
 
 def _merge_actions_for_execution(
     prices: pd.DataFrame,
     actions: pd.DataFrame,
+    *,
+    pay_date_policy: str | None = None,
 ) -> pd.DataFrame:
+    """Place actions on their ex-date rows; resolve bound pay dates late.
+
+    ``pay_date_policy`` is the manifest's, never the module constants', so a
+    bundle is always read the way it was written. None means a version-1
+    bundle: vendor dates only and no basis column. A ``bound`` row resolves to
+    ``UNBOUNDED_PAY_DATE`` under ``unbounded`` and to the N-th session after
+    its ex-date under ``bound_sessions:N``; a ``sourced`` row keeps its date.
+    """
     result = prices.copy()
     result["Split"] = 1.0
     result["Dividend"] = 0.0
     result["Dividend_Pay_Date"] = pd.NaT
+    marked = pay_date_policy is not None
+    if marked:
+        result["Dividend_Pay_Date_Basis"] = None
+        if result["Date"].iloc[-1] >= UNBOUNDED_PAY_DATE:
+            raise ValueError("pay-date resolution check failed: sessions reach the unbounded sentinel")
     if actions.empty:
         return result
+    lag = None
+    if marked and pay_date_policy.startswith("bound_sessions:"):
+        lag = int(pay_date_policy.split(":", 1)[1])
     positions = {session: position for position, session in enumerate(result["Date"])}
     for action in actions.itertuples(index=False):
         position = positions[action.Date]
@@ -815,7 +954,15 @@ def _merge_actions_for_execution(
             result.loc[position, "Split"] = float(action.Value)
         else:
             result.loc[position, "Dividend"] = float(action.Value)
-            result.loc[position, "Dividend_Pay_Date"] = action.Dividend_Pay_Date
+            pay_date = action.Dividend_Pay_Date
+            if marked and action.Dividend_Pay_Date_Basis == "bound":
+                if lag is None:
+                    pay_date = UNBOUNDED_PAY_DATE
+                else:
+                    pay_date = pd.Timestamp(_nth_session_after(action.Date.date(), lag))
+            result.loc[position, "Dividend_Pay_Date"] = pay_date
+            if marked:
+                result.loc[position, "Dividend_Pay_Date_Basis"] = action.Dividend_Pay_Date_Basis
     return result
 
 
@@ -828,8 +975,13 @@ def load_unadjusted_market_data(manifest_path: Path) -> pd.DataFrame:
     adjusted-data fallback and no caller-supplied basis override.
     """
     bundle = _validate_manifest_bundle(Path(manifest_path))
-    result = _merge_actions_for_execution(bundle.prices, bundle.corporate_actions)
+    result = _merge_actions_for_execution(
+        bundle.prices, bundle.corporate_actions, pay_date_policy=bundle.pay_date_policy,
+    )
     manifest = bundle.manifest
+    # Version 1 has no basis marker: nothing is inferred sourced, and its strict
+    # validation makes a bound row impossible.
+    basis = bundle.corporate_actions.get("Dividend_Pay_Date_Basis")
     result.attrs.update(
         {
             "price_basis": manifest["price_basis"],
@@ -843,6 +995,10 @@ def load_unadjusted_market_data(manifest_path: Path) -> pd.DataFrame:
             "corporate_actions_sha256": manifest["corporate_actions_sha256"],
             "capital_gate_eligible": manifest["capital_gate_eligible"],
             "source_limitations": tuple(manifest["source_limitations"]),
+            "dividend_pay_date_policy": bundle.pay_date_policy,
+            "dividend_pay_date_bound_source": bundle.pay_date_bound_source,
+            "dividends_sourced": None if basis is None else int(basis.eq("sourced").sum()),
+            "dividends_bound": 0 if basis is None else int(basis.eq("bound").sum()),
         }
     )
     return result
@@ -926,8 +1082,21 @@ def cache_unadjusted_market_data(
     ):
         if not value.strip():
             raise ValueError(f"source provenance check failed: {field} is empty")
+    pay_date_policy, pay_date_bound_source = _validated_pay_date_policy(
+        snapshot.dividend_pay_date_policy, snapshot.dividend_pay_date_bound_source, "source",
+    )
+    source_actions = snapshot.corporate_actions
+    if (pay_date_policy == "sourced" and "Dividend_Pay_Date_Basis" not in source_actions.columns
+            and "Action_Type" in source_actions.columns):
+        # An adapter that declares nothing gets today's strict contract: each
+        # dividend date is its own, so a null date is still refused below.
+        source_actions = source_actions.assign(Dividend_Pay_Date_Basis=pd.Series(
+            "sourced", index=source_actions.index, dtype="object",
+        ).where(source_actions["Action_Type"].eq("dividend")))
     prices = _validate_unadjusted_prices(snapshot.prices, ticker)
-    actions = _validate_corporate_actions(snapshot.corporate_actions, ticker, prices["Date"])
+    actions = _validate_corporate_actions(
+        source_actions, ticker, prices["Date"], pay_date_policy=pay_date_policy,
+    )
     _validate_split_discontinuities(prices, actions)
 
     cache_dir = Path(cache_dir)
@@ -959,6 +1128,8 @@ def cache_unadjusted_market_data(
         "price_basis": UNADJUSTED_PRICE_BASIS,
         "capital_gate_eligible": snapshot.capital_gate_eligible,
         "source_limitations": list(snapshot.limitations),
+        "dividend_pay_date_policy": pay_date_policy,
+        "dividend_pay_date_bound_source": pay_date_bound_source,
     }
     _write_json_atomic(manifest, manifest_path)
     return manifest_path
@@ -971,14 +1142,18 @@ class YFinanceUnadjustedAdapter:
     It does not guarantee delisted-security coverage, spinoff treatment, symbol
     change continuity, authoritative corporate-action completeness, or
     historical dividend payment dates. Dividend rows therefore have no payment
-    date and fail the blessed cache validation instead of inventing one. The
-    adapter's snapshots always declare ``capital_gate_eligible=False``.
+    date. They are marked ``Dividend_Pay_Date_Basis="bound"`` under the policy
+    from ``declared_dividend_pay_date_policy`` (spec 041), and the loader
+    resolves them late; the adapter never writes a date. The adapter's
+    snapshots always declare ``capital_gate_eligible=False``.
     """
 
     def __init__(self, ticker_factory=yf.Ticker):
         self._ticker_factory = ticker_factory
 
     def fetch(self, ticker: str, start: date, end: date) -> UnadjustedSourceSnapshot:
+        # FR-002: an invalid lag configuration fails before any download or write.
+        pay_date_policy = declared_dividend_pay_date_policy()
         history = self._ticker_factory(ticker).history(
             start=start.isoformat(),
             end=(end + timedelta(days=1)).isoformat(),
@@ -1017,6 +1192,7 @@ class YFinanceUnadjustedAdapter:
                         "Action_Type": "split",
                         "Value": float(split),
                         "Dividend_Pay_Date": pd.NaT,
+                        "Dividend_Pay_Date_Basis": None,
                     }
                 )
             if float(dividend) != 0.0:
@@ -1029,6 +1205,9 @@ class YFinanceUnadjustedAdapter:
                         # yfinance history identifies the ex-date, not a
                         # verified historical payment date. Never substitute.
                         "Dividend_Pay_Date": pd.NaT,
+                        # The date is left empty; the basis declares that the
+                        # loader resolves it under the manifest's policy.
+                        "Dividend_Pay_Date_Basis": "bound",
                     }
                 )
         actions = (
@@ -1050,6 +1229,10 @@ class YFinanceUnadjustedAdapter:
             downloaded_at_utc=datetime.now(timezone.utc),
             capital_gate_eligible=False,
             limitations=limitations,
+            dividend_pay_date_policy=pay_date_policy,
+            dividend_pay_date_bound_source=(
+                None if pay_date_policy == "unbounded" else DIVIDEND_PAY_DATE_BOUND_SOURCE
+            ),
         )
 
 

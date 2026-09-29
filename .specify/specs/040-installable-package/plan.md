@@ -36,9 +36,9 @@ file marks the era boundary by record hash.
 ## Project Structure (after)
 
 ```text
-pyproject.toml                      new
+pyproject.toml                      edited (created by 043 as a minimal marker)
 src/qmb/__init__.py                 new (docstring only)
-src/qmb/_project.py                 new (project_root, ProjectRootNotFound)
+src/qmb/_project.py                 moved from scripts/_project.py (created by 043)
 src/qmb/<29 modules>.py             moved from scripts/
 scratch/<2 scratch modules>.py      moved byte-identical
 docs/trials/runner-renames.json     new; everything else under docs/trials/ byte-identical
