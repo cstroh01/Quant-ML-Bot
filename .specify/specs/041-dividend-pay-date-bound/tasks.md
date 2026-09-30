@@ -60,7 +60,7 @@ phases do not authorize Git operations or parallel agents.
 
 ## Phase 4: Verification
 
-- [ ] T015 Run the focused tests green; run M1–M3 killed with green controls; M4
+- [x] T015 Run the focused tests green; run M1–M3 killed with green controls; M4
   raises.
 - [x] T016 Confirm the pinned 019 tests (FR-006) are byte-identical and green.
 - [x] T017 Full suite: `python -m pytest tests`. The count equals the T001

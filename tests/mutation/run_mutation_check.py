@@ -12,7 +12,9 @@ REPO = Path(__file__).resolve().parents[2]
 TEST_RELATIVE = Path("tests/test_020_unadjusted_price_data.py")
 
 ORIGINAL = """    bundle = _validate_manifest_bundle(Path(manifest_path))
-    result = _merge_actions_for_execution(bundle.prices, bundle.corporate_actions)
+    result = _merge_actions_for_execution(
+        bundle.prices, bundle.corporate_actions, pay_date_policy=bundle.pay_date_policy,
+    )
 """
 
 MUTANT = """    # MUTANT: trust filenames in JSON and stamp without validating the bundle.
@@ -29,8 +31,12 @@ MUTANT = """    # MUTANT: trust filenames in JSON and stamp without validating t
         manifest_sha256=_sha256_bytes(unsafe_manifest_payload),
         prices=unsafe_prices,
         corporate_actions=unsafe_actions,
+        pay_date_policy=unsafe_manifest.get("dividend_pay_date_policy"),
+        pay_date_bound_source=unsafe_manifest.get("dividend_pay_date_bound_source"),
     )
-    result = _merge_actions_for_execution(bundle.prices, bundle.corporate_actions)
+    result = _merge_actions_for_execution(
+        bundle.prices, bundle.corporate_actions, pay_date_policy=bundle.pay_date_policy,
+    )
 """
 
 

@@ -259,10 +259,9 @@ def test_failed_download_writes_nothing(tmp_path, defect, exception, message):
 #
 # The oracles are no-argument callables that raise AssertionError on failure,
 # because tests/mutation_support_019.killed() catches only AssertionError. The
-# killed() wiring for M1-M3 needs the production source lines they mutate, so
-# it lands with the implementation (tasks.md T015). These oracles are tested
-# directly here, and M1's oracle is proven sensitive by a control that passes
-# on today's code.
+# T015 wires these oracles to the production source lines they mutate through
+# tests/mutation_support_019.killed(). The direct tests keep each clean control
+# explicit, and M1 also has a paid-dividend sensitivity control.
 # ---------------------------------------------------------------------------
 
 CITATION = "EXAMPLE — NOT A RESULT: synthetic test citation, not a filing"
@@ -330,11 +329,20 @@ def oracle_m1_unpaid_dividend_cannot_fund_a_reentry():
 def oracle_m2_a_null_pay_date_needs_a_declared_policy():
     """M2 (pass-through validator): version 1 and a sourced or mislabelled row stay strict."""
     null_date = dividend_actions(Dividend_Pay_Date=pd.NaT)
+    bound_null_date = dividend_actions(
+        Dividend_Pay_Date=pd.NaT, Dividend_Pay_Date_Basis="bound",
+    )
     with tempfile.TemporaryDirectory() as directory:
-        for number, (version, policy) in enumerate([(1, None), (2, "sourced"), (2, "unbounded")]):
+        strict_cases = [
+            (1, None, null_date),
+            (2, "sourced", null_date),
+            (2, "unbounded", null_date),
+            (2, "sourced", bound_null_date),
+        ]
+        for number, (version, policy, actions) in enumerate(strict_cases):
             root = Path(directory) / str(number)
             root.mkdir()
-            path = contract_bundle(root, null_date, version=version, policy=policy)
+            path = contract_bundle(root, actions, version=version, policy=policy)
             raises_containing(lambda: data.load_unadjusted_market_data(path), MISSING_PAY)
 
 
@@ -375,6 +383,25 @@ def test_m2_oracle():
 
 def test_m3_oracle():
     oracle_m3_bound_rows_are_never_relabelled_sourced()
+
+
+def test_m1_option_b_loader_mutant_is_killed():
+    killed(data, "pay_date = UNBOUNDED_PAY_DATE", "pay_date = action.Date",
+           oracle_m1_unpaid_dividend_cannot_fund_a_reentry)
+
+
+def test_m2_policy_bypass_validator_mutant_is_killed():
+    killed(data,
+           'null_pay_date_allowed = bound & (pay_date_policy != "sourced")',
+           "null_pay_date_allowed = bound",
+           oracle_m2_a_null_pay_date_needs_a_declared_policy)
+
+
+def test_m3_provenance_laundering_mutant_is_killed():
+    killed(data,
+           'result.loc[position, "Dividend_Pay_Date_Basis"] = action.Dividend_Pay_Date_Basis',
+           'result.loc[position, "Dividend_Pay_Date_Basis"] = "sourced"',
+           oracle_m3_bound_rows_are_never_relabelled_sourced)
 
 
 @pytest.mark.parametrize("lag, source, fragment", [
