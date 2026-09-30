@@ -110,6 +110,8 @@ class BacktestTearsheetResponse(BaseModel):
     capital_gate_eligible: bool
     source_limitations: list[str]
     source_manifest_sha256: str
+    # Spec 041 FR-007: present only when a dividend's pay date is a declared bound.
+    dividend_pay_date_disclosure: str | None = None
     capital_base: float
     total_return: float
     total_pnl: float

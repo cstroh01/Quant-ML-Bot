@@ -257,7 +257,12 @@ timing is a declared bound and not vendor data (Rule 16).
 - **FR-005**: `_merge_actions_for_execution` resolves a `bound` row's pay date
   from the manifest policy:
   - `unbounded` resolves to the named sentinel `UNBOUNDED_PAY_DATE`, a naive
-    midnight timestamp later than any representable session.
+    midnight timestamp at the latest representable pandas midnight. The loader
+    refuses any bundle whose sessions reach or exceed this sentinel.
+
+    **Amendment (Camden, 2026-09-29):** the former requirement that the sentinel
+    be later than any representable session was impossible: 2262-04-11 is a
+    trading Friday. Refusing bundles that reach it preserves the unbounded rule.
   - `bound_sessions:N` resolves to the N-th market session after the ex-date,
     using `trading_days`, not the bundle's rows, so the result is correct past the
     bundle's end.

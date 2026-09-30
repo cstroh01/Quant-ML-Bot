@@ -4,10 +4,15 @@ from dataclasses import replace
 from datetime import date
 import hashlib
 import json
+import math
+import os
 from pathlib import Path
 import re
 import socket
+import subprocess
+import sys
 import tempfile
+import unittest
 
 import pandas as pd
 import pytest
@@ -15,13 +20,16 @@ import pytest
 import context  # noqa: F401 -- existing repository import bootstrap
 import data
 from backtest_harness import run_backtest
-from unadjusted_fixtures import publish_bundle, session_prices
+from ma_crossover_backtest import pay_date_disclosure
+from mutation_support_019 import killed
+from unadjusted_fixtures import StubSource, publish_bundle, session_prices
 
 
 START, END = date(2024, 1, 2), date(2024, 1, 5)
 MISSING_PAY = "dividend payment date missing"
 BAD_BASIS = "dividend pay-date basis missing or invalid"
 BAD_VALUE = "action values must be finite and positive"
+REAL_CONNECT = socket.socket.connect  # captured before offline_only patches it
 
 
 @pytest.fixture(autouse=True)
@@ -451,3 +459,266 @@ def test_v2_manifest_policy_fields_are_validated(tmp_path, policy, fragment):
     path = contract_bundle(tmp_path, dividend_actions(), policy=policy)
     with pytest.raises(ValueError, match=re.escape(fragment)):
         data.load_unadjusted_market_data(path)
+
+
+# ---------------------------------------------------------------------------
+# Unit 4 (T013-T014): harness basis recording and FR-007 disclosure.
+# Every value below is EXAMPLE — NOT A RESULT.
+# ---------------------------------------------------------------------------
+
+def basis_ledger(basis):
+    """One vendor-dated dividend; only the basis handed to the harness varies."""
+    with tempfile.TemporaryDirectory() as directory:
+        frame = data.load_unadjusted_market_data(contract_bundle(Path(directory), dividend_actions()))
+    if basis == "absent":
+        frame = frame.drop(columns="Dividend_Pay_Date_Basis")
+    else:
+        frame.loc[frame["Dividend"].gt(0), "Dividend_Pay_Date_Basis"] = basis
+    frame["Buy_Next_Open"] = [True, False, False, False]
+    frame["Sell_Next_Open"] = False
+    trades = run_backtest(frame, starting_capital=101.0, commission_per_trade=1.0,
+                          slippage_bps=0.0, liquidate=False)
+    return trades.attrs["ledger"]
+
+
+@pytest.mark.parametrize("basis, recorded", [
+    ("sourced", "sourced"), ("bound", "bound"), (None, "unspecified"), ("absent", "unspecified"),
+])
+def test_harness_records_the_basis_it_was_handed_and_nothing_else_changes(basis, recorded):
+    ledger = basis_ledger(basis)
+    dividend = ledger["Event"].eq("dividend")
+    assert ledger.loc[dividend, "Pay_Date_Basis"].tolist() == [recorded]
+    assert ledger.loc[~dividend, "Pay_Date_Basis"].isna().all()
+    assert ledger["Event"].tolist().count("payment") == 1
+    # FR-006: recording only. Every other ledger column matches the sourced control.
+    control = basis_ledger("sourced")
+    pd.testing.assert_frame_equal(ledger.drop(columns="Pay_Date_Basis"),
+                                  control.drop(columns="Pay_Date_Basis"))
+
+
+# FR-007's text, copied from the spec rather than rebuilt from the renderer.
+DISCLOSURE = ("Dividend pay dates: declared bound (policy=unbounded), 2 of 3 dividends; "
+              "NOT vendor data. dividend cash never becomes buying power within this run.")
+
+
+@pytest.mark.parametrize("attrs, expected", [
+    ({"dividends_bound": 0, "dividends_sourced": None, "dividend_pay_date_policy": None}, None),
+    ({"dividends_bound": 0, "dividends_sourced": 3, "dividend_pay_date_policy": "sourced"}, None),
+    ({"dividends_bound": 2, "dividends_sourced": 1, "dividend_pay_date_policy": "unbounded"}, DISCLOSURE),
+    ({"dividends_bound": 1, "dividends_sourced": 0, "dividend_pay_date_policy": "bound_sessions:5"},
+     "Dividend pay dates: declared bound (policy=bound_sessions:5), 1 of 1 dividends; NOT vendor data."),
+], ids=["version-1", "all-sourced", "unbounded", "finite-bound"])
+def test_pay_date_disclosure_renderer(attrs, expected):
+    assert pay_date_disclosure(attrs) == expected
+
+
+class DeclaredPolicySource(StubSource):
+    """StubSource whose snapshot declares a pay-date policy."""
+
+    def __init__(self, prices, actions, policy):
+        super().__init__(prices, actions)
+        self.policy = policy
+
+    def fetch(self, ticker, start, end):
+        return replace(super().fetch(ticker, start, end), dividend_pay_date_policy=self.policy)
+
+
+def report_bundle(root, *, bound):
+    """160 sessions and three dividends; the last two are bound when `bound`."""
+    sessions = data.trading_days(date(2024, 1, 2), date(2024, 9, 30))[:160]
+    closes = [100.0 + 8.0 * math.sin(i / 4.0) for i in range(len(sessions))]
+    prices = session_prices("AAPL", sessions[0], sessions[-1], closes)
+    days = prices["Date"]
+    actions = pd.concat([
+        dividend_actions(Date=days.iloc[at], Dividend_Pay_Date=pd.NaT if is_bound else days.iloc[at + 5],
+                         Dividend_Pay_Date_Basis="bound" if is_bound else "sourced")
+        for at, is_bound in ((20, False), (60, bound), (100, bound))
+    ], ignore_index=True)
+    source = DeclaredPolicySource(prices, actions, "unbounded" if bound else "sourced")
+    return data.cache_unadjusted_market_data(
+        source, "AAPL", days.iloc[0].date(), days.iloc[-1].date(),
+        created_by_revision="spec-041-disclosure-synthetic", cache_dir=root,
+    )
+
+
+# Runs the real script as __main__ with its two output files redirected to a
+# temporary directory, so data/cache/ is never written. The child inherits the
+# autouse SPEC033_SYNTHETIC_ROOT, so no trial reaches the production ledger.
+CLI_BOOTSTRAP = """
+import runpy, sys
+from pathlib import Path
+scripts, out, manifest = sys.argv[1:]
+sys.path.insert(0, scripts)
+import data
+data.cache_path = lambda name: Path(out) / name
+sys.argv = [str(Path(scripts) / "ma_crossover_backtest.py"), "--manifest", manifest]
+runpy.run_path(sys.argv[0], run_name="__main__")
+"""
+
+
+@pytest.mark.parametrize("bound", [True, False], ids=["bound", "all-sourced"])
+def test_cli_process_discloses_bound_pay_dates(tmp_path, bound):
+    manifest = report_bundle(tmp_path / "bundle", bound=bound)
+    out = tmp_path / "out"
+    out.mkdir()
+    scripts = Path(data.__file__).resolve().parent
+    assert os.environ["SPEC033_SYNTHETIC_ROOT"]
+    process = subprocess.run(
+        [sys.executable, "-c", CLI_BOOTSTRAP, str(scripts), str(out), str(manifest)],
+        cwd=scripts.parent, capture_output=True, encoding="utf-8", check=False,
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+    )
+    assert process.returncode == 0, process.stderr
+    disclosed = [line for line in process.stdout.splitlines() if line.startswith("Dividend pay dates:")]
+    assert disclosed == ([DISCLOSURE] if bound else [])
+    assert sorted(path.suffix for path in out.iterdir()) == [".csv", ".png"]
+
+
+def loopback_only(sock, address):
+    # Windows asyncio's socketpair connects over loopback.
+    if not (isinstance(address, tuple) and address[0] in ("127.0.0.1", "::1")):
+        pytest.fail("Spec 041 tests must not access the network")
+    return REAL_CONNECT(sock, address)
+
+
+@pytest.fixture
+def api_client(monkeypatch):
+    from api_fixtures import fixture_client
+
+    monkeypatch.setattr(socket.socket, "connect", loopback_only)
+    case = unittest.TestCase()
+    yield fixture_client(case, None)
+    case.doCleanups()
+
+
+@pytest.mark.parametrize("bound", [True, False], ids=["bound", "all-sourced"])
+def test_tearsheet_api_discloses_bound_pay_dates(api_client, bound):
+    report_bundle(api_client.fixture_cache_dir / "unadjusted", bound=bound)
+    response = api_client.get("/api/backtest/tearsheet?ticker=AAPL")
+    assert response.status_code == 200, response.text
+    assert response.json()["dividend_pay_date_disclosure"] == (DISCLOSURE if bound else None)
+
+
+
+def test_writer_requires_explicit_sourced_basis(tmp_path):
+    prices = session_prices("AAPL", START, END, [100.0] * 4)
+    actions = dividend_actions().drop(columns="Dividend_Pay_Date_Basis")
+    output = tmp_path / "bundle"
+    raises_containing(lambda: publish_bundle(output, "AAPL", prices, actions), BAD_BASIS)
+    assert not output.exists()
+
+
+def test_writer_inferred_basis_mutant_is_killed():
+    def oracle():
+        with tempfile.TemporaryDirectory() as root:
+            test_writer_requires_explicit_sourced_basis(Path(root))
+    guard = '    if pay_date_policy == "sourced" and "Dividend_Pay_Date_Basis" not in source_actions.columns:\n'
+    killed(data,
+           guard + '        raise ValueError("corporate-actions pay-date basis check failed: dividend pay-date basis missing or invalid")',
+           guard + '        source_actions = source_actions.assign(Dividend_Pay_Date_Basis="sourced")', oracle)
+
+
+@pytest.mark.parametrize("version, policy", [(1, None), (2, "sourced"), (2, "unbounded")])
+def test_sentinel_boundary_mutant_is_killed(tmp_path, monkeypatch, version, policy):
+    path = contract_bundle(tmp_path, dividend_actions(), version=version, policy=policy)
+    assert data.UNBOUNDED_PAY_DATE == pd.Timestamp("2262-04-11")
+    def oracle():
+        # Move the boundary into a real validated bundle; no out-of-range calendar.
+        with monkeypatch.context() as patch:
+            patch.setattr(data, "UNBOUNDED_PAY_DATE", pd.Timestamp(END))
+            raises_containing(lambda: data.load_unadjusted_market_data(path),
+                              "sessions reach the unbounded sentinel")
+    killed(data, 'result["Date"].iloc[-1] >= UNBOUNDED_PAY_DATE',
+           'result["Date"].iloc[-1] > UNBOUNDED_PAY_DATE', oracle)
+
+
+@pytest.mark.parametrize("policy", ["sourced", "unbounded"])
+def test_stray_citation_mutant_is_killed(tmp_path, policy):
+    path = contract_bundle(tmp_path, dividend_actions(), policy=policy)
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    manifest["dividend_pay_date_bound_source"] = CITATION
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    killed(data, "if bound_source is not None:", "if False:",
+           lambda: raises_containing(lambda: data.load_unadjusted_market_data(path), SOURCE_FIELD))
+
+
+@pytest.mark.parametrize("policy, citation, fragment", [
+    ("unknown", None, "source dividend_pay_date_policy check failed"),
+    ("bound_sessions:3", None, "source dividend_pay_date_bound_source check failed"),
+    ("sourced", CITATION, "source dividend_pay_date_bound_source check failed"),
+    ("unbounded", CITATION, "source dividend_pay_date_bound_source check failed"),
+])
+def test_snapshot_policy_bypass_mutant_is_killed(policy, citation, fragment):
+    class InvalidSnapshotSource(StubSource):
+        def fetch(self, ticker, start, end):
+            return replace(super().fetch(ticker, start, end),
+                           dividend_pay_date_policy=policy, dividend_pay_date_bound_source=citation)
+    def oracle():
+        with tempfile.TemporaryDirectory() as root:
+            source = InvalidSnapshotSource(session_prices("AAPL", START, END, [100.0] * 4),
+                                           dividend_actions())
+            raises_containing(lambda: data.cache_unadjusted_market_data(
+                source, "AAPL", START, END, created_by_revision="synthetic", cache_dir=Path(root)),
+                fragment)
+            assert not list(Path(root).iterdir())
+    killed(data,
+           '_validated_pay_date_policy(\n'
+           '        snapshot.dividend_pay_date_policy, snapshot.dividend_pay_date_bound_source, "source",\n'
+           '    )',
+           '(snapshot.dividend_pay_date_policy, snapshot.dividend_pay_date_bound_source)', oracle)
+
+
+def test_validator_unknown_policy_mutant_is_killed():
+    actions = dividend_actions()
+    def oracle():
+        raises_containing(lambda: data._validate_corporate_actions(
+            actions, "AAPL", pd.Series(pd.date_range(START, END)), pay_date_policy="unknown"),
+            "corporate-actions pay-date policy check failed: unknown policy")
+    killed(data,
+           'if pay_date_policy not in ("sourced", "unbounded") and not _BOUND_POLICY.fullmatch(str(pay_date_policy)):',
+           'if False:', oracle)
+
+
+def test_loopback_exception_mutant_is_killed(monkeypatch):
+    def oracle():
+        calls = []
+        with monkeypatch.context() as patch:
+            patch.setattr(sys.modules[__name__], "REAL_CONNECT", lambda *args: calls.append(args))
+            for host in ("127.0.0.1", "::1"):
+                loopback_only(None, (host, 80))
+            assert len(calls) == 2
+            try:
+                loopback_only(None, ("203.0.113.1", 80))
+            except pytest.fail.Exception as error:
+                assert "must not access the network" in str(error)
+            else:
+                raise AssertionError("non-loopback connect was allowed")
+            assert len(calls) == 2
+    killed(sys.modules[__name__],
+           'isinstance(address, tuple) and '
+           'address[0] in ("127.0.0.1", "::1")',
+           'isinstance(address, tuple)', oracle)
+
+
+def test_cli_ledger_isolation_mutant_is_killed(monkeypatch):
+    def oracle():
+        started = []
+        def launch(*args, **kwargs):
+            started.append(True)
+            raise RuntimeError("subprocess launch intercepted")
+        with tempfile.TemporaryDirectory() as root, monkeypatch.context() as patch:
+            patch.delenv("SPEC033_SYNTHETIC_ROOT", raising=False)
+            patch.setattr(subprocess, "run", launch)
+            # Exercise the actual CLI test preflight without launching any script.
+            try:
+                test_cli_process_discloses_bound_pay_dates(Path(root), False)
+            except (KeyError, RuntimeError) as error:
+                assert not started, "script started without ledger isolation"
+                assert isinstance(error, KeyError)
+                assert error.args == ("SPEC033_SYNTHETIC_ROOT",)
+            else:
+                raise AssertionError("missing ledger isolation was accepted")
+    killed(sys.modules[__name__],
+           '    assert os.environ'
+           '["SPEC033_SYNTHETIC_ROOT"]',
+           '    pass  # defective removal of the subprocess preflight', oracle)

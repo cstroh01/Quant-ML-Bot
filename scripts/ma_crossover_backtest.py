@@ -150,6 +150,24 @@ def baseline_results(
     return results
 
 
+def pay_date_disclosure(attrs: dict) -> str | None:
+    """State that dividend cash timing is a declared bound (spec 041 FR-007).
+
+    Returns None only when no dividend in the bundle is bound. This is the one
+    renderer for the line; the CLI and the tearsheet API both print its output.
+    """
+    bound = attrs.get("dividends_bound") or 0
+    if not bound:
+        return None
+    policy = attrs["dividend_pay_date_policy"]
+    total = bound + (attrs.get("dividends_sourced") or 0)
+    line = (f"Dividend pay dates: declared bound (policy={policy}), "
+            f"{bound} of {total} dividends; NOT vendor data.")
+    if policy == "unbounded":
+        line += " dividend cash never becomes buying power within this run."
+    return line
+
+
 def _comparison_row(label: str, trades: str, pnl: str, win_rate: str) -> str:
     """Lay out one row of the comparison table."""
     return f"{label:<30}{trades:>7}{pnl:>24}{win_rate:>10}"
@@ -256,6 +274,8 @@ def main(argv=None, *, cache_dir=UNADJUSTED_CACHE_DIR):
     for key in ("source_name", "source_method", "downloaded_at_utc",
                 "capital_gate_eligible", "source_limitations", "source_manifest_sha256"):
         print(f"{key}: {prices.attrs[key]}")
+    if (disclosure := pay_date_disclosure(prices.attrs)) is not None:
+        print(disclosure)
     print(f"SMA windows: {SHORT_WINDOW} and {LONG_WINDOW} trading days")
     print("Position: long one share or flat; prices below are net of costs")
     print("\nTrade log:")

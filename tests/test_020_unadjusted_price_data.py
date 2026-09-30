@@ -44,6 +44,7 @@ def split_actions(*, on_first_session: bool = False) -> pd.DataFrame:
             "Action_Type": ["split"],
             "Value": [4.0],
             "Dividend_Pay_Date": [pd.NaT],
+            "Dividend_Pay_Date_Basis": [None],
         }
     )
 
@@ -230,6 +231,7 @@ class CalendarAndActionBoundaryTests(unittest.TestCase):
                 "Action_Type": ["dividend"],
                 "Value": [0.25],
                 "Dividend_Pay_Date": [pd.NaT],
+                "Dividend_Pay_Date_Basis": ["sourced"],
             }
         )
         with tempfile.TemporaryDirectory() as tmp:

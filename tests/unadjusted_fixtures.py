@@ -73,5 +73,6 @@ def split_series(ticker: str = "AAPL") -> tuple[pd.DataFrame, pd.DataFrame, int]
     actions = pd.DataFrame({
         "Date": [prices["Date"].iloc[split_at]], "Ticker": [ticker],
         "Action_Type": ["split"], "Value": [2.0], "Dividend_Pay_Date": [pd.NaT],
+        "Dividend_Pay_Date_Basis": [None],
     })
     return prices, actions, split_at

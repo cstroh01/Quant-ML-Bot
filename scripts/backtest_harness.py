@@ -47,6 +47,11 @@ def run_backtest(
             or (prices.Dividend.gt(0) & (pay_dates.isna() | (pay_dates < prices.Date))).any()):
         raise ValueError("invalid split/dividend or missing payment session")
     prices["Dividend_Pay_Date"] = pay_dates
+    # Spec 041 FR-003: record where each pay date came from, as handed in. A
+    # frame that does not say is "unspecified", never inferred as "sourced".
+    basis = prices.get("Dividend_Pay_Date_Basis")
+    prices["Dividend_Pay_Date_Basis"] = ("unspecified" if basis is None else
+                                         basis.astype(object).where(basis.notna(), "unspecified"))
     dates = pd.to_datetime(prices["Date"])
     if (dates.isna().any() or dates.duplicated().any()
             or not dates.is_monotonic_increasing or dates.dt.tz is not None
@@ -78,14 +83,15 @@ def run_backtest(
     trades, events = [], []
     rate = slippage_bps / 10000.
 
-    def record(date, phase, event, price, fee=0., action=0.):
+    def record(date, phase, event, price, fee=0., action=0., basis=None):
         if not np.isfinite(cash + quantity * price + receivable):
             raise ValueError("nonfinite account equity")
         events.append(dict(Event_ID=len(events), Date=date, Phase=phase,
                            Event=event, Price=price, Fee=fee, Cash=cash,
                            Buying_Power=cash, Reserved_Cash=0., Quantity=quantity,
                            Receivable=receivable, Action=action,
-                           Equity=cash + quantity * price + receivable))
+                           Equity=cash + quantity * price + receivable,
+                           Pay_Date_Basis=basis))
 
     def sell(date, phase, quote, event):
         nonlocal cash, quantity, entry
@@ -119,7 +125,8 @@ def run_backtest(
             entry = (*entry[:3], entry[3] + income, entry[4])
             receivable += income
             payments.append((row.Dividend_Pay_Date, income))
-            record(row.Date, "open", "dividend", row.Open, action=income)
+            record(row.Date, "open", "dividend", row.Open, action=income,
+                   basis=row.Dividend_Pay_Date_Basis)
             if row.Dividend_Pay_Date == row.Date:
                 cash += income
                 receivable -= income

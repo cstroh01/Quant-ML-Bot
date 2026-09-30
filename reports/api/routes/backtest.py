@@ -21,7 +21,7 @@ from data import UnadjustedDataUnavailable, load_unadjusted_for_ticker
 from trial_runner import research_attempt, research_config
 from ma_crossover_backtest import (
     LIQUIDATE_AT_END, STARTING_CAPITAL, baseline_results, mean_holding_bars,
-    research_close_signal,
+    pay_date_disclosure, research_close_signal,
 )
 from metrics import equity_curve, performance_summary
 from reports.api.routes.data import get_cache_dir
@@ -183,6 +183,7 @@ def get_backtest_tearsheet(
         capital_gate_eligible=prices.attrs["capital_gate_eligible"],
         source_limitations=list(prices.attrs["source_limitations"]),
         source_manifest_sha256=prices.attrs["source_manifest_sha256"],
+        dividend_pay_date_disclosure=pay_date_disclosure(prices.attrs),
         capital_base=float(round(summary["capital_base"], 2)),
         total_return=float(round(summary["total_return"] * 100, 2)),
         total_pnl=float(round(summary["total_pnl"], 2)),

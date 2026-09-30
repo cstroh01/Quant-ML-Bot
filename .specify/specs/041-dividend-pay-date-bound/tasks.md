@@ -52,18 +52,18 @@ phases do not authorize Git operations or parallel agents.
 
 ## Phase 3: Recording and disclosure
 
-- [ ] T013 FR-003: `backtest_harness.run_backtest` records `Pay_Date_Basis` on
+- [x] T013 FR-003: `backtest_harness.run_backtest` records `Pay_Date_Basis` on
   each `dividend` event (`unspecified` when the column is absent). No arithmetic
   change.
-- [ ] T014 FR-007: pay-date line in 036's provenance renderer(s), plus the SC-007
-  CLI and API tests.
+- [x] T014 FR-007: pay-date line in 036's provenance renderer(s), plus the SC-007
+  CLI and API tests. 036 shipped no renderer function; see unit-4.md.
 
 ## Phase 4: Verification
 
 - [ ] T015 Run the focused tests green; run M1–M3 killed with green controls; M4
   raises.
-- [ ] T016 Confirm the pinned 019 tests (FR-006) are byte-identical and green.
-- [ ] T017 Full suite: `python -m pytest tests`. The count equals the T001
+- [x] T016 Confirm the pinned 019 tests (FR-006) are byte-identical and green.
+- [x] T017 Full suite: `python -m pytest tests`. The count equals the T001
   baseline plus the tests in `tests/test_041_pay_date_bound.py`, with 0 failed.
 - [ ] T018 **Camden, online, once:** run SC-001 and save
   `artifacts/aapl-bundle.txt` with the date and commit. If it fails on a
@@ -122,3 +122,29 @@ Source: [unit-3.md](artifacts/unit-3.md). Production edits in `scripts/data.py`
 - Open flags for T015 and Camden are in unit-3.md. They cover the sentinel
   conflict, the M2 oracle gap, new gates still lacking red proof, and the manual
   `tests/mutation/run_mutation_check.py` target string, which no longer matches.
+
+## Unit 4 evidence (2026-09-29)
+
+Source: [unit-4.md](artifacts/unit-4.md). T013 in `scripts/backtest_harness.py`;
+T014 in `scripts/ma_crossover_backtest.py`, `reports/api/routes/backtest.py` and
+`reports/api/schemas.py`. `scripts/data.py` unchanged. Windows, repository venv.
+
+- New file cases: 71 + 12 = 83 (4 harness basis, 4 renderer, 2 CLI subprocess,
+  2 API). Focused 041 + 020 run: **98 passed, 0 failed**.
+- Full suite `python -m pytest tests`: **986 passed, 0 failed, exit 0**
+  (986 = 903 + 83). The Unit 3 failure (`Pay_Date_Basis` KeyError) is resolved.
+- Ledger tripwire matched before and after every run; pinned 019 files unchanged;
+  `data/cache/` not written by the new CLI tests.
+
+## Unit 5a evidence (2026-09-29)
+
+Source: [unit-5a.md](artifacts/unit-5a.md).
+
+- [x] Amend FR-005 with Camden's dated sentinel-refusal decision.
+- [x] Reject sourced snapshots missing a basis column; update old fixtures.
+- [x] Prove all six requested guards and strict writer red with planted defects,
+  using the existing mutation helper. 14 new cases; 13 mutation cases.
+- Focused 041 + 020: **112 passed, 0 failed**. Full suite: **1000 passed,
+  0 failed, exit 0** (986 + 14). Ledger and pinned files unchanged every run.
+- T015's M1-M3 work in `tests/mutation/` remains Unit 5b; rerun T017 afterward.
+  T018's real AAPL check and Rule 14 remain Camden's manual steps.

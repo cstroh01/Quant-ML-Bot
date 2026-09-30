@@ -940,8 +940,8 @@ def _merge_actions_for_execution(
     marked = pay_date_policy is not None
     if marked:
         result["Dividend_Pay_Date_Basis"] = None
-        if result["Date"].iloc[-1] >= UNBOUNDED_PAY_DATE:
-            raise ValueError("pay-date resolution check failed: sessions reach the unbounded sentinel")
+    if result["Date"].iloc[-1] >= UNBOUNDED_PAY_DATE:
+        raise ValueError("pay-date resolution check failed: sessions reach the unbounded sentinel")
     if actions.empty:
         return result
     lag = None
@@ -1086,13 +1086,8 @@ def cache_unadjusted_market_data(
         snapshot.dividend_pay_date_policy, snapshot.dividend_pay_date_bound_source, "source",
     )
     source_actions = snapshot.corporate_actions
-    if (pay_date_policy == "sourced" and "Dividend_Pay_Date_Basis" not in source_actions.columns
-            and "Action_Type" in source_actions.columns):
-        # An adapter that declares nothing gets today's strict contract: each
-        # dividend date is its own, so a null date is still refused below.
-        source_actions = source_actions.assign(Dividend_Pay_Date_Basis=pd.Series(
-            "sourced", index=source_actions.index, dtype="object",
-        ).where(source_actions["Action_Type"].eq("dividend")))
+    if pay_date_policy == "sourced" and "Dividend_Pay_Date_Basis" not in source_actions.columns:
+        raise ValueError("corporate-actions pay-date basis check failed: dividend pay-date basis missing or invalid")
     prices = _validate_unadjusted_prices(snapshot.prices, ticker)
     actions = _validate_corporate_actions(
         source_actions, ticker, prices["Date"], pay_date_policy=pay_date_policy,
