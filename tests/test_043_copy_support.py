@@ -87,14 +87,21 @@ def test_copy_exclusions_and_destination_guard(tmp_path, monkeypatch):
     assert files == {"docs/trials/keep", "scripts/keep", "tests/keep"}
 
 
-def e5_request(status=200, records=0, sidecars=0, n=(88, 88), body_sha="a" * 64, body=None):
+RECORDED = "11111111-1111-4111-8111-111111111111"
+DECOY = "22222222-2222-4222-8222-222222222222"
+
+
+def e5_request(status=200, records=0, sidecars=0, n=(88, 88), body_sha="a" * 64, body=None,
+               names=(RECORDED,), decoys=()):
     return dict(status=status, records=records, sidecars=sidecars, n_before=n[0],
-                n_after=n[1], body_sha256=body_sha, body=body)
+                n_after=n[1], body_sha256=body_sha, body=body,
+                names_recorded=list(names), names_decoys=list(decoys))
 
 
-def e5_result(*requests, records=44, sidecars=22):
+def e5_result(*requests, records=44, sidecars=22, recorded=(RECORDED,)):
     return dict(returncode=0, stderr="", records=records, sidecars=sidecars,
-                changed=["trials.jsonl"], outcome={"requests": list(requests)})
+                changed=["trials.jsonl"], outcome={"requests": list(requests),
+                                                   "recorded_candidates": list(recorded)})
 
 
 def test_e5_served_control_passes():
@@ -115,6 +122,14 @@ REFUSAL = {"detail": "not recorded; run python scripts/ma_crossover_backtest.py 
     (e5_result(e5_request(n=(88, 89)), e5_request()), "n_before"),
     # Two identical GETs disagree: the response is not the one recorded trial.
     (e5_result(e5_request(), e5_request(body_sha="b" * 64)), "body_sha256"),
+    # A fixed valid 200 that names no trial: lookup ignored (Codex, PR #8).
+    (e5_result(e5_request(names=()), e5_request(names=())), "not the recorded trial"),
+    # Serves the first pre-existing sidecar instead of the recorded one.
+    (e5_result(e5_request(names=(), decoys=(DECOY,)), e5_request(names=(), decoys=(DECOY,))),
+     "not the recorded trial"),
+    # Names the recorded trial but also an unrelated one.
+    (e5_result(e5_request(decoys=(DECOY,)), e5_request(decoys=(DECOY,))),
+     "unrelated trial"),
 ])
 def test_e5_served_rejects_each_planted_defect(planted, message):
     with pytest.raises(AssertionError, match=message):

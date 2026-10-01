@@ -125,15 +125,23 @@ def assert_e5_served(result: dict) -> None:
 
     The child replaces every compute/record seam after recording, so a 200 here
     cannot come from a fresh evaluation, and an unconditional 409 cannot pass.
+    Each body must name the candidate trial the recording appended (Rule 11
+    provenance) and no pre-existing candidate, so a fixed or wrong-sidecar 200
+    fails too (Codex review on PR #8).
     """
     assert result["returncode"] == 0, result["stderr"]
     # Only the deliberate E1 recording may change bytes: 1 candidate + 21 baselines.
     counts = (result["records"], result["sidecars"])
     assert counts == (44, 22), f"bytes beyond the E1 recording: {counts} {result['changed']}"
+    recorded = result["outcome"]["recorded_candidates"]
+    assert len(recorded) == 1, f"E1 recording must append one candidate: {recorded}"
     requests = result["outcome"]["requests"]
     assert len(requests) == 2, requests
     for request in requests:
         assert request["status"] == 200, f"recorded config not served: {request}"
+        # Rule 11: the served tearsheet names its source trial, and it is this one.
+        assert request["names_recorded"] == recorded, f"not the recorded trial: {request}"
+        assert not request["names_decoys"], f"served an unrelated trial: {request}"
         assert request["records"] == request["sidecars"] == 0, request
         assert request["n_before"] == request["n_after"], request
     assert requests[0]["body_sha256"] == requests[1]["body_sha256"], requests

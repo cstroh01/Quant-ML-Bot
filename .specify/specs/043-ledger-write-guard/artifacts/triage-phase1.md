@@ -50,7 +50,10 @@ accepted fixes that touch **Phase 1 test/support files**. Nothing in `scripts/`,
      cannot come from a fresh evaluation, and an unconditional 409 fails.
      `assert_e5_served` requires: exit 0; total bytes = exactly the E1
      recording (44 records, 22 sidecars); both GETs 200; zero byte deltas per
-     GET; `n_post_ledger` unchanged per GET; identical response bodies (SHA-256).
+     GET; `n_post_ledger` unchanged per GET; identical response bodies (SHA-256);
+     and each body names the one candidate `trial_id` the E1 recording appended
+     and no pre-existing candidate id (Rule 11 provenance). A fixed valid 200 or
+     a wrong-sidecar 200 therefore fails (Codex review on PR #8).
   2. The 409 branch now goes through `assert_e5_refused`: zero byte deltas,
      N unchanged per request, and the body names the full recording command —
      `ma_crossover_backtest` **and** `--record-trial` (T027: "the recording
