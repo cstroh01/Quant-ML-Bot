@@ -184,7 +184,7 @@ explanation, and the explanation is the deliverable.
 ## Rule 10 — Version control is human-owned
 
 **Agents do not run `git`.** No `add`, `commit`, `branch`, `merge`, `rebase`,
-`push`, or `checkout` — with one narrow, permanent exception below. Camden
+`push`, or `checkout` — with two narrow, permanent exceptions below. Camden
 performs every other version-control operation himself in GitKraken.
 
 **Exception — the GitHub Actions lane.** An agent invoked from a GitHub issue
@@ -192,13 +192,22 @@ or PR comment, running in the repository's GitHub Actions workflow, may run
 `git add`, `git commit`, and `git push` — and only those three — to the
 branch it was invoked on. `merge`, `rebase`, `reset`, `checkout` of another
 branch, force-push, tag, any push to `main`, and any history rewrite remain
-forbidden in every lane, including this one. An agent working outside the
-Actions lane — a local session, a worktree, a terminal — runs no `git` at
-all.
+forbidden in every lane, including this one. An agent working outside these
+two lanes — a local session, a worktree, a terminal — runs no `git` at all.
+
+**Exception — the cloud scheduled-session lane.** An agent running as a
+Claude scheduled task in Anthropic's cloud (a fresh session started by a
+schedule Camden created, not a session on his machine) may run `git clone`,
+`git fetch`, `git checkout -b` to create **one** new branch named `claude/*`
+per session, and `git add`, `git commit`, and `git push` to that branch only.
+It may open a draft PR from that branch. Everything forbidden in the Actions
+lane stays forbidden here, plus: no push to any branch it did not create in
+the same session, and no edit to this file, `CLAUDE.md`, `docs/SCOPE-V1.md`,
+`docs/autonomy/`, `.github/`, `docs/trials/`, or anything in `exec/`.
 
 This is not a safety rule. It is a comprehension rule — the same one as
-Rule 9, enforced at the point where changes become permanent. The exception
-does not defeat it: a push in this lane lands on a feature branch inside an
+Rule 9, enforced at the point where changes become permanent. Neither
+exception defeats it: a push in this lane lands on a feature branch inside an
 open PR, never `main`, and Rule 9 still gates the merge on Camden being able
 to explain the change. What it grants is the ability to put a commit where
 the review already is — not the ability to make anything permanent.
@@ -208,6 +217,11 @@ documented carve-out in `CLAUDE.md` ("Rule 10 and the GitHub Actions lane"),
 pending a dedicated amendment here per this file's own Amendment clause. That
 CLAUDE.md section now records history rather than an open question — this
 rule's text is the current authority._
+
+_Amended 2026-10-01, Camden's confirmation: added the cloud scheduled-session
+lane so unattended cloud runs can put commits where review already is. Same
+argument as the Actions lane — the push lands on a `claude/*` branch inside a
+draft PR, never `main`, and Rule 9 still gates every merge._
 
 ## Rule 11 — No unsourced figures in any UI, report, or document
 
