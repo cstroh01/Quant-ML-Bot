@@ -21,6 +21,7 @@ def load(path, monkeypatch, name):
 
 @pytest.mark.parametrize("case", ["override", "invalid_override", "file_marker",
                                   "neither", "wrong_nearer", "foreign_cwd"])
+@pytest.mark.xfail(strict=True, reason="043 Phase 1 red; guard lands in T020+")
 def test_project_root_contract(case, tmp_path, monkeypatch):
     source = REPO / "scripts/_project.py"
     assert source.exists(), f"T021 missing resolver: {source}"
@@ -83,6 +84,7 @@ def require_root(expected, actual):
     assert actual == expected, f"wrong ROOT: {actual}; expected: {expected}"
 
 
+@pytest.mark.xfail(strict=True, reason="043 Phase 1 red; guard lands in T020+")
 def test_registry_root_survives_extra_depth(tmp_path, monkeypatch):
     require_root(*relocated_registry(tmp_path, monkeypatch))
 

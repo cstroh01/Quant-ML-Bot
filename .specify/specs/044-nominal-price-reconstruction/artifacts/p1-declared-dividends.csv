@@ -1,1 +1,5 @@
 ticker,ex_date,declared_amount,share_basis,declared_date,form,accession,source_url
+AAPL,2020-08-07,0.82,not_applicable,2020-07-30,8-K,0000320193-20-000060,https://www.sec.gov/Archives/edgar/data/320193/000032019320000060/a8-kexhibit991q3202062.htm
+NVDA,2021-06-09,0.16,not_applicable,2021-05-26,8-K,0001045810-21-000063,https://www.sec.gov/Archives/edgar/data/1045810/000104581021000063/q1fy22pr.htm
+NVDA,2024-03-05,0.04,not_applicable,2024-02-21,8-K,0001045810-24-000028,https://www.sec.gov/Archives/edgar/data/1045810/000104581024000028/q4fy24pr.htm
+NVDA,2024-06-11,0.01,not_applicable,2024-05-22,8-K,0001045810-24-000113,https://www.sec.gov/Archives/edgar/data/1045810/000104581024000113/q1fy25pr.htm

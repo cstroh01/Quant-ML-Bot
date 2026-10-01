@@ -5,13 +5,16 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     timeout-minutes: 20
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       # Install the single test runner and the API test client's dependencies
@@ -28,8 +31,8 @@ jobs:
       run:
         working-directory: reports/web
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -37,3 +40,36 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+
+  actionlint:
+    timeout-minutes: 5
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install actionlint 1.7.12
+        run: bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+      # Rule 12: the gate must be seen failing. The planted defect is a typo'd
+      # `needs:` target, a mistake that otherwise surfaces only when the
+      # workflow runs. The real tree, linted next, is the green control.
+      - name: Red proof
+        run: |
+          set -euo pipefail
+          planted="$RUNNER_TEMP/planted.yml"
+          printf 'on: push\njobs:\n  build:\n    runs-on: ubuntu-24.04\n    steps:\n      - run: "true"\n  report:\n    needs: biuld\n    runs-on: ubuntu-24.04\n    steps:\n      - run: "true"\n' > "$planted"
+          if ./actionlint -no-color "$planted" > "$RUNNER_TEMP/red.txt" 2>&1; then
+            echo "::error::actionlint passed a workflow whose needs: names a missing job"
+            exit 1
+          fi
+          cat "$RUNNER_TEMP/red.txt"
+          grep -q '"biuld"' "$RUNNER_TEMP/red.txt" || { echo "::error::actionlint failed, but not on the planted needs: typo"; exit 1; }
+      - name: Lint workflows
+        run: ./actionlint -color
+
+  loop-guard:
+    # Spec 045 FR-015: plants each defect the dev loop's publish guard must
+    # refuse, plus one green control per mode.
+    timeout-minutes: 5
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 .github/scripts/loop_guard.py --self-test

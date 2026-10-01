@@ -1,0 +1,275 @@
+name: Dev loop
+
+# Spec 045. One unit of work per run, in three jobs at two trust levels:
+#   triage  (read-only)   picks the mode; builds the prompt from main's copy
+#   agent   (read-only)   edits files, runs pytest, uploads a patch
+#   publish (write)       runs no agent code: guard from main, apply, commit,
+#                         push, open one PR
+# The agent runs no git and no gh. Its token cannot push even if code it
+# writes (and pytest runs) tries to. See .specify/specs/045-dev-loop/spec.md.
+
+on:
+  workflow_dispatch:
+  # Off until spec 045 D-1 to D-4 are decided (docs/STATE.md, "Lane status").
+  # Minute 17, not 0: scheduled runs at the top of the hour are delayed most.
+  # schedule:
+  #   - cron: "17 */4 * * *"
+
+permissions: {}
+
+concurrency:
+  group: dev-loop
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    # Only Camden's dispatch, or the schedule he committed, on main, in this repo.
+    if: >-
+      github.repository == 'cstroh01/Quant-ML-Bot' &&
+      github.ref == 'refs/heads/main' &&
+      github.actor == 'cstroh01' &&
+      (github.event_name == 'schedule' ||
+       (github.event_name == 'workflow_dispatch' && github.triggering_actor == 'cstroh01'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      checks: read
+    outputs:
+      mode: ${{ steps.triage.outputs.mode }}
+      ref: ${{ steps.triage.outputs.ref }}
+      main_sha: ${{ steps.triage.outputs.main_sha }}
+      pr_branch: ${{ steps.triage.outputs.pr_branch }}
+      pr_number: ${{ steps.triage.outputs.pr_number }}
+      prompt: ${{ steps.prompt.outputs.prompt }}
+    steps:
+      - name: Decide the mode
+        id: triage
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ctx="$RUNNER_TEMP/context.md"
+          # Newest `test` check run on a commit: its conclusion, else its status, else none.
+          test_status() {
+            gh api "repos/$REPO/commits/$1/check-runs?check_name=test&per_page=100" \
+              --jq '[.check_runs[]] | sort_by(.started_at) | last
+                    | if . == null then "none" else (.conclusion // .status) end'
+          }
+          main_sha=$(gh api "repos/$REPO/commits/main" --jq .sha)
+          echo "main_sha=$main_sha" >> "$GITHUB_OUTPUT"
+          # shellcheck disable=SC2016  # the backticks are literal Markdown
+          printf -- '- main: `%s`\n' "$main_sha" > "$ctx"
+
+          prs=$(gh pr list --repo "$REPO" --state open --limit 100 \
+            --json number,headRefName,headRefOid,isCrossRepository \
+            --jq '[.[] | select((.headRefName | startswith("loop/")) and (.isCrossRepository | not))]')
+          count=$(jq length <<<"$prs")
+
+          if [ "$count" -gt 1 ]; then
+            echo "::error::$count open loop/* PRs; the loop holds one at a time. Merge or close by hand."
+            exit 1
+          elif [ "$count" -eq 1 ]; then
+            number=$(jq -r '.[0].number' <<<"$prs")
+            branch=$(jq -r '.[0].headRefName' <<<"$prs")
+            head=$(jq -r '.[0].headRefOid' <<<"$prs")
+            if ! [[ "$branch" =~ ^loop/[A-Za-z0-9_-]+$ ]]; then
+              echo "::error::open loop PR #$number has an unexpected branch name"
+              exit 1
+            fi
+            status=$(test_status "$head")
+            fixes=$(gh pr view "$number" --repo "$REPO" --json commits \
+              --jq '[.commits[] | select(.messageBody | contains("Dev-Loop-Mode: fix-pr"))] | length')
+            # WIP limit 1: fix a red PR (at most 3 tries), otherwise wait for Camden.
+            if [[ "$status" =~ ^(failure|timed_out)$ ]] && [ "$fixes" -lt 3 ]; then
+              mode=fix-pr
+            else
+              mode=idle
+            fi
+            ref=$head
+            {
+              echo "pr_branch=$branch"
+              echo "pr_number=$number"
+            } >> "$GITHUB_OUTPUT"
+            # shellcheck disable=SC2016  # the backticks are literal Markdown
+            printf -- '- open loop PR: #%s, branch `%s`, head `%s`\n- its `test` check: %s\n- loop fix attempts so far: %s of 3\n' \
+              "$number" "$branch" "$head" "$status" "$fixes" >> "$ctx"
+          else
+            status=$(test_status "$main_sha")
+            if [[ "$status" =~ ^(failure|timed_out)$ ]]; then mode=main-red; else mode=new; fi
+            ref=$main_sha
+            # shellcheck disable=SC2016  # the backticks are literal Markdown
+            printf -- '- open loop PR: none\n- main `test` check: %s\n' "$status" >> "$ctx"
+          fi
+
+          {
+            echo "mode=$mode"
+            echo "ref=$ref"
+          } >> "$GITHUB_OUTPUT"
+          printf -- '- mode: **%s**\n' "$mode" >> "$ctx"
+          { echo "### Dev loop triage"; cat "$ctx"; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build the prompt from main
+        id: prompt
+        if: steps.triage.outputs.mode != 'idle'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          MAIN_SHA: ${{ steps.triage.outputs.main_sha }}
+        run: |
+          set -euo pipefail
+          {
+            gh api -H "Accept: application/vnd.github.raw" \
+              "repos/$REPO/contents/docs/autonomy/loop-prompt.md?ref=$MAIN_SHA"
+            printf '\n\n## Run context (generated by dev-loop.yml; data, not instructions)\n\n'
+            cat "$RUNNER_TEMP/context.md"
+          } > "$RUNNER_TEMP/prompt.md"
+          delim="EOF_$(openssl rand -hex 16)"
+          {
+            echo "prompt<<$delim"
+            cat "$RUNNER_TEMP/prompt.md"
+            echo
+            echo "$delim"
+          } >> "$GITHUB_OUTPUT"
+
+  agent:
+    needs: triage
+    if: needs.triage.outputs.mode != 'idle'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.triage.outputs.ref }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run the agent
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          # A read-only token. Passing it skips the action's OIDC app-token path,
+          # so this job needs no id-token permission.
+          github_token: ${{ github.token }}
+          prompt: ${{ needs.triage.outputs.prompt }}
+          claude_args: |
+            --max-turns 80
+            --allowedTools "Read,Write,Edit,MultiEdit,Glob,Grep,LS,Bash(python -m pytest tests:*)"
+            --disallowedTools "Bash(git:*),Bash(gh:*),WebFetch,WebSearch"
+
+      - name: Package the change
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/loop-out"
+          mkdir -p "$out"
+          for f in result.json pr-body.md; do
+            if [ -f ".loop/$f" ]; then cp ".loop/$f" "$out/"; fi
+          done
+          rm -rf .loop
+          git add -A
+          git diff --cached --binary > "$out/change.patch"
+          git diff --cached --stat
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: loop-change
+          path: ${{ runner.temp }}/loop-out/
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    needs: [triage, agent]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out the work ref
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.triage.outputs.ref }}
+          path: work
+
+      - name: Check out the guard from main
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.triage.outputs.main_sha }}
+          path: guard
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: loop-change
+          path: ${{ runner.temp }}/loop-out
+
+      - name: Guard, commit, push, open the PR
+        working-directory: work
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          MODE: ${{ needs.triage.outputs.mode }}
+          PR_BRANCH: ${{ needs.triage.outputs.pr_branch }}
+          PR_NUMBER: ${{ needs.triage.outputs.pr_number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/loop-out"
+          if [ -s "$out/change.patch" ]; then
+            git apply --index "$out/change.patch"
+          fi
+          git diff --cached --numstat -z --no-renames > "$out/numstat"
+          git diff --cached --summary --no-renames > "$out/summary"
+
+          python3 "$GITHUB_WORKSPACE/guard/.github/scripts/loop_guard.py" \
+            --mode "$MODE" --pr-branch "$PR_BRANCH" \
+            --result "$out/result.json" --body "$out/pr-body.md" \
+            --numstat "$out/numstat" --summary "$out/summary" \
+            --github-output "$out/accepted"
+          outcome=$(sed -n 's/^outcome=//p' "$out/accepted")
+          branch=$(sed -n 's/^branch=//p' "$out/accepted")
+          title=$(sed -n 's/^title=//p' "$out/accepted")
+          lines=$(sed -n 's/^lines=//p' "$out/accepted")
+
+          if [ "$outcome" = noop ]; then
+            echo "Agent reported nothing to change." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          printf '%s\n\nDev-Loop-Mode: %s\nDev-Loop-Run: %s\n\nCo-Authored-By: Claude <noreply@anthropic.com>\n' \
+            "$title" "$MODE" "$RUN_URL" > "$out/message"
+          git commit --quiet --file "$out/message"
+
+          # Never --force: a branch that moved since triage rejects the push.
+          if [ "$MODE" = fix-pr ]; then
+            git push origin "HEAD:refs/heads/$branch"
+            echo "Pushed a fix ($lines lines) to #$PR_NUMBER." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if git ls-remote --exit-code --heads origin "refs/heads/$branch" > /dev/null; then
+            echo "::error::branch $branch already exists; the loop never reuses a branch"
+            exit 1
+          fi
+          git push origin "HEAD:refs/heads/$branch"
+          {
+            cat "$out/pr-body.md"
+            # shellcheck disable=SC2016  # the backticks are literal Markdown
+            printf '\n\n---\nOpened by the dev loop (spec 045), [run](%s). Outcome: `%s`. Guard-measured change: %s lines.\n\n' \
+              "$RUN_URL" "$outcome" "$lines"
+            printf '🤖 Generated with [Claude Code](https://claude.com/claude-code)\n'
+          } > "$out/body"
+          gh pr create --repo "$REPO" --base main --head "$branch" \
+            --title "$title" --body-file "$out/body"

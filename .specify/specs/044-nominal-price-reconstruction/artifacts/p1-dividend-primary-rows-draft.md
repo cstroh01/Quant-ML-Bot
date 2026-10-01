@@ -18,3 +18,10 @@ Notes
   coverage is therefore two informative cases, which the spec's coverage rule must state explicitly.
 - Not established: each row's provider value except AAPL; whether the provider's ex-date row matches the declared
   per-share amount on a same-day split/dividend (none of these rows has that case).
+
+## Update 2026-09-30 (CSV filled)
+- p1-declared-dividends.csv now holds 4 rows. Added NVDA record 2024-03-06, $0.04, payable 2024-03-27 (8-K Ex. 99.1, accession 0001045810-24-000028): it is the last dividend before the 2024-06-10 split, which the probe's registered coverage rule requires.
+- ex_date values are DERIVED, not read from filings: T+2 settlement (before 2024-05-28) puts ex-date one business day before record date (AAPL 2020-08-07, NVDA 2021-06-09, NVDA 2024-03-05); T+1 puts ex-date = record date (NVDA 2024-06-11). AAPL 2020-08-07 matches Camden's diagnostic. If the provider has no dividend on a derived date, the probe STOPs (fail-closed); it never passes on a wrong date.
+- All share_basis = not_applicable: no row falls on a split ex-date, so same-day convention stays UNRESOLVED (FR-012 refuses), as the spec anticipated.
+- p1-filed-ranges.csv remains header-only: Q-P1 needs 10-K/10-Q filed price ranges, and the post-2018 availability of those ranges is unverified.
+- Camden must open one URL per ticker (SC-004) before the probe run.

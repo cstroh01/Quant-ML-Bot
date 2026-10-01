@@ -50,3 +50,5 @@ See `scope-audit.json` and `review-units.md`. No marker/resolver or Phase 2 impl
 - `tests/test_043_project_root.py::test_project_root_contract[wrong_nearer]`
 - `tests/test_043_project_root.py::test_project_root_contract[foreign_cwd]`
 - `tests/test_043_project_root.py::test_registry_root_survives_extra_depth`
+
+T020+ must remove each marker as its test flips.

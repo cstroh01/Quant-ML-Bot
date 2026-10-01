@@ -7,6 +7,10 @@ RUNNERS = {
     "E3": "multi_ticker_comparison", "E4": "feature_set_comparison",
 }
 
+pytestmark = pytest.mark.xfail(
+    strict=True, reason="043 Phase 1 red; guard lands in T020+"
+)
+
 
 @pytest.mark.parametrize("entry", ["E1", "E2", "E3", "E4", "E5"])
 def test_default_entry_changes_no_ledger_bytes(entry):
