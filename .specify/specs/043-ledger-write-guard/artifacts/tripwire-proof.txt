@@ -1,0 +1,9 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\tripwire-proof-repo
+plugins: anyio-4.15.1
+collected 8 items
+
+tests\test_043_copy_support.py ........                                  [100%]
+
+============================== 8 passed in 0.14s ==============================

@@ -1,0 +1,14 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\incident-red-repo
+plugins: anyio-4.15.1
+collected 1 item
+
+tests\test_043_incident.py F                                             [100%]
+
+================================== FAILURES ===================================
+E   AssertionError: incident: changed 6 records, 3 sidecars: ['returns', 'returns/49d63259-2fd8-4e40-9978-543230ee03dc.jsonl', 'returns/65cecd15-d8b4-4cc2-a2b6-6d2a1980df34.jsonl', 'returns/e98890d7-31cf-4d9d-b567-f02cdd4dbe58.jsonl', 'trials.head.json', 'trials.jsonl']
+C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\incident-red-repo\tests\ledger_copy_support.py:107: AssertionError: incident: changed 6 records, 3 sidecars: ['returns', 'returns/49d63259-2fd8-4e40-9978-543230ee03dc.jsonl', 'returns/65cecd15-d8b4-4cc2-a2b6-6d2a1980df34.jsonl', 'returns/e98890d7-31cf-4d9d-b567-f02cdd4dbe58.jsonl', 'trials.head.json', 'trials.jsonl']
+=========================== short test summary info ===========================
+FAILED tests/test_043_incident.py::test_direct_baseline_call_changes_no_ledger_bytes
+============================== 1 failed in 3.06s ==============================

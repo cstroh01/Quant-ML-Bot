@@ -1,0 +1,4 @@
+# The repository root ignores *.csv. These two are primary-source inputs, not
+# market data, so they are committed (spec 044 section 5).
+!p1-filed-ranges.csv
+!p1-declared-dividends.csv

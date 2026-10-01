@@ -20,7 +20,7 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 - [x] T001 **Camden decides D-1 to D-5** (spec §4). Decided 2026-09-28 and
   recorded in spec §4: D-1 B, D-2 A1, D-3 (a) 1 and (b) iii, D-4 a + c in one
   shared helper, D-5 a.
-- [ ] T002 **Measure the real ledger, read-only** (hashing and `verify()` only;
+- [x] T002 **Measure the real ledger, read-only** (hashing and `verify()` only;
   nothing that can call `start` or `finish`):
   - the line count and SHA-256 of `trials.jsonl`;
   - the content and SHA-256 of `trials.head.json`;
@@ -30,16 +30,16 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 
   Save the results to `artifacts/ledger-pre.json`. Stop if they differ from
   spec hard precondition 2.
-- [ ] T003 Baseline: run `python -m pytest tests` and record the exit code and
+- [x] T003 Baseline: run `python -m pytest tests` and record the exit code and
   the passed, failed and error counts. It must be 0 failed and 0 errors.
   Re-check the T002 hashes afterwards.
-- [ ] T004 **Re-inventory** with the spec §2 search patterns. Update §2's
+- [x] T004 **Re-inventory** with the spec §2 search patterns. Update §2's
   tables if anything moved or appeared. Treat any new writer or entry point as
   in scope.
 
 ## Phase 1: Harness and gates, red-proven on today's code
 
-- [ ] T010 `tests/ledger_copy_support.py` (helper name, not a test module name):
+- [x] T010 `tests/ledger_copy_support.py` (helper name, not a test module name):
   - `make_copy(dst)` copies the repository except `data/cache/`, `venv/`,
     `node_modules/`, `.git/` and `__pycache__`, and asserts that `dst` is not
     inside the real repository.
@@ -49,7 +49,7 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
     every D-1 enablement.
   - `tripwire()` is a context manager that hashes the real `docs/trials/`
     before and after and raises, naming each changed path.
-- [ ] T011 `tests/ledger_guard_child.py` (helper name) plus
+- [x] T011 `tests/ledger_guard_child.py` (helper name) plus
   `tests/test_043_entry_points.py`:
   - The child patches data access to labelled synthetic frames:
     `download_market_data` for E2–E4, and a synthetic unadjusted bundle for
@@ -60,15 +60,15 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
     point's copy manifest changes. Record which files changed for each entry
     point, and the per-request E5 counts (expected 44 records and up to 22
     sidecars).
-- [ ] T012 `tests/test_043_incident.py`: AC-2, a direct
+- [x] T012 `tests/test_043_incident.py`: AC-2, a direct
   `multi_ticker_comparison._baseline_rows` call in a child in the copy.
   **Observe it red**: 6 records and 3 sidecars for `seed_count=2`.
-- [ ] T013 `tests/test_043_enabled_control.py`: AC-3, the enabled path in a
+- [x] T013 `tests/test_043_enabled_control.py`: AC-3, the enabled path in a
   copy. It is green today only for the D-1 A shape, and red until T025 for B
   and C. Record which.
-- [ ] T014 `tests/test_043_project_root.py`: AC-5's cases plus the planted
+- [x] T014 `tests/test_043_project_root.py`: AC-5's cases plus the planted
   depth-based `ROOT`. It stays red until T020–T022.
-- [ ] T015 Tripwire proof: `tripwire()`, fed a stand-in "real" directory with
+- [x] T015 Tripwire proof: `tripwire()`, fed a stand-in "real" directory with
   one planted appended record, raises and names the path (the AC-4 and AC-8
   red half).
 

@@ -68,7 +68,8 @@ phases do not authorize Git operations or parallel agents.
 - [ ] T018 **Camden, online, once:** run SC-001 and save
   `artifacts/aapl-bundle.txt` with the date and commit. If it fails on a
   non-pay-date check, record the finding. Do not relax.
-- [ ] T019 Hand off, stating that Rule 14 is still owed and Q-1 is confirmed: `unbounded`.
+  run; FAILED; finding recorded.
+- [x] T019 Hand off, stating that Rule 14 is still owed and Q-1 is confirmed: `unbounded`.
 
 ## Dependencies & Execution Order
 

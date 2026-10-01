@@ -1,0 +1,23 @@
+{
+  "before": {
+    ".": "directory",
+    "backfill": "directory",
+    "backfill/a47232be-3d05-4c36-b984-f11b29b12a25.json": "2d8ef10d1920d2380750b5022a2b77f536fe436560a4ea36765e65e79fe45155",
+    "backfill/a6abdb76-5ec9-43db-b563-c5f66b67637f.json": "d02f1674ca8109b0c3253f7023cdafea29be3a8d96e62e65a444c935ba2a1467",
+    "backfill/manifest.json": "98c27aaab970596256d8674d90939be2eaacfb6f3140bc7a3b199dd3438c54d7",
+    "trials.head.json": "f83b1b9be5a608d444d61496899d25139eb56184fd924acd030e61347d22d764",
+    "trials.jsonl": "1bb5dbfe90c9df370c65910650ade15dd9d0e0366d011e09baf303975275f30f",
+    "returns": "absent"
+  },
+  "after": {
+    ".": "directory",
+    "backfill": "directory",
+    "backfill/a47232be-3d05-4c36-b984-f11b29b12a25.json": "2d8ef10d1920d2380750b5022a2b77f536fe436560a4ea36765e65e79fe45155",
+    "backfill/a6abdb76-5ec9-43db-b563-c5f66b67637f.json": "d02f1674ca8109b0c3253f7023cdafea29be3a8d96e62e65a444c935ba2a1467",
+    "backfill/manifest.json": "98c27aaab970596256d8674d90939be2eaacfb6f3140bc7a3b199dd3438c54d7",
+    "trials.head.json": "f83b1b9be5a608d444d61496899d25139eb56184fd924acd030e61347d22d764",
+    "trials.jsonl": "1bb5dbfe90c9df370c65910650ade15dd9d0e0366d011e09baf303975275f30f",
+    "returns": "absent"
+  },
+  "unchanged": true
+}

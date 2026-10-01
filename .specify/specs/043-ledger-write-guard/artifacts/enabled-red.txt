@@ -1,0 +1,36 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\enabled-red-repo
+plugins: anyio-4.15.1
+collected 1 item
+
+tests\test_043_enabled_control.py F                                      [100%]
+
+================================== FAILURES ===================================
+E   AssertionError: usage: E1 [-h] [--manifest MANIFEST]
+      E1: error: unrecognized arguments: --record-trial
+      Traceback (most recent call last):
+        File "C:\Users\Owner\AppData\Local\Temp\qmb043-f2rgb3jf\repo\tests\ledger_guard_child.py", line 139, in main
+          dispatch(sys.argv[1], "--record-trial" in sys.argv[2:], outcome)
+          ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "C:\Users\Owner\AppData\Local\Temp\qmb043-f2rgb3jf\repo\tests\ledger_guard_child.py", line 82, in dispatch
+          module.main(cache_dir=cache / "unadjusted")
+          ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "C:\Users\Owner\AppData\Local\Temp\qmb043-f2rgb3jf\repo\scripts\ma_crossover_backtest.py", line 256, in main
+          args = parser.parse_args(argv)
+        File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\argparse.py", line 1930, in parse_args
+          self.error(msg)
+          ~~~~~~~~~~^^^^^
+        File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\argparse.py", line 2686, in error
+          self.exit(2, _('%(prog)s: error: %(message)s\n') % args)
+          ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\argparse.py", line 2673, in exit
+          _sys.exit(status)
+          ~~~~~~~~~^^^^^^^^
+      SystemExit: 2
+      
+    assert 2 == 0
+C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\enabled-red-repo\tests\test_043_enabled_control.py:7: AssertionError: usage: E1 [-h] [--manifest MANIFEST]
+=========================== short test summary info ===========================
+FAILED tests/test_043_enabled_control.py::test_record_trial_flag_records_complete_funded_trials
+============================== 1 failed in 1.74s ==============================

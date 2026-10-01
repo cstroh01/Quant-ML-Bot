@@ -80,7 +80,7 @@ limits:
 /api/backtest/tearsheet` writes the production ledger on every successful
 view (§4, D-2).
 
-## 2. Write surface (inventory 2026-09-28; re-run at T004)
+## 2. Write surface (re-inventoried 2026-09-30 at T004)
 
 Search patterns: `current_ledger|TrialLedger\(|run_trial\(|research_attempt\(|immutable_write\(|injected_ledger|trial_runner|trial_registry|\.start\(|\.finish\(`,
 `api\("trial_`, `SPEC033_SYNTHETIC_ROOT|environ|subprocess|env=|multiprocessing|spawn`,
@@ -108,7 +108,7 @@ directory already exist. **Refusal precedes the first call into `serialized()`,
 
 | # | Entry point | Reaches |
 |---|---|---|
-| E1 | `scripts/ma_crossover_backtest.py:312` `__main__` → `main` (`:235`) | `:250` (candidate); `baseline_results` `:123`, `:135` |
+| E1 | `scripts/ma_crossover_backtest.py:332` `__main__` → `main` (`:253`) | `:268` (candidate); `baseline_results` `:123`, `:135` |
 | E2 | `scripts/logistic_baseline.py:367` → `main` (`:313`) | `:318`, `:332` (candidates); imports `baseline_results` |
 | E3 | `scripts/multi_ticker_comparison.py:466` → `main` (`:431`) | `run_one_ticker` `:282`, `:320`; `_baseline_rows` `:137`, `:155`; `model_cv.nested_walk_forward` `:461`, `tune_on_fold` `:330` |
 | E4 | `scripts/feature_set_comparison.py:1008` → `main` (`:979`) | `_predictions_by_date` `:167`, in **spawned workers** that inherit the parent's environment; `model_cv` |

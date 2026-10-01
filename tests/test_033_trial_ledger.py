@@ -113,6 +113,7 @@ def test_chain_defects_name_record_or_path(tmp_path, defect):
 
 @pytest.mark.parametrize("mode", ["detached", "loose", "packed", "missing"])
 def test_source_identity_full_sha_no_subprocess(tmp_path, monkeypatch, mode):
+    monkeypatch.delenv("GITHUB_SHA", raising=False)
     identity = api("trial_registry", "source_identity")
     monkeypatch.setattr(subprocess, "run", lambda *a, **k: pytest.fail("git subprocess prohibited"))
     sha = "1" * 40

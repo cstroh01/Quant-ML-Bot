@@ -1,0 +1,51 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo
+plugins: anyio-4.15.1
+collected 8 items
+
+tests\test_043_project_root.py FFFFFFF.                                  [100%]
+
+================================== FAILURES ===================================
+E   AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+    assert False
+     +  where False = exists()
+     +    where exists = WindowsPath('C:/Users/Owner/AppData/Local/Temp/spec043-8u_zwprb/root-red-repo/scripts/_project.py').exists
+C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\tests\test_043_project_root.py:26: AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+E   AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+    assert False
+     +  where False = exists()
+     +    where exists = WindowsPath('C:/Users/Owner/AppData/Local/Temp/spec043-8u_zwprb/root-red-repo/scripts/_project.py').exists
+C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\tests\test_043_project_root.py:26: AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+E   AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+    assert False
+     +  where False = exists()
+     +    where exists = WindowsPath('C:/Users/Owner/AppData/Local/Temp/spec043-8u_zwprb/root-red-repo/scripts/_project.py').exists
+C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\tests\test_043_project_root.py:26: AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+E   AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+    assert False
+     +  where False = exists()
+     +    where exists = WindowsPath('C:/Users/Owner/AppData/Local/Temp/spec043-8u_zwprb/root-red-repo/scripts/_project.py').exists
+C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\tests\test_043_project_root.py:26: AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+E   AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+    assert False
+     +  where False = exists()
+     +    where exists = WindowsPath('C:/Users/Owner/AppData/Local/Temp/spec043-8u_zwprb/root-red-repo/scripts/_project.py').exists
+C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\tests\test_043_project_root.py:26: AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+E   AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+    assert False
+     +  where False = exists()
+     +    where exists = WindowsPath('C:/Users/Owner/AppData/Local/Temp/spec043-8u_zwprb/root-red-repo/scripts/_project.py').exists
+C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\tests\test_043_project_root.py:26: AssertionError: T021 missing resolver: C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\scripts\_project.py
+E   AssertionError: wrong ROOT: C:\Users\Owner\AppData\Local\Temp\pytest-of-Camden\pytest-341\test_registry_root_survives_ex0\marked\extra; expected: C:\Users\Owner\AppData\Local\Temp\pytest-of-Camden\pytest-341\test_registry_root_survives_ex0\marked
+    assert WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-341/test_registry_root_survives_ex0/marked/extra') == WindowsPath('C:/Users/Owner/AppData/Local/Temp/pytest-of-Camden/pytest-341/test_registry_root_survives_ex0/marked')
+C:\Users\Owner\AppData\Local\Temp\spec043-8u_zwprb\root-red-repo\tests\test_043_project_root.py:83: AssertionError: wrong ROOT: C:\Users\Owner\AppData\Local\Temp\pytest-of-Camden\pytest-341\test_registry_root_survives_ex0\marked\extra; expected: C:\Users\Owner\AppData\Local\Temp\pytest-of-Camden\pytest-341\test_registry_root_survives_ex0\marked
+=========================== short test summary info ===========================
+FAILED tests/test_043_project_root.py::test_project_root_contract[override]
+FAILED tests/test_043_project_root.py::test_project_root_contract[invalid_override]
+FAILED tests/test_043_project_root.py::test_project_root_contract[file_marker]
+FAILED tests/test_043_project_root.py::test_project_root_contract[neither] - ...
+FAILED tests/test_043_project_root.py::test_project_root_contract[wrong_nearer]
+FAILED tests/test_043_project_root.py::test_project_root_contract[foreign_cwd]
+FAILED tests/test_043_project_root.py::test_registry_root_survives_extra_depth
+========================= 7 failed, 1 passed in 0.14s =========================

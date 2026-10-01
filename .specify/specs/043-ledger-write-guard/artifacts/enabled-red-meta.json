@@ -1,0 +1,14 @@
+{
+  "copy": "C:\\Users\\Owner\\AppData\\Local\\Temp\\spec043-8u_zwprb\\enabled-red-repo",
+  "command": [
+    "C:\\GitHub\\Quant-ML-Bot\\venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "tests/test_043_enabled_control.py",
+    "--tb=line"
+  ],
+  "exit_code": 1,
+  "seconds": 2.12,
+  "python_version": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+  "ledger_unchanged": true
+}

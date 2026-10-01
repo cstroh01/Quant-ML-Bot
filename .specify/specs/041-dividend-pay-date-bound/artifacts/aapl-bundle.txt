@@ -1,0 +1,44 @@
+SC-001 RESULT: FAILED on a non-pay-date check (data finding; no check relaxed)
+Date: 2026-09-30 (local, America/New_York)
+Commit (created_by_revision): bb16148d075aace16d52615a4397cc3a7b3b1965
+Run by: Camden, PowerShell, venv, network on, once.
+EXAMPLE — NOT A RESULT. No strategy result is produced or claimed here.
+
+--- Command (spec.md SC-001, AAPL 2016-01-04 .. 2025-12-31) ---
+data.download_unadjusted_market_data('AAPL', date(2016,1,4), date(2025,12,31), created_by_revision='bb16148d075aace16d52615a4397cc3a7b3b1965')
+
+--- Output (verbatim tail) ---
+  File "scripts\data.py", line 1245, in download_unadjusted_market_data
+  File "scripts\data.py", line 1095, in cache_unadjusted_market_data
+    _validate_split_discontinuities(prices, actions)
+  File "scripts\data.py", line 752, in _validate_split_discontinuities
+ValueError: split reconciliation check failed: nominal price discontinuity does not match the 4:1 action
+
+--- Fail-closed check (SC-003), verified read-only afterwards ---
+data/cache/unadjusted/ does not exist; nothing was written.
+docs/trials/trials.jsonl and trials.head.json SHA-256 unchanged
+(1bb5dbfe...F30F, f83b1b9b...D764); docs/trials/returns/ absent.
+
+--- Diagnostic, run once afterwards (read-only; not through data.py; no cache or ledger writes) ---
+yf.Ticker('AAPL').history(start='2020-08-03', end='2020-09-03', auto_adjust=False, actions=True)
+Rows that matter (Open, Close, Dividends, Stock Splits):
+2020-08-07  113.205002  111.112503  0.205  0.0
+2020-08-28  126.012497  124.807503  0.000  0.0
+2020-08-31  127.580002  129.039993  0.000  4.0
+Observed ratio the check computes: prior Close / split-day Open
+  = 124.807503 / 127.580002 = 0.978, versus the declared 4.0.
+
+--- Finding ---
+Confirmed from the output above: with auto_adjust=False, yfinance's pre-split
+Open/Close are already split-adjusted (no 4x step across the 4:1 split), so the
+provisional source does not supply nominal prices. The check correctly refused.
+Likely also split-adjusted (from memory, NOT verified by this run): the
+Dividends column (0.205 on 2020-08-07; the nominal dividend was 0.82) and
+Volume. Nominal AAPL close on 2020-08-28 was about 499 (memory, not verified).
+Not established: whether the provider's split table is complete for other
+tickers or dates.
+
+--- Status ---
+SC-001 is NOT met. Spec 041's pay-date work is not implicated (a different check
+failed). Follow-up: nominal-price reconstruction spec (tests-first); SC-001 is
+re-run as that spec's acceptance test. Market data itself is never committed.

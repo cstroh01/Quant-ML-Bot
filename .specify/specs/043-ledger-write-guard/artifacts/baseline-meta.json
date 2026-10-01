@@ -1,0 +1,12 @@
+{
+  "real": "C:\\GitHub\\Quant-ML-Bot",
+  "run": "C:\\Users\\Owner\\AppData\\Local\\Temp\\spec043-8u_zwprb",
+  "baseline_copy": "C:\\Users\\Owner\\AppData\\Local\\Temp\\spec043-8u_zwprb\\baseline-repo",
+  "python": "C:\\GitHub\\Quant-ML-Bot\\venv\\Scripts\\python.exe",
+  "command": "python -m pytest tests",
+  "exit_code": 1,
+  "seconds": 307.69,
+  "python_version": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+  "merge_revision_reported_by_camden": "bb16148d075aace16d52615a4397cc3a7b3b1965",
+  "ledger_unchanged": true
+}

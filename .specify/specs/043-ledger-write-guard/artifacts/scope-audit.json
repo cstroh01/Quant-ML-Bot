@@ -1,0 +1,32 @@
+{
+  "scripts": {
+    "files": 31,
+    "before_sha256": "a40667b2749a7ed4cfc80daef90d9bed6036ab096948414cf5d9b9473e915f7b",
+    "after_sha256": "a40667b2749a7ed4cfc80daef90d9bed6036ab096948414cf5d9b9473e915f7b",
+    "identical": true
+  },
+  "exec": {
+    "files": 0,
+    "before_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "after_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "identical": true
+  },
+  ".specify/specs/040-installable-package": {
+    "files": 3,
+    "before_sha256": "a7b56d308c71901e8fd8726325fb04cbee329cebec99e40fd367dcca30025ea1",
+    "after_sha256": "a7b56d308c71901e8fd8726325fb04cbee329cebec99e40fd367dcca30025ea1",
+    "identical": true
+  },
+  "spec_042": {
+    "directories": []
+  },
+  "concurrent_test_change": "tests/test_033_trial_ledger.py: one GITHUB_SHA cleanup line appeared after baseline; not edited by this lane; excluded from unit counts.",
+  "existing_document_line_endings": {
+    "spec.md": "LF preserved",
+    "tasks.md": "LF preserved"
+  },
+  "implementation_not_started": {
+    "pyproject.toml": true,
+    "scripts/_project.py": true
+  }
+}
