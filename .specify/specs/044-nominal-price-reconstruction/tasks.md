@@ -24,8 +24,12 @@ authorizes Git, parallel agents, or network use in tests.
 - [x] T001 Camden decided D-1 to D-5 and R1–R11 on 2026-09-30 (spec §7).
 - [x] T002 Wrote `artifacts/p1_probe.py`, the header-only input stubs, and `artifacts/.gitignore`
   (2026-09-30, not run). **Size note:** the probe is 382 lines, written in one pass before the
-  R10 cap existed. Camden reviews it in two parts, T003 and T004. If Camden wants a physical
-  split, it happens there.
+  R10 cap existed. Camden reviews it in two parts, T003 and T004.
+  - _2026-10-02 (cloud lane; 043 review F1/F6):_ physically split and re-staged under the cap.
+    `artifacts/p1_rules.py` (286 lines: everything through `QUESTIONS`) and `artifacts/p1_probe.py`
+    (140 lines: `run`, `self_check`, `main`), each measured against an empty file. Q-P4 is now
+    diagnostic-only (spec §5 amendment, R2) with a new self-check case. T003/T004 cover the same
+    functions, now in those two files.
 - [ ] T003 **Review part A (Camden):** everything from the top of the file through `q_p1`, plus
   `run` and `QUESTIONS`. Covers session labels, factor validation, horizon, input schemas, Q-P1,
   raw rows and hashes.
@@ -112,6 +116,9 @@ Every fixture is labelled `EXAMPLE — NOT A RESULT`, and every expected factor 
 
 - [ ] T050 FR-004, FR-005 and FR-012, exactly as T008 recorded.
 - [ ] T051 FR-007 labels and docstring. FR-010: the single loader attrs line for `volume_basis`.
+  `tests/test_044_loader_untouched.py` must stay green with no pin change.
+- [x] T053 (2026-10-02, ahead of T051) `tests/test_044_loader_untouched.py`: 6 tests pinning the
+  pre-044 loader fingerprint, a one-line control and four planted defects (FR-010 amendment).
 - [ ] T052 SC-005: confirm zero diff lines in the oracle, by reading the files. Run the full suite,
   which must be green.
 
