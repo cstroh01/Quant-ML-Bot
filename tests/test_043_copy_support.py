@@ -85,3 +85,96 @@ def test_copy_exclusions_and_destination_guard(tmp_path, monkeypatch):
     files = {path.relative_to(destination).as_posix()
              for path in destination.rglob("*") if path.is_file()}
     assert files == {"docs/trials/keep", "scripts/keep", "tests/keep"}
+
+
+RECORDED = "11111111-1111-4111-8111-111111111111"
+DECOY = "22222222-2222-4222-8222-222222222222"
+
+
+def e5_request(status=200, records=0, sidecars=0, n=(88, 88), body_sha="a" * 64, body=None,
+               names=(RECORDED,), decoys=()):
+    return dict(status=status, records=records, sidecars=sidecars, n_before=n[0],
+                n_after=n[1], body_sha256=body_sha, body=body,
+                names_recorded=list(names), names_decoys=list(decoys))
+
+
+def e5_result(*requests, records=44, sidecars=22, recorded=(RECORDED,)):
+    return dict(returncode=0, stderr="", records=records, sidecars=sidecars,
+                changed=["trials.jsonl"], outcome={"requests": list(requests),
+                                                   "recorded_candidates": list(recorded)})
+
+
+def test_e5_served_control_passes():
+    support.assert_e5_served(e5_result(e5_request(), e5_request()))
+
+
+REFUSAL = {"detail": "not recorded; run python scripts/ma_crossover_backtest.py --record-trial"}
+
+
+@pytest.mark.parametrize("planted, message", [
+    # The F5 vacuous implementation: GET returns 409 even after recording.
+    (e5_result(e5_request(409, body=REFUSAL), e5_request(409, body=REFUSAL)),
+     "recorded config not served"),
+    # GET recomputes and records again on every view (the pre-043 route).
+    (e5_result(e5_request(records=44, sidecars=22, n=(88, 89)), e5_request(),
+               records=88, sidecars=44), r"\(88, 44\)"),
+    # GET serves without writing bytes but still counts a trial in N.
+    (e5_result(e5_request(n=(88, 89)), e5_request()), "n_before"),
+    # Two identical GETs disagree: the response is not the one recorded trial.
+    (e5_result(e5_request(), e5_request(body_sha="b" * 64)), "body_sha256"),
+    # A fixed valid 200 that names no trial: lookup ignored (Codex, PR #8).
+    (e5_result(e5_request(names=()), e5_request(names=())), "not the recorded trial"),
+    # Serves the first pre-existing sidecar instead of the recorded one.
+    (e5_result(e5_request(names=(), decoys=(DECOY,)), e5_request(names=(), decoys=(DECOY,))),
+     "not the recorded trial"),
+    # Names the recorded trial but also an unrelated one.
+    (e5_result(e5_request(decoys=(DECOY,)), e5_request(decoys=(DECOY,))),
+     "unrelated trial"),
+])
+def test_e5_served_rejects_each_planted_defect(planted, message):
+    with pytest.raises(AssertionError, match=message):
+        support.assert_e5_served(planted)
+
+
+def test_e5_refused_requires_the_recording_command():
+    support.assert_e5_refused(e5_request(409, n=(87, 87), body=REFUSAL))
+    vague = e5_request(409, n=(87, 87), body={"detail": "conflict; pass --record-trial"})
+    with pytest.raises(AssertionError, match="ma_crossover_backtest"):
+        support.assert_e5_refused(vague)
+
+
+def fake_repo(tmp_path):
+    """Minimal stand-in repository whose child only writes its outcome file."""
+    repo = tmp_path / "stand-in-repo"
+    (repo / "tests").mkdir(parents=True)
+    (repo / "docs/trials").mkdir(parents=True)
+    (repo / "docs/trials/trials.jsonl").write_bytes(b'{"existing":true}\n')
+    (repo / ".specify/specs/043-ledger-write-guard/artifacts").mkdir(parents=True)
+    (repo / "tests/ledger_guard_child.py").write_text(
+        "from pathlib import Path\nPath('guard-outcome.json').write_text('{}')\n",
+        encoding="utf-8")
+    return repo
+
+
+def test_run_child_leaves_the_checkout_untouched(tmp_path, monkeypatch):
+    """Review F10: an ordinary test run never appends evidence into the repo."""
+    repo = fake_repo(tmp_path)
+    monkeypatch.setattr(support, "REPO", repo)
+    monkeypatch.delenv(support.EVIDENCE_LOG_VAR, raising=False)
+    before = sorted(path.relative_to(repo).as_posix() for path in repo.rglob("*"))
+    result = support.run_child("stand-in")
+    after = sorted(path.relative_to(repo).as_posix() for path in repo.rglob("*"))
+    assert after == before, f"run_child wrote into the checkout: {set(after) - set(before)}"
+    assert result["evidence"]["entry"] == "stand-in"
+    assert result["evidence"]["label"] == "EXAMPLE — NOT A RESULT"
+
+
+def test_run_child_harvests_evidence_only_when_named(tmp_path, monkeypatch):
+    repo = fake_repo(tmp_path)
+    monkeypatch.setattr(support, "REPO", repo)
+    log = tmp_path / "harvest/events.jsonl"
+    log.parent.mkdir()
+    monkeypatch.setenv(support.EVIDENCE_LOG_VAR, str(log))
+    support.run_child("stand-in")
+    lines = log.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 1 and '"entry": "stand-in"' in lines[0]

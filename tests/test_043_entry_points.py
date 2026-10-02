@@ -1,18 +1,24 @@
 """AC-1 / AC-10: entry points must refuse before any ledger write."""
 import pytest
-from ledger_copy_support import assert_refused, run_child
+from ledger_copy_support import (assert_e5_refused, assert_e5_served,
+                                 assert_refused, run_child)
 
 RUNNERS = {
     "E1": "ma_crossover_backtest", "E2": "logistic_baseline",
     "E3": "multi_ticker_comparison", "E4": "feature_set_comparison",
 }
 
-pytestmark = pytest.mark.xfail(
-    strict=True, reason="043 Phase 1 red; guard lands in T020+"
-)
+# Separate strict marks per review unit (043 review F4): each is removed by the
+# task that turns its own case green, never wholesale.
+RED_UNTIL_U2 = pytest.mark.xfail(
+    strict=True, reason="043 Phase 1 red; CLI refusal lands in T023-T025 (U2)")
+RED_UNTIL_U3 = pytest.mark.xfail(
+    strict=True, reason="043 Phase 1 red; read-only route lands in T027 (U3)")
 
 
-@pytest.mark.parametrize("entry", ["E1", "E2", "E3", "E4", "E5"])
+@pytest.mark.parametrize("entry", [
+    pytest.param(name, marks=RED_UNTIL_U2) for name in ("E1", "E2", "E3", "E4")
+] + [pytest.param("E5", marks=RED_UNTIL_U3)])
 def test_default_entry_changes_no_ledger_bytes(entry):
     result = run_child(entry)
     if entry != "E5":
@@ -25,6 +31,10 @@ def test_default_entry_changes_no_ledger_bytes(entry):
         requests = result["outcome"]["requests"]
         assert len(requests) == 2
         for request in requests:
-            assert request["status"] == 409
-            assert request["records"] == request["sidecars"] == 0
-            assert "--record-trial" in str(request["body"])
+            assert_e5_refused(request)
+
+
+@RED_UNTIL_U3
+def test_e5_serves_recorded_configuration_read_only():
+    """AC-10's green branch: an unconditional 409 cannot satisfy this (review F5)."""
+    assert_e5_served(run_child("E5_recorded"))

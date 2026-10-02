@@ -66,6 +66,46 @@ def fixture():
     return cache, frame
 
 
+def recompute_forbidden(*args, **kwargs):
+    raise AssertionError("spec043 E5: GET recomputed instead of serving the recorded trial")
+
+
+def tearsheet_requests(cache, outcome, recorded=(), decoys=()):
+    """Two identical GETs; per request: status, byte deltas, N, body, trial ids named.
+
+    `recorded` are the candidate trial ids the E1 recording appended; `decoys`
+    are the candidate trial ids that already existed. Rule 11 provenance means a
+    served tearsheet names the trial it came from, so the body is searched for both.
+    """
+    import hashlib
+    from fastapi.testclient import TestClient
+    from reports.api.main import create_app
+    from reports.api.routes.data import get_cache_dir
+    from trial_registry import TrialLedger
+    app = create_app(dist_dir=None)
+    app.dependency_overrides[get_cache_dir] = lambda: cache
+    outcome["requests"] = []
+    with TestClient(app, raise_server_exceptions=False) as client:
+        for _ in range(2):
+            before, n_before = ledger_counts(ROOT), TrialLedger().verify()["n_post_ledger"]
+            response = client.get("/api/backtest/tearsheet")
+            after, n_after = ledger_counts(ROOT), TrialLedger().verify()["n_post_ledger"]
+            outcome["requests"].append(dict(status=response.status_code,
+                records=after[0] - before[0], sidecars=after[1] - before[1],
+                n_before=n_before, n_after=n_after,
+                body_sha256=hashlib.sha256(response.content).hexdigest(),
+                body=None if response.status_code == 200 else body_of(response),
+                names_recorded=[i for i in recorded if i in response.text],
+                names_decoys=[i for i in decoys if i in response.text]))
+
+
+def body_of(response):
+    try:
+        return response.json()
+    except ValueError:
+        return response.text
+
+
 def dispatch(entry, enabled, outcome):
     import pandas as pd
     from signals import buy_and_hold_signal
@@ -105,20 +145,24 @@ def dispatch(entry, enabled, outcome):
         module._worker_init = worker_init
         module.main(max_workers=2)
     elif entry == "E5":
-        from fastapi.testclient import TestClient
-        from reports.api.main import create_app
-        from reports.api.routes.data import get_cache_dir
-        app = create_app(dist_dir=None)
-        app.dependency_overrides[get_cache_dir] = lambda: cache
-        outcome["requests"] = []
-        with TestClient(app) as client:
-            for _ in range(2):
-                before = ledger_counts(ROOT)
-                response = client.get("/api/backtest/tearsheet")
-                after = ledger_counts(ROOT)
-                outcome["requests"].append(dict(status=response.status_code,
-                    records=after[0] - before[0], sidecars=after[1] - before[1],
-                    body=response.json() if response.status_code != 200 else None))
+        tearsheet_requests(cache, outcome)
+    elif entry == "E5_recorded":
+        # AC-10 green branch: record via the E1 CLI flag, then forbid recompute.
+        import ma_crossover_backtest as module
+        sys.argv = ["E1", "--record-trial"]
+        from trial_registry import TrialLedger
+        prior = len(TrialLedger().verify()["events"])
+        module.main(cache_dir=cache / "unadjusted")
+        events = TrialLedger().verify()["events"]
+        recorded = [event["trial_id"] for event in events[prior:]
+                    if event["event_type"] == "started" and event["role"] == "candidate"]
+        outcome["recorded_candidates"] = recorded
+        decoys = sorted({event["trial_id"] for event in events[:prior]
+                         if event["role"] == "candidate"})
+        import reports.api.routes.backtest as route
+        for name in ("run_backtest", "research_attempt", "baseline_results"):
+            setattr(route, name, recompute_forbidden)
+        tearsheet_requests(cache, outcome, recorded, decoys)
     elif entry == "incident":
         import multi_ticker_comparison as module
         trades = pd.DataFrame({"Entry Date": [frame.Date.iloc[10]],
