@@ -131,3 +131,26 @@ def test_not_found_names_each_searched_directory(tmp_path, monkeypatch):
     for searched in (root / "extra/scripts", root / "extra", root):
         whole = re.escape(str(searched.resolve())) + r"(?![\\/])"
         assert re.search(whole, str(caught.value)), f"not named: {searched}"
+
+
+@pytest.mark.parametrize("value", ["", ".", "marked", "../marked"])
+def test_empty_or_relative_override_is_refused(value, tmp_path, monkeypatch):
+    """A set override is validated, never ignored or read against cwd (Codex, PR #9).
+
+    Cwd and the resolver's own ancestors both carry a valid marker, so an
+    implementation that skips an empty value or resolves a relative one
+    against cwd returns a root instead of refusing.
+    """
+    root = tmp_path / "marked"
+    resolver = root / "scripts/_project.py"
+    resolver.parent.mkdir(parents=True)
+    resolver.write_bytes((REPO / "scripts/_project.py").read_bytes())
+    marker(root)
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    # Each cwd makes `value` resolve to the marked root if read against cwd.
+    monkeypatch.chdir({"": tmp_path, ".": root, "marked": tmp_path}.get(value, elsewhere))
+    monkeypatch.setenv("QMB_PROJECT_ROOT", value)
+    module = load(resolver, monkeypatch, "spec043_relative_override_resolver")
+    with pytest.raises(module.ProjectRootNotFound, match="QMB_PROJECT_ROOT"):
+        module.project_root()
