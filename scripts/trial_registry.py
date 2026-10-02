@@ -16,7 +16,9 @@ import re
 import time
 import uuid
 
-ROOT = Path(__file__).resolve().parents[1]
+from _project import project_root
+
+ROOT = project_root()
 DEFAULT_TRIALS_PATH = ROOT / "docs/trials/trials.jsonl"
 ROLES = {"candidate", "buy_and_hold_baseline", "random_signal_baseline", "synthetic_test"}
 TERMINALS = {"completed", "rejected", "errored", "abandoned"}
