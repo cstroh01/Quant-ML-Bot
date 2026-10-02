@@ -198,6 +198,12 @@ reconstructs as `99.999999`. Its bound is `|rebuilt − nominal| ≤ F × q / 2`
   "loader untouched": the loader copies manifest `volume_basis` into `frame.attrs` (`None` for a
   pre-044 manifest), with no validation change. The harness, metrics and callers are untouched. No
   dependency is added.
+  - _Amended 2026-10-02 (cloud lane, 043 review queue; pending Camden's confirmation):_ the exception
+    is **exactly one line** in `load_unadjusted_market_data`: the entry
+    `"volume_basis": manifest.get("volume_basis"),` in its existing `result.attrs.update({...})`
+    dict. Nothing else in that function changes. `tests/test_044_loader_untouched.py` pins the
+    pre-044 loader's AST fingerprint with that one entry removed, and refuses a strict
+    `manifest["volume_basis"]` read, a duplicate entry, any other `volume_basis` use, and any other edit.
 - **FR-011 Factor-event validation, before any multiplication (R4).** Over the full response, not
   only the window:
   - normalized session labels are unique and ascending;
@@ -220,13 +226,15 @@ reconstructs as `99.999999`. Its bound is `|rebuilt − nominal| ≤ F × q / 2`
 ## 5. P-1 — the determination probe (Camden-run, network, once; not in the suite)
 
 The suite has no network (CLAUDE.md), so the determination is a Camden-run probe whose **decision
-rules are registered here, before the run**. The probe is `artifacts/p1_probe.py`. It imports only
-`yfinance`, `pandas` and the stdlib, and never imports `scripts/`.
+rules are registered here, before the run**. The probe is `artifacts/p1_probe.py` (CLI), with
+its registered rules in `artifacts/p1_rules.py` (split 2026-10-02 so each file is ≤ 300 lines,
+R10). It imports only `yfinance`, `pandas`, the stdlib and `p1_rules`, and never imports `scripts/`.
 
 - **`--self-check`** runs offline and writes nothing. It plants each probe-gate defect and checks
   that it goes red while its control passes (Rule 12). The defects are a NaN `Adj Close` (R1), a
   NaN split value (R4), a zone-labelled index across DST (R9), literal factors 8, 4, 4, 1 (R8), the
-  volume bands, and a stale versus weekend-lag horizon.
+  volume-step diagnostic labels, five unanimous Q-P4 diagnostics that must still yield
+  `provider_unverified` (R2), and a stale versus weekend-lag horizon.
 - **`--revision <sha>`** makes one `history(period="max", interval="1d", auto_adjust=False,
   actions=True)` call per basket ticker. It writes `artifacts/p1-determination.txt` with:
   - the run date, the revision, and the yfinance and pandas versions;
@@ -262,7 +270,7 @@ older splits. For example, AAPL FY2013 quarters precede both the 2014 and 2020 s
 | Q-P1 Cumulative price factor | Filed quarterly ranges (above) | PASS if every row's reconstructed closes lie within [low, high] ±1%, **and** no raw provider close does, **and** at least one row precedes two splits. Any row filed on or after the split, with no later split, or with a missing or non-positive observation is a STOP |
 | Q-P2 Is `Close` dividend-adjusted? | `Close` and `Adj Close` on each dividend ex-date from 2016 and on its prior session | Every value must be finite and positive, or STOP (R1). STOP if `Close == Adj Close` before every dividend. PASS if every `(AdjC_p/C_p)/(AdjC_e/C_e)` is within **1e-4** (absolute) of `1 − D/C_p` |
 | Q-P3 Dividends (FR-004) | Declared rows (above) | **Required coverage:** the last dividend before each split from 2016, and any dividend on a split ex-date, each derived from the response. A missing required row is a STOP. For each row, `adjusted` means `|provider·F/declared − 1| ≤ `**1e-3**, and `nominal` means `|provider/declared − 1| ≤ 1e-3`. PASS if every informative row (`F > 1`) agrees. Same-day rows must agree with the verdict, or it is a STOP; none means UNRESOLVED (FR-012) |
-| Q-P4 Volume (FR-005) | Splits of **4:1 or larger** from 2016, with the **60-session** median volume before versus from the ex-date | `adjusted` if post/pre is in [0.5, 2]. `nominal` if it is within 25% of `r`. The bands are disjoint for `r ≥ 4`. PASS only if exactly **five** such splits exist and all agree. Otherwise the result is **inconclusive**, and FR-005's `provider_unverified` branch applies. A missing volume value makes that split inconclusive. This STOP does not halt the spec |
+| Q-P4 Volume (FR-005) | Splits of **4:1 or larger** from 2016, with the **60-session** median volume before versus from the ex-date | **Amended 2026-10-02 (043 review F1, 044 R2; pending Camden's confirmation):** always **inconclusive**, so FR-005's `provider_unverified` branch applies. Medians from different sessions confound share basis with trading activity, so they cannot select a verified branch however many agree. Each split's post/pre step is still recorded as a diagnostic label (`adjusted`-looking in [0.5, 2], `nominal`-looking within 25% of `r`, else inconclusive), with its raw rows. A verified branch needs a same-observation or primary-source contract, added by a later amendment. This STOP does not halt the spec |
 | D-3 GOOGL 2014 | The provider's GOOGL splits before 2016 | Records the representation. Not a clean ratio means GOOGL windows before it are refused |
 
 The tolerances (1% Q-P1 band, 1e-4 for Q-P2, 1e-3 for Q-P3, and the Q-P4 bands) are pre-registered.
@@ -326,7 +334,8 @@ source; it is internal-consistency evidence only.
   - **R1:** finite, positive values only. A missing observation is a STOP, and a NaN case is included.
   - **R2:** splits of 4:1 or larger, 60-session medians, disjoint bands, and all five basket splits
     must agree. Otherwise volume passes through unverified and is blocked from the cost model. M3
-    branches on the decision, and dollar-volume invariance is dropped.
+    branches on the decision, and dollar-volume invariance is dropped. _Superseded in part by the
+    2026-10-02 Q-P4 amendment in §5 (medians are diagnostic only), pending Camden's confirmation._
   - **R3:** a horizon within one completed session, using `trading_days`, and the common-coverage
     comparison interval.
   - **R4:** full factor-event validation.

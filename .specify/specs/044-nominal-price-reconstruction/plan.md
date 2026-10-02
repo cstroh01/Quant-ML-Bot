@@ -46,7 +46,7 @@ scripts/data.py                              FR-001/002/004/005/007/011–014, F
 tests/test_044_nominal_reconstruction.py     new, in parts across Units 2, 3, 6 and 7
 tests/test_041_pay_date_bound.py             FR-009 migration (Unit 1)
 tests/test_020_unadjusted_price_data.py      FR-009 migration (Unit 1)
-.specify/specs/044-.../artifacts/            p1_probe.py, the two CSV inputs, .gitignore, p1-determination.txt,
+.specify/specs/044-.../artifacts/            p1_probe.py + p1_rules.py, the two CSV inputs, .gitignore, p1-determination.txt,
                                              split-table-crosscheck.md, baseline.txt, sc-001-rerun.txt
 ```
 
