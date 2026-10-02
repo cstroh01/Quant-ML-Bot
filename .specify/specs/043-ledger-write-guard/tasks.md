@@ -76,17 +76,17 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 
 ### U1: Root (FR-006, D-5)
 
-- [ ] T020 `pyproject.toml` *(per D-5)*. For D-5a exactly:
+- [x] T020 `pyproject.toml` *(per D-5)*. For D-5a exactly:
   ```toml
   [project]
   name = "quant-ml-bot"
   version = "0.0.0.dev0"
   ```
-- [ ] T021 `scripts/_project.py`: `project_root()` and `ProjectRootNotFound`,
+- [x] T021 `scripts/_project.py`: `project_root()` and `ProjectRootNotFound`,
   exactly as spec FR-006 describes (stdlib `tomllib`, no caching, cwd never
   read). Keep the contract identical to spec 040 §1.5 R1, so that 040 T016
   becomes a move.
-- [ ] T022 `scripts/trial_registry.py:19` (`ROOT = Path(__file__).resolve().parents[1]`)
+- [x] T022 `scripts/trial_registry.py:19` (`ROOT = Path(__file__).resolve().parents[1]`)
   → `ROOT = project_root()`. `TrialLedger.__init__`'s production and
   synthetic root checks (`:171-172`) are otherwise unchanged. T014 turns
   green.
