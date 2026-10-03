@@ -88,6 +88,10 @@ Two open tasks: T048 (PR-G close-out) and T052 (re-run T004 fingerprints, every
 digest unchanged). Small, and it ends the 019 migration that has been open for
 eleven days.
 
+### S3b — Spec 046: Rule 13 cost model
+
+After S2, dependent on S1/035 and 044, before S4. Implement published-source-verified OHLC half-spread plus square-root impact, with Y=1.0 and 21-session trailing windows. Require verified nominal volume, consistent fill/accounting/trial metadata, Rule 12 red proofs, and modeled-cost disclosure. Flat bps remains limited to explicitly unreported diagnostics.
+
 ### S4 — Spec 033 Phases 8–9: the DSR/PBO gate goes live
 
 Gate 3 artifact, API wiring in `reports/api/routes/capital_gate.py`, DSR and PBO

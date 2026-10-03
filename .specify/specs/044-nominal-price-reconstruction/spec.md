@@ -278,6 +278,9 @@ A STOP on any of them is recorded in the determination file, and any change is m
 dated amendment of this section. They are never re-tuned silently to reach PASS. Q-P4 has no primary
 source; it is internal-consistency evidence only.
 
+**Amendment 2026-10-03 (decided by delegation from Camden; drafted by Claude; recorded before any Q-P1 run):** (1) A2 adopted: the Q-P1 pass band is the filed low/high with a ±1% tolerance, as registered above. (2) Derived ex-dates are accepted and carry an `ex_date_basis` column. (3) The 2026-10-02 Q-P4 amendment (always inconclusive, so `provider_unverified`) is confirmed: it fails closed and gives no volume evidence. (4) SC-007 is a one-time disclosure, not an amendment.
+
+
 ## 6. Success criteria
 
 - **SC-001 (acceptance; manual, network, Camden re-runs it once).** This is spec 041's SC-001
