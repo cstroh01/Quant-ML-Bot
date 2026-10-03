@@ -41,6 +41,8 @@ _SHELLS = {"sh", "bash", "zsh", "dash", "ksh", "fish", "cmd", "powershell", "pws
 _SHELL_CMD_FLAGS = {"-c", "/c", "/k", "/r", "-command", "-c:", "-encodedcommand", "-ec"}
 _EVAL = {"eval", "iex", "invoke-expression"}
 
+# A redirection token: optional fd, operator, optional attached target.
+_REDIR = re.compile(r"^(\d*(?:&>>?|>>?|<<?<?|>&|<&))(\S*)$")
 _ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=")
 _GIT_WORD = re.compile(r"(?i)(?:^|[\s;&|(`'\"\\/=])git(?:\.exe|\.cmd)?(?=$|[\s;&|)`'\"])")
 
@@ -99,6 +101,12 @@ def _tokens_invoke_git(toks: list[str], depth: int) -> bool:
         if _ASSIGN.match(tok) and i + 1 < len(toks):
             i += 1
             continue
+        redir = _REDIR.match(tok)
+        if redir:
+            # `2>/dev/null git status`: skip the redirection (and its separate
+            # target when the operator stands alone) before naming the command.
+            i += 1 if redir.group(2) else 2
+            continue
         name = _basename(tok)
         if not name:
             i += 1
@@ -108,14 +116,15 @@ def _tokens_invoke_git(toks: list[str], depth: int) -> bool:
         if name in _EVAL:
             return invokes_git(" ".join(toks[i + 1:]), depth + 1)
         if name in _SHELLS:
+            # Shells accept combined flags (`-lc`, `-xc`, `-NoProfile -Command`),
+            # so do not try to find the command-string flag. Fail closed: deny
+            # if any later argument, parsed as a command, would run Git.
             rest = toks[i + 1:]
-            for j, arg in enumerate(rest):
-                if arg.lower() in _SHELL_CMD_FLAGS:
-                    return invokes_git(" ".join(rest[j + 1:]), depth + 1)
-            # A shell with no command string runs a script or stdin: allow
-            # the shell itself, but still inspect any following words.
-            i += 1
-            continue
+            if any(invokes_git(arg, depth + 1) for arg in rest):
+                return True
+            if any(_tokens_invoke_git(rest[j:], depth + 1) for j in range(len(rest))):
+                return True
+            return False
         if name in _PREFIX_LAUNCHERS:
             # Launcher options may take operands (`sudo -u root`, `env -u VAR`,
             # `timeout -s KILL 5`), so the wrapped command can start at any later

@@ -134,7 +134,8 @@ def test_generated_dirs_are_ignored(repo):
 
 
 def test_in_progress_marker_prevents_second_run(repo):
-    stop._save(stop._state_path("s1"), {"in_progress": True})
+    import time
+    stop._save(stop._state_path("s1"), {"in_progress": time.time()})
     r = FakeRunner(0)
     _stop(repo, r)
     assert r.calls == []
@@ -162,3 +163,26 @@ def test_rule12_planted_defect_ignoring_exit_code_goes_red(repo, monkeypatch):
     monkeypatch.setattr(stop, "_block", lambda reason: stop._allow(reason))
     out = _stop(repo, FakeRunner(5))
     assert "decision" not in out, "mutant not caught by the failing-suite case"
+
+
+@pytest.mark.parametrize("marker", [True, 1.0])
+def test_stale_in_progress_marker_does_not_disable_the_gate(repo, marker):
+    """Codex P1 on #22: a hook killed mid-run must not leave the gate off."""
+    stop._save(stop._state_path("s1"), {"in_progress": marker})
+    r = FakeRunner(0)
+    _stop(repo, r)
+    assert len(r.calls) == 1
+
+
+@pytest.mark.parametrize("raw", ["", "not json", "[1, 2]", "null"])
+def test_invalid_input_blocks_the_stop(raw):
+    code, out, _ = stop.main(raw)
+    assert code == 0 and json.loads(out)["decision"] == "block"
+
+
+def test_hook_crash_blocks_the_stop(monkeypatch):
+    def boom(payload):
+        raise OSError("disk full")
+    monkeypatch.setattr(stop, "run", boom)
+    code, out, _ = stop.main('{"session_id": "s"}')
+    assert json.loads(out)["decision"] == "block" and "disk full" in json.loads(out)["reason"]

@@ -122,8 +122,13 @@ def run(payload: dict, runner=subprocess.run, python: str = sys.executable) -> t
     state = _load(state_file)
     fp = tree_fingerprint(root)
 
-    if state.get("in_progress"):
-        return _allow("run_tests: a suite run is already in progress for this session")
+    started = state.get("in_progress")
+    if started:
+        # A marker older than the suite timeout means the hook was killed
+        # mid-run (e.g. host timeout). Treat it as stale and run again.
+        if isinstance(started, (int, float)) and not isinstance(started, bool) \
+                and time.time() - started < SUITE_TIMEOUT_S + 120:
+            return _allow("run_tests: a suite run is already in progress for this session")
     last = state.get("last")
     if last and last.get("fingerprint") == fp:
         if last.get("exit") == 0 and not last.get("ledger_changed"):
@@ -132,7 +137,7 @@ def run(payload: dict, runner=subprocess.run, python: str = sys.executable) -> t
 
     log = STATE_DIR / f"{state_file.stem}-{time.strftime('%Y%m%dT%H%M%S')}-{fp[:8]}.log"
     before = ledger_manifest(root)
-    _save(state_file, {**state, "in_progress": True})
+    _save(state_file, {**state, "in_progress": time.time()})
     try:
         log.parent.mkdir(parents=True, exist_ok=True)
         with open(log, "wb") as fh:
@@ -167,8 +172,12 @@ def main(stdin: str) -> tuple[int, str, str]:
         if not isinstance(payload, dict):
             raise ValueError
     except (ValueError, TypeError):
-        return 1, "", "run_tests: invalid hook input; suite not run"
-    code, out = run(payload)
+        # Fail closed: never let the agent stop on input the gate cannot read.
+        return 0, json.dumps({"decision": "block", "reason": "run_tests: invalid hook input; suite not run"}), ""
+    try:
+        code, out = run(payload)
+    except Exception as exc:  # noqa: BLE001 - any hook crash must block, not pass
+        return 0, json.dumps({"decision": "block", "reason": f"run_tests: hook error ({type(exc).__name__}: {exc}); suite not verified"}), ""
     return code, out, ""
 
 
