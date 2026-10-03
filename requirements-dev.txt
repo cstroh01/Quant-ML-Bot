@@ -5,7 +5,7 @@
 # packages below. They are not new: spec 016 declared them, with their Rule 6
 # justification, in reports/requirements-ui.txt. The pins must match that file;
 # tests/test_reports_api.py fails if they drift apart.
-fastapi==0.141.1
+fastapi==0.142.0
 httpx==0.28.1
 # Rule 6: pytest collects unittest classes and parametrized function tests together; stdlib unittest cannot collect the existing pytest cases.
 pytest==9.1.1
