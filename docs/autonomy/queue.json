@@ -74,6 +74,54 @@
         "046 T001",
         "046 T002"
       ]
+    },
+    {
+      "id": "Q9",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Draft spec 035 (V1-FINISH-PLAN S1, free unadjusted data bundle) spec.md only. Use docs/SCOPE-V1.md §2 and §9 sources: Tiingo EOD primary candidate, Alpaca daily bars as Rule 14 second source (2016+), yfinance/EODHD/EDGAR as cross-checks. Every network fetch is a HUMAN GATE task; everything else offline. Mark vendor claims UNVERIFIED unless cited. Rule 12 mutants: basis-stamp on adjusted data, back-dated dividend lag. Cite path:line for current-state claims.",
+      "output": ".specify/specs/035-free-unadjusted-bundle/spec.md"
+    },
+    {
+      "id": "Q10",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Spec 035 plan.md from the merged 035 spec.md. Implementation units of ≤300 changed lines each.",
+      "output": ".specify/specs/035-free-unadjusted-bundle/plan.md",
+      "depends_on": [
+        "Q9 PR merged"
+      ]
+    },
+    {
+      "id": "Q11",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Spec 035 tasks.md from merged spec.md and plan.md. Network fetches are HUMAN GATE tasks; other tasks must not name a person. Each gate has a Rule 12 planted defect and clean control.",
+      "output": ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+      "depends_on": [
+        "Q10 PR merged"
+      ]
+    },
+    {
+      "id": "Q12",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Draft spec 047 spec.md: three tearsheet correctness defects found by the 038 audit (docs/implementation/spec-038/disclosure-audit-20261003.md): commission-only 'Drag' labelled as including slippage; adjusted candles under unadjusted fills; null drawdown shown as 0.00%. Each gets a failing contract and a Rule 12 mutant. Cite path:line.",
+      "output": ".specify/specs/047-tearsheet-correctness/spec.md"
+    },
+    {
+      "id": "Q13",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Draft spec 038 spec.md (V1-FINISH-PLAN S7, Rule 11/16 disclosure sweep) from the 2026-10-03 audit. Decided 2026-10-03 for audit Q1: mark audit/history documents as quotation; regenerate figures still on live surfaces from a committed small summary artifact; strike the rest with a ledger pointer. Pinned files (logistic_baseline.py, feature_set_comparison.py) are human-lane tasks. Tearsheet defects belong to spec 047, not 038.",
+      "output": ".specify/specs/038-disclosure-sweep/spec.md"
+    },
+    {
+      "id": "Q14",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Draft spec 048 spec.md: v1.1 Alpaca PAPER broker adapter (docs/SCOPE-V1.md §4, §9). Paper endpoint only; every order passes the 032/034 safety gate; credentials from environment only and never logged; position-state reconciliation broker vs ledger; execution-timing comparison (pre-close signal + market-on-close vs next-open fill) under identical Rule 13 costs. Live trading is out of scope and stays behind the capital gate. Docs only: no exec/ code, no credentials.",
+      "output": ".specify/specs/048-alpaca-paper-adapter/spec.md"
     }
   ]
 }

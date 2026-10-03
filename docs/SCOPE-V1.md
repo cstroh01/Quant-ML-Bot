@@ -159,3 +159,22 @@ be pulled forward because it sounds sophisticated:
 - **Rule 10 unchanged.** Agents never run `git`; Camden commits in GitKraken.
 - **Rule 9 unchanged.** The deadline does not suspend the merge gate. A PR Camden
   cannot explain does not merge, on any timeline.
+
+## 9. Amendment 2026-10-03 — data sources and broker (decided by delegation from Camden)
+
+Free-data rule unchanged. No paid tier is introduced.
+
+**Data — candidates to verify in spec 035 `research.md` before any code depends on them.** Each claim below is from vendor documentation read 2026-10-03, not yet tested against this repo:
+
+| Need | Candidate | Documented free terms | Why |
+|---|---|---|---|
+| Primary daily OHLCV | Tiingo EOD (free key) | 30+ years, 1,000 requests/day, 500 unique symbols/month | Documented API with keys and terms, versus yfinance's unofficial access. Corporate-action fields: UNVERIFIED. |
+| Second source (Rule 14) | Alpaca market data (Basic plan, free key) | Daily bars since 2016, 200 requests/min, IEX real-time | Independent second source over 2016 onward, versus EODHD's 1-year cap. Corporate-action history depth: UNVERIFIED. |
+| Cross-check | yfinance `auto_adjust=False`, EODHD free, SEC EDGAR | as §2 | Kept as tertiary checks. |
+| Point-in-time fundamentals (deferred, §7) | SEC EDGAR XBRL `companyfacts` | Free, about 10 requests/s, roughly 2009 onward, filed dates per fact | Only free source with filing-date stamps. Not in v1.0. |
+
+If verification fails for a candidate, §2's existing sources stand. The survivor-basket limitation (§6) is not solved by any of these.
+
+**Broker.** Fidelity offers no public retail trading API, and automating its website would break its terms, so it is not integrated. Alpaca (free paper and live API) is the v1.1 adapter. Live trading through it stays behind every step of §5. Broker credentials live only in environment variables or a secrets vault, never in either repo.
+
+**Execution timing.** At daily frequency, network latency is not the binding constraint; decision-to-fill delay is. v1.1 evaluates computing signals shortly before the close with market-on-close orders, against the current next-open fill, under identical Rule 13 costs.
