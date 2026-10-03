@@ -12,9 +12,8 @@ the active spec (spec 045 D-5)._
 
 **043 — ledger write guard** ([tasks](../.specify/specs/043-ledger-write-guard/tasks.md)).
 Phase 1 (T003–T015) is done. U1 (T020–T022) is merged on `main` (PR #9).
-U2's T023–T024 are implemented on branch `claude/043-u2-write-guard-20261002`
-(recovered cloud-lane patch, draft PR); they are not on `main` until that PR merges.
-T025–T026 complete U2.
+U2's T023–T024 are merged on `main` (PR #15, merge commit `d8adac3`; recovered
+cloud-lane patch). T025–T026 complete U2.
 
 Queued behind it, in order: **044** (both edit `scripts/data.py`; 044 also
 waits on Camden's T003/T004 reviews), then **040** (043 implements first).
@@ -25,8 +24,10 @@ waits on Camden's T003/T004 reviews), then **040** (043 implements first).
 `scripts/feature_set_comparison.py` (see Blockers). Until T025 lands, production
 ledger recording is refused by design (fail closed); only synthetic ledgers write.
 
-The next unit the loop may take without a human gate is **044 probe findings
-F2, F3, F7, F8** (`044` `artifacts/p1_rules.py`, `artifacts/p1_probe.py`).
+The next loop candidate is **044 probe findings F2, F3, F7, F8** (`044`
+`artifacts/p1_rules.py`, `artifacts/p1_probe.py`). Those are the same files as
+Camden's pending 044 T003/T004 review, so the loop takes them only once Camden
+confirms it may edit them ahead of that review.
 
 ## Expected red on `main`
 
@@ -34,8 +35,10 @@ None that fails the suite. The remaining deliberate red contracts are
 `xfail(strict=True)`, so they report as xfailed; the task that makes one pass
 **must remove its marker in the same PR** (a strict XPASS fails the suite).
 
-With U2's T023–T024 applied (verified 2026-10-02 on Windows, Python 3.13.14:
-1057 passed, 4 xfailed, exit 0; ledger unchanged), four remain:
+Four remain on `main` at `d8adac3`. Source: the `test` job of
+[Tests run 37091629182](https://github.com/cstroh01/Quant-ML-Bot/actions/runs/37091629182)
+(push of `d8adac33611b6bef06a8fe403e2931a0702e140c`, 2026-10-02 ET, success).
+PR #15's own check is [Tests run 37090435169](https://github.com/cstroh01/Quant-ML-Bot/actions/runs/37090435169).
 
 - `tests/test_043_entry_points.py::test_default_entry_changes_no_ledger_bytes[E3]` — T025.
   Its per-ticker isolation boundary prints the refusal until T025's preflight.
@@ -45,8 +48,9 @@ With U2's T023–T024 applied (verified 2026-10-02 on Windows, Python 3.13.14:
 
 `tests/test_043_incident.py` and `tests/test_043_project_root.py` are no longer xfail.
 
-CI on `main` is green: every check passed at `064637c` (PR #11 merge). The earlier
-red at `e19d57c` is resolved.
+CI on `main` is green: test, web, actionlint and loop-guard all passed in
+[run 37091629182](https://github.com/cstroh01/Quant-ML-Bot/actions/runs/37091629182)
+at `d8adac3`. The earlier red at `e19d57c` is resolved.
 
 ## Blockers (human gate reached; the loop stops here)
 
@@ -88,5 +92,5 @@ The loop never crosses these. Reaching one means: write the blocker above, stop.
 - #8 — 043 Phase 1 review triage (cloud lane). Merged.
 - #9 — 043 U1, T020–T022 (cloud lane). Merged.
 - #10 — 044 R2 + R10, FR-010 one-line loader pin (cloud lane). Merged.
-- 043 U2, T023–T024 — produced by the cloud lane, push denied; patch recovered and
-  pushed by Camden. Draft.
+- #15 — 043 U2, T023–T024. Produced by the cloud lane, whose push was denied; patch
+  recovered and pushed by Camden. Merged as `d8adac3`.
