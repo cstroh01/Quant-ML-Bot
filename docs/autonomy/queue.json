@@ -63,17 +63,6 @@
       "depends_on": [
         "PR #18 merged"
       ]
-    },
-    {
-      "id": "Q8",
-      "kind": "fix",
-      "status": "blocked",
-      "spec_task": "046 U1 (T003-T006)",
-      "summary": "Spec 046 implementation chain. Blocked until T001 (published-source verification) and T002 (upstream evidence) are recorded and S1/S2/044 implementation prerequisites are complete. Do not take.",
-      "depends_on": [
-        "046 T001",
-        "046 T002"
-      ]
     }
   ]
 }
