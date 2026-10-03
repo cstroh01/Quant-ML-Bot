@@ -14,7 +14,7 @@ It points into the repo's system of record. It overrides nothing in it.
 ## Ground rules
 
 - **Work comes from a numbered spec task, never from a chat prompt.** A task that cannot be written as a spec is not ready.
-- **Version control is human-owned (Rule 10).** Agents may not merge, rebase, reset, force-push, tag, or push to `main`. Only the lanes the constitution names may commit, and only to their own branch.
+- **Version control is human-owned (Rule 10).** Agents may not merge, rebase, reset, force-push, tag, or push to `main`. Only the lanes the constitution names may commit: the GitHub Actions lane to its invoked branch, and the cloud scheduled-session lane to the branch it created in that session.
 - **Only Camden merges (Rule 9).** Never approve, merge, or mark a PR ready for review.
 - **Tests are contracts.** Never weaken an assertion to make code pass. If a spec and a test disagree, stop and report the conflict.
 - **Never write to these paths:** `docs/trials/` (the trial ledger), `exec/`, `.env*`, or `data/cache/`.
