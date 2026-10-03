@@ -5,8 +5,9 @@
     {
       "id": "Q1",
       "kind": "main-red",
-      "status": "ready",
-      "summary": "Run full suite on clean main; fix or report any red."
+      "status": "done",
+      "summary": "Run full suite on clean main; fix or report any red.",
+      "note": "Main green on PR #26 CI (2026-10-03); not re-run by the lane."
     },
     {
       "id": "Q2",
@@ -122,6 +123,66 @@
       "status": "ready",
       "summary": "Draft spec 048 spec.md: v1.1 Alpaca PAPER broker adapter (docs/SCOPE-V1.md §4, §9). Paper endpoint only; every order passes the 032/034 safety gate; credentials from environment only and never logged; position-state reconciliation broker vs ledger; execution-timing comparison (pre-close signal + market-on-close vs next-open fill) under identical Rule 13 costs. Live trading is out of scope and stays behind the capital gate. Docs only: no exec/ code, no credentials.",
       "output": ".specify/specs/048-alpaca-paper-adapter/spec.md"
+    },
+    {
+      "id": "Q15",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Spec 047 plan.md from the merged 047 spec.md. Units ≤300 changed lines.",
+      "output": ".specify/specs/047-tearsheet-correctness/plan.md",
+      "depends_on": [
+        "Q12 PR merged"
+      ]
+    },
+    {
+      "id": "Q16",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Spec 047 tasks.md from merged spec.md and plan.md. Contract-first tasks; Rule 12 mutant per defect; no task names a person.",
+      "output": ".specify/specs/047-tearsheet-correctness/tasks.md",
+      "depends_on": [
+        "Q15 PR merged"
+      ]
+    },
+    {
+      "id": "Q17",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Spec 038 plan.md from the merged 038 spec.md. Units ≤300 changed lines; pinned files assigned to the human lane.",
+      "output": ".specify/specs/038-disclosure-sweep/plan.md",
+      "depends_on": [
+        "Q13 PR merged"
+      ]
+    },
+    {
+      "id": "Q18",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Spec 038 tasks.md from merged spec.md and plan.md. Rule 12 mutant per gate; no task names a person except true human gates.",
+      "output": ".specify/specs/038-disclosure-sweep/tasks.md",
+      "depends_on": [
+        "Q17 PR merged"
+      ]
+    },
+    {
+      "id": "Q19",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Spec 048 plan.md from the merged 048 spec.md. Paper only; safety gate in the order path; credentials from environment only.",
+      "output": ".specify/specs/048-alpaca-paper-adapter/plan.md",
+      "depends_on": [
+        "Q14 PR merged"
+      ]
+    },
+    {
+      "id": "Q20",
+      "kind": "report",
+      "status": "ready",
+      "summary": "Spec 048 tasks.md from merged spec.md and plan.md. Any network or credential step is a HUMAN GATE; offline tasks use mocks/fixtures only.",
+      "output": ".specify/specs/048-alpaca-paper-adapter/tasks.md",
+      "depends_on": [
+        "Q19 PR merged"
+      ]
     }
   ]
 }
