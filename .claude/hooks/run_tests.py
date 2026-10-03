@@ -11,9 +11,11 @@ Guarantees:
   identical to the last completed run never launches pytest again; a remembered
   failure is re-reported instead.
 
-Limitation: the fingerprint covers file names, sizes and mtimes under scripts/,
-tests/, reports/api/ and .specify/specs/, plus requirements files. An edit that
-preserves all three is not seen.
+Limitation: the fingerprint covers the name, size and mtime of every file in the
+repository except generated or environment directories (.git, venvs,
+node_modules, caches, build output, data/cache) and this hook's own state. An
+edit that preserves all three is not seen. The fingerprint is taken after the
+run, so files the suite itself writes do not force a rerun.
 """
 
 from __future__ import annotations
@@ -27,8 +29,9 @@ import tempfile
 import time
 from pathlib import Path
 
-FINGERPRINT_DIRS = ("scripts", "tests", "reports/api", ".specify/specs")
-FINGERPRINT_FILES = ("requirements.txt", "requirements-dev.txt", "pyproject.toml")
+SKIP_DIRS = {".git", "venv", ".venv", "node_modules", "__pycache__", ".pytest_cache",
+             ".mypy_cache", ".ruff_cache", "dist", ".serena"}
+SKIP_PATHS = ("data/cache",)
 LEDGER_DIR = Path("docs/trials")
 SUITE_TIMEOUT_S = 1800
 STATE_DIR = Path(tempfile.gettempdir()) / "quant-ml-bot-stop-hook"
@@ -42,34 +45,25 @@ def find_root(start: Path) -> Path | None:
     return None
 
 
-def _skip_dir(name: str) -> bool:
-    return name.startswith(".") and name != ".specify" or name in {
-        "__pycache__", "node_modules", "venv", ".venv", "dist"}
-
-
 def tree_fingerprint(root: Path) -> str:
+    """Hash of (path, size, mtime) for every repository file the suite can read."""
     h = hashlib.sha256()
-    entries = []
-    for rel in FINGERPRINT_DIRS:
-        base = root / rel
-        if not base.is_dir():
-            entries.append(f"{rel}:absent")
-            continue
-        for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = sorted(d for d in dirnames if not _skip_dir(d))
-            for f in sorted(filenames):
-                p = Path(dirpath) / f
-                try:
-                    st = p.stat()
-                except OSError:
-                    continue
-                entries.append(f"{p.relative_to(root).as_posix()}:{st.st_size}:{st.st_mtime_ns}")
-    for rel in FINGERPRINT_FILES:
-        p = root / rel
-        entries.append(f"{rel}:{p.stat().st_size}:{p.stat().st_mtime_ns}" if p.is_file() else f"{rel}:absent")
-    for e in entries:
-        h.update(e.encode())
-        h.update(b"\n")
+    state = STATE_DIR.resolve()
+    for dirpath, dirnames, filenames in os.walk(root):
+        d = Path(dirpath)
+        rel_dir = d.relative_to(root).as_posix()
+        dirnames[:] = sorted(
+            n for n in dirnames
+            if n not in SKIP_DIRS
+            and (d / n).resolve() != state
+            and (n if rel_dir == "." else f"{rel_dir}/{n}") not in SKIP_PATHS)
+        for f in sorted(filenames):
+            p = d / f
+            try:
+                st = p.stat()
+            except OSError:
+                continue
+            h.update(f"{p.relative_to(root).as_posix()}:{st.st_size}:{st.st_mtime_ns}\n".encode())
     return h.hexdigest()
 
 
@@ -156,7 +150,9 @@ def run(payload: dict, runner=subprocess.run, python: str = sys.executable) -> t
         _save(state_file, state)
 
     ledger_changed = before != after
-    state["last"] = {"fingerprint": fp, "exit": code, "log": str(log), "ledger_changed": ledger_changed}
+    # Fingerprint AFTER the run: artifacts the suite writes are part of the
+    # baseline, so only an agent's later edits trigger the next run.
+    state["last"] = {"fingerprint": tree_fingerprint(root), "exit": code, "log": str(log), "ledger_changed": ledger_changed}
     _save(state_file, state)
     if ledger_changed:
         return _block(f"docs/trials/ changed during the suite run (forbidden). Log: {log}")

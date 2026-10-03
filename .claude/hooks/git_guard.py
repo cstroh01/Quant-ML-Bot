@@ -117,11 +117,12 @@ def _tokens_invoke_git(toks: list[str], depth: int) -> bool:
             i += 1
             continue
         if name in _PREFIX_LAUNCHERS:
-            i += 1
-            # Skip launcher options such as `timeout 5`, `env -i`, `nice -n 5`.
-            while i < len(toks) and (toks[i].startswith("-") or toks[i].isdigit()):
-                i += 1
-            continue
+            # Launcher options may take operands (`sudo -u root`, `env -u VAR`,
+            # `timeout -s KILL 5`), so the wrapped command can start at any later
+            # word. Fail closed: deny if Git starts at ANY later position.
+            if any(_tokens_invoke_git(toks[j:], depth + 1) for j in range(i + 1, len(toks))):
+                return True
+            return False
         return False
     return False
 

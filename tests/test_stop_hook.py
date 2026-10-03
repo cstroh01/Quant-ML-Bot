@@ -103,6 +103,36 @@ def test_changed_tree_reruns(repo):
     assert len(r.calls) == 2
 
 
+@pytest.mark.parametrize("rel", [".claude/hooks/git_guard.py", "reports/web/src/App.tsx", "AGENTS.md"])
+def test_change_outside_python_dirs_reruns(repo, rel):
+    """Codex P1 on #22: every path the suite reads is in the fingerprint."""
+    r = FakeRunner(0)
+    _stop(repo, r)
+    (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+    (repo / rel).write_text("changed\n")
+    _stop(repo, r)
+    assert len(r.calls) == 2
+
+
+def test_files_written_by_the_suite_do_not_force_rerun(repo):
+    def artifact():
+        (repo / "scripts" / "phase1-events.jsonl").write_text("{}\n")
+    r = FakeRunner(0, side_effect=artifact)
+    _stop(repo, r)
+    _stop(repo, r)
+    assert len(r.calls) == 1
+
+
+def test_generated_dirs_are_ignored(repo):
+    r = FakeRunner(0)
+    _stop(repo, r)
+    for rel in ("node_modules/x.js", "data/cache/a.csv", "venv/lib.py", "scripts/__pycache__/a.pyc"):
+        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+        (repo / rel).write_text("x")
+    _stop(repo, r)
+    assert len(r.calls) == 1
+
+
 def test_in_progress_marker_prevents_second_run(repo):
     stop._save(stop._state_path("s1"), {"in_progress": True})
     r = FakeRunner(0)
