@@ -13,14 +13,27 @@ jobs:
     timeout-minutes: 20
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
       # Install the single test runner and the API test client's dependencies
       # (finding 57); runtime requirements alone cannot run the full suite.
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: python -m pytest tests
+
+  test-windows:
+    # Replaces the manual Windows run in the merge bar. Camden's local venv is
+    # Python 3.13 on Windows; this runs the identical command on that platform.
+    timeout-minutes: 30
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pytest tests -rfEsx
 
   web:
     timeout-minutes: 15
@@ -31,8 +44,8 @@ jobs:
       run:
         working-directory: reports/web
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: "24"
           cache: npm
@@ -45,7 +58,7 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - name: Install actionlint 1.7.12
         run: bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
       # Rule 12: the gate must be seen failing. The planted defect is a typo'd
@@ -71,5 +84,5 @@ jobs:
     timeout-minutes: 5
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       - run: python3 .github/scripts/loop_guard.py --self-test
