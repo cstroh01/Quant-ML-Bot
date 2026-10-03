@@ -6,6 +6,7 @@ Unknown workspace state is honest: no index/dirtiness guesses and no git process
 from __future__ import annotations
 
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import date, datetime, timezone
 import hashlib
 import json
@@ -24,6 +25,28 @@ ROLES = {"candidate", "buy_and_hold_baseline", "random_signal_baseline", "synthe
 TERMINALS = {"completed", "rejected", "errored", "abandoned"}
 CONFIG_FIELDS = set("data universe date_range features transforms target model cv seed initial_capital commission slippage liquidation risk_free".split())
 ZERO = "0" * 64
+ENABLE_ACTION = ("pass --record-trial to the CLI, or wrap library code in "
+                 "`with production_recording(reason=...)`")
+# Spec 043 D-1 B: production recording is per-run, never environmental. Only
+# the T025 enablement sets this; nothing here does, so the default refuses.
+_production_enabled: ContextVar[str | None] = ContextVar("production_recording", default=None)
+
+
+class LedgerWriteRefused(RuntimeError):
+    """Production ledger write attempted without deliberate per-run enablement."""
+
+
+def _require_production_enabled(runner: str, path: Path) -> None:
+    """Raise before any ledger byte (lock, directory, record, sidecar) exists.
+
+    Guarantees FR-001/FR-003: unless enabled, refuse naming the runner, the
+    resolved ledger path, that nothing was written, and the enabling action.
+    """
+    if _production_enabled.get() is None:
+        raise LedgerWriteRefused(
+            f"LedgerWriteRefused: production recording is not enabled for runner "
+            f"{runner!r}; ledger {path}; no ledger byte was written. "
+            f"To record deliberately, {ENABLE_ACTION}.")
 
 
 def canonical_json(value) -> bytes:
@@ -236,6 +259,7 @@ class TrialLedger:
         return event
 
     def start(self, config: dict, *, role: str, family: str, runner: str, source: dict | None = None) -> str:
+        if not self.synthetic: _require_production_enabled(runner, self.path)
         if role not in ROLES: raise ValueError("unknown trial role")
         if role == "synthetic_test" and not self.synthetic: raise ValueError("synthetic role requires injected ledger")
         normalized, hashed = canonical_config(config, root=self.root)
@@ -245,6 +269,7 @@ class TrialLedger:
         return event["trial_id"]
 
     def finish(self, trial_id: str, outcome: str, *, returns: list[dict] | None = None, metadata: dict | None = None, reason: str | None = None) -> dict:
+        if not self.synthetic: _require_production_enabled(f"TrialLedger.finish({trial_id})", self.path)
         if outcome not in TERMINALS: raise ValueError("unknown terminal outcome")
         with serialized(self.path):
             state = self.verify()

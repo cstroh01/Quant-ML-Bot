@@ -5,7 +5,7 @@ import math
 import json
 from pathlib import Path
 import uuid
-from trial_registry import canonical_json, digest, immutable_write
+from trial_registry import ROOT, _require_production_enabled, canonical_json, digest, immutable_write
 
 FIELDS = set("campaign_id description evidence dimensions cartesian_upper_bound rerun_upper_bound remembered_range chosen_upper_bound unresolved_reason".split())
 FORMULA = "max(previous_counts, 2 * next_power_of_two(sum(max(product(dimensions)*rerun_upper_bound, remembered_range.upper, chosen_upper_bound)))))"
@@ -56,6 +56,10 @@ def calculate_backfill(manifest: dict, *, previous_counts: list[int] = ()) -> di
 
 def write_backfill(root: Path, manifest: dict, *, previous_counts: list[int] = ()) -> Path:
     """Publish approved evidence exclusively; callers cannot convert a draft into N."""
+    # Resolve the target too: a symlinked docs/ in another root still lands in ROOT.
+    target = (Path(root) / "docs/trials/backfill").resolve()
+    if Path(root).resolve() == ROOT or target.is_relative_to((ROOT / "docs/trials").resolve()):
+        _require_production_enabled("trial_backfill.write_backfill", ROOT / "docs/trials/backfill")
     prior = list(previous_counts)
     for path in (root / "docs/trials/backfill").glob("*.json"):
         if path.name == "manifest.json":

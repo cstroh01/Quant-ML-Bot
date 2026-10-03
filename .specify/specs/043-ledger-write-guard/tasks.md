@@ -93,14 +93,14 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 
 ### U2: Write guard (FR-001 to FR-005)
 
-- [ ] T023 Write layer: `TrialLedger.start` (`:236`) and `finish` (`:245`),
+- [x] T023 Write layer: `TrialLedger.start` (`:236`) and `finish` (`:245`),
   for a non-synthetic ledger at `ROOT`, call `_require_production_enabled()`
   as their **first statement**, before `canonical_config`, `serialized()` or
   anything else. `trial_backfill.write_backfill` (`:57`) makes the same check
   first when `root` resolves to `ROOT`. Put the refusal type
   `LedgerWriteRefused` and the check in `trial_registry.py`, so the write
   layer has no dependency on `trial_runner`.
-- [ ] T024 Early layer: `trial_runner.current_ledger()` (`:17-31`) returns
+- [x] T024 Early layer: `trial_runner.current_ledger()` (`:17-31`) returns
   the production ledger only when enablement holds, and otherwise raises
   `LedgerWriteRefused`. `research_attempt` (`:114`) therefore refuses before
   its body runs. The invalid-synthetic-context `ValueError` (`:24-25`) is
