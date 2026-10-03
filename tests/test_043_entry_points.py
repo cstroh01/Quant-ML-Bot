@@ -16,9 +16,12 @@ RED_UNTIL_U3 = pytest.mark.xfail(
     strict=True, reason="043 Phase 1 red; read-only route lands in T027 (U3)")
 
 
+# E1, E2 and E4 turned green at T023-T024 (write and early layers). E3 stays
+# red until T025's preflight: its per-ticker isolation boundary reports the
+# refusal on stdout instead of exiting before any output.
 @pytest.mark.parametrize("entry", [
-    pytest.param(name, marks=RED_UNTIL_U2) for name in ("E1", "E2", "E3", "E4")
-] + [pytest.param("E5", marks=RED_UNTIL_U3)])
+    "E1", "E2", pytest.param("E3", marks=RED_UNTIL_U2), "E4",
+    pytest.param("E5", marks=RED_UNTIL_U3)])
 def test_default_entry_changes_no_ledger_bytes(entry):
     result = run_child(entry)
     if entry != "E5":

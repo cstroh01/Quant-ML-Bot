@@ -10,12 +10,16 @@ import uuid
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from trial_registry import CONFIG_FIELDS, ROOT, TrialLedger, relative_path
+from trial_registry import CONFIG_FIELDS, ROOT, TrialLedger, _require_production_enabled, relative_path
 
 _injected = ContextVar("trial_ledger", default=None)
 
-def current_ledger() -> TrialLedger:
-    """Use production unless an explicitly labelled test root was injected."""
+def current_ledger(runner: str = "trial_runner.current_ledger") -> TrialLedger:
+    """Injected or labelled synthetic ledger; production only when enabled.
+
+    Never falls through to production: an invalid synthetic context raises
+    ValueError, and an unenabled production run raises LedgerWriteRefused.
+    """
     if _injected.get() is not None:
         return _injected.get()
     fixture_root = os.environ.get("SPEC033_SYNTHETIC_ROOT")
@@ -28,6 +32,7 @@ def current_ledger() -> TrialLedger:
         # retains that instance across start/terminal. Explicit injections still
         # share one ledger for lifecycle, concurrency, and lifetime-count tests.
         return TrialLedger(root / "attempts" / uuid.uuid4().hex, synthetic=True)
+    _require_production_enabled(runner, TrialLedger().path)
     return TrialLedger()
 
 @contextmanager
@@ -44,7 +49,7 @@ def run_trial(callback, config: dict, *, family: str, runner: str, metadata: dic
               role: str = "candidate", ledger: TrialLedger | None = None,
               source: dict | None = None):
     """Append/fsync intent before invoking an opaque return-series callback."""
-    ledger = ledger or current_ledger()
+    ledger = ledger or current_ledger(runner)
     trial = ledger.start(config, role=role, family=family, runner=runner, source=source)
     try:
         result = callback()
@@ -113,7 +118,7 @@ class Attempt:
 @contextmanager
 def research_attempt(config: dict, *, role: str = "candidate", family: str = "legacy-research"):
     """Record before fitting/evaluation, including failed diagnostic searches."""
-    ledger = current_ledger()
+    ledger = current_ledger(config.get("runner", "trial_runner.research_attempt"))
     actual_role = "synthetic_test" if ledger.synthetic else role
     trial = ledger.start(config, role=actual_role, family=family, runner=config["runner"])
     attempt = Attempt(ledger, trial)

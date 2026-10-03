@@ -11,36 +11,42 @@ the active spec (spec 045 D-5)._
 ## Active spec
 
 **043 — ledger write guard** ([tasks](../.specify/specs/043-ledger-write-guard/tasks.md)).
-Phase 1 (T003–T015) is done; Phase 2 is next, in review-unit order U1 → U2 → ….
+Phase 1 (T003–T015) is done. U1 (T020–T022) is merged on `main` (PR #9).
+U2's T023–T024 are implemented on branch `claude/043-u2-write-guard-20261002`
+(recovered cloud-lane patch, draft PR); they are not on `main` until that PR merges.
+T025–T026 complete U2.
 
 Queued behind it, in order: **044** (both edit `scripts/data.py`; 044 also
 waits on Camden's T003/T004 reviews), then **040** (043 implements first).
 
 ## Next unblocked task
 
-`043 T020` — `pyproject.toml`, exactly the D-5a block in tasks.md.
-Then T021 (`scripts/_project.py`) and T022 (`trial_registry.ROOT`), which
-together turn `test_043_project_root.py` green.
+`043 T025` is next for 043, and it is a **human gate**: it edits pinned
+`scripts/feature_set_comparison.py` (see Blockers). Until T025 lands, production
+ledger recording is refused by design (fail closed); only synthetic ledgers write.
+
+The next unit the loop may take without a human gate is **044 probe findings
+F2, F3, F7, F8** (`044` `artifacts/p1_rules.py`, `artifacts/p1_probe.py`).
 
 ## Expected red on `main`
 
-None that fails the suite. Phase 1 left 14 deliberate red contracts, now
-marked `xfail(strict=True, reason="043 Phase 1 red; guard lands in T020+")`
-([phase1-summary](../.specify/specs/043-ledger-write-guard/artifacts/phase1-summary.md)),
-so they report as xfailed. **Strict** means the task that makes one pass
-**must remove its marker in the same PR**; a strict XPASS fails the suite.
+None that fails the suite. The remaining deliberate red contracts are
+`xfail(strict=True)`, so they report as xfailed; the task that makes one pass
+**must remove its marker in the same PR** (a strict XPASS fails the suite).
 
-- `tests/test_043_project_root.py`: 7 cases (per-test markers) — T020–T022.
-- `tests/test_043_entry_points.py`: E1–E5 (module `pytestmark`) — T023–T026.
-- `tests/test_043_incident.py` (module `pytestmark`) — T023–T026.
-- `tests/test_043_enabled_control.py` (module `pytestmark`) — T025.
+With U2's T023–T024 applied (verified 2026-10-02 on Windows, Python 3.13.14:
+1057 passed, 4 xfailed, exit 0; ledger unchanged), four remain:
 
-**CI on `main` is red today.** At `e19d57c` the `test` check concluded
-`failure` (GitHub API, run started 2026-10-01T00:30Z; `web` passed). The
-markers above exist only in the working tree as of 2026-09-30, not in
-`e19d57c`, so the red is consistent with the 14 unmarked contracts. The failing
-test names were not visible without the log, so that cause is **unconfirmed**.
-Once the markers are committed, any failure on `main` is real and is fixed first.
+- `tests/test_043_entry_points.py::test_default_entry_changes_no_ledger_bytes[E3]` — T025.
+  Its per-ticker isolation boundary prints the refusal until T025's preflight.
+- `tests/test_043_entry_points.py::test_default_entry_changes_no_ledger_bytes[E5]` — T027 (U3).
+- `tests/test_043_entry_points.py::test_e5_serves_recorded_configuration_read_only` — T027 (U3).
+- `tests/test_043_enabled_control.py` — T025.
+
+`tests/test_043_incident.py` and `tests/test_043_project_root.py` are no longer xfail.
+
+CI on `main` is green: every check passed at `064637c` (PR #11 merge). The earlier
+red at `e19d57c` is resolved.
 
 ## Blockers (human gate reached; the loop stops here)
 
@@ -58,6 +64,7 @@ Once the markers are committed, any failure on `main` is real and is fixed first
 | Dev loop (`dev-loop.yml`) | **Off.** Dispatch-only; cron commented. Waits on spec 045 D-1 to D-4 |
 | Loop review (`loop-review.yml`) | Present; fires on `loop/*` PRs only once the token question (045 D-2) is settled, or by dispatch |
 | `@claude` comments (`claude.yml`) | Active |
+| Cloud scheduled-session lane | **Paused** 2026-10-02. The scheduled task could not push (repository not an authorized source). Moving to a repository-aware Claude Code routine; re-enabled only after one manual run opens a real draft PR |
 | Local sessions | Camden |
 
 ## Human gates (standing list)
@@ -78,4 +85,8 @@ The loop never crosses these. Reaching one means: write the blocker above, stop.
 
 ## Recent loop PRs
 
-- (none yet)
+- #8 — 043 Phase 1 review triage (cloud lane). Merged.
+- #9 — 043 U1, T020–T022 (cloud lane). Merged.
+- #10 — 044 R2 + R10, FR-010 one-line loader pin (cloud lane). Merged.
+- 043 U2, T023–T024 — produced by the cloud lane, push denied; patch recovered and
+  pushed by Camden. Draft.
