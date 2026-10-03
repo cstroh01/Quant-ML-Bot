@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them.",
+  "items": [
+    {
+      "id": "Q1",
+      "kind": "main-red",
+      "status": "ready",
+      "summary": "Run full suite on clean main; fix or report any red."
+    },
+    {
+      "id": "Q2",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "044 T002a (F2/F3/F7/F8)",
+      "allowed_paths": [
+        ".specify/specs/044-nominal-price-reconstruction/artifacts/p1_rules.py",
+        ".specify/specs/044-nominal-price-reconstruction/artifacts/p1_probe.py"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [],
+      "summary": "Do 044 tasks.md T002a exactly as written: fix F2, F3, F7, F8 in the probe, with one Rule 12 planted defect per finding. Offline only."
+    },
+    {
+      "id": "Q3",
+      "kind": "report",
+      "status": "done",
+      "summary": "037 clean-clone report",
+      "output": "docs/implementation/spec-037/clean-clone-<YYYYMMDD>.md",
+      "pr": 18
+    },
+    {
+      "id": "Q4",
+      "kind": "report",
+      "status": "done",
+      "summary": "038 disclosure audit (Rule 11/16)",
+      "output": "docs/implementation/spec-038/disclosure-audit-<YYYYMMDD>.md",
+      "pr": 19
+    },
+    {
+      "id": "Q5",
+      "kind": "report",
+      "status": "ready",
+      "summary": "033 checkbox reconciliation with evidence per task",
+      "output": ".specify/specs/033-trial-ledger-dsr-pbo-gate/artifacts/checkbox-audit-<YYYYMMDD>.md"
+    },
+    {
+      "id": "Q6",
+      "kind": "report",
+      "status": "ready",
+      "summary": "021 T052 offline fingerprint dry check; record in 021 artifacts"
+    },
+    {
+      "id": "Q7",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "037 T017",
+      "summary": "Check T017 (SC-001 met per 2026-10-03 decision: 4 strict xfails owned by 043 T025/T027; Windows d8adac3 1057 passed/4 xfailed). Rewrite 037 spec.md Status line with current numbers, citing docs/implementation/spec-037/clean-clone-20261003.md. Docs only.",
+      "allowed_paths": [
+        ".specify/specs/037-clean-clone-green/spec.md",
+        ".specify/specs/037-clean-clone-green/tasks.md"
+      ],
+      "depends_on": [
+        "PR #18 merged"
+      ]
+    }
+  ]
+}
