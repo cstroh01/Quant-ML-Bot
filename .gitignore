@@ -39,3 +39,6 @@ Thumbs.db
 # Detached agent-run logs (machine-local, never meaningful to another checkout)
 review_*.log
 *.log
+
+# Machine-local Claude Code settings (hooks with absolute Windows paths)
+.claude/settings.local.json
