@@ -17,23 +17,36 @@ The two rules most often violated by accident:
 - **Point-in-time correctness.** For every row timestamped `t`, every value in
   that row must be computable using only data that existed at or before `t`.
   Judged per row, against that row's own timestamp.
-- **Version control is human-owned.** Never run `git`. Write files, explain
-  changes. Camden commits. One narrow, recorded carve-out exists — see
-  [Rule 10 and the GitHub Actions lane](#rule-10-and-the-github-actions-lane).
+- **Version control is human-owned.** Local agents never run Git, including
+  read-only commands. Camden performs version control in GitKraken.
+  Constitution Rule 10 defines the two narrow exceptions: the GitHub Actions
+  lane and the cloud scheduled-session lane. See
+  [Rule 10 and the two commit lanes](#rule-10-and-the-two-commit-lanes).
 
-## Rule 10 and the GitHub Actions lane
+## Rule 10 and the two commit lanes
+
+_Formerly titled "Rule 10 and the GitHub Actions lane"; the constitution's
+2026-09-06 amendment note cites this section by that name._
 
 Rule 10 says agents do not run `git`. PR #5 (spec 001) was pushed by an agent
-anyway. That is recorded here rather than left as a silent precedent.
+anyway. That is recorded here rather than left as a silent precedent. The
+constitution now names two lanes: the GitHub Actions lane (history below) and
+the cloud scheduled-session lane (added 2026-10-01). Its text is the authority
+for both.
 
-**The carve-out.** An agent invoked from a GitHub issue or PR comment, running
+**The Actions carve-out.** An agent invoked from a GitHub issue or PR comment, running
 in the repository's GitHub Actions workflow, may run `git add`, `git commit`,
 and `git push` — and only those three — to the branch it was invoked on.
 
 **Everything still forbidden.** `merge`, `rebase`, `reset`, `checkout` of
 another branch, force-push, tag, any push to `main`, and any history rewrite.
-An agent working outside the Actions lane — a local session, a worktree, a
-terminal — runs no `git` at all. The carve-out is the lane, not the agent.
+Outside the two lanes named in constitution Rule 10, agents run no Git at
+all. The cloud scheduled-session lane may clone, fetch, create one new
+`claude/*` branch per session, and add explicit paths, commit and non-force
+push to that session's branch only. Its protected paths and all remaining
+prohibitions are exactly those in the constitution. A local session, worktree
+or terminal never gains either exception by setting an environment variable.
+The carve-out is the lane, not the agent.
 
 **Why it does not defeat the rule.** Rule 10 is a comprehension rule, not a
 safety rule: it exists so changes do not become permanent faster than Camden
@@ -47,8 +60,9 @@ ability to make anything permanent.
 Camden's confirmation — Rule 10 now states this exception itself, in a
 dedicated commit to `.specify/memory/constitution.md` that changes nothing
 else, per that file's own Amendment clause. This section is kept as the
-record of why the carve-out exists and what it does and does not grant; the
-constitution's own text is the current authority on the rule.
+record of why the Actions carve-out exists and what it does and does not
+grant; the constitution's own text is the current authority on the rule,
+including the cloud scheduled-session lane.
 
 ## What this project is
 
