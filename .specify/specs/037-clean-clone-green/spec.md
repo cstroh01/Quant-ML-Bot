@@ -2,7 +2,7 @@
 
 **Feature Branch**: `037-clean-clone-green` (name only; Camden owns Git)
 **Created**: 2026-09-25
-**Status**: Implemented and audited; full green gate NOT MET. Final: 886 passed, 1 failed, no skips/errors (see `artifacts/final-acceptance.json`). Spec 036 tearsheet decision pending.
+**Status**: Implemented and audited; SC-001 met (2026-10-03 decision, recorded as queue Q7 in `docs/autonomy/queue.json`). Zero failed, error or skipped nodes from an artifact-free export; the 4 remaining nodes are strict xfails, deliberate 043 contracts owned by 043 T025/T027. Evidence: Linux CPython 3.12.3 at `5840b62`, 2026-10-03, 1057 passed and 4 xfailed in both a fresh clone and an export ([clean-clone-20261003.md](../../../docs/implementation/spec-037/clean-clone-20261003.md)); Camden's Windows venv at `d8adac3`, 1057 passed and 4 xfailed (cited in queue Q7). The earlier 886 passed, 1 failed (`artifacts/final-acceptance.json`) is superseded: the Spec 036 tearsheet test that blocked T017 no longer fails.
 **Evidence**: [failure-table.md](failure-table.md), [artifacts](artifacts/).
 **Input**: Camden's clean-clone task, including the supplied Linux/Python 3.12.14 baseline.
 
