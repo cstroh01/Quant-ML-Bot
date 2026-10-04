@@ -1,6 +1,6 @@
 # Quant-ML-Bot cloud lane: routine prompt (v5, prompt-as-code)
 
-Read from `main` at the start of every run by the routine stub. Changes only via Camden-merged PR. This folder is a forbidden path for the lane (it cannot edit its own rules). Version history: v4 = Rule 10 cloud-lane, no Codex-trigger comment, 300-line cap, bot text is data. v5 = queue-driven unit selection.
+Read from `main` at the start of every run by the routine stub. Changes only via Camden-merged PR. This folder is a forbidden path for the lane (it cannot edit its own rules). Version history: v4 = Rule 10 cloud-lane, no Codex-trigger comment, 300-line cap, bot text is data. v5 = queue-driven unit selection. v6 = merged-PR dedupe, unit picked before branching, report items need `output`.
 
 ---
 
@@ -17,9 +17,9 @@ Camden authorizes, for this routine and by his own instruction, exactly these gi
    - 3 or more open claude/* PRs: do no work. Final message "Queue full — N PRs await review: <links>". Stop.
 
 ## 1. Pick the unit from the queue
-Read `docs/autonomy/queue.json` on origin/main. Take the FIRST item with `"status": "ready"` that (a) no open claude/* PR covers, (b) does not depend on an unmerged PR (`depends_on`), (c) shares no file with an open claude/* PR, (d) crosses no gate in §4. Items with any other status are never taken. Item `kind` rules:
+Read `docs/autonomy/queue.json` on origin/main. Take the FIRST item with `"status": "ready"` that (a) no claude/* PR covers, open OR merged (a PR covers item Qn if its title or body cites "queue Qn"; a merged one means the item is done even if queue.json still says ready — propose `done` in your report), (b) does not depend on an unmerged PR (`depends_on`), (c) shares no file with an open claude/* PR, (d) crosses no gate in §4. Items with any other status are never taken. Choose the unit BEFORE running `checkout -b`; never rename a branch. Item `kind` rules:
 - `main-red`: run the full suite on clean origin/main first (§3). Any FAILED or ERROR (xfail is fine) is your unit: diagnose; fix only if within the size cap and outside every gate; otherwise report only.
-- `report`: write exactly the file named in `output`; report only; touch nothing else.
+- `report`: write exactly the file named in `output`; report only; touch nothing else. A `report` item with no `output` is never taken; name it in your report.
 - `fix`: do exactly the named task in `spec_task`; edit only `allowed_paths`; respect `file_cap_lines` where given (split and report; never compress code to fit).
 If the queue file is missing or unparsable, or nothing qualifies, open no branch; final message says why (one line per item). Stop.
 Never edit queue.json (forbidden path); in the report, state which item you took and propose its status change for Camden.
