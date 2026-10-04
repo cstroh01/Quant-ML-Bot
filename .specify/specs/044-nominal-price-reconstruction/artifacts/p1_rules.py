@@ -7,7 +7,6 @@ Imports pandas and the stdlib only, never scripts/.
 """
 from __future__ import annotations
 
-import hashlib
 import math
 from datetime import datetime, time
 from pathlib import Path
@@ -16,24 +15,19 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parents[3]
-LEDGER = (REPO / "docs" / "trials" / "trials.jsonl", REPO / "docs" / "trials" / "trials.head.json")
-OUT = HERE / "p1-determination.txt"
-RAW = REPO / "data" / "cache" / "spec044_p1" / "p1-raw-rows.csv"
 BASKET = ("AAPL", "AMZN", "GOOGL", "MSFT", "NVDA")
+# (file, exact header, unique key, permitted forms)
 RANGES = ("p1-filed-ranges.csv",
-          ["ticker", "quarter_start", "quarter_end", "low", "high", "form", "filed_date", "accession", "source_url"])
+          ["ticker", "quarter_start", "quarter_end", "low", "high", "form", "filed_date", "accession", "source_url"],
+          ["ticker", "quarter_start", "quarter_end"], ("10-K", "10-Q"))
 DECLARED = ("p1-declared-dividends.csv",
-            ["ticker", "ex_date", "declared_amount", "share_basis", "declared_date", "form", "accession", "source_url"])
+            ["ticker", "ex_date", "declared_amount", "share_basis", "declared_date", "form", "accession", "source_url"],
+            ["ticker", "ex_date"], ("8-K", "10-Q", "10-K"))
 RANGE_BAND = 0.01  # Q-P1, registered
 ADJ_CLOSE_TOL = 1e-4  # Q-P2, registered
 DIVIDEND_TOL = 1e-3  # Q-P3, registered
 VOLUME_WINDOW, VOLUME_MIN_RATIO = 60, 4.0  # Q-P4 diagnostic only (spec section 5, amended 2026-10-02)
 NEW_YORK = ZoneInfo("America/New_York")
-
-
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else "ABSENT"
 
 
 def positive(values) -> bool:
@@ -53,7 +47,7 @@ def splits(history: pd.DataFrame) -> pd.Series:
 
 
 def sessions(history: pd.DataFrame, ticker: str) -> pd.DataFrame:
-    """Naive midnight labels (zone dropped, wall date kept, never UTC); split events validated, none discarded."""
+    """Naive midnight labels (zone dropped, wall date kept, never UTC); split and dividend events validated."""
     if history.empty:
         raise ValueError(f"{ticker}: provider returned no rows")
     index = pd.DatetimeIndex(history.index)
@@ -64,6 +58,9 @@ def sessions(history: pd.DataFrame, ticker: str) -> pd.DataFrame:
     ratios = history["Stock Splits"]
     if not (ratios.map(math.isfinite).all() and (ratios >= 0).all()):
         raise ValueError(f"{ticker}: a split value is missing, infinite or negative (0 alone means no split)")
+    dividends = history["Dividends"]  # F8: validated before `> 0` event selection can drop a NaN
+    if not (dividends.map(math.isfinite).all() and (dividends >= 0).all()):
+        raise ValueError(f"{ticker}: a dividend value is missing, infinite or negative (0 alone means no dividend)")
     if not positive(later_split_factor(history)):
         raise ValueError(f"{ticker}: cumulative split factor is not finite and positive")
     return history
@@ -74,18 +71,29 @@ def keep(raw: list, question: str, ticker: str, frame: pd.DataFrame, factor=None
     raw.append(rows.rename_axis("session").reset_index())
 
 
-def read_inputs(spec: tuple, dates: list[str]):
-    name, columns = spec
-    path = HERE / name
-    if not path.exists():
+def read_inputs(spec: tuple, dates: list[str], source=None):
+    """(frame, "") only if every cell is filled, tickers are in BASKET, forms are permitted and keys unique (F7).
+
+    `source` defaults to the CSV beside this file; the self-check passes an in-memory buffer.
+    """
+    name, columns, key, forms = spec
+    source = HERE / name if source is None else source
+    if isinstance(source, Path) and not source.exists():
         return None, f"{name} missing"
-    frame = pd.read_csv(path, dtype=str)
+    frame = pd.read_csv(source, dtype=str, keep_default_na=False)
     if list(frame.columns) != columns:
         return None, f"{name} header is not {columns}"
     if frame.empty:
         return None, f"{name} has no rows"
+    blank = [column for column in columns if (frame[column].str.strip() == "").any()]
+    if blank:
+        return None, f"{name}: blank cells in {blank}; every row needs its primary citation"
+    if not frame["ticker"].isin(BASKET).all() or not frame["form"].isin(forms).all():
+        return None, f"{name}: a ticker is outside {BASKET} or a form is outside {forms}"
     for column in dates:
         frame[column] = pd.to_datetime(frame[column], format="%Y-%m-%d")
+    if frame.duplicated(key).any():  # on parsed dates, so 2024-1-2 and 2024-01-02 collide
+        return None, f"{name}: duplicate {key} rows {frame.loc[frame.duplicated(key, keep=False), key].values.tolist()}"
     return frame, ""
 
 
@@ -99,21 +107,23 @@ def horizon(histories: dict, now_utc: datetime):
     if now.weekday() >= 5 or now.time() < time(16, 0):
         completed -= pd.offsets.BDay(1)
     last = next(iter(lasts.values()))
+    if last > completed:  # F2: a reversed range is empty, so lag would read 0 and pass
+        return "STOP", f"responses end {last.date()}, after the last completed weekday {completed.date()}"
     lag = len(pd.bdate_range(last + pd.Timedelta(days=1), completed))
     verdict = "PASS" if lag <= 1 else "STOP"
     return verdict, f"responses end {last.date()}; last completed weekday {completed.date()}; lag {lag} (max 1)"
 
 
-def q_p1(histories, lines, raw):
-    ranges, why = read_inputs(RANGES, ["quarter_start", "quarter_end", "filed_date"])
+def q_p1(histories, lines, raw, source=None):
+    ranges, why = read_inputs(RANGES, ["quarter_start", "quarter_end", "filed_date"], source)
     if ranges is None:
         return "STOP", why
     cumulative = False
     for row in ranges.itertuples(index=False):
         label = f"{row.ticker} {row.quarter_start.date()}..{row.quarter_end.date()}"
         low, high = float(row.low), float(row.high)
-        if row.form not in ("10-K", "10-Q") or not positive([low, high]) or low > high:
-            return "STOP", f"{label}: form or filed range invalid"
+        if not positive([low, high]) or low > high:
+            return "STOP", f"{label}: filed range invalid"
         history = histories[row.ticker]
         later = splits(history).loc[row.quarter_end + pd.Timedelta(days=1):]
         if later.empty:
@@ -185,8 +195,8 @@ def required_dividend_cases(histories) -> set:
     return required
 
 
-def q_p3(histories, lines, raw):
-    declared, why = read_inputs(DECLARED, ["ex_date", "declared_date"])
+def q_p3(histories, lines, raw, source=None):
+    declared, why = read_inputs(DECLARED, ["ex_date", "declared_date"], source)
     if declared is None:
         return "STOP", why
     rows = {(row.ticker, row.ex_date): row for row in declared.itertuples(index=False)}
