@@ -12,7 +12,8 @@
     {
       "id": "Q2",
       "kind": "fix",
-      "status": "ready",
+      "status": "done",
+      "pr": 28,
       "spec_task": "044 T002a (F2/F3/F7/F8)",
       "allowed_paths": [
         ".specify/specs/044-nominal-price-reconstruction/artifacts/p1_rules.py",
@@ -41,14 +42,16 @@
     {
       "id": "Q5",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
+      "pr": 29,
       "summary": "033 checkbox reconciliation with evidence per task",
       "output": ".specify/specs/033-trial-ledger-dsr-pbo-gate/artifacts/checkbox-audit-<YYYYMMDD>.md"
     },
     {
       "id": "Q6",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
+      "pr": 30,
       "summary": "021 T052 offline fingerprint dry check; record in 021 artifacts"
     },
     {
