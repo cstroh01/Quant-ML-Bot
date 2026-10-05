@@ -195,22 +195,11 @@ branch, force-push, tag, any push to `main`, and any history rewrite remain
 forbidden in every lane, including this one. An agent working outside these
 two lanes — a local session, a worktree, a terminal — runs no `git` at all.
 
-**Exception — the cloud scheduled-session lane.** An agent running as a
-Claude scheduled task in Anthropic's cloud (a fresh session started by a
-schedule Camden created, not a session on his machine) may run `git clone`,
-`git fetch`, `git checkout -b` to create **one** new branch named `claude/*`
-per session, and `git add`, `git commit`, and `git push` to that branch only.
-It may open a draft PR from that branch. Everything forbidden in the Actions
-lane stays forbidden here, plus: no push to any branch it did not create in
-the same session, and no edit to this file, `CLAUDE.md`, `docs/SCOPE-V1.md`,
-`docs/autonomy/`, `.github/`, `docs/trials/`, or anything in `exec/`.
+**Exception — the authorized cloud-session lane.** An agent running in Anthropic-managed cloud as a Claude scheduled task configured by Camden, or in a Claude cloud session explicitly started by Camden through the browser, Claude app, or cloud CLI launch, or in an OpenAI-managed Codex cloud task explicitly started by Camden, may clone and fetch the repository; create exactly one new feature branch for that session or task; stage explicit paths; commit; and push without force to that branch only. Claude branches must begin `claude/`; Codex branches must begin `codex/`. Provider-managed checkout and branch creation count toward this same single-branch allowance; they do not authorize a second branch. The task may open one draft PR to `main` and update that same PR from its own branch while the same session or task continues.
 
-This is not a safety rule. It is a comprehension rule — the same one as
-Rule 9, enforced at the point where changes become permanent. Neither
-exception defeats it: a push in this lane lands on a feature branch inside an
-open PR, never `main`, and Rule 9 still gates the merge on Camden being able
-to explain the change. What it grants is the ability to put a commit where
-the review already is — not the ability to make anything permanent.
+No push to a branch created by another session or task, no merge, rebase, reset, force-push, tag, history rewrite, checkout of another branch after branch creation, or push to `main` is permitted. Agents never approve PRs, merge them, or mark them ready for review. No edit to this file, `CLAUDE.md`, `docs/SCOPE-V1.md`, `docs/autonomy/`, `.github/`, `docs/trials/`, or anything in `exec/` is permitted in this lane. All other repository protections and human gates remain binding. Local sessions, terminals, worktrees, and cloud sessions continued locally gain no Git permission from this exception.
+
+This is a comprehension rule, continuous with Rule 9. The exception lets a session place its work on a feature branch for review; it does not let the session make the work permanent on `main`. Camden must still explain what the change does, why it is correct, and what would break if it were wrong before he merges it.
 
 _Amended 2026-09-06, Camden's confirmation: this exception was previously a
 documented carve-out in `CLAUDE.md` ("Rule 10 and the GitHub Actions lane"),
@@ -222,6 +211,8 @@ _Amended 2026-10-01, Camden's confirmation: added the cloud scheduled-session
 lane so unattended cloud runs can put commits where review already is. Same
 argument as the Actions lane — the push lands on a `claude/*` branch inside a
 draft PR, never `main`, and Rule 9 still gates every merge._
+
+_Amended 2026-10-05, with Camden's explicit approval: extended the cloud lane to Camden-started Claude cloud sessions and Codex cloud tasks so bounded queue work can use eligible cloud credit and independent providers. One session-owned provider-prefixed branch and draft PR only; protected paths, local Git prohibition, and Camden's comprehension and merge gates remain intact._
 
 ## Rule 11 — No unsourced figures in any UI, report, or document
 
