@@ -50,5 +50,9 @@ The original tearsheet success test requires excluded Spec 036 wiring. No skip w
 added without Camden answering the scope question. Exact evidence is in
 `artifacts/final-acceptance.json`; protected hashes pass in `boundary-audit.json`.
 
-- [ ] T017 Meet SC-001: zero failed/error tests from a clean export. Blocked by the
-  unchanged Spec 036 tearsheet success test; not waived or silently rebaselined.
+- [x] T017 Meet SC-001: zero failed/error tests from a clean export. Was blocked by the
+  unchanged Spec 036 tearsheet success test; that test no longer fails. Met per the
+  2026-10-03 decision (queue Q7): 1057 passed, 4 strict xfails owned by 043 T025/T027,
+  no failures, errors or skips (Linux `5840b62`); Windows `d8adac3` 1057 passed,
+  4 xfailed. Evidence:
+  `docs/implementation/spec-037/clean-clone-20261003.md`. Not waived or silently rebaselined.
