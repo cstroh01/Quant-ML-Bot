@@ -26,3 +26,10 @@
 | M6 | submit bypasses `order_gateway` | `test_kill_latch_blocks_every_buy` (+2) |
 | M7 | stale-session check removed | `test_stale_data_aborts` |
 | M8 | unknown broker status releases the reservation | `test_reconcile_releases_only_terminal` |
+| M9 | missing-ticker check removed (Codex P1, PR #35) | `test_one_ticker_missing_the_expected_session_aborts` |
+| M10 | 09:28 ET pre-open cutoff removed (Codex P1) | `test_submit_after_the_pre_open_window_aborts` |
+| M11 | session-day check removed (Codex P1) | `test_submit_on_a_non_session_day_aborts` |
+| M12 | offline record not labelled placeholder (Codex P1) | `test_offline_record_is_labelled_placeholder` |
+| M13 | buys floored against `floor(held)`, not the real holding (Codex P2) | `test_fractional_holding_never_ends_above_target` |
+
+Codex review on PR #35: four P1s and one P2, fixed in PR #36 with tests written red first. On Camden's instruction (2026-10-04), the `exec/` fixes were written in the interactive session; Camden reviews them line by line before merge (Rule 7). Linux, Py 3.13, full suite: 1165 passed, 4 xfailed.

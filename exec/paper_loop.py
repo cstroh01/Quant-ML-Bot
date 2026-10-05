@@ -25,7 +25,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
 from zoneinfo import ZoneInfo
@@ -35,6 +35,7 @@ for _p in (ROOT / "scripts", ROOT / "exec"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
 
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from alpaca_paper import (  # noqa: E402
@@ -55,6 +56,8 @@ RUN_LOG_DIR = ROOT / "data" / "live_safety" / "paper-runs"
 # Conservative executable price for the gate: last close plus an overnight
 # gap allowance. A larger gap than this is not caught by the reservation math.
 GAP_ALLOWANCE = 0.05
+# Market-on-open orders must reach the broker before this New York time.
+PRE_OPEN_CUTOFF = time(9, 28)
 
 # Camden's provisional limits, ADR 0002 item 5 (2026-09-29). Configuration,
 # not results. Moves to the private companion repo at the ADR 0001 split.
@@ -76,6 +79,8 @@ class OfflineClient:
     $100,000 of equity, no positions, the clock set to ``now`` with the market
     closed. It cannot submit. Its numbers are placeholders, not an account.
     """
+
+    placeholder = True
 
     def __init__(self, now: datetime) -> None:
         self._now = now
@@ -152,8 +157,14 @@ def run_once(
     clock = client.clock()
     broker_now = parse_broker_time(clock["timestamp"])
     today = broker_now.astimezone(NY).date()
-    if submit and clock.get("is_open"):
-        raise RunAborted("market is open; market-on-open orders must be sent before the open.")
+    if submit:
+        if clock.get("is_open"):
+            raise RunAborted("market is open; market-on-open orders must be sent before the open.")
+        if not trading_days(today, today):
+            raise RunAborted(f"{today} is not an NYSE session; submit only on a session morning.")
+        ny_time = broker_now.astimezone(NY).time()
+        if ny_time >= PRE_OPEN_CUTOFF:
+            raise RunAborted(f"{ny_time:%H:%M} ET is past the {PRE_OPEN_CUTOFF:%H:%M} market-on-open cutoff.")
 
     reconciliation = reconcile_pending(gate, client, now_fn()) if submit else []
 
@@ -164,6 +175,9 @@ def run_once(
     session = completed.index[-1]
     if session.date() != expected:
         raise RunAborted(f"last completed bar is {session.date()}, expected {expected}; data is stale.")
+    missing = sorted(t for t in completed.columns if not np.isfinite(completed.at[session, t]))
+    if missing:
+        raise RunAborted(f"no close on {expected} for {', '.join(missing)}; data is incomplete.")
 
     account = client.account()
     equity = float(account["equity"])
@@ -174,6 +188,7 @@ def run_once(
     last = completed.loc[session]
     gate_prices = {t: float(last[t]) * (1.0 + GAP_ALLOWANCE) for t in completed.columns if pd.notna(last[t])}
 
+    placeholder = bool(getattr(client, "placeholder", False))
     actions = []
     for order in orders:
         record = {"ticker": order.ticker, "delta_quantity": order.delta_quantity, "target_weight": order.target_weight}
@@ -197,7 +212,8 @@ def run_once(
 
     return {
         "run_at_utc": now_fn().isoformat(),
-        "mode": "submit" if submit else "dry_run",
+        "mode": "offline_example" if placeholder else ("submit" if submit else "dry_run"),
+        "equity_source": "placeholder, not an account" if placeholder else "broker",
         "session": str(session.date()),
         "equity": equity,
         "safety_config_version": PAPER_SAFETY_CONFIG.version,
