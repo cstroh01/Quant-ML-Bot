@@ -65,6 +65,12 @@ class PaperTargetsTests(unittest.TestCase):
         self.assertEqual([(o.ticker, o.delta_quantity) for o in orders],
                          [("MSFT", -3), ("XOM", -2.5), ("AAPL", 5.0)])
 
+    def test_fractional_holding_never_ends_above_target(self):
+        orders = order_deltas(pd.Series({"AAPL": 0.05}), equity=10_000,
+                              positions={"AAPL": 3.7}, prices={"AAPL": 100.0})
+        self.assertEqual([(o.ticker, o.delta_quantity) for o in orders], [("AAPL", 1.0)])
+        self.assertLessEqual(3.7 + orders[0].delta_quantity, 5)
+
     def test_targets_stay_inside_gate_limits(self):
         self.assertLess(PAPER_RISK_CONFIG.max_weight * (1 + paper_loop.GAP_ALLOWANCE),
                         paper_loop.PAPER_SAFETY_CONFIG.max_position_pct)
@@ -230,6 +236,33 @@ class PaperLoopTests(unittest.TestCase):
         paper_loop.reconcile_pending(self.gate, client, self.now())
         open_ids = {r["client_order_id"] for r in self.gate.pending_orders() if not r["terminal"]}
         self.assertEqual(open_ids, set(rest))
+
+    # --- Codex P1s on PR #35: red until exec/paper_loop.py is fixed by hand ---
+
+    def test_one_ticker_missing_the_expected_session_aborts(self):
+        closes = trending_closes()
+        closes.iloc[-1, closes.columns.get_loc("NVDA")] = np.nan
+        with self.assertRaises(paper_loop.RunAborted):
+            paper_loop.run_once(client=FakeClient(), gate=self.gate, closes=closes, submit=False, now_fn=self.now)
+
+    def test_submit_after_the_pre_open_window_aborts(self):
+        evening = FakeClient(timestamp="2026-10-05T17:00:00-04:00", is_open=False)
+        with self.assertRaises(paper_loop.RunAborted):
+            paper_loop.run_once(client=evening, gate=self.gate, closes=trending_closes(), submit=True, now_fn=self.now)
+        self.assertEqual(evening.submitted, [])
+
+    def test_submit_on_a_non_session_day_aborts(self):
+        saturday = FakeClient(timestamp="2026-10-03T08:30:00-04:00", is_open=False)
+        closes = trending_closes()
+        with self.assertRaises(paper_loop.RunAborted):
+            paper_loop.run_once(client=saturday, gate=self.gate, closes=closes, submit=True, now_fn=self.now)
+        self.assertEqual(saturday.submitted, [])
+
+    def test_offline_record_is_labelled_placeholder(self):
+        offline = paper_loop.OfflineClient(datetime(2026, 10, 5, 12, 30, tzinfo=timezone.utc))
+        record = paper_loop.run_once(client=offline, gate=self.gate, closes=trending_closes(), submit=False, now_fn=self.now)
+        self.assertEqual(record["mode"], "offline_example")
+        self.assertEqual(record["equity_source"], "placeholder, not an account")
 
     def test_broker_time_parsing_keeps_zone(self):
         t = paper_loop.parse_broker_time("2026-10-05T08:30:00.123456789-04:00")
