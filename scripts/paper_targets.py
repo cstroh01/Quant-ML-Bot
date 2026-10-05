@@ -150,10 +150,10 @@ def order_deltas(
             wanted = math.floor(weight * equity / price)
         else:
             wanted = 0
-        if wanted == 0:
-            delta = -held  # flatten fully, fractional remainder included
-        else:
-            delta = float(wanted - math.floor(held))
+        gap = wanted - held
+        # A buy is floored against the *actual* holding, fractional part
+        # included, so the book never ends above `wanted`. A sell is exact.
+        delta = float(math.floor(gap)) if gap > 0 else gap
         if delta == 0:
             continue
         ref = float(price) if price is not None else float("nan")
