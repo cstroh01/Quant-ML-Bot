@@ -57,7 +57,7 @@
     {
       "id": "Q7",
       "kind": "fix",
-      "status": "ready",
+      "status": "done",
       "spec_task": "037 T017",
       "summary": "Check T017 (SC-001 met per 2026-10-03 decision: 4 strict xfails owned by 043 T025/T027; Windows d8adac3 1057 passed/4 xfailed). Rewrite 037 spec.md Status line with current numbers, citing docs/implementation/spec-037/clean-clone-20261003.md. Docs only.",
       "allowed_paths": [
@@ -66,7 +66,8 @@
       ],
       "depends_on": [
         "PR #18 merged"
-      ]
+      ],
+      "pr": 33
     },
     {
       "id": "Q8",
@@ -82,15 +83,16 @@
     {
       "id": "Q9",
       "kind": "report",
-      "status": "ready",
-      "summary": "Draft spec 035 (V1-FINISH-PLAN S1, free unadjusted data bundle) spec.md only. Use docs/SCOPE-V1.md §2 and §9 sources: Tiingo EOD primary candidate, Alpaca daily bars as Rule 14 second source (2016+), yfinance/EODHD/EDGAR as cross-checks. Every network fetch is a HUMAN GATE task; everything else offline. Mark vendor claims UNVERIFIED unless cited. Rule 12 mutants: basis-stamp on adjusted data, back-dated dividend lag. Cite path:line for current-state claims.",
-      "output": ".specify/specs/035-free-unadjusted-bundle/spec.md"
+      "status": "done",
+      "summary": "Draft spec 035 (V1-FINISH-PLAN S1, free unadjusted data bundle) spec.md only. Use docs/SCOPE-V1.md \u00a72 and \u00a79 sources: Tiingo EOD primary candidate, Alpaca daily bars as Rule 14 second source (2016+), yfinance/EODHD/EDGAR as cross-checks. Every network fetch is a HUMAN GATE task; everything else offline. Mark vendor claims UNVERIFIED unless cited. Rule 12 mutants: basis-stamp on adjusted data, back-dated dividend lag. Cite path:line for current-state claims.",
+      "output": ".specify/specs/035-free-unadjusted-bundle/spec.md",
+      "pr": 34
     },
     {
       "id": "Q10",
       "kind": "report",
       "status": "ready",
-      "summary": "Spec 035 plan.md from the merged 035 spec.md. Implementation units of ≤300 changed lines each.",
+      "summary": "Spec 035 plan.md from the merged 035 spec.md. Implementation units of \u2264300 changed lines each.",
       "output": ".specify/specs/035-free-unadjusted-bundle/plan.md",
       "depends_on": [
         "Q9 PR merged"
@@ -123,15 +125,16 @@
     {
       "id": "Q14",
       "kind": "report",
-      "status": "ready",
-      "summary": "Draft spec 048 spec.md: v1.1 Alpaca PAPER broker adapter (docs/SCOPE-V1.md §4, §9). Paper endpoint only; every order passes the 032/034 safety gate; credentials from environment only and never logged; position-state reconciliation broker vs ledger; execution-timing comparison (pre-close signal + market-on-close vs next-open fill) under identical Rule 13 costs. Live trading is out of scope and stays behind the capital gate. Docs only: no exec/ code, no credentials.",
-      "output": ".specify/specs/048-alpaca-paper-adapter/spec.md"
+      "status": "blocked",
+      "summary": "Draft spec 048 spec.md: v1.1 Alpaca PAPER broker adapter (docs/SCOPE-V1.md \u00a74, \u00a79). Paper endpoint only; every order passes the 032/034 safety gate; credentials from environment only and never logged; position-state reconciliation broker vs ledger; execution-timing comparison (pre-close signal + market-on-close vs next-open fill) under identical Rule 13 costs. Live trading is out of scope and stays behind the capital gate. Docs only: no exec/ code, no credentials.",
+      "output": ".specify/specs/048-alpaca-paper-adapter/spec.md",
+      "note": "Superseded 2026-10-04 by spec 049 (paper adapter + loop built in the reviewed lane). Do not take."
     },
     {
       "id": "Q15",
       "kind": "report",
       "status": "ready",
-      "summary": "Spec 047 plan.md from the merged 047 spec.md. Units ≤300 changed lines.",
+      "summary": "Spec 047 plan.md from the merged 047 spec.md. Units \u2264300 changed lines.",
       "output": ".specify/specs/047-tearsheet-correctness/plan.md",
       "depends_on": [
         "Q12 PR merged"
@@ -151,7 +154,7 @@
       "id": "Q17",
       "kind": "report",
       "status": "ready",
-      "summary": "Spec 038 plan.md from the merged 038 spec.md. Units ≤300 changed lines; pinned files assigned to the human lane.",
+      "summary": "Spec 038 plan.md from the merged 038 spec.md. Units \u2264300 changed lines; pinned files assigned to the human lane.",
       "output": ".specify/specs/038-disclosure-sweep/plan.md",
       "depends_on": [
         "Q13 PR merged"
@@ -170,21 +173,53 @@
     {
       "id": "Q19",
       "kind": "report",
-      "status": "ready",
+      "status": "blocked",
       "summary": "Spec 048 plan.md from the merged 048 spec.md. Paper only; safety gate in the order path; credentials from environment only.",
       "output": ".specify/specs/048-alpaca-paper-adapter/plan.md",
       "depends_on": [
         "Q14 PR merged"
-      ]
+      ],
+      "note": "Superseded 2026-10-04 by spec 049 (paper adapter + loop built in the reviewed lane). Do not take."
     },
     {
       "id": "Q20",
       "kind": "report",
-      "status": "ready",
+      "status": "blocked",
       "summary": "Spec 048 tasks.md from merged spec.md and plan.md. Any network or credential step is a HUMAN GATE; offline tasks use mocks/fixtures only.",
       "output": ".specify/specs/048-alpaca-paper-adapter/tasks.md",
       "depends_on": [
         "Q19 PR merged"
+      ],
+      "note": "Superseded 2026-10-04 by spec 049 (paper adapter + loop built in the reviewed lane). Do not take."
+    },
+    {
+      "id": "Q21",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "049 T011",
+      "summary": "Write scripts/paper_report.py: read data/live_safety/paper-runs/runs.jsonl (path argument; tests use a temp file) and render one markdown report per run: session, mode, safety_config_version, per-ticker decision table (Confidence, Volatility, Target), actions with outcomes, reconciliation rows, aborted reason if any, and the record's disclosure line verbatim (Rule 16). No figure that is not in the record (Rule 11). Offline tests in tests/test_049_paper_report.py with one Rule 12 mutant (disclosure line dropped).",
+      "allowed_paths": [
+        "scripts/paper_report.py",
+        "tests/test_049_paper_report.py"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "spec 049 PR merged"
+      ]
+    },
+    {
+      "id": "Q22",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "049 T012",
+      "summary": "Write scripts/paper_monitor.py: given a wide close panel, compute for each session the trend state paper_targets.trend_confidence would produce and whether the next session's close-to-close return had the same sign; report a rolling 63-session hit rate per ticker beside a 0.5 coin-flip baseline. Point-in-time: the state at t uses rows <= t only, the outcome at t uses t+1 and is labelled as such. Offline tests in tests/test_049_paper_monitor.py with Rule 12 mutants (state read from t+1; outcome window misaligned). Label output 'diagnostic, not a result' (Rules 11, 15).",
+      "allowed_paths": [
+        "scripts/paper_monitor.py",
+        "tests/test_049_paper_monitor.py"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "spec 049 PR merged"
       ]
     }
   ]
