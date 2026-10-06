@@ -33,3 +33,5 @@
 | M13 | buys floored against `floor(held)`, not the real holding (Codex P2) | `test_fractional_holding_never_ends_above_target` |
 
 Codex review on PR #35: four P1s and one P2, fixed in PR #36 with tests written red first. On Camden's instruction (2026-10-04), the `exec/` fixes were written in the interactive session; Camden reviews them line by line before merge (Rule 7). Linux, Py 3.13, full suite: 1165 passed, 4 xfailed.
+
+2026-10-05: the first unattended `--submit` run at 08:45 ET submitted 4 `opg` orders. Alpaca paper expired all four unfilled. On Camden's instruction, `time_in_force` changed from `opg` to `day` (exec/alpaca_paper.py), and `test_submit_is_market_on_open_with_client_id` now pins `day`. M14, reverting to `opg`, is killed by that test.
