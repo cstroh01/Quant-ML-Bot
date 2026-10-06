@@ -13,9 +13,9 @@ One run, before the open on a trading day:
    broker and the gate reserves nothing.
 5. Log: one JSON line per run under ``data/live_safety/paper-runs/``.
 
-Paper only (``alpaca_paper.PAPER_BASE_URL``). Orders are market-on-open, the
-same next-open fill the backtest assumes, so the run refuses to submit while
-the market is open. Nothing this loop produces is a performance result
+Paper only (``alpaca_paper.PAPER_BASE_URL``). Orders are market orders queued
+before the open (``time_in_force=day``), approximating the next-open fill the
+backtest assumes, so the run refuses to submit while the market is open. Nothing this loop produces is a performance result
 (Rules 11, 15, 16); it is the spec 049 mechanics prototype.
 """
 

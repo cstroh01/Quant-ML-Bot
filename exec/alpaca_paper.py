@@ -132,15 +132,22 @@ class AlpacaPaperClient:
     # -- the one write -------------------------------------------------------
 
     def submit_market_on_open(self, intent: OrderIntent) -> dict:
-        """Submit a market-on-open order for ``intent``. Called only by
-        ``order_gateway.submit_order`` after the gate returns ALLOW."""
+        """Submit a market order for ``intent``, queued before the open with
+        ``time_in_force=day`` so it executes at the first trade after 09:30 ET.
+        Called only by ``order_gateway.submit_order`` after the gate returns
+        ALLOW.
+
+        Not ``opg``: Alpaca paper does not simulate the opening auction, and
+        all four ``opg`` orders on 2026-10-05 expired unfilled. A queued day
+        order fills near, not at, the official open; that gap is disclosed in
+        spec 049 section 4."""
         quantity = abs(float(intent.delta_quantity))
         body = {
             "symbol": intent.instrument,
             "qty": f"{quantity:g}",
             "side": "buy" if intent.delta_quantity > 0 else "sell",
             "type": "market",
-            "time_in_force": "opg",
+            "time_in_force": "day",
             "client_order_id": intent.client_order_id,
         }
         try:

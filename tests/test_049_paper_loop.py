@@ -131,7 +131,7 @@ class AlpacaAdapterTests(unittest.TestCase):
         client.submit_market_on_open(paper_loop.OrderIntent("cid1", "AAPL", -3.0))
         body = session.calls[0][2]["json"]
         self.assertEqual(body, {"symbol": "AAPL", "qty": "3", "side": "sell", "type": "market",
-                                "time_in_force": "opg", "client_order_id": "cid1"})
+                                "time_in_force": "day", "client_order_id": "cid1"})
 
     def test_server_error_is_unknown_not_refused(self):
         session = FakeSession({("POST", "/v2/orders"): (503, {})})

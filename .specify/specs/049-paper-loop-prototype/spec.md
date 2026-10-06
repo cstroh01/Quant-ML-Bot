@@ -15,7 +15,7 @@ One run, before the open on an NYSE session:
 4. Decide with `scripts/paper_targets.py`: confidence = 1 while the 10-day SMA is above the 30-day SMA at that close (the state of `signals.sma_crossover_signal`'s rule), sized by `portfolio_risk.target_weights` under `PAPER_RISK_CONFIG`.
 5. Convert targets to whole-share deltas: buys floored, sells never below zero, held names outside the targets flattened, sells first.
 6. Without `--submit`: log the plan only. Nothing reaches the broker; the gate reserves nothing.
-7. With `--submit`: each order goes through `order_gateway.submit_order` with a fresh `BrokerSnapshot`; ALLOW leads to a market-on-open (`time_in_force=opg`) order. Refuses to run while the market is open.
+7. With `--submit`: each order goes through `order_gateway.submit_order` with a fresh `BrokerSnapshot`; ALLOW leads to a market order queued before the open (`time_in_force=day`; amended 2026-10-05, see §4). Refuses to run while the market is open.
 8. Append one JSON line per run to `data/live_safety/paper-runs/runs.jsonl` (gitignored).
 
 ## 2. Requirements
@@ -42,7 +42,8 @@ One run, before the open on an NYSE session:
 - Research-adjusted closes drive the signal; no funded nominal-price ledger is involved (that is v1.0's spec 035/044 track).
 - `external_cash_flow` is 0.0. A paper-account reset reads as a large P&L move and the gate halts (fail closed).
 - The 5% gap allowance bounds the gate's worst-case price; a larger overnight gap is not caught by the reservation math.
-- Alpaca's `opg` acceptance window and IEX-only data on the free plan are from vendor documentation, UNVERIFIED in this repo until the first `--submit` run.
+- Opening-auction orders do not work on Alpaca paper. On 2026-10-05 all four `opg` orders were accepted at 08:45 ET, then expired unfilled. Alpaca staff state paper treats auction orders as plain market orders, not at the auction price (forum thread 19155). Orders now use `time_in_force=day`, submitted before 09:28 ET, so they execute at the first trade after the open. That price differs from the official opening print the backtest assumes. The difference is an execution-reality gap that §5 step 5 reconciliation must measure, not ignore.
+- IEX-only data on the free plan is from vendor documentation, UNVERIFIED in this repo.
 - No model monitoring and no broker-vs-ledger position report yet (follow-ons).
 
 ## 5. Acceptance
