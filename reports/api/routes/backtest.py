@@ -176,6 +176,8 @@ def get_backtest_tearsheet(
         strategy_name=f"SMA Crossover ({short_window}/{long_window})",
         commission_per_trade=commission,
         slippage_bps=slippage_bps,
+        commission_total=float(round(trade_log.attrs["commission_total"], 2)),
+        slippage_total=float(round(trade_log.attrs["slippage_total"], 2)),
         starting_capital=STARTING_CAPITAL,
         liquidate_at_end=LIQUIDATE_AT_END,
         source_name=prices.attrs["source_name"],

@@ -103,6 +103,8 @@ class BacktestTearsheetResponse(BaseModel):
     strategy_name: str
     commission_per_trade: float
     slippage_bps: float
+    commission_total: float
+    slippage_total: float = Field(description="Actual fill concessions in dollars under the modeled flat-bps diagnostic; not Rule 13 costs until spec 046.")
     starting_capital: float
     liquidate_at_end: bool
     source_name: str

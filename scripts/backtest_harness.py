@@ -83,11 +83,11 @@ def run_backtest(
     trades, events = [], []
     rate = slippage_bps / 10000.
 
-    def record(date, phase, event, price, fee=0., action=0., basis=None):
+    def record(date, phase, event, price, fee=0., action=0., basis=None, slippage=0.):
         if not np.isfinite(cash + quantity * price + receivable):
             raise ValueError("nonfinite account equity")
         events.append(dict(Event_ID=len(events), Date=date, Phase=phase,
-                           Event=event, Price=price, Fee=fee, Cash=cash,
+                           Event=event, Price=price, Fee=fee, Slippage=slippage, Cash=cash,
                            Buying_Power=cash, Reserved_Cash=0., Quantity=quantity,
                            Receivable=receivable, Action=action,
                            Equity=cash + quantity * price + receivable,
@@ -96,6 +96,7 @@ def run_backtest(
     def sell(date, phase, quote, event):
         nonlocal cash, quantity, entry
         fill = quote * (1 - rate)
+        exit_slippage = quantity * (quote - fill)
         proceeds = quantity * fill - commission_per_trade
         if cash + proceeds < 0:
             raise ValueError("exit fee would require unauthorized borrowing")
@@ -107,7 +108,7 @@ def run_backtest(
                        "Dividend Income": entry[3]})
         quantity = 0.0
         entry = None
-        record(date, phase, event, quote, commission_per_trade)
+        record(date, phase, event, quote, commission_per_trade, slippage=exit_slippage)
 
     record(dates.iloc[0], "initial", "initial", values[0, 0])
     for row in prices.itertuples(index=False):
@@ -145,7 +146,8 @@ def run_backtest(
                 cash -= required
                 quantity = float(shares)
                 entry = (row.Date, fill, required, 0., shares)
-                record(row.Date, "open", "buy", row.Open, commission_per_trade)
+                record(row.Date, "open", "buy", row.Open, commission_per_trade,
+                       slippage=shares * (fill - row.Open))
         record(row.Date, "close", "mark", row.Close)
     if quantity and liquidate:
         sell(row.Date, "close", row.Close, "liquidation")
@@ -153,7 +155,11 @@ def run_backtest(
     log["Trade_ID"] = np.arange(len(log))
     log["P&L"] = log["P&L"].astype(float)
     log["Cumulative P&L"] = log["P&L"].cumsum()
-    log.attrs.update(ledger=pd.DataFrame(events), capital_base=capital,
+    ledger = pd.DataFrame(events)
+    fills = ledger.loc[ledger.Event.isin(["buy", "sell", "liquidation"])]
+    log.attrs.update(ledger=ledger, capital_base=capital,
+                     commission_total=float(fills["Fee"].sum()),
+                     slippage_total=float(fills["Slippage"].sum()),
                      commission_per_trade=float(commission_per_trade),
                      slippage_bps=float(slippage_bps), liquidate=liquidate)
     return log
