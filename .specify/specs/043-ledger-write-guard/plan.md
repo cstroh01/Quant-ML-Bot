@@ -77,6 +77,14 @@ docs/trials/**                         UNCHANGED
 1. **U1 Root**: `pyproject.toml`, `_project.py`, `ROOT`, and AC-5.
 2. **U2 Write guard**: FR-001 to FR-005 at both layers; AC-1 to AC-3.
 3. **U3 Route**: D-2 and AC-10.
+   - **U3a, T027 preparation**: extract the existing payload arithmetic into
+     `scripts/tearsheet_payload.py` and call it from the existing route; no API
+     framework dependency enters core recording. Route behavior stays pre-T027.
+   - **U3b, T027 completion**: CLI records that plain payload; GET verifies and
+     serves the matching sidecar. Approved fixture alignments retain all assertions.
+   Each is a separate physical review PR, <=300 added-plus-removed lines including
+   tests, status and evidence. T027 is checked only after U3b's AC-10 proofs.
+
 4. **U4 Drivers and conftest**: FR-008, D-4, AC-6 guard proof and AC-8.
 5. **U5 Marker**: D-3(b) and AC-7.
 6. **U6 Alias bypass**: D-3(a) and AC-9. Omitted if D-3(a) is 2 or 3.
