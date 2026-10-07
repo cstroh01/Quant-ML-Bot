@@ -91,36 +91,40 @@
     {
       "id": "Q10",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
       "summary": "Spec 035 plan.md from the merged 035 spec.md. Implementation units of \u2264300 changed lines each.",
       "output": ".specify/specs/035-free-unadjusted-bundle/plan.md",
       "depends_on": [
         "Q9 PR merged"
-      ]
+      ],
+      "pr": 40
     },
     {
       "id": "Q11",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
       "summary": "Spec 035 tasks.md from merged spec.md and plan.md. Network fetches are HUMAN GATE tasks; other tasks must not name a person. Each gate has a Rule 12 planted defect and clean control.",
       "output": ".specify/specs/035-free-unadjusted-bundle/tasks.md",
       "depends_on": [
         "Q10 PR merged"
-      ]
+      ],
+      "pr": 41
     },
     {
       "id": "Q12",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
       "summary": "Draft spec 047 spec.md: three tearsheet correctness defects found by the 038 audit (docs/implementation/spec-038/disclosure-audit-20261003.md): commission-only 'Drag' labelled as including slippage; adjusted candles under unadjusted fills; null drawdown shown as 0.00%. Each gets a failing contract and a Rule 12 mutant. Cite path:line.",
-      "output": ".specify/specs/047-tearsheet-correctness/spec.md"
+      "output": ".specify/specs/047-tearsheet-correctness/spec.md",
+      "pr": 42
     },
     {
       "id": "Q13",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
       "summary": "Draft spec 038 spec.md (V1-FINISH-PLAN S7, Rule 11/16 disclosure sweep) from the 2026-10-03 audit. Decided 2026-10-03 for audit Q1: mark audit/history documents as quotation; regenerate figures still on live surfaces from a committed small summary artifact; strike the rest with a ledger pointer. Pinned files (logistic_baseline.py, feature_set_comparison.py) are human-lane tasks. Tearsheet defects belong to spec 047, not 038.",
-      "output": ".specify/specs/038-disclosure-sweep/spec.md"
+      "output": ".specify/specs/038-disclosure-sweep/spec.md",
+      "pr": 43
     },
     {
       "id": "Q14",
@@ -133,32 +137,36 @@
     {
       "id": "Q15",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
       "summary": "Spec 047 plan.md from the merged 047 spec.md. Units \u2264300 changed lines.",
       "output": ".specify/specs/047-tearsheet-correctness/plan.md",
       "depends_on": [
         "Q12 PR merged"
-      ]
+      ],
+      "pr": 48
     },
     {
       "id": "Q16",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
       "summary": "Spec 047 tasks.md from merged spec.md and plan.md. Contract-first tasks; Rule 12 mutant per defect; no task names a person.",
       "output": ".specify/specs/047-tearsheet-correctness/tasks.md",
       "depends_on": [
         "Q15 PR merged"
-      ]
+      ],
+      "pr": 49
     },
     {
       "id": "Q17",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
       "summary": "Spec 038 plan.md from the merged 038 spec.md. Units \u2264300 changed lines; pinned files assigned to the human lane.",
       "output": ".specify/specs/038-disclosure-sweep/plan.md",
       "depends_on": [
         "Q13 PR merged"
-      ]
+      ],
+      "pr": 52,
+      "note": "Merged 2026-10-07; identity verified by changed files: .specify/specs/038-disclosure-sweep/plan.md. Duplicate PR title is not task identity."
     },
     {
       "id": "Q18",
@@ -195,7 +203,7 @@
     {
       "id": "Q21",
       "kind": "fix",
-      "status": "ready",
+      "status": "done",
       "spec_task": "049 T011",
       "summary": "Write scripts/paper_report.py: read data/live_safety/paper-runs/runs.jsonl (path argument; tests use a temp file) and render one markdown report per run: session, mode, safety_config_version, per-ticker decision table (Confidence, Volatility, Target), actions with outcomes, reconciliation rows, aborted reason if any, and the record's disclosure line verbatim (Rule 16). No figure that is not in the record (Rule 11). Offline tests in tests/test_049_paper_report.py with one Rule 12 mutant (disclosure line dropped).",
       "allowed_paths": [
@@ -205,12 +213,14 @@
       "file_cap_lines": 300,
       "depends_on": [
         "spec 049 PR merged"
-      ]
+      ],
+      "pr": 50,
+      "note": "Merged 2026-10-07; identity verified by changed files: scripts/paper_report.py, tests/test_049_paper_report.py. Duplicate PR title is not task identity."
     },
     {
       "id": "Q22",
       "kind": "fix",
-      "status": "ready",
+      "status": "done",
       "spec_task": "049 T012",
       "summary": "Write scripts/paper_monitor.py: given a wide close panel, compute for each session the trend state paper_targets.trend_confidence would produce and whether the next session's close-to-close return had the same sign; report a rolling 63-session hit rate per ticker beside a 0.5 coin-flip baseline. Point-in-time: the state at t uses rows <= t only, the outcome at t uses t+1 and is labelled as such. Offline tests in tests/test_049_paper_monitor.py with Rule 12 mutants (state read from t+1; outcome window misaligned). Label output 'diagnostic, not a result' (Rules 11, 15).",
       "allowed_paths": [
@@ -220,7 +230,9 @@
       "file_cap_lines": 300,
       "depends_on": [
         "spec 049 PR merged"
-      ]
+      ],
+      "pr": 51,
+      "note": "Merged 2026-10-07; identity verified by changed files: scripts/paper_monitor.py, tests/test_049_paper_monitor.py. Duplicate PR title is not task identity."
     }
   ]
 }

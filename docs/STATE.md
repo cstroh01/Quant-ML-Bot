@@ -24,10 +24,14 @@ waits on Camden's T003/T004 reviews), then **040** (043 implements first).
 `scripts/feature_set_comparison.py` (see Blockers). Until T025 lands, production
 ledger recording is refused by design (fail closed); only synthetic ledgers write.
 
-The next loop candidate is **044 probe findings F2, F3, F7, F8** (`044`
-`artifacts/p1_rules.py`, `artifacts/p1_probe.py`). Those are the same files as
-Camden's pending 044 T003/T004 review, so the loop takes them only once Camden
-confirms it may edit them ahead of that review.
+The next independent cloud candidate is **Q18**, report-only creation of
+`.specify/specs/038-disclosure-sweep/tasks.md` from the merged spec and plan.
+Q17 dependency is verified by PR #52 changed files. Q10/Q11/Q12/Q13/Q15/Q16,
+Q17/Q21/Q22 are delivered; the private queue proposal records their PRs.
+No Q18 output exists yet. Implementation choices D-1–D-5 remain open.
+
+044 F2/F3/F7/F8 were delivered by PR #28; unchecked T002a is stale.
+T003/T004 reviews and the T007 human network probe remain open.
 
 ## Expected red on `main`
 
@@ -35,10 +39,11 @@ None that fails the suite. The remaining deliberate red contracts are
 `xfail(strict=True)`, so they report as xfailed; the task that makes one pass
 **must remove its marker in the same PR** (a strict XPASS fails the suite).
 
-Four remain on `main` at `d8adac3`. Source: the `test` job of
-[Tests run 37091629182](https://github.com/cstroh01/Quant-ML-Bot/actions/runs/37091629182)
-(push of `d8adac33611b6bef06a8fe403e2931a0702e140c`, 2026-10-02 ET, success).
-PR #15's own check is [Tests run 37090435169](https://github.com/cstroh01/Quant-ML-Bot/actions/runs/37090435169).
+Four remain at `9084e099de753ff712ab57aa488a191962f01321`. Fresh CI runner checkouts on Linux and Windows
+collected 1208 tests: 1204 passed, 4 intentional xfails, 1 warning; both success.
+Source: [Tests run 37676782316](https://github.com/cstroh01/Quant-ML-Bot/actions/runs/37676782316),
+2026-10-07. Job logs independently read; no current-revision claim relies on
+the older d8adac3 or PR-head runs.
 
 - `tests/test_043_entry_points.py::test_default_entry_changes_no_ledger_bytes[E3]` — T025.
   Its per-ticker isolation boundary prints the refusal until T025's preflight.
@@ -48,18 +53,18 @@ PR #15's own check is [Tests run 37090435169](https://github.com/cstroh01/Quant-
 
 `tests/test_043_incident.py` and `tests/test_043_project_root.py` are no longer xfail.
 
-CI on `main` is green: test, web, actionlint and loop-guard all passed in
-[run 37091629182](https://github.com/cstroh01/Quant-ML-Bot/actions/runs/37091629182)
-at `d8adac3`. The earlier red at `e19d57c` is resolved.
+CI on `main`: test, test-windows, web (lint/build), actionlint and loop-guard
+all succeeded in run 37676782316 at the revision above. This is fresh CI
+checkout evidence; separate local Windows post-merge evidence is private.
 
 ## Blockers (human gate reached; the loop stops here)
 
 | Where | Gate | Waiting on |
 |---|---|---|
-| 043 T025 | Edits `scripts/feature_set_comparison.py` (E4 workers), a pinned 019 file | Camden: human lane, or lift the pin for this task |
+| 043 T025 | Three pinned CLI paths and E4 spawned-worker enablement | Camden replaced the earlier human-lane choice with a T025-only agent pin exception on 2026-10-07 for feature_set_comparison.py, logistic_baseline.py and multi_ticker_comparison.py; implementation/review pending; all other pin protections remain |
 | 044 T003, T004 | Review of `p1_probe.py` | Camden |
 | 044 T007, 041 T018 | Live network probe | Camden (041 T018 ran 2026-09-30 and failed; that finding is 044) |
-| 033 Phases 8–9 | Backfill bounds for 8 campaign rows | Camden |
+| 033 Phases 8–9 | Backfill approval COMPLETE; remaining statistics/lifetime-N and Gate 3 prerequisites | Numbered tasks after 035/044/046 acceptance |
 
 ## Lane status
 
@@ -68,7 +73,7 @@ at `d8adac3`. The earlier red at `e19d57c` is resolved.
 | Dev loop (`dev-loop.yml`) | **Off.** Dispatch-only; cron commented. Waits on spec 045 D-1 to D-4 |
 | Loop review (`loop-review.yml`) | Present; fires on `loop/*` PRs only once the token question (045 D-2) is settled, or by dispatch |
 | `@claude` comments (`claude.yml`) | Active |
-| Cloud scheduled-session lane | **Paused** 2026-10-02. The scheduled task could not push (repository not an authorized source). Moving to a repository-aware Claude Code routine; re-enabled only after one manual run opens a real draft PR |
+| Cloud scheduled-session lane | v7 delivered #49. v8 remains a private proposal; require its human adoption and one actual post-v8 draft PR. No schedule change authorized |
 | Local sessions | Camden |
 
 ## Human gates (standing list)
@@ -94,3 +99,12 @@ The loop never crosses these. Reaching one means: write the blocker above, stop.
 - #10 — 044 R2 + R10, FR-010 one-line loader pin (cloud lane). Merged.
 - #15 — 043 U2, T023–T024. Produced by the cloud lane, whose push was denied; patch
   recovered and pushed by Camden. Merged as `d8adac3`.
+
+## October 7 merged units and unresolved acceptance
+
+- PR #50: Q21 / 049 T011 (`paper_report.py` and its contract); PR #51: Q22 / 049 T012 (`paper_monitor.py` and its contract). Both merged; task checkboxes may lag.
+- PR #52: Q17 / 038 plan only. Q18 tasks may now be drafted; no disclosure implementation is certified.
+- PR #53: 047 U1a backend accounting/contracts/evidence. D-1/D-2/D-3 and T005 still gate the views; no Rule 13 cost-model completion.
+- Backfill approval is COMPLETE per Camden's continuation and the recorded approval/immutable artifact referenced by the 033 checkbox audit. Do not re-request it; stale unchecked boxes do not reopen approval.
+- 049 T013 remains reviewed exec work; broker client-ID linkage is unresolved. Paper prototype operation does not establish the capital gate's qualifying clock.
+- Scope amendment and 051–055 proposals are unadopted. 050 already exists. 040 remains dependent on 043 and its human preconditions.
