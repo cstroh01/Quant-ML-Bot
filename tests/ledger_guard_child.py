@@ -49,6 +49,8 @@ def fake_nested(frame, **kwargs):
 def worker_init(*args):
     """Install offline model stubs in actual spawned E4 workers."""
     check_isolation()
+    with (ROOT / "guard-worker-pids.jsonl").open("a") as stream:
+        stream.write(str(os.getpid()) + "\n")
     import feature_set_comparison as module
     module._worker_init(*args)
     module.build_features = fake_features
@@ -143,7 +145,9 @@ def dispatch(entry, enabled, outcome):
         import feature_set_comparison as module
         module.download_market_data = download
         module._worker_init = worker_init
-        module.main(max_workers=2)
+        module.main(max_workers=2, record_trial=enabled)
+        outcome["worker_pids"] = [int(pid) for pid in (ROOT / "guard-worker-pids.jsonl").read_text().splitlines()]
+        outcome["parent_pid"] = os.getpid()
     elif entry == "E5":
         tearsheet_requests(cache, outcome)
     elif entry == "E5_recorded":

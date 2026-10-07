@@ -34,6 +34,14 @@ moved here from spec 040.
 
 ---
 
+## T025 pin authorization (Camden, 2026-10-07)
+
+Camden explicitly replaced the human implementation choice with a T025-only
+agent pin exception for `scripts/feature_set_comparison.py`,
+`scripts/logistic_baseline.py` and `scripts/multi_ticker_comparison.py`.
+It covers only D-1 B flag/preflight and explicit spawned-worker enablement.
+All other pin protections and human acceptance gates remain.
+
 ## 1. The incident, and why it was possible
 
 **2026-09-28.** Verification scripts, run as standalone `python -` processes

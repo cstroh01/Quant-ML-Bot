@@ -74,7 +74,8 @@ of fills, positions, or P&L — no metric here is a return.
 
 from __future__ import annotations
 
-from trial_runner import research_attempt, research_config
+from trial_runner import research_attempt, research_config, cli_recording
+from trial_registry import production_recording, production_recording_reason
 import argparse
 import concurrent.futures
 import contextlib
@@ -319,7 +320,14 @@ def _worker_init() -> None:
         os.environ[variable] = "1"
 
 
-def _evaluate_feature_set_task(
+def _evaluate_feature_set_task(prices: pd.DataFrame, task_spec: ComparisonTask,
+                               recording_reason: str | None = None):
+    with (production_recording(reason=recording_reason)
+          if recording_reason is not None else contextlib.nullcontext()):
+        return _run_feature_set_task(prices, task_spec)
+
+
+def _run_feature_set_task(
     prices: pd.DataFrame, task_spec: ComparisonTask
 ) -> tuple[str, str, str, pd.Series, pd.Series, int]:
     """Run one `ComparisonTask` and return its result tagged with its identity.
@@ -724,7 +732,7 @@ def compare_all_entries_parallel(
             mp_context=multiprocessing.get_context("spawn"),
         ) as executor:
             futures = {
-                executor.submit(_evaluate_feature_set_task, prices, task_spec): task_spec
+                executor.submit(_evaluate_feature_set_task, prices, task_spec, production_recording_reason()): task_spec
                 for task_spec in tasks
             }
             for future in concurrent.futures.as_completed(futures):
@@ -973,10 +981,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "clean tracebacks."
         ),
     )
+    parser.add_argument("--record-trial", action="store_true")
     return parser.parse_args(argv)
 
 
-def main(max_workers: int | None = None) -> None:
+def main(max_workers: int | None = None, *, record_trial: bool = False) -> None:
+    with cli_recording(record_trial, "feature_set_comparison"):
+        return _run_main(max_workers)
+
+
+def _run_main(max_workers: int | None = None) -> None:
     """Print the paired comparison for every registry entry.
 
     Runs outside the agent lane: it reads `data/cache/` and downloads if the
@@ -1006,4 +1020,5 @@ def main(max_workers: int | None = None) -> None:
 
 
 if __name__ == "__main__":
-    main(max_workers=parse_args().workers)
+    args = parse_args()
+    main(max_workers=args.workers, record_trial=args.record_trial)

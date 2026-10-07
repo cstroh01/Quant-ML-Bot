@@ -4,7 +4,7 @@ This is intentionally a simple plumbing baseline. It is not meant to be a
 production trading strategy or investment recommendation.
 """
 
-from trial_runner import research_attempt, research_config
+from trial_runner import research_attempt, research_config, cli_recording
 import argparse
 from pathlib import Path
 import statistics
@@ -253,7 +253,13 @@ def format_comparison(sma_summary: dict, baselines: dict, *, seed_count: int) ->
 def main(argv=None, *, cache_dir=UNADJUSTED_CACHE_DIR):
     parser = argparse.ArgumentParser(description="Run the AAPL crossover on a verified unadjusted bundle")
     parser.add_argument("--manifest", type=Path, help="explicit unadjusted manifest path")
+    parser.add_argument("--record-trial", action="store_true")
     args = parser.parse_args(argv)
+    with cli_recording(args.record_trial, "ma_crossover_backtest"):
+        return _run_main(args, cache_dir)
+
+
+def _run_main(args, cache_dir):
     nominal = load_unadjusted_for_ticker(TICKER, cache_dir, manifest_path=args.manifest)
 
     # A 10-day average reacts fairly quickly, while a 30-day average gives a

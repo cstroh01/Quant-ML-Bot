@@ -1,6 +1,7 @@
 """Phase 2 logistic-regression baseline with walk-forward validation."""
 
-from trial_runner import research_attempt, research_config
+from trial_runner import research_attempt, research_config, cli_recording
+import argparse
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
@@ -310,7 +311,15 @@ def _format_ml_comparison(ml_summary: dict, baselines: dict, *, seed_count: int)
     return "\n".join(lines)
 
 
-def main() -> None:
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--record-trial", action="store_true")
+    args = parser.parse_args(argv)
+    with cli_recording(args.record_trial, "logistic_baseline"):
+        return _run_main()
+
+
+def _run_main() -> None:
     market_data = download_market_data([TICKER], period="2y")
     prices = market_data[market_data["Ticker"] == TICKER].copy()
     prices = prices.sort_values("Date").reset_index(drop=True)

@@ -105,7 +105,7 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
   `LedgerWriteRefused`. `research_attempt` (`:114`) therefore refuses before
   its body runs. The invalid-synthetic-context `ValueError` (`:24-25`) is
   kept, and never falls through to production (FR-005).
-- [ ] T025 Enablement *(per D-1)*. For D-1 B:
+- [x] T025 Enablement *(per D-1)*. For D-1 B:
   - `production_recording(reason: str)` is a context manager backed by a
     context variable.
   - E1–E4 CLIs take `--record-trial`. Without it, `main` refuses **before**
@@ -114,7 +114,7 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
     (`feature_set_comparison.py`'s pool initializer or task arguments). The
     workers enter `production_recording` only with that token.
   - No environment variable enables production.
-- [ ] T026 Re-run T011 to T013. AC-1, AC-2 and AC-3 are green. Then plant the
+- [x] T026 Re-run T011 to T013. AC-1, AC-2 and AC-3 are green. Then plant the
   removal of T023's check in a copy and show that AC-2 goes red: the write
   layer is load-bearing on its own.
 

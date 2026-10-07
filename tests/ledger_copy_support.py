@@ -76,10 +76,12 @@ def ledger_counts(root: Path) -> tuple[int, int]:
             len(list((base / "returns").glob("*.jsonl"))))
 
 
-def run_child(entry: str, *, enabled: bool = False) -> dict:
+def run_child(entry: str, *, enabled: bool = False, mutate=None) -> dict:
     """Run the actual entry point in a disposable full copy, with evidence."""
     with tripwire(), tempfile.TemporaryDirectory(prefix="qmb043-") as temp:
         root = make_copy(Path(temp) / "repo")
+        if mutate is not None:
+            mutate(root)
         before, counts = manifest(root), ledger_counts(root)
         command = [sys.executable, "-B", "tests/ledger_guard_child.py", entry]
         if enabled:

@@ -1,6 +1,6 @@
 """Record research intent outside accounting; never infer missing OOS provenance."""
 from __future__ import annotations
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 import hashlib
 import inspect
@@ -10,7 +10,7 @@ import uuid
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from trial_registry import CONFIG_FIELDS, ROOT, TrialLedger, _require_production_enabled, relative_path
+from trial_registry import CONFIG_FIELDS, ROOT, TrialLedger, _require_production_enabled, relative_path, production_recording
 
 _injected = ContextVar("trial_ledger", default=None)
 
@@ -34,6 +34,14 @@ def current_ledger(runner: str = "trial_runner.current_ledger") -> TrialLedger:
         return TrialLedger(root / "attempts" / uuid.uuid4().hex, synthetic=True)
     _require_production_enabled(runner, TrialLedger().path)
     return TrialLedger()
+
+@contextmanager
+def cli_recording(enabled: bool, runner: str):
+    """Check permission before CLI data access; preserve labelled test ledgers."""
+    with production_recording(reason=runner) if enabled else nullcontext():
+        current_ledger(runner)
+        yield
+
 
 @contextmanager
 def injected_ledger(ledger: TrialLedger):

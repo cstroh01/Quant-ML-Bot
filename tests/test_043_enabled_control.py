@@ -1,12 +1,5 @@
 """AC-3: a deliberate E1 recording must still produce a verified ledger."""
-import pytest
-
 from ledger_copy_support import run_child
-
-pytestmark = pytest.mark.xfail(
-    strict=True, reason="043 Phase 1 red; guard lands in T020+"
-)
-
 
 def test_record_trial_flag_records_complete_funded_trials():
     result = run_child("E1", enabled=True)
