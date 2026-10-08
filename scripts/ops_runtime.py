@@ -53,3 +53,73 @@ def missed_sessions(now: datetime, *, completed_sessions: set[date], since: date
     sessions = trading_days(since, local.date())
     return [s for s in sessions if s not in completed_sessions
             and (s < local.date() or local.time() >= CUTOFF)]
+
+
+# --- U2: leases, deterministic client ids, intents persisted before submit (FR-002/003) ---
+
+import hashlib
+import json
+import os
+from pathlib import Path
+
+
+class LeaseHeld(RuntimeError):
+    """A run for this (profile, session) already started or finished."""
+
+
+def _lease_path(state_dir, profile: str, session: date) -> Path:
+    return Path(state_dir) / "leases" / f"{profile}-{session.isoformat()}.json"
+
+
+def acquire_lease(state_dir, profile: str, session: date, *, run_id: str) -> None:
+    """Atomically claim (profile, session); refuse if any run ever claimed it."""
+    path = _lease_path(state_dir, profile, session)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError as error:
+        raise LeaseHeld(f"{profile} {session} already claimed: {path.read_text(encoding='utf-8')}") from error
+    with os.fdopen(fd, "w", encoding="utf-8") as stream:
+        json.dump({"run_id": run_id, "state": "running"}, stream)
+        stream.flush()
+        os.fsync(stream.fileno())
+
+
+def complete_lease(state_dir, profile: str, session: date, *, run_id: str) -> None:
+    path = _lease_path(state_dir, profile, session)
+    lease = json.loads(path.read_text(encoding="utf-8"))
+    if lease["run_id"] != run_id:
+        raise LeaseHeld(f"{profile} {session} is held by {lease['run_id']}, not {run_id}")
+    path.write_text(json.dumps({"run_id": run_id, "state": "completed"}), encoding="utf-8")
+
+
+def client_order_id(profile: str, session: date, ticker: str, side: str) -> str:
+    """Same intent → same id, so a retry after an UNKNOWN submit reconciles, never duplicates."""
+    digest = hashlib.sha256(f"{profile}|{session.isoformat()}|{ticker}|{side}".encode()).hexdigest()[:24]
+    return f"qmb-{session:%Y%m%d}-{digest}"
+
+
+def _intents_path(state_dir) -> Path:
+    return Path(state_dir) / "intents.jsonl"
+
+
+def open_intents(state_dir) -> list[dict]:
+    path = _intents_path(state_dir)
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def record_intent(state_dir, client_id: str, intent: dict) -> None:
+    """Durably append the intent BEFORE any submit; identical re-records are no-ops."""
+    for existing in open_intents(state_dir):
+        if existing["client_order_id"] == client_id:
+            if existing["intent"] != intent:
+                raise ValueError(f"{client_id}: intent differs from the recorded one")
+            return
+    path = _intents_path(state_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as stream:
+        stream.write(json.dumps({"client_order_id": client_id, "intent": intent}, sort_keys=True) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
