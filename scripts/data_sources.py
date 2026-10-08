@@ -72,3 +72,33 @@ def may_publish(contract: SourceContract, output_class: str) -> bool:
     if output_class not in OUTPUT_CLASSES:
         raise ManifestError(f"unknown output class {output_class!r}")
     return getattr(contract, output_class) is True
+
+
+# --- U2: cross-source close checks (FR-004); U3: EDGAR facts as of their filed date (FR-005) ---
+
+import pandas as pd
+
+
+def close_mismatches(primary: pd.Series, check: pd.Series, *, tolerance_bps: float) -> pd.DataFrame:
+    """Sessions where two independent closes disagree beyond tolerance or one is missing.
+
+    Mismatches are reported for exclusion or disclosure; values are never averaged.
+    """
+    frame = pd.concat({"primary": primary, "check": check}, axis=1)
+    missing = frame["primary"].isna() | frame["check"].isna()
+    diff_bps = (frame["check"] / frame["primary"] - 1).abs() * 1e4
+    return frame[missing | (diff_bps > tolerance_bps)]
+
+
+def facts_as_of(facts: list[dict], as_of: date) -> list[dict]:
+    """For each period end, the latest fact filed on or before ``as_of`` (original until restated)."""
+    best: dict[str, dict] = {}
+    for item in facts:
+        if not item.get("filed"):
+            raise ValueError("every EDGAR fact needs its filed date")
+        if date.fromisoformat(item["filed"]) > as_of:
+            continue
+        current = best.get(item["end"])
+        if current is None or item["filed"] > current["filed"]:
+            best[item["end"]] = item
+    return [best[end] for end in sorted(best)]
