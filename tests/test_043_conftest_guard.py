@@ -22,7 +22,9 @@ def test_plant():
 def run_minimal_copy(tmp_path, planted):
     root = tmp_path / "repo"
     (root / "tests").mkdir(parents=True)
-    for name in ("pyproject.toml", "tests/conftest.py", "tests/ledger_copy_support.py"):
+    (root / "scripts").mkdir()
+    for name in ("pyproject.toml", "tests/conftest.py", "tests/ledger_copy_support.py",
+                 "scripts/trial_runner.py", "scripts/trial_registry.py", "scripts/_project.py"):
         shutil.copy2(REPO / name, root / name)
     (root / "docs/trials").mkdir(parents=True)
     (root / "docs/trials/trials.jsonl").write_text("", encoding="utf-8")
