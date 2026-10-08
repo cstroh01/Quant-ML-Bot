@@ -65,3 +65,71 @@ class Registry:
     def snapshot_hash(self, as_of: date) -> str:
         payload = json.dumps(self.snapshot(as_of), sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(f"{as_of.isoformat()}|{payload}".encode()).hexdigest()
+
+
+# --- U2/U3: research and executable eligibility with named reasons (FR-003/004/007) ---
+
+import pandas as pd
+
+
+@dataclass(frozen=True)
+class EligibilityLimits:
+    min_sessions: int
+    min_price: float
+    min_median_dollar_volume: float
+    max_spread_bps: float
+    max_participation: float
+
+
+def research_eligibility(bars: pd.DataFrame, *, as_of: date, limits: EligibilityLimits,
+                         actions_reconciled: bool, basis_known: bool) -> list[str]:
+    """Reasons ``bars`` (Close, Volume by session) is not research-eligible on ``as_of``.
+
+    Reads only rows at or before ``as_of``. Empty list means eligible.
+    """
+    past = bars.loc[:pd.Timestamp(as_of)]
+    reasons = []
+    if len(past) < limits.min_sessions:
+        reasons.append("insufficient_history")
+    if past.empty or float(past["Close"].iloc[-1]) < limits.min_price:
+        reasons.append("price_below_floor")
+    window = past.tail(20)
+    if window.empty or float((window["Close"] * window["Volume"]).median()) < limits.min_median_dollar_volume:
+        reasons.append("illiquid")
+    if not actions_reconciled:
+        reasons.append("corporate_actions_unreconciled")
+    if not basis_known:
+        reasons.append("price_basis_unknown")
+    return reasons
+
+
+@dataclass(frozen=True)
+class ExecutableQuote:
+    tradable: bool
+    halted: bool
+    last_bar_session: date
+    instrument_class: str
+    spread_bps: float
+    adv_shares: float
+    min_notional_usd: float
+
+
+def executable_eligibility(quote: ExecutableQuote, *, previous_session: date, allowed_classes: tuple[str, ...],
+                           order_qty: float, order_notional: float, limits: EligibilityLimits) -> list[str]:
+    """Reasons an order may not be sent now; inputs come from an injected read-only snapshot."""
+    reasons = []
+    if not quote.tradable:
+        reasons.append("not_tradable")
+    if quote.halted:
+        reasons.append("halted")
+    if quote.last_bar_session != previous_session:
+        reasons.append("stale_bar")
+    if quote.instrument_class not in allowed_classes:
+        reasons.append("class_not_permitted")
+    if quote.spread_bps > limits.max_spread_bps:
+        reasons.append("spread_too_wide")
+    if quote.adv_shares <= 0 or order_qty / quote.adv_shares > limits.max_participation:
+        reasons.append("participation_too_high")
+    if order_notional < quote.min_notional_usd:
+        reasons.append("below_broker_minimum")
+    return reasons
