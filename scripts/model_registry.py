@@ -134,3 +134,34 @@ class Registry:
         if self.champion() is None:
             raise PromotionError("no champion to roll back")
         self._append({"event": "rollback", "reason": reason, "session": session})
+
+
+# --- U2: fold-local fitting over purged/embargoed walk-forward splits (FR-002) ---
+
+
+def fold_local_predictions(data, feature_cols, label_col, make_model, *, label_horizon: int, embargo_bars: int,
+                           initial_train_months: int, test_months: int):
+    """Out-of-fold predicted probabilities; scaler and model are fit on each fold's training rows only.
+
+    Returns (predictions indexed like ``data`` with NaN outside test windows, metadata with fold
+    count, purge, embargo, per-fold train/test row labels and scaler means).
+    """
+    import pandas as pd
+    from sklearn.pipeline import make_pipeline
+    from sklearn.preprocessing import StandardScaler
+    from walk_forward_cv import walk_forward_splits
+
+    preds = pd.Series(float("nan"), index=data.index, name="p_up")
+    meta = {"folds": 0, "purge": label_horizon, "embargo": embargo_bars,
+            "train_rows": [], "test_rows": [], "scaler_means": []}
+    for train_idx, test_idx in walk_forward_splits(data, initial_train_months, test_months,
+                                                   label_horizon=label_horizon, embargo_bars=embargo_bars):
+        train, test = data.iloc[train_idx], data.iloc[test_idx]
+        pipeline = make_pipeline(StandardScaler(), make_model())
+        pipeline.fit(train[feature_cols], train[label_col])
+        preds.loc[test.index] = pipeline.predict_proba(test[feature_cols])[:, 1]
+        meta["folds"] += 1
+        meta["train_rows"].append(list(train.index))
+        meta["test_rows"].append(list(test.index))
+        meta["scaler_means"].append(list(pipeline[0].mean_))
+    return preds, meta
