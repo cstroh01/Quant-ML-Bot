@@ -6,11 +6,14 @@ import tempfile
 
 import pytest
 
+from ledger_copy_support import changed, manifest
+
 
 COLLECTED_PATHS = pytest.StashKey[frozenset[Path]]()
 SYNTHETIC_SESSION = pytest.StashKey[object]()
 PRIOR_SYNTHETIC_ROOT = pytest.StashKey[object]()
-PRODUCTION_LEDGER_BYTES = pytest.StashKey[bytes]()
+PRODUCTION_LEDGER_MANIFEST = pytest.StashKey[dict]()
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 def pytest_configure(config):
@@ -21,8 +24,7 @@ def pytest_configure(config):
     config.stash[SYNTHETIC_SESSION] = session
     config.stash[PRIOR_SYNTHETIC_ROOT] = os.environ.get("SPEC033_SYNTHETIC_ROOT")
     os.environ["SPEC033_SYNTHETIC_ROOT"] = str(root)
-    path = Path(__file__).resolve().parents[1] / "docs/trials/trials.jsonl"
-    config.stash[PRODUCTION_LEDGER_BYTES] = path.read_bytes() if path.exists() else b""
+    config.stash[PRODUCTION_LEDGER_MANIFEST] = manifest(REPO_ROOT)
 
 
 def pytest_unconfigure(config):
@@ -34,10 +36,9 @@ def pytest_unconfigure(config):
     else:
         os.environ["SPEC033_SYNTHETIC_ROOT"] = previous
     config.stash[SYNTHETIC_SESSION].cleanup()
-    path = Path(__file__).resolve().parents[1] / "docs/trials/trials.jsonl"
-    current = path.read_bytes() if path.exists() else b""
-    if current != config.stash[PRODUCTION_LEDGER_BYTES]:
-        raise RuntimeError("spec033: tests changed the production lifetime ledger")
+    paths = changed(config.stash[PRODUCTION_LEDGER_MANIFEST], manifest(REPO_ROOT))
+    if paths:
+        raise RuntimeError("spec043: tests changed docs/trials paths: " + ", ".join(paths))
 
 
 @pytest.hookimpl(tryfirst=True)

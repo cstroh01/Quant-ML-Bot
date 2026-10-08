@@ -16,7 +16,7 @@ from xml.etree import ElementTree
 
 ROOT = Path(__file__).resolve().parents[2]
 COPIED = (
-    "scripts", "reports/__init__.py", "reports/api", "tests/conftest.py",
+    "scripts", "reports/__init__.py", "reports/api", "tests/conftest.py", "tests/ledger_copy_support.py",
     "tests/context.py", "tests/api_fixtures.py", "tests/unadjusted_fixtures.py",
     "tests/test_unadjusted_caller_wiring.py", "tests/test_reports_api.py",
 )

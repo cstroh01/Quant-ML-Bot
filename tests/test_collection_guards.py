@@ -63,7 +63,7 @@ def test_collection_guards_reject_silent_omissions(tmp_path, scenario, expected_
     """Exercise real pytest collection in isolated trees, including -k deselection."""
     target = tmp_path / "tests"
     target.mkdir()
-    for name in ("conftest.py", "test_collection_guards.py"):
+    for name in ("conftest.py", "ledger_copy_support.py", "test_collection_guards.py"):
         shutil.copy2(TESTS / name, target / name)
     (target / "test_valid.py").write_text("def test_ok():\n    assert True\n")
 
