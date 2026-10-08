@@ -129,7 +129,7 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 
 ### U4: Drivers and conftest (FR-008, FR-010, D-4)
 
-- [ ] T028 `tests/conftest.py:24-25` and `:37-40`: snapshot and compare a
+- [x] T028 `tests/conftest.py:24-25` and `:37-40`: snapshot and compare a
   whole-tree manifest of `docs/trials/` (`ledger_copy_support.manifest`), and
   name each changed path. Red proof on a copy: a test run that writes
   `docs/trials/returns/x.jsonl` makes shutdown raise and name it (AC-6).
