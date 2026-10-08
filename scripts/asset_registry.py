@@ -133,3 +133,18 @@ def executable_eligibility(quote: ExecutableQuote, *, previous_session: date, al
     if order_notional < quote.min_notional_usd:
         reasons.append("below_broker_minimum")
     return reasons
+
+
+# --- U4: causal membership and fold-local cross-sectional statistics (FR-005) ---
+
+
+def causal_membership(registry: Registry, sessions: list[date]) -> dict[date, set[str]]:
+    """Active instruments for each session, from that session's own snapshot only."""
+    return {s: {i for i, entry in registry.snapshot(s).items() if entry.get("active", True)} for s in sessions}
+
+
+def fold_local_cross_section(frame: pd.DataFrame, column: str, train_rows: list):
+    """Z-score ``column`` with mean/std fitted on ``train_rows`` only; returns (scores, params)."""
+    train = frame.loc[train_rows, column]
+    params = {"mean": float(train.mean()), "std": float(train.std(ddof=0)) or 1.0}
+    return (frame[column] - params["mean"]) / params["std"], params
