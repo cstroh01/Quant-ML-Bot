@@ -4,18 +4,22 @@ Guarantees: account numbers never leave this module except as SHA-256
 pseudonyms; every snapshot carries the export's own "Date downloaded"
 instant (America/New_York) and the raw file's SHA-256; Fidelity's preamble,
 "Pending Activity" and disclaimer/footer lines never become positions; a
-value that should be numeric but is not refuses the whole import. No network,
-no credentials, no order intents.
+value that should be numeric but is not refuses the whole import. U2: every
+imported position is external, staleness is judged in NYSE sessions, and only a
+declared capability is ever granted. No network, no credentials, no order intents.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import date, datetime
+from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 import csv
 import hashlib
 import io
 import re
 from zoneinfo import ZoneInfo
+
+from data import trading_days
+from mode_config import Holding, concentration_refusals
 
 NY = ZoneInfo("America/New_York")
 _CASH_SYMBOLS = re.compile(r"^(SPAXX|FDRXX|FZFXX|SPRXX|FCASH|CORE)\**$|^Cash$", re.I)
@@ -31,6 +35,7 @@ class Position:
     quantity: float
     price: float
     market_value: float
+    currency: str = "USD"  # Fidelity's US Positions export is USD-denominated ($-prefixed values)
 
 
 @dataclass(frozen=True)
@@ -138,3 +143,104 @@ def parse_history_csv(text: str) -> HistorySnapshot:
             _number(row.get("Cash Balance ($)", ""), "Cash Balance", symbol or "cash"),
         ))
     return HistorySnapshot(tuple(activity), as_of, hashlib.sha256(text.encode()).hexdigest())
+
+
+# --- U2: ownership, staleness and capability gates (FR-003/004/005, D-3, D-4) ---
+
+CAPABILITIES = frozenset({"read_holdings", "read_activity", "submit_orders"})
+SOURCE_CAPABILITIES: dict[str, frozenset[str]] = {
+    "fidelity_positions_csv": frozenset({"read_holdings"}),
+    "fidelity_history_csv": frozenset({"read_activity"}),
+}
+MAX_AGE_SESSIONS = 1  # D-3: stale after one NYSE business day
+_EPS = 1e-9
+
+
+class CapabilityError(PermissionError):
+    """A source asked to do something it never declared it can do."""
+
+
+def require_capability(source: str, capability: str, *,
+                       declared: dict[str, frozenset[str]] = SOURCE_CAPABILITIES) -> None:
+    """Return only if ``source`` itself declared ``capability``; no label stands in for another."""
+    if capability not in CAPABILITIES:
+        raise CapabilityError(f"unknown capability {capability!r}")
+    if source not in declared:
+        raise CapabilityError(f"unknown source {source!r}")
+    if capability not in declared[source]:
+        raise CapabilityError(f"{source} declares {sorted(declared[source])}, not {capability}")
+
+
+def holdings_status(as_of: datetime | None, *, now: datetime) -> str:
+    """``fresh`` or ``stale`` by NYSE sessions elapsed on the New York calendar.
+
+    Guarantees: a missing, naive or future ``as_of`` refuses; a snapshot is stale
+    once more than MAX_AGE_SESSIONS sessions have opened after its New York date,
+    so weekends and exchange holidays never age it and a late-evening ET export
+    is never moved to the next UTC day.
+    """
+    if now.tzinfo is None:
+        raise HoldingsImportError("now must be timezone-aware")
+    if as_of is None or as_of.tzinfo is None:
+        raise HoldingsImportError("snapshot as_of missing or naive: exposure time unknown")
+    if as_of > now:
+        raise HoldingsImportError(f"snapshot as_of {as_of.isoformat()} is after now")
+    elapsed = trading_days(as_of.astimezone(NY).date() + timedelta(days=1), now.astimezone(NY).date())
+    return "stale" if len(elapsed) > MAX_AGE_SESSIONS else "fresh"
+
+
+@dataclass(frozen=True)
+class ExternalExposure:
+    holdings: tuple[Holding, ...]
+    cash_usd: float
+    as_of: datetime
+    status: str
+    source: str
+    excluded: tuple[tuple[str, str], ...] = field(default=())
+
+
+def external_exposure(snapshot: PositionsSnapshot, *, now: datetime,
+                      bot_lots: dict[str, float] | None = None) -> ExternalExposure:
+    """Imported positions as ``owner="external"`` holdings, net of lots the bot itself opened.
+
+    Guarantees: no imported quantity is ever bot-owned; a money-market sweep is
+    cash, not a position; a non-USD row is excluded with a reason; a stale
+    snapshot keeps its holdings (status says stale, quantities are never zeroed);
+    a bot lot the import cannot cover refuses rather than being clipped.
+    """
+    status = holdings_status(snapshot.as_of, now=now)
+    imported: dict[str, float] = {}
+    excluded, cash = [], snapshot.cash_usd
+    for position in snapshot.positions:
+        if position.currency != "USD":
+            excluded.append((position.symbol, f"non_usd:{position.currency}"))
+        elif _CASH_SYMBOLS.match(position.symbol):
+            cash += position.market_value
+        else:
+            imported[position.symbol] = imported.get(position.symbol, 0.0) + position.quantity
+    lots = dict(bot_lots or {})
+    short = sorted(s for s, q in lots.items() if q > imported.get(s, 0.0) + _EPS)
+    if short:
+        raise HoldingsImportError(f"bot lot exceeds imported quantity: {short}")
+    holdings = tuple(Holding(s, q - lots.get(s, 0.0), "external") for s, q in imported.items()
+                     if q - lots.get(s, 0.0) > _EPS)
+    return ExternalExposure(holdings, cash, snapshot.as_of, status, snapshot.source, tuple(excluded))
+
+
+def live_buy_refusals(exposure: ExternalExposure | None, bot_holdings: list[Holding], prices: dict[str, float],
+                      proposed_buy_qty: dict[str, float], *, now: datetime, portfolio_value: float,
+                      max_position_pct: float) -> list[tuple[str, str]]:
+    """(ticker, reason) for each proposed LIVE buy that must not proceed.
+
+    Guarantees: missing or stale external holdings refuse every buy
+    (``holdings_missing`` / ``holdings_stale``), because unknown exposure is never
+    read as zero; with fresh holdings a buy is refused (``concentration``) when
+    bot plus external exposure after it exceeds the 051 limit.
+    """
+    if exposure is None:
+        return [(t, "holdings_missing") for t in sorted(proposed_buy_qty)]
+    if holdings_status(exposure.as_of, now=now) != "fresh":
+        return [(t, "holdings_stale") for t in sorted(proposed_buy_qty)]
+    held = list(bot_holdings) + list(exposure.holdings)
+    return [(t, "concentration") for t in concentration_refusals(
+        held, prices, proposed_buy_qty, portfolio_value=portfolio_value, max_position_pct=max_position_pct)]
