@@ -1,0 +1,41 @@
+# Spec 055 U5 template (D-5: spend spare Actions minutes). Install in the PRIVATE companion repo.
+# Nightly: full suite + mutation drivers on the pinned commit; later, free-data refresh (spec 056)
+# once its fetchers and keys exist. Never trades, never touches broker secrets.
+name: nightly-research
+on:
+  schedule:
+    - cron: "17 6 * * *"   # 02:17 EDT / 01:17 EST
+  workflow_dispatch: {}
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: nightly-research
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: cstroh01/Quant-ML-Bot
+          ref: ${{ vars.QMB_PINNED_SHA }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Full suite
+        run: python -m pytest tests -q
+      - name: Mutation drivers
+        run: |
+          python -B tests/mutation/run_spec_018_mutants.py
+          python -B tests/mutation/run_mutation_check.py
+          python -B tests/mutation/run_unadjusted_wiring_mutants.py
+      - name: Open issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --title "nightly-research failed $(date -u +%F)" \
+            --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

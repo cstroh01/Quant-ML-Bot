@@ -1,0 +1,78 @@
+# Spec 055 U5 template. Install in the PRIVATE companion repo as .github/workflows/paper-loop.yml.
+# Runs the daily paper loop with Camden's computer off. Secrets are set by Camden in that repo;
+# agents never see them. State persists on the `ops-state` branch (single run at a time).
+name: paper-loop
+on:
+  schedule:
+    - cron: "0 12 * * 1-5"   # 08:00 EDT / 07:00 EST — the due-run gate decides
+    - cron: "0 13 * * 1-5"   # 09:00 EDT / 08:00 EST — retry window before the 09:28 ET cutoff
+  workflow_dispatch:
+    inputs:
+      kill:
+        description: "Set 'kill' to halt all profiles until cleared"
+        required: false
+        default: ""
+permissions:
+  contents: write
+  issues: write
+concurrency:
+  group: paper-loop
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      max-parallel: 1
+      matrix:
+        profile: [paper_small, paper_large]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: cstroh01/Quant-ML-Bot
+          ref: ${{ vars.QMB_PINNED_SHA }}          # immutable reviewed commit (FR-007)
+          path: qmb
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ops-state
+          path: state
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - run: pip install -r qmb/requirements.txt
+      - name: Kill switch
+        if: ${{ github.event.inputs.kill == 'kill' }}
+        run: |
+          mkdir -p state/${{ matrix.profile }} && date -u +%FT%TZ > state/${{ matrix.profile }}/KILL
+      - name: Run if due
+        working-directory: qmb
+        env:
+          APCA_API_KEY_ID: ${{ matrix.profile == 'paper_small' && secrets.PAPER_SMALL_KEY_ID || secrets.PAPER_LARGE_KEY_ID }}
+          APCA_API_SECRET_KEY: ${{ matrix.profile == 'paper_small' && secrets.PAPER_SMALL_SECRET || secrets.PAPER_LARGE_SECRET }}
+          QMB_STATE_DIR: ${{ github.workspace }}/state/${{ matrix.profile }}
+        run: |
+          test ! -f "$QMB_STATE_DIR/KILL" || { echo "killed"; exit 1; }
+          # paper_loop writes its gate DB and run log under data/live_safety; point that at durable state
+          mkdir -p "$QMB_STATE_DIR/live_safety" data && ln -sfn "$QMB_STATE_DIR/live_safety" data/live_safety
+          python scripts/ops_runner.py --state-dir "$QMB_STATE_DIR" --profile ${{ matrix.profile }} \
+            --command "python exec/paper_loop.py --submit"
+      - name: Persist state
+        if: always()
+        working-directory: state
+        run: |
+          git config user.name qmb-ops && git config user.email qmb-ops@users.noreply.github.com
+          git add -A && git commit -m "ops state ${{ matrix.profile }} $(date -u +%FT%TZ)" || true
+          git push origin HEAD:ops-state
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: state-${{ matrix.profile }}-${{ github.run_id }}
+          path: state/${{ matrix.profile }}
+          retention-days: 90
+      - name: Open incident issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create --title "paper-loop ${{ matrix.profile }} failed $(date -u +%F)" \
+            --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
