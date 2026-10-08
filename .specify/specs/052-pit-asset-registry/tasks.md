@@ -4,5 +4,5 @@
 - [x] T003 U2 contracts + implement research eligibility with reasons.
 - [x] T004 U3 contracts + implement executable eligibility (halt, stale, spread, participation, minimum, class).
 - [x] T005 U4 causal membership helper; fold-local cross-sectional fit contract.
-- [ ] T006 Synthetic dated panel acceptance; full suite; mutation evidence.
+- [x] T006 Synthetic dated panel acceptance; full suite; mutation evidence.
 - [ ] T007 Populate from 056 sources (network = human-authorized run); hash snapshot.
