@@ -201,3 +201,55 @@ def bound_buys(profile: ModeProfile, buys: list[BuyRequest], *, settled_cash: fl
         cap_left -= notional
         cash_left -= notional
     return accepted, refused
+
+
+# --- U3: ownership and aggregate exposure (FR-006) ---
+
+OWNERS = ("bot", "external")
+
+
+@dataclass(frozen=True)
+class Holding:
+    ticker: str
+    quantity: float
+    owner: str
+
+    def __post_init__(self) -> None:
+        if self.owner not in OWNERS:
+            raise ValueError(f"{self.ticker}: owner must be one of {OWNERS}")
+        if not (math.isfinite(self.quantity) and self.quantity >= 0):
+            raise ValueError(f"{self.ticker}: quantity must be finite and non-negative (long-only)")
+
+
+def bot_sell_quantities(desired_bot_qty: dict[str, float], holdings: list[Holding]) -> dict[str, float]:
+    """Sell quantities that move bot-owned lots down to ``desired_bot_qty``.
+
+    Guarantees: only ``owner == "bot"`` quantity is ever sold; an external holding
+    never produces a sell, whether or not it appears in the targets.
+    """
+    owned: dict[str, float] = {}
+    for holding in holdings:
+        if holding.owner == "bot":
+            owned[holding.ticker] = owned.get(holding.ticker, 0.0) + holding.quantity
+    sells = {}
+    for ticker, quantity in owned.items():
+        excess = quantity - max(0.0, float(desired_bot_qty.get(ticker, 0.0)))
+        if excess > 0:
+            sells[ticker] = min(excess, quantity)
+    return sells
+
+
+def aggregate_exposure(holdings: list[Holding], prices: dict[str, float]) -> dict[str, float]:
+    """Market value per ticker across every owner, bot and external."""
+    exposure: dict[str, float] = {}
+    for holding in holdings:
+        exposure[holding.ticker] = exposure.get(holding.ticker, 0.0) + holding.quantity * prices[holding.ticker]
+    return exposure
+
+
+def concentration_refusals(holdings: list[Holding], prices: dict[str, float], proposed_buy_qty: dict[str, float],
+                           *, portfolio_value: float, max_position_pct: float) -> list[str]:
+    """Tickers whose post-buy exposure, external holdings included, exceeds the limit."""
+    exposure = aggregate_exposure(holdings, prices)
+    return sorted(t for t, q in proposed_buy_qty.items()
+                  if exposure.get(t, 0.0) + q * prices[t] > max_position_pct * portfolio_value)
