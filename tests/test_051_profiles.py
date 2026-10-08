@@ -3,7 +3,6 @@
 EXAMPLE — NOT A RESULT. Every profile and account value here is synthetic.
 """
 from datetime import datetime, timedelta, timezone
-import hashlib
 
 import pytest
 
@@ -16,24 +15,9 @@ from mode_config import (
     load_profiles,
     require_armed,
 )
+from mode_fixtures import fp, raw
 
 NOW = datetime(2026, 10, 8, 12, 0, tzinfo=timezone.utc)
-
-
-def fp(account: str) -> str:
-    return hashlib.sha256(account.encode()).hexdigest()
-
-
-def raw(name="paper_small", mode="PAPER", broker="alpaca_paper", account="PA-1", **extra):
-    base = dict(
-        name=name, mode=mode, broker=broker, account_fingerprint=fp(account),
-        credential_refs=[f"{name.upper()}_KEY_ID", f"{name.upper()}_SECRET"],
-        state_dir=f"state/{name}", log_namespace=name, bot_budget_usd=5000.0,
-        daily_deploy_fraction=0.2, instruments=["us_equity", "etf"], fractional=True,
-        safety_config_version="2026-09-29-v1",
-    )
-    base.update(extra)
-    return base
 
 
 def three():
