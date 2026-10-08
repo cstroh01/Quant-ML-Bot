@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-import shutil
 import subprocess
-import sys
 import tempfile
+
+from driver_support import copy_into, guarded, run_pytest
 
 REPO = Path(__file__).resolve().parents[2]
 TEST_RELATIVE = Path("tests/test_020_unadjusted_price_data.py")
@@ -41,23 +41,13 @@ MUTANT = """    # MUTANT: trust filenames in JSON and stamp without validating t
 
 
 def run(root: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [sys.executable, "-B", "-m", "pytest", str(TEST_RELATIVE)],
-        cwd=root,
-        text=True,
-        capture_output=True,
-        encoding="utf-8",
-        errors="replace",
-    )
+    return run_pytest(root, str(TEST_RELATIVE))
 
 
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        shutil.copytree(REPO / "scripts", root / "scripts", ignore=shutil.ignore_patterns("__pycache__"))
-        target_test = root / TEST_RELATIVE
-        target_test.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(REPO / TEST_RELATIVE, target_test)
+        copy_into(root, ("scripts", TEST_RELATIVE.as_posix()))
 
         control = run(root)
         if control.returncode:
@@ -87,4 +77,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    with guarded():
+        code = main()
+    raise SystemExit(code)
