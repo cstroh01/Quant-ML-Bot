@@ -13,27 +13,31 @@ the active spec (spec 045 D-5)._
 **043 — ledger write guard** ([tasks](../.specify/specs/043-ledger-write-guard/tasks.md)).
 Phase 1 (T003–T015) is done. U1 (T020–T022) is merged on `main` (PR #9).
 U2's T023–T024 are merged on `main` (PR #15, merge commit `d8adac3`; recovered
-cloud-lane patch). T025–T026 complete U2.
+cloud-lane patch). T025–T036 are implemented in stacked draft PRs awaiting
+Camden's merge, in order: #55 (U2), #57 (U3a), #58 (U3b), #59 (U4a), #60 (U4b),
+#61 (U5), #62 (U6), then the Phase 3 gates PR. Evidence:
+`artifacts/gates-t032-t036.md`.
 
 Queued behind it, in order: **044** (both edit `scripts/data.py`; 044 also
 waits on Camden's T003/T004 reviews), then **040** (043 implements first).
 
 ## Next unblocked task
 
-`043 T025` is next for 043, and it is a **human gate**: it edits pinned
-`scripts/feature_set_comparison.py` (see Blockers). Until T025 lands, production
-ledger recording is refused by design (fail closed); only synthetic ledgers write.
+043 needs only Camden's merges of the stack above. After 043 merges, Camden
+applies spec 043 §6's seven amendments to 040 before 040 T001. Until #55
+merges, production ledger recording stays refused by design (fail closed).
 
-The next independent cloud candidate is **Q18**, report-only creation of
-`.specify/specs/038-disclosure-sweep/tasks.md` from the merged spec and plan.
-Q17 dependency is verified by PR #52 changed files. Q10/Q11/Q12/Q13/Q15/Q16,
-Q17/Q21/Q22 are delivered; the private queue proposal records their PRs.
-No Q18 output exists yet. Implementation choices D-1–D-5 remain open.
+Q18 is delivered: 038 `tasks.md` merged by PR #56 (`0c7f674`). 038
+implementation waits on its open choices D-1–D-5.
 
 044 F2/F3/F7/F8 were delivered by PR #28; unchecked T002a is stale.
 T003/T004 reviews and the T007 human network probe remain open.
 
 ## Expected red on `main`
+
+At the 043 stack's tip (`claude/043-t031-alias`): 1236 passed, 0 xfailed
+(Linux 3.13.16; Windows CI success). The four xfails below retire as the
+stack merges: two in #55, two in #58.
 
 None that fails the suite. The remaining deliberate red contracts are
 `xfail(strict=True)`, so they report as xfailed; the task that makes one pass
@@ -61,7 +65,7 @@ checkout evidence; separate local Windows post-merge evidence is private.
 
 | Where | Gate | Waiting on |
 |---|---|---|
-| 043 T025 | Three pinned CLI paths and E4 spawned-worker enablement | Camden replaced the earlier human-lane choice with a T025-only agent pin exception on 2026-10-07 for feature_set_comparison.py, logistic_baseline.py and multi_ticker_comparison.py; implementation/review pending; all other pin protections remain |
+| 043 T025–T036 | Merge (Rule 9) | Camden: draft PRs #55, #57–#62 and the gates PR, in order. T025 used the recorded T025-only pin exception |
 | 044 T003, T004 | Review of `p1_probe.py` | Camden |
 | 044 T007, 041 T018 | Live network probe | Camden (041 T018 ran 2026-09-30 and failed; that finding is 044) |
 | 033 Phases 8–9 | Backfill approval COMPLETE; remaining statistics/lifetime-N and Gate 3 prerequisites | Numbered tasks after 035/044/046 acceptance |

@@ -164,19 +164,19 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 
 ## Phase 3: Gates, all required, in this order
 
-- [ ] T032 **AC-6**: run `python -m pytest tests`. Record the exit code and the
+- [x] T032 **AC-6**: run `python -m pytest tests`. Record the exit code and the
   passed, failed and error counts. The target is 0 failed and 0 errors, with
   passed equal to T003 plus the new tests.
-- [ ] T033 D-5 side effect: in T032's output, the pytest header's `rootdir:`
+- [x] T033 D-5 side effect: in T032's output, the pytest header's `rootdir:`
   and `configfile:` lines match T003's, or any difference is explained and
   shown harmless: same node IDs, same counts. The **collected test count** is
   unchanged by the presence of `pyproject.toml` (903 when D-5 was decided;
   compare against T003's recorded baseline).
-- [ ] T034 **AC-4**: re-measure T002 read-only and compare it to
+- [x] T034 **AC-4**: re-measure T002 read-only and compare it to
   `artifacts/ledger-pre.json`. Every value is identical.
-- [ ] T035 AC-1, AC-2, AC-3, AC-5, AC-7 to AC-10 are green in T032. Each
+- [x] T035 AC-1, AC-2, AC-3, AC-5, AC-7 to AC-10 are green in T032. Each
   red-proof artifact from Phase 1 and from T026 is saved under `artifacts/`.
-- [ ] T036 Hand off: the decisions taken; per review unit, the files and line
+- [x] T036 Hand off: the decisions taken; per review unit, the files and line
   counts; the artifact paths; and **the spec 040 amendments in spec §6**,
   listed for Camden to apply to 040 before 040's T001.
 
