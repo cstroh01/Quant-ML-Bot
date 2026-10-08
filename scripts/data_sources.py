@@ -335,3 +335,103 @@ class EdgarCompanyFacts(_Edgar):
         for start in {r.get("start") for r in chosen}:
             out += facts_as_of([r for r in chosen if r.get("start") == start], as_of)
         return sorted(out, key=lambda r: (r["end"], r.get("start") or ""))
+
+
+# --- U4b2: identity, macro and factor adapters (T005), on U4b1's rate limit. ---
+
+import io
+import zipfile
+
+_FIGI_BATCH = 5  # OpenFIGI v3 documents both 10 and 5 jobs/request unkeyed; the lower bound is used
+
+
+@dataclass
+class OpenFigiMap(_Limited):
+    """OpenFIGI v3 mapping jobs, at most five per POST; one row per hit, or a ``status`` row when none."""
+
+    key_env: str | None = None
+    source = "openfigi_v3_mapping"
+
+    def __post_init__(self) -> None:
+        self.limit = self.limit or RateLimit(6 / 25 if self.key_env else 60 / 25)  # 25 per 6 s keyed, per 60 s not
+
+    def fetch(self, jobs: list[dict]) -> tuple[pd.DataFrame, SourceManifest]:
+        fetched_at, endpoint, digest, rows = self.now(), "https://api.openfigi.com/v3/mapping", hashlib.sha256(), []
+        headers = {"Content-Type": "application/json"}
+        if self.key_env:
+            headers["X-OPENFIGI-APIKEY"] = _secret(self.key_env)
+        for first in range(0, len(jobs), _FIGI_BATCH):
+            batch = jobs[first:first + _FIGI_BATCH]
+            answers = json.loads(self._request(digest, endpoint, headers, "POST", json.dumps(batch).encode()))
+            if not isinstance(answers, list) or len(answers) != len(batch):
+                raise SourceFetchError("openfigi answers do not align with the submitted jobs")
+            rows += [{**job, **hit} for job, answer in zip(batch, answers)
+                     for hit in answer.get("data") or [{"status": answer.get("warning") or answer.get("error")}]]
+        label = pd.Timestamp(fetched_at).tz_convert(NY).strftime("%Y-%m-%d")  # dated snapshot, not history
+        return pd.DataFrame(rows), self._manifest(endpoint, fetched_at, label, len(rows), digest)
+
+
+@dataclass
+class AlfredSeries(_Limited):
+    """ALFRED observations with each vintage's realtime_start/realtime_end; ``api_key`` joins the request URL only."""
+
+    key_env: str = "FRED_API_KEY"
+    limit: RateLimit = field(default_factory=lambda: RateLimit(0.5))  # 120 requests/minute
+    source = "alfred_observations"
+
+    def fetch(self, series_id: str, realtime_start: date, realtime_end: date) -> tuple[pd.DataFrame, SourceManifest]:
+        fetched_at = self.now()
+        endpoint = "https://api.stlouisfed.org/fred/series/observations?" + urlencode(
+            {"series_id": series_id, "realtime_start": realtime_start.isoformat(),
+             "realtime_end": realtime_end.isoformat(), "file_type": "json", "limit": 100000})
+        digest = hashlib.sha256()
+        doc = json.loads(self._request(digest, f"{endpoint}&{urlencode({'api_key': _secret(self.key_env)})}", {}))
+        obs = doc.get("observations")
+        if obs is None or doc.get("count", 0) > len(obs):
+            raise SourceFetchError("alfred observations missing or truncated")
+        frame = pd.DataFrame({"date": pd.to_datetime([o["date"] for o in obs]),
+                              "realtime_start": [date.fromisoformat(o["realtime_start"]) for o in obs],
+                              "realtime_end": [date.fromisoformat(o["realtime_end"]) for o in obs],
+                              "value": pd.to_numeric(pd.Series([o["value"] for o in obs]), errors="coerce")})
+        label = max(frame["realtime_start"]).isoformat()
+        return frame, self._manifest(endpoint, fetched_at, label, len(frame), digest)
+
+    @staticmethod
+    def vintage(frame: pd.DataFrame, as_of: date) -> pd.Series:
+        """Each observation's value as published on ``as_of`` (realtime_start <= as_of <= realtime_end)."""
+        known = frame[(frame["realtime_start"] <= as_of) & (frame["realtime_end"] >= as_of)]
+        return known.set_index("date")["value"].sort_index()
+
+
+@dataclass
+class FrenchFactors(_Fetcher):
+    """First table of one Kenneth French CSV zip, percent to decimal, -99.99/-999 missing, CIZ/FIZ labelled."""
+
+    version: str = ""
+
+    @property
+    def source(self) -> str:
+        return f"kenneth_french_{self.version}"
+
+    def fetch(self, dataset: str) -> tuple[pd.DataFrame, SourceManifest]:
+        if self.version not in ("CIZ", "FIZ"):
+            raise SourceFetchError("version must name the CIZ or FIZ dividend convention")
+        fetched_at, digest = self.now(), hashlib.sha256()
+        endpoint = f"https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/{quote(dataset)}_CSV.zip"
+        with zipfile.ZipFile(io.BytesIO(self._request(digest, endpoint, {}))) as archive:
+            lines = archive.read(archive.namelist()[0]).decode("latin-1").splitlines()
+        header = next(i for i, line in enumerate(lines) if line.startswith(","))
+        rows = []
+        for cells in ([c.strip() for c in line.split(",")] for line in lines[header + 1:]):
+            if not cells[0].isdigit():  # blank line or text ends the first table
+                break
+            rows.append(cells)
+        if not rows:
+            raise SourceFetchError("french file has no data rows under its first header")
+        daily = len(rows[0][0]) == 8
+        index = pd.to_datetime([r[0] for r in rows], format="%Y%m%d" if daily else "%Y%m")
+        index = pd.DatetimeIndex(index if daily else index + pd.offsets.MonthEnd(0), name="period")
+        frame = pd.DataFrame([[float(v) for v in r[1:]] for r in rows], index=index,
+                             columns=[c.strip() for c in lines[header].split(",")[1:]])
+        frame = frame.mask(frame.isin([-99.99, -999.0])) / 100
+        return frame, self._manifest(endpoint, fetched_at, index[-1].strftime("%Y-%m-%d"), len(frame), digest)
