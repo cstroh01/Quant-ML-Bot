@@ -156,7 +156,7 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 
 ### U6: Alias bypass (FR-012, D-3(a)), only if D-3(a) is 1
 
-- [ ] T031 `tests/test_033_trial_instrumentation.py:18-23`: resolve
+- [x] T031 `tests/test_033_trial_instrumentation.py:18-23`: resolve
   `Name = <primitive>` assignments and
   `getattr(<module>, "<primitive>")` calls to their primitive. AC-9's planted
   cases are red before the change and flagged after; the clean tree is the
