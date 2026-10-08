@@ -28,12 +28,29 @@ ZERO = "0" * 64
 ENABLE_ACTION = ("pass --record-trial to the CLI, or wrap library code in "
                  "`with production_recording(reason=...)`")
 # Spec 043 D-1 B: production recording is per-run, never environmental. Only
-# the T025 enablement sets this; nothing here does, so the default refuses.
+# production_recording sets this temporarily; import alone never enables it.
 _production_enabled: ContextVar[str | None] = ContextVar("production_recording", default=None)
 
 
 class LedgerWriteRefused(RuntimeError):
     """Production ledger write attempted without deliberate per-run enablement."""
+
+
+@contextmanager
+def production_recording(reason: str):
+    """Deliberate permission for this context only; always restore its parent."""
+    if not isinstance(reason, str) or not reason.strip():
+        raise ValueError("production recording requires a nonempty reason")
+    token = _production_enabled.set(reason)
+    try:
+        yield
+    finally:
+        _production_enabled.reset(token)
+
+
+def production_recording_reason() -> str | None:
+    """Explicit token to pass to spawned workers; never read environment state."""
+    return _production_enabled.get()
 
 
 def _require_production_enabled(runner: str, path: Path) -> None:

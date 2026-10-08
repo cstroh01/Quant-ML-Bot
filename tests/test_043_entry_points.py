@@ -10,17 +10,13 @@ RUNNERS = {
 
 # Separate strict marks per review unit (043 review F4): each is removed by the
 # task that turns its own case green, never wholesale.
-RED_UNTIL_U2 = pytest.mark.xfail(
-    strict=True, reason="043 Phase 1 red; CLI refusal lands in T023-T025 (U2)")
 RED_UNTIL_U3 = pytest.mark.xfail(
     strict=True, reason="043 Phase 1 red; read-only route lands in T027 (U3)")
 
 
-# E1, E2 and E4 turned green at T023-T024 (write and early layers). E3 stays
-# red until T025's preflight: its per-ticker isolation boundary reports the
-# refusal on stdout instead of exiting before any output.
+# E1-E4 refuse before data access after T025; E5 remains T027's contract.
 @pytest.mark.parametrize("entry", [
-    "E1", "E2", pytest.param("E3", marks=RED_UNTIL_U2), "E4",
+    "E1", "E2", "E3", "E4",
     pytest.param("E5", marks=RED_UNTIL_U3)])
 def test_default_entry_changes_no_ledger_bytes(entry):
     result = run_child(entry)

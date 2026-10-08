@@ -44,7 +44,7 @@ loop for whichever ticker happens to be first.
 
 from __future__ import annotations
 
-from trial_runner import research_attempt, research_config
+from trial_runner import research_attempt, research_config, cli_recording
 import argparse
 import dataclasses
 
@@ -428,13 +428,19 @@ def _output_filename(tickers: list[str]) -> str:
     return f"{'-'.join(sorted(set(tickers)))}_comparison.csv"
 
 
-def main() -> None:
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--starting-capital", type=float, required=True)
     parser.add_argument(
         "--liquidate", action=argparse.BooleanOptionalAction, required=True
     )
-    args = parser.parse_args()
+    parser.add_argument("--record-trial", action="store_true")
+    args = parser.parse_args(argv)
+    with cli_recording(args.record_trial, "multi_ticker_comparison"):
+        return _run_main(args)
+
+
+def _run_main(args) -> None:
     universe_cache = cache_path(
         f"{'-'.join(sorted(set(TICKER_UNIVERSE)))}_{PERIOD}.csv"
     )
