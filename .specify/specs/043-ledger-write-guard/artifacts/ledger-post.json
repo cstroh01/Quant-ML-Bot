@@ -1,0 +1,32 @@
+{
+  "task": "T034",
+  "measured_at_utc": "2026-10-08",
+  "method": "Read-only stdlib hashing and TrialLedger().verify() in a Linux LF clone at claude/043-t031-alias; real Windows tree re-hashed read-only on camdencomputer.",
+  "ledger_lines": 174,
+  "ledger_sha256": "1bb5dbfe90c9df370c65910650ade15dd9d0e0366d011e09baf303975275f30f",
+  "head_content": {
+    "head": "99a494e810955da902fa890688aa8d0f12049c3c321cb4c6f2bef2977564a679",
+    "records": 174
+  },
+  "head_sha256": "f83b1b9be5a608d444d61496899d25139eb56184fd924acd030e61347d22d764",
+  "returns_absent": true,
+  "backfill_sha256": {
+    "a47232be-3d05-4c36-b984-f11b29b12a25.json": "2d8ef10d1920d2380750b5022a2b77f536fe436560a4ea36765e65e79fe45155",
+    "a6abdb76-5ec9-43db-b563-c5f66b67637f.json": "d02f1674ca8109b0c3253f7023cdafea29be3a8d96e62e65a444c935ba2a1467",
+    "manifest.json": "d7a303ac81f46ec2b4dce90922c04f1bb610d04f7dbf5b063dfb1ba5e6cd17bf"
+  },
+  "verify": {
+    "head": "99a494e810955da902fa890688aa8d0f12049c3c321cb4c6f2bef2977564a679",
+    "n_post_ledger": 87,
+    "events": 174
+  },
+  "real_windows_tree_sha256": {
+    "trials.jsonl": "1bb5dbfe90c9df370c65910650ade15dd9d0e0366d011e09baf303975275f30f",
+    "trials.head.json": "f83b1b9be5a608d444d61496899d25139eb56184fd924acd030e61347d22d764",
+    "backfill/manifest.json": "98c27aaab970596256d8674d90939be2eaacfb6f3140bc7a3b199dd3438c54d7",
+    "backfill/a47232be-3d05-4c36-b984-f11b29b12a25.json": "2d8ef10d1920d2380750b5022a2b77f536fe436560a4ea36765e65e79fe45155",
+    "backfill/a6abdb76-5ec9-43db-b563-c5f66b67637f.json": "d02f1674ca8109b0c3253f7023cdafea29be3a8d96e62e65a444c935ba2a1467",
+    "returns": "absent"
+  },
+  "note": "The LF clone's backfill/manifest.json hashes d7a303ac... because the Windows working copy holds CRLF line endings; with CRLF->LF it hashes d7a303ac... exactly (checked read-only on the device). Every Windows byte equals T002."
+}
