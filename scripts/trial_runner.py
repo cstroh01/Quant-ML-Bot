@@ -13,6 +13,8 @@ import pandas as pd
 from trial_registry import CONFIG_FIELDS, ROOT, TrialLedger, _require_production_enabled, relative_path, production_recording
 
 _injected = ContextVar("trial_ledger", default=None)
+# Rule 11 marker, defined once; ASCII-escaped so no re-save can corrupt the bytes.
+SYNTHETIC_LABEL = "EXAMPLE \u2014 NOT A RESULT"
 
 def current_ledger(runner: str = "trial_runner.current_ledger", *, read_only: bool = False) -> TrialLedger:
     """Injected or labelled synthetic ledger; production only when enabled.
@@ -25,7 +27,7 @@ def current_ledger(runner: str = "trial_runner.current_ledger", *, read_only: bo
     fixture_root = os.environ.get("SPEC033_SYNTHETIC_ROOT")
     if fixture_root:
         root = Path(fixture_root)
-        if (root / "synthetic-context.json").read_text(encoding="utf-8") != "EXAMPLE — NOT A RESULT":
+        if (root / "synthetic-context.json").read_text(encoding="utf-8") != SYNTHETIC_LABEL:
             raise ValueError("unlabelled synthetic context")
         # Unrelated mechanical fixtures do not constitute a lifetime history.
         # Each implicit attempt owns a temporary ledger; its context manager

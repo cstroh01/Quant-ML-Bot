@@ -65,6 +65,9 @@ def test_collection_guards_reject_silent_omissions(tmp_path, scenario, expected_
     target.mkdir()
     for name in ("conftest.py", "ledger_copy_support.py", "test_collection_guards.py"):
         shutil.copy2(TESTS / name, target / name)
+    (tmp_path / "scripts").mkdir()
+    for name in ("pyproject.toml", "scripts/trial_runner.py", "scripts/trial_registry.py", "scripts/_project.py"):
+        shutil.copy2(TESTS.parent / name, tmp_path / name)
     (target / "test_valid.py").write_text("def test_ok():\n    assert True\n")
 
     relative = {

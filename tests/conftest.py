@@ -2,11 +2,16 @@
 
 from pathlib import Path
 import os
+import sys
 import tempfile
 
 import pytest
 
 from ledger_copy_support import changed, manifest
+
+if str(Path(__file__).resolve().parents[1] / "scripts") not in sys.path:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+from trial_runner import SYNTHETIC_LABEL  # noqa: E402
 
 
 COLLECTED_PATHS = pytest.StashKey[frozenset[Path]]()
@@ -20,7 +25,7 @@ def pytest_configure(config):
     """Inject before collection and unittest class setup, not only test bodies."""
     session = tempfile.TemporaryDirectory(prefix="spec033-synthetic-")
     root = Path(session.name)
-    (root / "synthetic-context.json").write_text("EXAMPLE — NOT A RESULT", encoding="utf-8")
+    (root / "synthetic-context.json").write_text(SYNTHETIC_LABEL, encoding="utf-8")
     config.stash[SYNTHETIC_SESSION] = session
     config.stash[PRIOR_SYNTHETIC_ROOT] = os.environ.get("SPEC033_SYNTHETIC_ROOT")
     os.environ["SPEC033_SYNTHETIC_ROOT"] = str(root)
@@ -56,5 +61,5 @@ def synthetic_research_context(tmp_path, monkeypatch):
     """Inject labelled isolated recording, including spawned comparison workers."""
     root = tmp_path / "spec033-research"
     root.mkdir()
-    (root / "synthetic-context.json").write_text("EXAMPLE — NOT A RESULT", encoding="utf-8")
+    (root / "synthetic-context.json").write_text(SYNTHETIC_LABEL, encoding="utf-8")
     monkeypatch.setenv("SPEC033_SYNTHETIC_ROOT", str(root))

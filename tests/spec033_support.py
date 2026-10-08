@@ -4,7 +4,7 @@ import importlib
 import importlib.util
 from pathlib import Path
 
-LABEL = "EXAMPLE — NOT A RESULT"
+from trial_runner import SYNTHETIC_LABEL as LABEL
 EVENT_FIELDS = set("schema_version event_id trial_id event_type timestamp_utc role family runner config config_hash source prev_hash record_hash".split())
 RETURN_FIELDS = {"session", "log_return"}
 BACKFILL_FIELDS = set("campaign_id description evidence dimensions cartesian_upper_bound rerun_upper_bound remembered_range chosen_upper_bound unresolved_reason".split())

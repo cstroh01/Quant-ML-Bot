@@ -145,7 +145,7 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 
 ### U5: Marker (FR-011, D-3(b))
 
-- [ ] T030 *(per D-3(b))*. For iii:
+- [x] T030 *(per D-3(b))*. For iii:
   - `trial_runner.py`:
     `SYNTHETIC_LABEL = "EXAMPLE — NOT A RESULT"`, ASCII-escaped in the
     source, compared exactly at `:24`.
