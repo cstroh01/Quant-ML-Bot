@@ -11,7 +11,7 @@
 - [ ] T009 **Human gate (first submit):** `--submit` before 09:28 ET; confirm orders at Alpaca; next run releases reservations.
 - [ ] T010 **Human gate:** D-1 to D-5 in spec §3.
 - [x] T011 Follow-on (lane-safe, `scripts/` only): `scripts/paper_report.py` daily markdown report from `runs.jsonl` with Rule 16 disclosure. PR #50 + daily report; evidence `artifacts/t011-paper-report.md`.
-- [ ] T012 Follow-on (lane-safe): signal-decay monitor — rolling hit rate of the trend state vs next-session return against a coin-flip baseline.
+- [x] T012 Follow-on (lane-safe): signal-decay monitor — rolling hit rate of the trend state vs next-session return against a coin-flip baseline. PR #51 `paper_monitor.py` + `scripts/signal_decay.py`; evidence `artifacts/t012-signal-decay.md`.
 - [ ] T013 Follow-on (reviewed lane, `exec/`): broker-vs-intended position reconciliation report.
 
 ## Rule 12 record (2026-10-04, Linux, Python 3.13)
