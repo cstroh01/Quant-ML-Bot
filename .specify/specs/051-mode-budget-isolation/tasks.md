@@ -1,7 +1,7 @@
 # Tasks: 051 mode and budget isolation
 
-- [ ] T001 U1 contracts: `tests/test_051_profiles.py` red (module absent / rules unenforced).
-- [ ] T002 U1 implement `scripts/mode_config.py` profiles, default PAPER, isolation, arming. Mutants: endpoint-only LIVE, shared paths, wrong fingerprint, expired arming.
+- [x] T001 U1 contracts: `tests/test_051_profiles.py` red (module absent / rules unenforced).
+- [x] T002 U1 implement `scripts/mode_config.py` profiles, default PAPER, isolation, arming. Mutants: endpoint-only LIVE, shared paths, wrong fingerprint, expired arming.
 - [ ] T003 U2 contracts: `tests/test_051_sizing.py` (budget bound under inflated broker equity, daily cap, fractional/whole, min notional, settled cash).
 - [ ] T004 U2 implement sizing boundary in `mode_config.py`. Mutants: cap removed, budget from equity, unsettled cash spent, fractional when not allowed.
 - [ ] T005 U3 contracts + implement ownership/exposure. Mutant: external shares become sell intents.
