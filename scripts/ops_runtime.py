@@ -123,3 +123,51 @@ def record_intent(state_dir, client_id: str, intent: dict) -> None:
         stream.write(json.dumps({"client_order_id": client_id, "intent": intent}, sort_keys=True) + "\n")
         stream.flush()
         os.fsync(stream.fileno())
+
+
+# --- U3: daily summary and deduplicated incident alerts (FR-005) ---
+
+DISCLOSURE = "Paper mechanics prototype. Not a performance result."
+
+
+@dataclass(frozen=True)
+class Incident:
+    kind: str  # missed_run | halt | reconciliation | failure
+    profile: str
+    detail: str
+
+    def key(self) -> str:
+        return f"{self.profile}:{self.kind}"
+
+    def fingerprint(self) -> str:
+        return hashlib.sha256(f"{self.key()}|{self.detail}".encode()).hexdigest()
+
+
+def daily_summary(run: dict) -> str:
+    """Plain-text daily summary; ends with the one next operator action, or none."""
+    orders = ", ".join(f"{status}: {count}" for status, count in sorted(run["orders"].items())) or "none"
+    diffs = ", ".join(f"{t}: {d}" for t, d in sorted(run["position_differences"].items())) or "none"
+    needs = []
+    if run["orders"].get("unknown"):
+        needs.append("check UNKNOWN orders at the broker")
+    if run["position_differences"]:
+        needs.append("review position differences")
+    return "\n".join([
+        f"Profile: {run['profile']}  Session: {run['session'].isoformat()}",
+        f"Data session: {run['data_session'].isoformat()}  Model: {run['model']}",
+        f"Orders: {orders}",
+        f"Open reservations: {run['open_reservations']}",
+        f"Position differences: {diffs}",
+        f"Next action: {'; '.join(needs) if needs else 'none'}",
+        DISCLOSURE,
+    ])
+
+
+def incidents_to_send(incidents: list[Incident], sent: dict[str, str]) -> list[Incident]:
+    """New or changed incidents only; ``sent`` maps incident key → last sent fingerprint."""
+    out = []
+    for incident in incidents:
+        if sent.get(incident.key()) != incident.fingerprint():
+            sent[incident.key()] = incident.fingerprint()
+            out.append(incident)
+    return out
