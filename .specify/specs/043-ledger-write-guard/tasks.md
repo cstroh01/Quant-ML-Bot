@@ -133,7 +133,7 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
   whole-tree manifest of `docs/trials/` (`ledger_copy_support.manifest`), and
   name each changed path. Red proof on a copy: a test run that writes
   `docs/trials/returns/x.jsonl` makes shutdown raise and name it (AC-6).
-- [ ] T029 Drivers *(per D-4)*. For D-4 a + c, a shared helper in
+- [x] T029 Drivers *(per D-4)*. For D-4 a + c, a shared helper in
   `tests/mutation/`:
   - copy `tests/conftest.py` and `pyproject.toml`;
   - build the child environment with `child_env()`;

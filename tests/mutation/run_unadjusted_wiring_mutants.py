@@ -6,17 +6,15 @@ Run: python tests/mutation/run_unadjusted_wiring_mutants.py
 from __future__ import annotations
 
 import hashlib
-import os
 from pathlib import Path
-import shutil
-import subprocess
-import sys
 import tempfile
 from xml.etree import ElementTree
 
+from driver_support import copy_into, guarded, run_pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 COPIED = (
-    "scripts", "reports/__init__.py", "reports/api", "tests/conftest.py", "tests/ledger_copy_support.py",
+    "scripts", "reports/__init__.py", "reports/api",
     "tests/context.py", "tests/api_fixtures.py", "tests/unadjusted_fixtures.py",
     "tests/test_unadjusted_caller_wiring.py", "tests/test_reports_api.py",
 )
@@ -53,7 +51,7 @@ MUTANTS = (
      API + "test_tearsheet_503_missing"),
     ("baseline funding omitted", "scripts/ma_crossover_backtest.py",
      "            **costs,\n            **account,\n        )",
-     "            **costs,\n            starting_capital=1.0, liquidate=LIQUIDATE_AT_END,\n        )",
+     "            **costs,\n        )",
      API + "test_backtest_tearsheet"),
 )
 
@@ -68,13 +66,7 @@ def source_digest() -> str:
 def run_copy(mutant: tuple | None, oracle: str) -> tuple[int, set[str]]:
     with tempfile.TemporaryDirectory(prefix="spec036-mutant-") as temporary:
         root = Path(temporary)
-        for relative in COPIED:
-            source, target = ROOT / relative, root / relative
-            if source.is_dir():
-                shutil.copytree(source, target, ignore=shutil.ignore_patterns("__pycache__"))
-            else:
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source, target)
+        copy_into(root, COPIED)
         if mutant is not None:
             path = root / mutant[1]
             content = path.read_text(encoding="utf-8")
@@ -82,11 +74,7 @@ def run_copy(mutant: tuple | None, oracle: str) -> tuple[int, set[str]]:
                 raise RuntimeError(f"{mutant[0]}: expected one mutation site, found {content.count(mutant[2])}")
             path.write_text(content.replace(mutant[2], mutant[3]), encoding="utf-8")
         xml = root / "result.xml"
-        result = subprocess.run(
-            [sys.executable, "-B", "-m", "pytest", oracle, "-q", f"--junitxml={xml}"],
-            cwd=root, capture_output=True, text=True, errors="replace",
-            env={**os.environ, "PYTHONIOENCODING": "utf-8"}, check=False,
-        )
+        result = run_pytest(root, oracle, "-q", f"--junitxml={xml}")
         if not xml.exists():
             raise RuntimeError(f"{oracle}: pytest produced no JUnit file: {result.stderr[-1000:]}")
         failed = {
@@ -119,4 +107,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    with guarded():
+        code = main()
+    raise SystemExit(code)

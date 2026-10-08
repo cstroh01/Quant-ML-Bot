@@ -10,18 +10,17 @@ sources before and after. Caught means a test fails that the control did not.
 from __future__ import annotations
 
 import hashlib
-import os
-import shutil
-import subprocess
 import sys
 import tempfile
 from pathlib import Path
 from xml.etree import ElementTree
 
+from driver_support import copy_into, guarded, run_pytest
+
 REPO = Path(__file__).resolve().parents[2]
 COPIED = (
     "scripts", "reports/__init__.py", "reports/api", "reports/web/src", "reports/requirements-ui.txt",
-    "requirements-dev.txt", "tests/context.py", "tests/api_fixtures.py",
+    "requirements-dev.txt", "tests/context.py", "tests/api_fixtures.py", "tests/unadjusted_fixtures.py",
     "tests/test_reports_api.py", "tests/test_no_fabricated_values.py",
 )
 TEST_MODULES = ("test_reports_api.py", "test_no_fabricated_values.py")
@@ -89,13 +88,7 @@ def failing_tests(mutant: tuple | None) -> tuple[int, set[str]]:
     """(tests run, ids of failing or erroring tests) in a fresh copy with `mutant` applied."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        for relative in COPIED:
-            source, target = REPO / relative, root / relative
-            if source.is_dir():
-                shutil.copytree(source, target, ignore=shutil.ignore_patterns("__pycache__"))
-            else:
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(source, target)
+        copy_into(root, COPIED)
         if mutant is not None:
             path = root / mutant[1]
             text = path.read_text(encoding="utf-8")
@@ -107,12 +100,7 @@ def failing_tests(mutant: tuple | None) -> tuple[int, set[str]]:
         for module in TEST_MODULES:
             junit_path = root / "mutation-results.xml"
             junit_path.unlink(missing_ok=True)
-            result = subprocess.run(
-                [sys.executable, "-B", "-W", "ignore", "-m", "pytest", f"tests/{module}",
-                 f"--junitxml={junit_path}"],
-                cwd=root, capture_output=True, encoding="utf-8", errors="replace",
-                env={**os.environ, "PYTHONIOENCODING": "utf-8"},
-            )
+            result = run_pytest(root, "-W", "ignore", f"tests/{module}", f"--junitxml={junit_path}")
             if not junit_path.is_file():
                 failing.add(f"{module} did not run")
                 continue
@@ -150,4 +138,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    with guarded():
+        code = main()
+    sys.exit(code)
