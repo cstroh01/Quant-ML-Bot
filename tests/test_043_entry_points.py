@@ -10,14 +10,12 @@ RUNNERS = {
 
 # Separate strict marks per review unit (043 review F4): each is removed by the
 # task that turns its own case green, never wholesale.
-RED_UNTIL_U3 = pytest.mark.xfail(
-    strict=True, reason="043 Phase 1 red; read-only route lands in T027 (U3)")
 
 
-# E1-E4 refuse before data access after T025; E5 remains T027's contract.
+# E1-E4 refuse before data access; E5 serves recorded configurations only.
 @pytest.mark.parametrize("entry", [
     "E1", "E2", "E3", "E4",
-    pytest.param("E5", marks=RED_UNTIL_U3)])
+    "E5"])
 def test_default_entry_changes_no_ledger_bytes(entry):
     result = run_child(entry)
     if entry != "E5":
@@ -33,7 +31,6 @@ def test_default_entry_changes_no_ledger_bytes(entry):
             assert_e5_refused(request)
 
 
-@RED_UNTIL_U3
 def test_e5_serves_recorded_configuration_read_only():
     """AC-10's green branch: an unconditional 409 cannot satisfy this (review F5)."""
     assert_e5_served(run_child("E5_recorded"))

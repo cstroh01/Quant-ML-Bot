@@ -120,7 +120,7 @@ run that could reach a write path runs in a copy (T010), with the tripwire on.
 
 ### U3: Route (FR-009, D-2)
 
-- [ ] T027 `reports/api/routes/backtest.py` *(per D-2)*. For D-2 A1:
+- [x] T027 `reports/api/routes/backtest.py` *(per D-2)*. For D-2 A1:
   - GET computes nothing that records.
   - It looks up a recorded trial by the configuration's `config_hash` and
     returns 200 from its sidecar, or 409 naming the recording command.

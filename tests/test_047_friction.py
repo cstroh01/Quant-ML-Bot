@@ -131,8 +131,16 @@ class RouteFrictionTests(unittest.TestCase):
             log = harness.run_backtest(*args, **kwargs)
             observed.append(log.attrs.copy())
             return log
-        with patch.object(route, "run_backtest", side_effect=capture):
+        import ma_crossover_backtest as crossover
+        from trial_registry import TrialLedger
+        from trial_runner import injected_ledger
+        from ledger_copy_support import manifest as ledger_manifest
+        ledger = TrialLedger(client.fixture_cache_dir / "recorded", synthetic=True)
+        with injected_ledger(ledger), patch.object(crossover, "run_backtest", side_effect=capture), patch.object(crossover, "cache_path", side_effect=lambda name: client.fixture_cache_dir / name):
+            crossover.main(["--record-trial", "--short-window", "3", "--long-window", "7", "--commission", "1.337", "--slippage-bps", "5"], cache_dir=client.fixture_cache_dir / "unadjusted")
+            before = ledger_manifest(ledger.root)
             response = client.get("/api/backtest/tearsheet?ticker=AAPL&short_window=3&long_window=7&commission=1.337&slippage_bps=5")
+            self.assertEqual(ledger_manifest(ledger.root), before, "GET wrote ledger bytes")
         self.assertEqual(response.status_code, 200)
         for field in ("commission_total", "slippage_total"):
             self.assertEqual(response.json()[field], round(observed[0][field], 2))
