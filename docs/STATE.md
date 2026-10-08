@@ -15,7 +15,7 @@ Phase 1 (T003–T015) is done. U1 (T020–T022) is merged on `main` (PR #9).
 U2's T023–T024 are merged on `main` (PR #15, merge commit `d8adac3`; recovered
 cloud-lane patch). T025–T036 are implemented in stacked draft PRs awaiting
 Camden's merge, in order: #55 (U2), #57 (U3a), #58 (U3b), #59 (U4a), #60 (U4b),
-#61 (U5), #62 (U6), then the Phase 3 gates PR. Evidence:
+#61 (U5), #62 (U6), #63 (Phase 3 gates). Evidence:
 `artifacts/gates-t032-t036.md`.
 
 Queued behind it, in order: **044** (both edit `scripts/data.py`; 044 also
@@ -65,7 +65,7 @@ checkout evidence; separate local Windows post-merge evidence is private.
 
 | Where | Gate | Waiting on |
 |---|---|---|
-| 043 T025–T036 | Merge (Rule 9) | Camden: draft PRs #55, #57–#62 and the gates PR, in order. T025 used the recorded T025-only pin exception |
+| 043 T025–T036 | Merge (Rule 9) | Camden: draft PRs #55, #57–#63, in order. T025 used the recorded T025-only pin exception |
 | 044 T003, T004 | Review of `p1_probe.py` | Camden |
 | 044 T007, 041 T018 | Live network probe | Camden (041 T018 ran 2026-09-30 and failed; that finding is 044) |
 | 033 Phases 8–9 | Backfill approval COMPLETE; remaining statistics/lifetime-N and Gate 3 prerequisites | Numbered tasks after 035/044/046 acceptance |
