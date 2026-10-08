@@ -114,6 +114,13 @@ data/cache/                       Generated output (gitignored)
 | `scripts/trial_registry.py`, `scripts/trial_runner.py` | Append-only hash-chained trial ledger and instrumented run recording | Strategy logic, fills, P&L accounting |
 | `scripts/order_gateway.py` | Submitting orders through the safety gate | Signal generation, model internals, broker credentials |
 | `scripts/plotting.py` | Headless figures | Everything else |
+| `scripts/mode_config.py` | Immutable PAPER/LIVE profiles, bot budget, namespaces, arming state (spec 051) | Signals, broker network, credential values |
+| `scripts/asset_registry.py` | Dated instrument identity, research and executable eligibility with reasons (spec 052) | Signals, fills, credentials, network |
+| `scripts/model_registry.py` | Model artifact manifests, champion/challenger records, promotion and rollback (spec 053) | Order placement, broker calls, statistics computation |
+| `scripts/holdings_import.py` | Read-only external holdings normalization and staleness (spec 054) | Order intents, credentials, network |
+| `scripts/ops_runtime.py` | Due-run calendar, intent leases, run summaries and alert payloads (spec 055) | Signals, sizing, broker credentials |
+| `scripts/data_sources.py` | Free-source adapters' manifests and cross-source checks (spec 056) | Signals, fills, P&L |
+| `exec/fidelity_live.py` | LIVE order adapter for Fidelity, preview-default, Rule 7 reviewed lane only (spec 057) | Signals, sizing, anything outside order I/O |
 
 These boundaries are load-bearing. They are what let a model replace a rule
 later without touching execution.

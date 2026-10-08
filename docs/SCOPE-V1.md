@@ -178,3 +178,45 @@ If verification fails for a candidate, §2's existing sources stand. The survivo
 **Broker.** Fidelity offers no public retail trading API, and automating its website would break its terms, so it is not integrated. Alpaca (free paper and live API) is the v1.1 adapter. Live trading through it stays behind every step of §5. Broker credentials live only in environment variables or a secrets vault, never in either repo.
 
 **Execution timing.** At daily frequency, network latency is not the binding constraint; decision-to-fill delay is. v1.1 evaluates computing signals shortly before the close with market-on-close orders, against the current next-open fill, under identical Rule 13 costs.
+
+## 10. Amendment 2026-10-07 — expanded product charter (Camden, explicit)
+
+Adds a product objective on top of §1; it does not replace §3's v1.0 definition of done or loosen §5.
+
+**Objective.** A professional, autonomous ML trading product intended to grow Camden's
+user-selected capital through profitable trading, optimizing net performance under declared
+capital, liquidity, exposure and drawdown limits. An objective, never evidence: no surface
+claims profitability without §5's evidence.
+
+**Modes.** PAPER (default) runs at Alpaca paper in two isolated profiles: large ($100,000
+virtual, higher daily deployment) and small ($5,000, the prospective-live scenario). LIVE is a
+separately verified account, credential set, store and log namespace with a bot budget Camden
+sets at activation (a few hundred dollars initially). The bot never sizes from total account
+equity and never sells holdings it does not own. LIVE stays locked until §5 passes and Camden arms it.
+
+**Broker — supersedes §9's broker paragraph.** Camden requires LIVE execution at Fidelity
+(individual brokerage account) and accepts, in writing on 2026-10-07, the risk that an
+unofficial integration breaches Fidelity's terms and may lead to account restriction. Fidelity
+has no paper mode, so PAPER stays at Alpaca. The Fidelity adapter (spec 057) lives in `exec/`
+under Rule 7, defaults to preview-only, uses credentials only from a secrets store Camden
+populates, and adds no detection-evasion features (no fingerprint spoofing, IP rotation, or
+CAPTCHA/2FA bypass). Fidelity holdings import read-only for total-portfolio exposure (spec 054).
+
+**Universe.** Broadened only through a dated point-in-time registry with research vs executable
+eligibility and visible exclusion reasons (spec 052). §6's survivorship limitation stays until
+evidence removes it.
+
+**ML.** Versioned artifacts, purged/embargoed walk-forward net-cost evidence, two baselines,
+lifetime trial recording, DSR/PBO, champion/challenger shadow evaluation. Camden alone promotes a
+model to PAPER or LIVE (spec 053). The SMA rule remains the comparator and is never called ML.
+
+**Operations.** The daily loop runs with Camden's computer off as a scheduled GitHub Actions
+workflow in the private companion repo (ADR 0001): encrypted secrets, single-run concurrency,
+durable state, missed-run detection, automatic failure and daily-summary notification with no
+daily approvals (spec 055). Spare Actions minutes run research, data refresh and mutation jobs.
+
+**Data.** §2's free-only rule stands. Spec 056 verifies and adopts the best free stack.
+
+**Milestones.** M0 v1.0 → M1 reconciled PAPER on the cloud runner → M2 mode/budget isolation +
+small-account PAPER → M3 registry/universe → M4 ML challenger in shadow → M5 capital-gated,
+capped LIVE at Fidelity.
