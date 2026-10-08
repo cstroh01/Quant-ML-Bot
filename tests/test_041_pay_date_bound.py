@@ -621,7 +621,17 @@ def api_client(monkeypatch):
 @pytest.mark.parametrize("bound", [True, False], ids=["bound", "all-sourced"])
 def test_tearsheet_api_discloses_bound_pay_dates(api_client, bound):
     report_bundle(api_client.fixture_cache_dir / "unadjusted", bound=bound)
-    response = api_client.get("/api/backtest/tearsheet?ticker=AAPL")
+    import ma_crossover_backtest as crossover
+    from trial_registry import TrialLedger
+    from trial_runner import injected_ledger
+    from ledger_copy_support import manifest as ledger_manifest
+    from unittest.mock import patch
+    ledger = TrialLedger(api_client.fixture_cache_dir / "recorded", synthetic=True)
+    with injected_ledger(ledger), patch.object(crossover, "cache_path", side_effect=lambda name: api_client.fixture_cache_dir / name):
+        crossover.main(["--record-trial"], cache_dir=api_client.fixture_cache_dir / "unadjusted")
+        before = ledger_manifest(ledger.root)
+        response = api_client.get("/api/backtest/tearsheet?ticker=AAPL")
+        assert ledger_manifest(ledger.root) == before, "GET wrote ledger bytes"
     assert response.status_code == 200, response.text
     assert response.json()["dividend_pay_date_disclosure"] == (DISCLOSURE if bound else None)
 

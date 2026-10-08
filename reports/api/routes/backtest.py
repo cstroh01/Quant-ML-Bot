@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import statistics
 import sys
 from pathlib import Path
 
-import numpy as np
-import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 # Ensure repo root and scripts are in path
@@ -16,21 +13,12 @@ SCRIPTS_DIR = REPO_ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from backtest_harness import run_backtest, summarize_trades
 from data import UnadjustedDataUnavailable, load_unadjusted_for_ticker
-from trial_runner import research_attempt, research_config
-from ma_crossover_backtest import (
-    LIQUIDATE_AT_END, STARTING_CAPITAL, baseline_results, mean_holding_bars,
-    pay_date_disclosure, research_close_signal,
-)
-from tearsheet_payload import recorded_tearsheet_payload
+from trial_runner import current_ledger
+from trial_registry import canonical_config
+from ma_crossover_backtest import tearsheet_config
 from reports.api.routes.data import get_cache_dir
-from reports.api.schemas import (
-    BacktestTearsheetResponse,
-    BaselineComparisonRow,
-    EquityPoint,
-    TradeRecord,
-)
+from reports.api.schemas import BacktestTearsheetResponse
 
 router = APIRouter(prefix="/api/backtest", tags=["backtest"])
 
@@ -44,7 +32,7 @@ def get_backtest_tearsheet(
     slippage_bps: float = Query(5.0, description="Slippage in basis points"),
     cache_dir: Path = Depends(get_cache_dir),
 ) -> BacktestTearsheetResponse:
-    """Run baseline backtest with 3-way baseline comparisons and reconciled equity curve."""
+    """Serve a verified, already-recorded response; never evaluate or write."""
     try:
         prices = load_unadjusted_for_ticker(ticker, cache_dir / "unadjusted")
     except UnadjustedDataUnavailable as error:
@@ -53,36 +41,27 @@ def get_backtest_tearsheet(
             "ticker": error.ticker, "reason": error.reason, "check": error.check,
         }) from error
 
-    # 1. Generate signal
-    signalled = research_close_signal(prices, short_window, long_window)
-
-    # 2. Run harness
-    with research_attempt(research_config("reports/api/routes/backtest.py:run_backtest", locals()), role="candidate") as attempt:
-        trade_log = run_backtest(
-            signalled,
-            commission_per_trade=commission,
-            slippage_bps=slippage_bps,
-            starting_capital=STARTING_CAPITAL,
-            liquidate=LIQUIDATE_AT_END,
-        )
-        attempt.account(trade_log)
-
-    # 4. Generate 3-Way Baseline comparisons (Rule 4)
-    holding_bars = mean_holding_bars(prices, trade_log)
-    baselines = baseline_results(
-        prices=signalled,
-        n_trades=len(trade_log),
-        holding_bars=holding_bars,
-        commission_per_trade=commission,
-        slippage_bps=slippage_bps,
-        seed_count=20,
-        starting_capital=STARTING_CAPITAL,
-        liquidate=LIQUIDATE_AT_END,
-    )
-
-    return BacktestTearsheetResponse(**recorded_tearsheet_payload(
-        prices, trade_log, baselines, ticker=ticker, short_window=short_window,
-        long_window=long_window, commission=commission, slippage_bps=slippage_bps,
-        starting_capital=STARTING_CAPITAL, liquidate_at_end=LIQUIDATE_AT_END,
-        dividend_disclosure=pay_date_disclosure(prices.attrs),
-    ))
+    command = (f"python scripts/ma_crossover_backtest.py --record-trial --ticker {ticker.upper()} "
+               f"--short-window {short_window} --long-window {long_window} "
+               f"--commission {commission} --slippage-bps {slippage_bps} "
+               f'--cache-dir "{cache_dir / "unadjusted"}"')
+    unavailable = dict(error="recorded_configuration_unavailable", recording_command=command)
+    try:
+        ledger = current_ledger(read_only=True)
+        config = tearsheet_config(prices, ticker, short_window, long_window, commission, slippage_bps)
+        _, hashed = canonical_config(config, root=ledger.root)
+        events = ledger.verify()["events"]
+        event = next((e for e in reversed(events) if e["config_hash"] == hashed
+                      and e["event_type"] == "completed"
+                      and e["role"] == ("synthetic_test" if ledger.synthetic else "candidate")), None)
+        if event is None:
+            raise HTTPException(status_code=409, detail=unavailable)
+        payload = event["sidecar"]["metadata"].get("reports", {}).get("tearsheet")
+        response = BacktestTearsheetResponse.model_validate(payload)
+        if (response.trial_id != event["trial_id"]
+                or response.recorded_source_tree_hash != config["model"]["source_tree_hash"]
+                or response.source_manifest_sha256 != prices.attrs["source_manifest_sha256"]):
+            raise ValueError("recorded response provenance mismatch")
+        return response
+    except (ValueError, KeyError, OSError) as error:
+        raise HTTPException(status_code=409, detail=unavailable) from error

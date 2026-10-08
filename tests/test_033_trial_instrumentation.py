@@ -53,8 +53,9 @@ def test_guard_catches_aliased_bypass(tmp_path):
     assert bypasses(tmp_path) == ["scripts/new_runner.py:2 run_backtest"]
 
 
-def test_api_strategy_is_candidate_not_required_random_baseline():
-    tree = ast.parse((ROOT / "reports/api/routes/backtest.py").read_text(encoding="utf-8"))
+def test_recording_cli_strategy_is_candidate_not_required_random_baseline():
+    tree = ast.parse((ROOT / "scripts/ma_crossover_backtest.py").read_text(encoding="utf-8"))
     wrappers = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and getattr(n.func, "id", "") == "research_attempt"]
+    wrappers = [n for n in wrappers if any(k.arg == "role" and isinstance(k.value, ast.Constant) and k.value.value == "candidate" for k in n.keywords)]
     assert len(wrappers) == 1
     assert next(k.value.value for k in wrappers[0].keywords if k.arg == "role") == "candidate"

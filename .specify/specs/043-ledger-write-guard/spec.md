@@ -42,6 +42,18 @@ agent pin exception for `scripts/feature_set_comparison.py`,
 It covers only D-1 B flag/preflight and explicit spawned-worker enablement.
 All other pin protections and human acceptance gates remain.
 
+## T027 contract alignment (Camden, 2026-10-07)
+
+Camden authorized explicit CLI recording in the reports-API fixture while
+retaining every 200/payload assertion, and moving the candidate-role contract
+to E1 while prohibiting GET recording. This resolves the two legacy test
+contracts that conflicted with D-2 A1; no assertion weakening is authorized.
+
+Camden additionally authorized the same explicit-CLI fixture alignment for
+041's two dividend-disclosure cases and 047's exact friction-total route case
+on 2026-10-07. Every existing 200/disclosure/cost assertion is retained; the
+fixtures verify the whole synthetic ledger remains unchanged by GET.
+
 ## 1. The incident, and why it was possible
 
 **2026-09-28.** Verification scripts, run as standalone `python -` processes

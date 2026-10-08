@@ -109,11 +109,27 @@ class TestReportsApi(unittest.TestCase):
         closes = [100.0 + 8.0 * math.sin(i / 4.0) for i in range(len(sessions))]
         prices = session_prices("AAPL", sessions[0], sessions[-1], closes)
         manifest = publish_bundle(self.client.fixture_cache_dir / "unadjusted", "AAPL", prices)
-        response = self.client.get(
-            "/api/backtest/tearsheet?ticker=AAPL&short_window=10&long_window=30&commission=1.0&slippage_bps=5.0"
-        )
+        from trial_registry import TrialLedger
+        from trial_runner import injected_ledger
+        from ledger_copy_support import manifest as ledger_manifest
+        import ma_crossover_backtest as crossover
+        ledger = TrialLedger(self.client.fixture_cache_dir / "recorded", synthetic=True)
+        with injected_ledger(ledger), patch.object(crossover, "cache_path", side_effect=lambda name: self.client.fixture_cache_dir / name):
+            crossover.main(["--record-trial"], cache_dir=self.client.fixture_cache_dir / "unadjusted")
+            before = ledger_manifest(ledger.root)
+            response = self.client.get(
+                "/api/backtest/tearsheet?ticker=AAPL&short_window=10&long_window=30&commission=1.0&slippage_bps=5.0"
+            )
+            self.assertEqual(ledger_manifest(ledger.root), before, "GET wrote ledger bytes")
+            mismatch = self.client.get("/api/backtest/tearsheet?commission=2.0")
+            self.assertEqual(mismatch.status_code, 409)
+            self.assertIn("--commission 2.0", mismatch.json()["detail"]["recording_command"])
+            self.assertEqual(ledger_manifest(ledger.root), before, "mismatched GET wrote ledger bytes")
         self.assertEqual(response.status_code, 200)
         payload = response.json()
+        self.assertTrue(payload["trial_id"])
+        self.assertTrue(payload["recorded_at_utc"])
+        self.assertEqual(len(payload["recorded_source_tree_hash"]), 64)
         self.assertEqual(payload["ticker"], "AAPL")
         self.assertTrue(payload["reconciliation_passed"])
         self.assertGreater(len(payload["equity_curve"]), 50)

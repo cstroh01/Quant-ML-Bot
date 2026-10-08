@@ -250,39 +250,78 @@ def format_comparison(sma_summary: dict, baselines: dict, *, seed_count: int) ->
     return "\n".join(lines)
 
 
+def tearsheet_config(prices, ticker, short_window, long_window, commission, slippage_bps):
+    """One recording/lookup identity: source bytes, code and all report parameters."""
+    from trial_registry import CONFIG_FIELDS, source_identity
+    config = {field: None for field in CONFIG_FIELDS}
+    config.update(runner="scripts/ma_crossover_backtest.py:run_backtest",
+                  data={"manifest_sha256": prices.attrs["source_manifest_sha256"]},
+                  universe=[ticker.upper()], features={"short": short_window, "long": long_window},
+                  model={"kind": "sma_crossover", "source_tree_hash": source_identity()["source_tree_hash"]},
+                  initial_capital=STARTING_CAPITAL, commission=commission,
+                  slippage={"model": "flat_bps", "bps": slippage_bps},
+                  liquidation=LIQUIDATE_AT_END, seed={"baseline_count": RANDOM_BASELINE_SEEDS})
+    return config
+
+
 def main(argv=None, *, cache_dir=UNADJUSTED_CACHE_DIR):
     parser = argparse.ArgumentParser(description="Run the AAPL crossover on a verified unadjusted bundle")
     parser.add_argument("--manifest", type=Path, help="explicit unadjusted manifest path")
     parser.add_argument("--record-trial", action="store_true")
+    parser.add_argument("--cache-dir", type=Path)
+    parser.add_argument("--ticker", default=TICKER)
+    parser.add_argument("--short-window", type=int, default=SHORT_WINDOW)
+    parser.add_argument("--long-window", type=int, default=LONG_WINDOW)
+    parser.add_argument("--commission", type=float, default=COMMISSION_PER_TRADE)
+    parser.add_argument("--slippage-bps", type=float, default=SLIPPAGE_BPS)
     args = parser.parse_args(argv)
     with cli_recording(args.record_trial, "ma_crossover_backtest"):
-        return _run_main(args, cache_dir)
+        return _run_main(args, args.cache_dir or cache_dir)
 
 
 def _run_main(args, cache_dir):
-    nominal = load_unadjusted_for_ticker(TICKER, cache_dir, manifest_path=args.manifest)
+    ticker, short_window, long_window = args.ticker.upper(), args.short_window, args.long_window
+    commission, slippage_bps = args.commission, args.slippage_bps
+    nominal = load_unadjusted_for_ticker(ticker, cache_dir, manifest_path=args.manifest)
 
     # A 10-day average reacts fairly quickly, while a 30-day average gives a
     # little more trend context. These are illustrative defaults, not tuned
     # parameters; tuning them here would make this baseline less useful.
-    prices = research_close_signal(nominal, SHORT_WINDOW, LONG_WINDOW)
+    prices = research_close_signal(nominal, short_window, long_window)
     costs = {
-        "commission_per_trade": COMMISSION_PER_TRADE,
-        "slippage_bps": SLIPPAGE_BPS,
+        "commission_per_trade": commission,
+        "slippage_bps": slippage_bps,
     }
     account = {"starting_capital": STARTING_CAPITAL, "liquidate": LIQUIDATE_AT_END}
-    with research_attempt(research_config("scripts/ma_crossover_backtest.py:run_backtest", locals()), role="candidate") as attempt:
+    with research_attempt(tearsheet_config(nominal, ticker, short_window, long_window, commission, slippage_bps), role="candidate") as attempt:
         trade_log = run_backtest(prices, **costs, **account)
-        attempt.account(trade_log)
+        summary = summarize_trades(trade_log, **costs)
+        baselines = baseline_results(
+            prices,
+            n_trades=summary["total_trades"],
+            holding_bars=mean_holding_bars(prices, trade_log),
+            seed_count=RANDOM_BASELINE_SEEDS,
+            **costs,
+            **account,
+        )
+        from tearsheet_payload import recorded_tearsheet_payload
+        started = next(e for e in attempt.ledger.verify()["events"] if e["trial_id"] == attempt.trial)
+        provenance = dict(trial_id=attempt.trial, recorded_at_utc=started["timestamp_utc"],
+                          recorded_source_tree_hash=started["source"]["source_tree_hash"])
+        payload = recorded_tearsheet_payload(prices, trade_log, baselines, ticker=ticker,
+            short_window=short_window, long_window=long_window, commission=commission,
+            slippage_bps=slippage_bps, starting_capital=STARTING_CAPITAL,
+            liquidate_at_end=LIQUIDATE_AT_END, dividend_disclosure=pay_date_disclosure(prices.attrs), provenance=provenance)
+        attempt.account(trade_log, reports={"tearsheet": payload})
     trade_log.to_csv(cache_path("phase0_aapl_ma_crossover_trades.csv"), index=False)
 
-    print(f"{TICKER} SMA crossover backtest")
+    print(f"{ticker} SMA crossover backtest")
     for key in ("source_name", "source_method", "downloaded_at_utc",
                 "capital_gate_eligible", "source_limitations", "source_manifest_sha256"):
         print(f"{key}: {prices.attrs[key]}")
     if (disclosure := pay_date_disclosure(prices.attrs)) is not None:
         print(disclosure)
-    print(f"SMA windows: {SHORT_WINDOW} and {LONG_WINDOW} trading days")
+    print(f"SMA windows: {short_window} and {long_window} trading days")
     print("Position: long one share or flat; prices below are net of costs")
     print("\nTrade log:")
     if trade_log.empty:
@@ -297,23 +336,13 @@ def _run_main(args, cache_dir):
             )
         )
 
-    summary = summarize_trades(trade_log, **costs)
-    baselines = baseline_results(
-        prices,
-        n_trades=summary["total_trades"],
-        holding_bars=mean_holding_bars(prices, trade_log),
-        seed_count=RANDOM_BASELINE_SEEDS,
-        **costs,
-        **account,
-    )
-
     print("\nSummary, against both required baselines:\n")
     print(format_comparison(summary, baselines, seed_count=RANDOM_BASELINE_SEEDS))
 
     figure, (research_axis, nominal_axis) = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
     research_axis.plot(prices["Date"], prices["Research_Close"], label="Research Close", color="black")
-    research_axis.plot(prices["Date"], prices["Short_SMA_Research"], label=f"SMA {SHORT_WINDOW}")
-    research_axis.plot(prices["Date"], prices["Long_SMA_Research"], label=f"SMA {LONG_WINDOW}")
+    research_axis.plot(prices["Date"], prices["Short_SMA_Research"], label=f"SMA {short_window}")
+    research_axis.plot(prices["Date"], prices["Long_SMA_Research"], label=f"SMA {long_window}")
     research_axis.set_ylabel("Causal total-return index (research units)")
     research_axis.grid(True, alpha=0.3)
     research_axis.legend()
@@ -326,7 +355,7 @@ def _run_main(args, cache_dir):
     sells = prices.loc[prices["Sell_Next_Open"]]
     nominal_axis.scatter(buys["Date"], buys["Open"], marker="^", color="green", label="Buy")
     nominal_axis.scatter(sells["Date"], sells["Open"], marker="v", color="red", label="Sell")
-    research_axis.set_title(f"{TICKER} SMA Crossover Backtest")
+    research_axis.set_title(f"{ticker} SMA Crossover Backtest")
     nominal_axis.set_xlabel("Date")
     nominal_axis.set_ylabel("Nominal price (USD)")
     nominal_axis.grid(True, alpha=0.3)

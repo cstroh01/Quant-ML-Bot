@@ -99,6 +99,9 @@ class EquityPoint(BaseModel):
 
 
 class BacktestTearsheetResponse(BaseModel):
+    trial_id: str | None = None
+    recorded_at_utc: str | None = None
+    recorded_source_tree_hash: str | None = None
     ticker: str
     strategy_name: str
     commission_per_trade: float

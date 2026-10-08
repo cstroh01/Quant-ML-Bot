@@ -14,7 +14,7 @@ from trial_registry import CONFIG_FIELDS, ROOT, TrialLedger, _require_production
 
 _injected = ContextVar("trial_ledger", default=None)
 
-def current_ledger(runner: str = "trial_runner.current_ledger") -> TrialLedger:
+def current_ledger(runner: str = "trial_runner.current_ledger", *, read_only: bool = False) -> TrialLedger:
     """Injected or labelled synthetic ledger; production only when enabled.
 
     Never falls through to production: an invalid synthetic context raises
@@ -32,6 +32,8 @@ def current_ledger(runner: str = "trial_runner.current_ledger") -> TrialLedger:
         # retains that instance across start/terminal. Explicit injections still
         # share one ledger for lifecycle, concurrency, and lifetime-count tests.
         return TrialLedger(root / "attempts" / uuid.uuid4().hex, synthetic=True)
+    if read_only:
+        return TrialLedger()
     _require_production_enabled(runner, TrialLedger().path)
     return TrialLedger()
 
@@ -110,7 +112,7 @@ class Attempt:
     def returns(self, rows: list[dict], metadata: dict) -> None:
         self.receipt = self.ledger.finish(self.trial, "completed", returns=rows, metadata=metadata)
 
-    def account(self, trade_log: pd.DataFrame) -> None:
+    def account(self, trade_log: pd.DataFrame, *, reports: dict | None = None) -> None:
         """Preserve every funded daily row without falsely claiming walk-forward OOS."""
         events = trade_log.attrs.get("ledger")
         if events is None or events.empty:
@@ -119,9 +121,12 @@ class Attempt:
         equity = closes.Equity.to_numpy(dtype=float)
         previous = np.r_[trade_log.attrs["capital_base"], equity[:-1]]
         rows = [{"session": pd.Timestamp(d).strftime("%Y-%m-%d"), "log_return": float(r)} for d, r in zip(closes.Date, np.log(equity / previous))]
-        self.returns(rows, {"frequency": "daily", "return_convention": "funded_account_log", "net_costs": True, "oos": False,
+        metadata = {"frequency": "daily", "return_convention": "funded_account_log", "net_costs": True, "oos": False,
                            "cv": None, "costs": {"commission": trade_log.attrs["commission_per_trade"], "slippage": {"model": "flat_bps", "bps": trade_log.attrs["slippage_bps"]}},
-                           "ineligible_reason": "legacy_oos_and_realistic_cost_provenance_missing"})
+                           "ineligible_reason": "legacy_oos_and_realistic_cost_provenance_missing"}
+        if reports is not None:
+            metadata["reports"] = reports
+        self.returns(rows, metadata)
 
 @contextmanager
 def research_attempt(config: dict, *, role: str = "candidate", family: str = "legacy-research"):

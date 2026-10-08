@@ -26,10 +26,10 @@ API = "tests/test_reports_api.py::TestReportsApi::"
 # (name, source path, exact old fragment, mutant fragment, focused oracle)
 MUTANTS = (
     ("adjusted fallback", "scripts/ma_crossover_backtest.py",
-     "    nominal = load_unadjusted_for_ticker(TICKER, cache_dir, manifest_path=args.manifest)\n",
-     "    try:\n        nominal = load_unadjusted_for_ticker(TICKER, cache_dir, manifest_path=args.manifest)\n"
+     "    nominal = load_unadjusted_for_ticker(ticker, cache_dir, manifest_path=args.manifest)\n",
+     "    try:\n        nominal = load_unadjusted_for_ticker(ticker, cache_dir, manifest_path=args.manifest)\n"
      "    except UnadjustedDataUnavailable:\n        from data import download_market_data\n"
-     "        nominal = download_market_data([TICKER])\n",
+     "        nominal = download_market_data([ticker])\n",
      WIRING + "test_cli_unavailable_has_no_download_output_or_trial"),
     ("ambiguous selection", "scripts/data.py",
      "    if len(matches) > 1:\n        raise UnadjustedDataUnavailable(canonical, \"ambiguous\", \", \".join(map(str, matches)))",
@@ -43,17 +43,17 @@ MUTANTS = (
      '    signal_input["Close"] = nominal["Close"]',
      WIRING + "test_signal_uses_causal_research_close_across_split"),
     ("trial before load", "scripts/ma_crossover_backtest.py",
-     "    nominal = load_unadjusted_for_ticker(TICKER, cache_dir, manifest_path=args.manifest)\n",
+     "    nominal = load_unadjusted_for_ticker(ticker, cache_dir, manifest_path=args.manifest)\n",
      "    with research_attempt(research_config(\"scripts/ma_crossover_backtest.py:run_backtest\", locals()), role=\"candidate\"):\n"
-     "        nominal = load_unadjusted_for_ticker(TICKER, cache_dir, manifest_path=args.manifest)\n",
+     "        nominal = load_unadjusted_for_ticker(ticker, cache_dir, manifest_path=args.manifest)\n",
      WIRING + "test_cli_unavailable_has_no_download_output_or_trial"),
     ("missing 503 mapping", "reports/api/routes/backtest.py",
      "    except UnadjustedDataUnavailable as error:",
      "    except TypeError as error:",
      API + "test_tearsheet_503_missing"),
-    ("baseline funding omitted", "reports/api/routes/backtest.py",
-     "        seed_count=20,\n        starting_capital=STARTING_CAPITAL,",
-     "        seed_count=20,",
+    ("baseline funding omitted", "scripts/ma_crossover_backtest.py",
+     "            **costs,\n            **account,\n        )",
+     "            **costs,\n            starting_capital=1.0, liquidate=LIQUIDATE_AT_END,\n        )",
      API + "test_backtest_tearsheet"),
 )
 
