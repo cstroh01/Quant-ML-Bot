@@ -127,3 +127,77 @@ def require_armed(profile: ModeProfile, record: ArmingRecord | None, *, now: dat
         raise ProfileError(f"{profile.name}: arming activated in the future")
     if record.expires_at <= now:
         raise ProfileError(f"{profile.name}: arming expired")
+
+
+# --- U2: budget-bounded, daily-capped, settled-cash buy sizing (FR-004/005/007/008) ---
+
+from decimal import ROUND_FLOOR, Decimal
+import math
+
+_SIX = Decimal("0.000001")
+
+
+@dataclass(frozen=True)
+class BuyRequest:
+    ticker: str
+    quantity: float
+    ref_price: float
+    fractionable: bool
+
+
+@dataclass(frozen=True)
+class SizedBuy:
+    ticker: str
+    quantity: float
+    notional: float
+
+
+def sizing_equity(profile: ModeProfile, *, bot_owned_value: float, bot_cash: float) -> float:
+    """Equity the bot may size against: its budget, never the broker account's balance."""
+    return min(profile.bot_budget_usd, bot_owned_value + bot_cash)
+
+
+def _floor_qty(quantity: Decimal, fractional: bool) -> Decimal:
+    if fractional:
+        return quantity.quantize(_SIX, rounding=ROUND_FLOOR)
+    return quantity.to_integral_value(rounding=ROUND_FLOOR)
+
+
+def bound_buys(profile: ModeProfile, buys: list[BuyRequest], *, settled_cash: float,
+               deployed_today_usd: float, min_notional_usd: float
+               ) -> tuple[list[SizedBuy], list[tuple[str, str]]]:
+    """Shrink buys, in order, to fit the daily deploy cap and settled cash.
+
+    Guarantees: total accepted notional <= min(daily cap remaining, settled cash);
+    quantities only ever shrink and are floored (whole shares unless both the
+    profile and the instrument allow fractions, then six decimals); each dropped
+    buy carries one reason: daily_cap, insufficient_settled_cash, budget_exhausted
+    or below_minimum. Sells are not this function's concern.
+    """
+    cap_left = Decimal(str(profile.daily_deploy_fraction * profile.bot_budget_usd)) - Decimal(str(deployed_today_usd))
+    cash_left = Decimal(str(settled_cash))
+    accepted: list[SizedBuy] = []
+    refused: list[tuple[str, str]] = []
+    for buy in buys:
+        if not (math.isfinite(buy.ref_price) and buy.ref_price > 0):
+            raise ValueError(f"{buy.ticker}: reference price must be positive and finite")
+        if not (math.isfinite(buy.quantity) and buy.quantity > 0):
+            raise ValueError(f"{buy.ticker}: buy quantity must be positive and finite")
+        price = Decimal(str(buy.ref_price))
+        fractional = profile.fractional and buy.fractionable
+        if cap_left <= 0:
+            refused.append((buy.ticker, "daily_cap"))
+            continue
+        spend = min(cap_left, cash_left)
+        qty = _floor_qty(min(Decimal(str(buy.quantity)), spend / price), fractional)
+        if qty <= 0:
+            refused.append((buy.ticker, "insufficient_settled_cash" if cash_left < cap_left else "budget_exhausted"))
+            continue
+        notional = qty * price
+        if notional < Decimal(str(min_notional_usd)):
+            refused.append((buy.ticker, "below_minimum"))
+            continue
+        accepted.append(SizedBuy(buy.ticker, float(qty), float(notional)))
+        cap_left -= notional
+        cash_left -= notional
+    return accepted, refused
