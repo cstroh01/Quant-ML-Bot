@@ -7,6 +7,17 @@ from context import SCRIPTS_DIR
 ROOT = SCRIPTS_DIR.parent
 PRIMITIVES = {"run_backtest", "nested_walk_forward", "fit_predict_walk_forward", "evaluate_walk_forward", "tune_on_fold", "score_fold"}
 
+def callee(node, aliases):
+    """Primitive a callee expression names: a name, an attribute, or getattr(x, "name")."""
+    if isinstance(node, ast.Name):
+        return aliases.get(node.id, node.id)
+    if isinstance(node, ast.Attribute):
+        return node.attr
+    if (isinstance(node, ast.Call) and getattr(node.func, "id", "") == "getattr" and len(node.args) >= 2
+            and isinstance(node.args[1], ast.Constant) and isinstance(node.args[1].value, str)):
+        return node.args[1].value
+    return ""
+
 def bypasses(root):
     """Find direct research calls; mechanical tests and pure definitions are exempt."""
     failures = []
@@ -16,11 +27,16 @@ def bypasses(root):
                 continue
             tree = ast.parse(path.read_text(encoding="utf-8-sig"))
             aliases = {alias.asname or alias.name: alias.name for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) for alias in n.names}
+            assignments = [(n.targets[0].id, n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)
+                           and len(n.targets) == 1 and isinstance(n.targets[0], ast.Name)]
+            for _ in assignments:  # resolve `Name = <primitive>` chains to a fixpoint
+                for target, value in assignments:
+                    if (resolved := callee(value, aliases)) in PRIMITIVES:
+                        aliases[target] = resolved
             parents = {child: node for node in ast.walk(tree) for child in ast.iter_child_nodes(node)}
             for node in ast.walk(tree):
                 if not isinstance(node, ast.Call): continue
-                name = node.func.id if isinstance(node.func, ast.Name) else getattr(node.func, "attr", "")
-                name = aliases.get(name, name)
+                name = callee(node.func, aliases)
                 if name not in PRIMITIVES: continue
                 parent = node
                 guarded = False
@@ -59,3 +75,15 @@ def test_recording_cli_strategy_is_candidate_not_required_random_baseline():
     wrappers = [n for n in wrappers if any(k.arg == "role" and isinstance(k.value, ast.Constant) and k.value.value == "candidate" for k in n.keywords)]
     assert len(wrappers) == 1
     assert next(k.value.value for k in wrappers[0].keywords if k.arg == "role") == "candidate"
+
+
+def test_guard_catches_assignment_and_getattr_aliases(tmp_path):
+    """AC-9: planted `rb = run_backtest; rb(x)` and `getattr(bt, "run_backtest")(x)`."""
+    (tmp_path / "scripts").mkdir()
+    path = tmp_path / "scripts/new_runner.py"
+    path.write_text("from backtest_harness import run_backtest\nrb = run_backtest\nrb2 = rb\nrb(x)\nrb2(x)\n")
+    assert bypasses(tmp_path) == ["scripts/new_runner.py:4 run_backtest", "scripts/new_runner.py:5 run_backtest"]
+    path.write_text('import backtest_harness as bt\ngetattr(bt, "run_backtest")(x)\nf = getattr(bt, "run_backtest")\nf(x)\n')
+    assert bypasses(tmp_path) == ["scripts/new_runner.py:2 run_backtest", "scripts/new_runner.py:4 run_backtest"]
+    path.write_text('import backtest_harness as bt\nwith research_attempt(config):\n    getattr(bt, "run_backtest")(x)\n')
+    assert bypasses(tmp_path) == []
