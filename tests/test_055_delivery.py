@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 import context  # noqa: F401
+from ops_deliver import deliver
 from ops_runner import run_once
 from ops_runtime import summary_from_loop_record
 
@@ -61,6 +62,46 @@ def test_missing_run_log_still_queues_a_summary_that_says_so(tmp_path):
     assert any("loop record missing" in b for b in bodies)
 
 
+class Poster:
+    def __init__(self, fail_titles=()):
+        self.sent, self.fail_titles = [], set(fail_titles)
+
+    def __call__(self, kind, title, body):
+        if title in self.fail_titles:
+            raise RuntimeError("gh unavailable")
+        self.sent.append((kind, title))
+
+
+def test_delivery_moves_only_successfully_posted_items(tmp_path):
+    go(tmp_path, marker_cmd(tmp_path / "ran", code=3), run_log=tmp_path / "absent.jsonl")  # failure incident + summary
+    items = outbox(tmp_path)
+    assert len(items) == 2
+    incident_title = next(json.loads(p.read_text())["title"] for p in items if "incident" in p.name)
+    poster = Poster(fail_titles={incident_title})
+    delivered, failed = deliver(tmp_path, poster)
+    assert (delivered, failed) == (1, 1)
+    assert [json.loads(p.read_text())["kind"] for p in outbox(tmp_path)] == ["incident"]  # kept for retry
+    delivered, failed = deliver(tmp_path, Poster())
+    assert (delivered, failed) == (1, 0) and outbox(tmp_path) == []
+    assert len(list((tmp_path / "ops" / "delivered").glob("*.json"))) == 2
+
+
+def test_redelivery_never_duplicates_a_posted_item(tmp_path):
+    go(tmp_path, marker_cmd(tmp_path / "ran"), run_log=tmp_path / "absent.jsonl")
+    poster = Poster()
+    deliver(tmp_path, poster)
+    deliver(tmp_path, poster)
+    assert len(poster.sent) == 1
+
+
+def test_a_corrupt_outbox_item_is_reported_not_silently_dropped(tmp_path):
+    box = tmp_path / "ops" / "outbox"
+    box.mkdir(parents=True)
+    (box / "incident-bad.json").write_text("{not json")
+    delivered, failed = deliver(tmp_path, Poster())
+    assert (delivered, failed) == (0, 1) and (box / "incident-bad.json").exists()
+
+
 @pytest.mark.parametrize("status_now", [datetime(2026, 10, 8, 10, 0, tzinfo=NY)])
 def test_incidents_on_non_due_invocations_are_queued_too(tmp_path, status_now):
     result = go(tmp_path, marker_cmd(tmp_path / "ran"), now=status_now)  # first-ever, after cutoff: missed run
@@ -68,7 +109,7 @@ def test_incidents_on_non_due_invocations_are_queued_too(tmp_path, status_now):
     assert [json.loads(p.read_text())["kind"] for p in outbox(tmp_path)] == ["incident"]
 
 
-# --- Codex follow-up: current-invocation record only; data session carried ---
+# --- Codex follow-up: current-invocation record only; data session carried; private-repo target ---
 
 def append_cmd(log, record):
     line = json.dumps(record)
@@ -102,3 +143,31 @@ def test_a_record_for_another_profile_is_not_this_runs_record(tmp_path):
     go(tmp_path, append_cmd(log, {"session": "2026-10-07", "profile": "paper_large", "actions": []}), run_log=log)
     assert "loop record missing" in summary_body(tmp_path)
 
+
+def test_gh_poster_always_targets_the_given_repository(monkeypatch):
+    import ops_deliver
+    seen = []
+
+    class Done:
+        stdout = "[]"
+
+    monkeypatch.setattr(ops_deliver.subprocess, "run", lambda args, **_k: (seen.append(args), Done())[1])
+    poster = ops_deliver.gh_poster("cstroh01/Quant-ML-Bot-private")
+    poster("summary", "paper-loop daily summary", "body")
+    poster("incident", "[p] failure", "body")
+    assert seen and all(a[:3] == ["gh", "-R", "cstroh01/Quant-ML-Bot-private"] for a in seen)
+
+
+def test_deliver_cli_requires_an_explicit_repository():
+    import ops_deliver
+    with pytest.raises(SystemExit):
+        ops_deliver.main(["--state-dir", "x"])
+
+
+def test_workflow_delivery_and_failure_backstop_target_the_running_private_repo():
+    from pathlib import Path
+    text = (Path(__file__).resolve().parents[1] / "ops" / "workflows" / "paper-loop.yml").read_text()
+    deliver_line = next(line for line in text.splitlines() if "scripts/ops_deliver.py" in line)
+    assert '--repo "${{ github.repository }}"' in deliver_line
+    backstop = text[text.index("Open incident issue on failure"):]
+    assert 'gh issue create -R "${{ github.repository }}"' in backstop
