@@ -566,3 +566,13 @@ not its published N=100 result; that published-result test is retained.
 N=88/N=46, raw lifetime counting, all thresholds and non-history inputs remain
 unchanged. See `docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md`.
 This approval does not approve the historical backfill.
+
+## Amendments — 2026-10-09 (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`))
+- **Phase 8 authorized.** The immutable Gate 3 evidence artifact and its API are authorized,
+  tests first.
+- **Family N (spec 058 T002).** Gate 3 may evaluate a preregistered family at `N_family` while spec
+  058 D-1's conditions (a)–(d) hold. Those conditions are: a declaration written before any data, data
+  disjoint from prior screens, the declaration recorded in the ledger, and a cap of 50 candidate
+  starts. The lifetime-`N` DSR is always computed and published beside it. A breach reverts the family
+  to lifetime `N`.
+

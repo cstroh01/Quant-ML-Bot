@@ -27,23 +27,23 @@ tests part of the deliverable.
 
 **Purpose**: Establish the true starting state and prevent a second authority.
 
-- [ ] T001 Run `python -m pytest tests` before implementation and record the
+- [x] T001 Run `python -m pytest tests` before implementation and record the
   exact collection/pass/fail/error baseline without calling a pre-existing red
   suite green.
-- [ ] T002 Run the focused existing prototype tests
+- [x] T002 Run the focused existing prototype tests
   `python -m pytest tests/test_trial_registry.py -q` and record their baseline.
-- [ ] T003 Inventory every production/human-facing call site that can execute or
+- [x] T003 Inventory every production/human-facing call site that can execute or
   render a backtest, including scripts and `reports/api`; classify each as
   candidate runner, required baseline, diagnostic, or test-only in
   `tests/fixtures/spec_033/runner_inventory.json`.
-- [ ] T004 Inventory the current `scripts/trial_registry.py`,
+- [x] T004 Inventory the current `scripts/trial_registry.py`,
   `tests/test_trial_registry.py`, and `docs/trials/trials.jsonl`; choose the one
   migration path allowed by `plan.md` and record it at the top of the new ledger
   test module.
-- [ ] T005 [P] Create test-only paper-input and CSCV fixtures under
+- [x] T005 [P] Create test-only paper-input and CSCV fixtures under
   `tests/fixtures/spec_033/`, each labelled `EXAMPLE — NOT A RESULT` and each
   carrying a source note.
-- [ ] T006 Freeze canonical ledger-event, return-sidecar, backfill, matrix
+- [x] T006 Freeze canonical ledger-event, return-sidecar, backfill, matrix
   manifest, Gate 3 artifact, and reason-code schemas as test constants before
   production implementation.
 
@@ -55,34 +55,34 @@ production file has changed yet.
 **Goal**: Prove the required ledger behavior fails against the current optional
 prototype.
 
-- [ ] T007 [US1] Write canonical configuration tests covering resolved defaults,
+- [x] T007 [US1] Write canonical configuration tests covering resolved defaults,
   every result-affecting field in FR-003, ordered versus set-like collections,
   repository-relative paths, data digests, finite floats, and SHA-256 stability
   in `tests/test_033_trial_ledger.py`.
-- [ ] T008 [US1] Write lifecycle tests proving `started` is appended before the
+- [x] T008 [US1] Write lifecycle tests proving `started` is appended before the
   callback runs; duplicate hashes count twice; exception, abandoned, and
   start-only/interrupted candidates remain in `N`; and baseline/test roles do
   not become candidate trials accidentally.
-- [ ] T009 [US1] Write sidecar tests for complete ordered daily returns, funded
+- [x] T009 [US1] Write sidecar tests for complete ordered daily returns, funded
   account/net-cost eligibility, digest and coverage metadata, atomic creation,
   and rejection of paths under `data/cache/`.
-- [ ] T010 [US1] Write chain-integrity planted-defect tests for edited, deleted,
+- [x] T010 [US1] Write chain-integrity planted-defect tests for edited, deleted,
   reordered, and duplicated events; truncated final line; missing/corrupt
   sidecar; and disconnected record hash. Add an unmodified clean control and
   assert the specific offending record/path.
-- [ ] T011 [US1] Write source-provenance tests for a full 40-hex SHA, detached
+- [x] T011 [US1] Write source-provenance tests for a full 40-hex SHA, detached
   and packed refs, missing `.git`, dirty/unknown workspace state, source-tree
   hash, and the prohibition on invoking a `git` subprocess.
-- [ ] T012 [US1] Write concurrent append/crash tests with multiple processes,
+- [x] T012 [US1] Write concurrent append/crash tests with multiple processes,
   no lost or interleaved record, stale lock behavior, and deterministic
   recovery that never truncates silently.
-- [ ] T013 [US1] Write production-default versus injected synthetic-ledger
+- [x] T013 [US1] Write production-default versus injected synthetic-ledger
   tests. Assert there is no production `record=False` path and test runs never
   touch the repository lifetime ledger.
-- [ ] T014 [US1] Write an AST/static instrumentation guard from T003's inventory
+- [x] T014 [US1] Write an AST/static instrumentation guard from T003's inventory
   that fails for an unwrapped human-facing backtest call and passes for direct
   low-level calls explicitly classified as test-only.
-- [ ] T015 Confirm T007-T014 fail for the intended missing ledger behavior
+- [x] T015 Confirm T007-T014 fail for the intended missing ledger behavior
   against the unmodified current source; record each intended failure.
 
 **Checkpoint**: The ledger contract is executable and red before ledger code is
@@ -90,28 +90,28 @@ written.
 
 ## Phase 3 — US1 implementation: one ledger authority
 
-- [ ] T016 [US1] Implement canonical JSON and configuration normalization in the
+- [x] T016 [US1] Implement canonical JSON and configuration normalization in the
   chosen sole ledger module; store the reviewable config and its SHA-256.
-- [ ] T017 [US1] Implement full source identity without calling `git`: explicit
+- [x] T017 [US1] Implement full source identity without calling `git`: explicit
   SHA/CI value or direct `.git` metadata, workspace-state handling, and
   deterministic source-tree hash for dirty/unknown runs.
-- [ ] T018 [US1] Implement event schemas and validation for `started` and
+- [x] T018 [US1] Implement event schemas and validation for `started` and
   terminal lifecycle events; count candidate starts rather than completions.
-- [ ] T019 [US1] Implement write-once daily return sidecars outside
+- [x] T019 [US1] Implement write-once daily return sidecars outside
   `data/cache/`, canonical row validation, SHA-256, and terminal binding.
-- [ ] T020 [US1] Implement cross-platform serialized append, flush/fsync,
+- [x] T020 [US1] Implement cross-platform serialized append, flush/fsync,
   temporary-file rename, hash-chain verification, and explicit partial-write
   recovery behavior.
-- [ ] T021 [US1] Implement `trial_runner` lifecycle around an opaque canonical
+- [x] T021 [US1] Implement `trial_runner` lifecycle around an opaque canonical
   research configuration while preserving the Rule 8 boundary with
   `backtest_harness.py`.
-- [ ] T022 [US1] Migrate or retire `scripts/trial_registry.py`, its tests, and
+- [x] T022 [US1] Migrate or retire `scripts/trial_registry.py`, its tests, and
   the empty legacy ledger so one production default remains; do not leave a
   compatibility writer that can create a second count.
 - [ ] T023 [US1] Instrument every T003 production runner, including candidate
   grids, manual scripts, report/API backtests, and required baselines with their
   correct role.
-- [ ] T024 [US1] Make T007-T014 green, then run the focused existing/migrated
+- [x] T024 [US1] Make T007-T014 green, then run the focused existing/migrated
   registry tests and the static bypass guard together.
 
 **Checkpoint**: Every real research attempt is durably recorded before its
@@ -122,27 +122,27 @@ result, and the repository has one ledger authority.
 **Goal**: Produce an auditable upper-biased historical count without fabricating
 returns.
 
-- [ ] T025 [US2] Write manifest-schema tests requiring campaign ID,
+- [x] T025 [US2] Write manifest-schema tests requiring campaign ID,
   description, evidence references, dimensions, Cartesian upper bound, rerun
   upper bound, remembered range, chosen bound, and unresolved reason in
   `tests/test_033_backfill.py`.
-- [ ] T026 [US2] Write a hand-calculated manifest oracle proving full Cartesian
+- [x] T026 [US2] Write a hand-calculated manifest oracle proving full Cartesian
   product, separate-campaign addition without config dedupe, upper-endpoint
   selection, next-power-of-two rounding, then doubling in that exact order.
-- [ ] T027 [US2] Write tests that a superseding correction cannot lower the
+- [x] T027 [US2] Write tests that a superseding correction cannot lower the
   effective historical count and that any unresolved/unbounded known campaign
   makes the backfill incomplete.
-- [ ] T028 [US2] Confirm T025-T027 fail against the missing backfill
+- [x] T028 [US2] Confirm T025-T027 fail against the missing backfill
   implementation for the intended reasons.
-- [ ] T029 [US2] Implement pure backfill validation and calculation functions;
+- [x] T029 [US2] Implement pure backfill validation and calculation functions;
   keep repository inspection/evidence collection separate from arithmetic.
-- [ ] T030 [US2] Draft the real campaign manifest from surviving scripts,
+- [x] T030 [US2] Draft the real campaign manifest from surviving scripts,
   reports, audit artifacts, and known AI/manual search surfaces. Cite each row;
   do not infer that missing output means no run.
-- [ ] T031 [US2] Present the manifest and upper bounds to Camden for explicit
+- [x] T031 [US2] Present the manifest and upper bounds to Camden for explicit
   approval. Until approved, mark the real backfill incomplete and preserve
   Gate 3 as `unknown`.
-- [ ] T032 [US2] After approval, write a new immutable backfill artifact with
+- [x] T032 [US2] After approval, write a new immutable backfill artifact with
   formula, intermediate counts, author/approval, UTC date, and SHA-256; never
   overwrite or lower an earlier count.
 - [ ] T033 [US2] Make T025-T027 green and verify that backfilled trials change
@@ -168,7 +168,7 @@ incomplete; there is no optimistic fallback.
   daily non-annualized Sharpe, observation count, skewness, Pearson kurtosis,
   trial-Sharpe dispersion, extreme-value benchmark, normal CDF, and
   `N_current`.
-- [ ] T038 [US3] Write invalid-domain tests for insufficient observations,
+- [x] T038 [US3] Write invalid-domain tests for insufficient observations,
   zero dispersion/variance where undefined, non-finite moments, invalid square
   root denominator, `N < 1`, and missing selected candidate; assert structured
   undefined reasons.
@@ -179,19 +179,19 @@ incomplete; there is no optimistic fallback.
   `metrics.mean_log_return_se`, require lag `>= horizon - 1`, and cover exact
   `3.0`, one representable value below, non-positive/undefined SE, and risk-free
   log-return convention.
-- [ ] T041 [US3] Confirm T034-T040 fail for the intended missing statistical
+- [x] T041 [US3] Confirm T034-T040 fail for the intended missing statistical
   behavior before implementation.
 
 ## Phase 6 — US3 implementation: matrix, DSR, and t-statistic
 
-- [ ] T042 [US3] Implement pure return-series validation and exact-intersection
+- [x] T042 [US3] Implement pure return-series validation and exact-intersection
   matrix construction with exclusion manifest and canonical matrix SHA-256.
-- [ ] T043 [US3] Implement direct PSR/DSR equations in `scripts/selection_bias.py`
+- [x] T043 [US3] Implement direct PSR/DSR equations in `scripts/selection_bias.py`
   using SciPy only for normal distribution primitives; expose named inputs and
   structured undefined results.
 - [ ] T044 [US3] Integrate lifetime `N_current` without substituting surviving
   matrix columns or an effective correlated-trial count.
-- [ ] T045 [US3] Reuse/extract the existing HAC mean standard-error primitive
+- [x] T045 [US3] Reuse/extract the existing HAC mean standard-error primitive
   without duplicating its formula; calculate the selected candidate's daily OOS
   excess-return t-stat and record actual lag.
 - [ ] T046 [US3] Make T034-T040 green, including the paper fixture, then verify

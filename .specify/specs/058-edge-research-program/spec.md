@@ -137,6 +137,9 @@ Approximate net annualized Sharpe needed for DSR ≥ 0.95 (HAC t ≥ 3 binds les
 - **D-5 Costs first.** §5 research runs wait for spec 046 T001/T002 (Camden's source review). No
   provisional-cost run may be selected, gated or published as a result.
 
+- **D-6 Module placement (T004).** A new `scripts/portfolio_backtest.py` owns weights → fills → P&L
+  for a panel. Its `CLAUDE.md` row is a separate governance PR (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`)).
+
 ## 9. Out of scope
 Intraday data, single stocks, futures, leverage above 1.0, ML models in this family. ML stays a later
 challenger under 053.

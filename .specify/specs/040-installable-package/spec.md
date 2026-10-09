@@ -540,6 +540,10 @@ equivalence fixture, under `spawn`. It asserts:
 - **D-3. Project-root resolution** is by marker and never by cwd (§1.5 R1).
 - **D-4. Finding 56** is fixed by deleting the preambles (§3).
 
+- **2026-10-09.** Spec 043 §6's seven amendments are approved as written (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`)). They are applied to
+  this spec in its first unit. 040 starts after spec 058's code lands. T001 (the kickoff check) remains
+  Camden's.
+
 ## Assumptions
 
 - No strategy result is produced or reported, so Rules 2, 3, 4, 13 and 15 are not
