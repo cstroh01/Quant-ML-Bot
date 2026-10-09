@@ -30,7 +30,7 @@ authorizes Git, parallel agents, or network use in tests.
     (140 lines: `run`, `self_check`, `main`), each measured against an empty file. Q-P4 is now
     diagnostic-only (spec §5 amendment, R2) with a new self-check case. T003/T004 cover the same
     functions, now in those two files.
-- [ ] T002a **Fix 043 review findings F2, F3, F7, F8 before T003/T004** (signed off 2026-10-03;
+- [x] T002a **Fix 043 review findings F2, F3, F7, F8 before T003/T004** (signed off 2026-10-03;
   source: `.specify/specs/043-ledger-write-guard/artifacts/review-phase1.md`). Files: `artifacts/p1_rules.py`,
   `artifacts/p1_probe.py` only; each stays ≤300 lines (split, never compress).
   - F2: a future-dated response (last > completed session) is a horizon FAIL, not lag 0 / PASS.
@@ -40,6 +40,9 @@ authorizes Git, parallel agents, or network use in tests.
   - F8: `sessions` validates the dividends column (finite, ≥ 0); NaN or negative cells fail.
   - Rule 12: one planted defect per finding, each turning its new self-check case red. Offline only;
     never run `--revision`.
+  - _2026-10-08 (local agent, offline):_ fixes were already present; mutation found 3 survivors
+    (F3 required-case, F7 `re.match`, F8 `+inf`). Hardened the self-check (49 `ok`); 20/20 mutants
+    killed; suite 1394 passed; ledger unchanged. Evidence: `artifacts/t002a-evidence.md`.
 - [ ] T003 **Review part A (Camden):** everything from the top of the file through `q_p1`, plus
   `run` and `QUESTIONS`. Covers session labels, factor validation, horizon, input schemas, Q-P1,
   raw rows and hashes.
