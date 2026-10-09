@@ -23,7 +23,7 @@ import uuid
 
 from ops_runtime import (SUMMARY_TITLE, Incident, LeaseHeld, _lease_path, acquire_lease, atomic_write,
                          complete_lease, due_run, incidents_to_send, missed_sessions, queue_outbox,
-                         summary_from_loop_record)
+                         require_storage_identifier, summary_from_loop_record)
 
 
 def _jsonl(path: Path) -> list[dict]:
@@ -103,6 +103,7 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
     """
     if not str(strategy_version).strip():
         raise ValueError("strategy_version is required for the run identity")
+    require_storage_identifier(profile)  # names lease and outbox files: one portable component only
     ops = Path(state_dir) / "ops"
     runs = [r for r in _jsonl(ops / "runs.jsonl") if r["profile"] == profile]
     completed = {(profile, date.fromisoformat(r["session"])) for r in runs}

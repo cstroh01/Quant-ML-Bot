@@ -18,6 +18,15 @@ MUTS = {
     "earlier deployment ignored": ("            deployed_today_usd=_deployed_today(durable, today), min_notional_usd=1.0)", "            deployed_today_usd=0.0, min_notional_usd=1.0)"),
     "cli submits without persist": ("    if args.submit and profile is not None and not args.persist_command:", "    if False:"),
 }
+MUTS.update({
+    "namespace not checked": (PL, '        namespace = require_storage_identifier(profile.log_namespace, "log_namespace")',
+                              "        namespace = profile.log_namespace"),
+    "lease name not checked": (RT, 'f"{require_storage_identifier(profile)}-{session.isoformat()}.json"',
+                               'f"{profile}-{session.isoformat()}.json"'),
+    "runner profile not checked": (RN, "    require_storage_identifier(profile)  # names lease and outbox files",
+                                   "    (lambda _p: None)(profile)  # names lease and outbox files"),
+    "device names allowed": (RT, " or value in _WINDOWS_DEVICES:", ":"),
+})
 killed = 0
 for name, spec in MUTS.items():
     path, a, b = spec if len(spec) == 3 else (PL, *spec)
@@ -26,7 +35,7 @@ for name, spec in MUTS.items():
     path.write_text(orig.replace(a, b))
     try:
         r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_055_paper_loop_durable.py", "tests/test_049_paper_loop.py",
-                            "tests/test_051_paper_loop_profile.py", "-q",
+                            "tests/test_051_paper_loop_profile.py", "tests/test_055_storage_identifiers.py", "-q",
                             "-p", "no:cacheprovider"], capture_output=True, cwd=ROOT)
     finally:
         path.write_text(orig)
