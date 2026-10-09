@@ -60,10 +60,15 @@ deployment ignored, CLI submits without persist).
   7007f9f: DID NOT RAISE. Controls: real sibling folders are accepted and distinct, and a linked
   root is accepted. Tests use a directory symlink, or an NTFS junction where Windows refuses
   unprivileged symlinks; they skip only if neither can be created.
-- Limitation: links on the leaf files (`paper-gate.sqlite`, `paper-runs`) inside a profile's own
-  folder are not checked.
-- Rule 12: `python tests/mutation/run_055_f03_mutants.py` → 14/14 killed by named witnesses on this
-  branch AND with #95 (`773251b`) `mode_config.py` + tests overlaid (120 focused tests pass). New
-  mutant: "redirected folder accepted" (the old parent-only check). The resolved-folder guard also
-  refuses the Codex alias, so the identifier mutant is now witnessed by `[Paper_Small]`. The device
-  mutant is witnessed by the lease `[nul]` case, which never resolves paths.
+- **Leaf links (F03d, Codex, 2026-10-09):** a `paper-gate.sqlite` or `paper-runs` link inside
+  `paper_small` pointing into `paper_large` passed the folder guard. Each leaf must now resolve to
+  `base.resolve() / <leaf>`, checked separately, before any state use. Red on 4999f48: DID NOT
+  RAISE for both leaves. The DB case uses a dangling file symlink (the first write would follow
+  it); unprivileged Windows uses a junction instead. Controls: the sibling's real leaves, a real
+  run-log dir with a not-yet-created DB, real siblings and the linked root are all accepted.
+- Rule 12: `python tests/mutation/run_055_f03_mutants.py` → 16/16 killed by named witnesses on this
+  branch AND with #95 (`773251b`) `mode_config.py` + tests overlaid (123 focused tests pass). The 14
+  earlier witnesses are unchanged. New: "gate DB leaf redirect accepted" and "run-log leaf redirect
+  accepted", witnessed by `[paper-gate.sqlite]` and `[paper-runs]`. "Redirected folder accepted" is
+  the old parent-only check. The identifier mutant is witnessed by `[Paper_Small]` (the folder guard
+  also refuses the Codex alias), and the device mutant by the lease `[nul]` case.
