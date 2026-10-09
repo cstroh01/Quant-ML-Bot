@@ -67,3 +67,10 @@ def test_announced_but_not_yet_effective_listing_is_excluded():
     reg = Registry([Fact("I8", "listed", "NYSE", date(2019, 7, 1), obs(2019, 5, 1), "exchange-notice")])
     assert "I8" not in reg.snapshot(date(2019, 6, 3))
     assert "I8" in reg.snapshot(date(2019, 7, 1))
+
+
+def test_a_symbol_without_a_listing_is_known_but_not_active():
+    reg = Registry([Fact("I8", "symbol", "PRE", date(2020, 1, 2), obs(2020, 1, 2), "sec:cik-8"),
+                    Fact("I8", "listed", "NYSE", date(2020, 3, 2), obs(2020, 3, 2), "nasdaqtrader")])
+    assert reg.snapshot(date(2020, 2, 3))["I8"]["active"] is False
+    assert reg.snapshot(date(2020, 3, 2))["I8"]["active"] is True

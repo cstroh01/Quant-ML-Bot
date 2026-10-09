@@ -30,3 +30,12 @@ def test_cross_sectional_stats_come_from_training_rows_only():
     assert params_a == params_b
     pd.testing.assert_series_equal(a.loc[train], b.loc[train])
     assert abs(params_a["mean"] - 2.5) < 1e-12
+
+
+def test_membership_requires_a_visible_listing():
+    reg = Registry([
+        Fact("A", "listed", "NYSE", date(2020, 1, 2), datetime(2020, 1, 2, 21, tzinfo=UTC), "s"),
+        Fact("P", "symbol", "PRE", date(2020, 1, 2), datetime(2020, 1, 2, 21, tzinfo=UTC), "s"),
+        Fact("P", "corporate_action", "spinoff", date(2020, 1, 2), datetime(2020, 1, 2, 21, tzinfo=UTC), "s"),
+    ])
+    assert causal_membership(reg, [date(2020, 1, 3)]) == {date(2020, 1, 3): {"A"}}

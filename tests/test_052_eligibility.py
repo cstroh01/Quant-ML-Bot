@@ -1,5 +1,5 @@
 """Spec 052 U2/U3: research and executable eligibility with reasons. EXAMPLE — NOT A RESULT."""
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 import pytest
@@ -40,15 +40,19 @@ def test_rows_after_as_of_are_ignored():
                                               actions_reconciled=True, basis_known=True)
 
 
+NOW = datetime(2026, 10, 8, 13, 25, tzinfo=timezone.utc)
+
+
 def quote(**extra):
     values = dict(tradable=True, halted=False, last_bar_session=date(2026, 10, 7), instrument_class="us_equity",
-                  spread_bps=10.0, adv_shares=100_000.0, min_notional_usd=1.0)
+                  spread_bps=10.0, adv_shares=100_000.0, min_notional_usd=1.0, quoted_at=NOW - timedelta(seconds=5))
     values.update(extra)
     return ExecutableQuote(**values)
 
 
 def test_executable_ok_and_each_refusal():
-    kw = dict(previous_session=date(2026, 10, 7), allowed_classes=("us_equity", "etf"), order_qty=500, order_notional=10_000.0, limits=LIM)
+    kw = dict(previous_session=date(2026, 10, 7), allowed_classes=("us_equity", "etf"), order_qty=500, order_notional=10_000.0, limits=LIM,
+              now=NOW, max_quote_age_seconds=60)
     assert executable_eligibility(quote(), **kw) == []
     assert executable_eligibility(quote(tradable=False), **kw) == ["not_tradable"]
     assert executable_eligibility(quote(halted=True), **kw) == ["halted"]
@@ -64,3 +68,58 @@ def test_a_future_price_cannot_lift_a_name_over_the_floor():
     frame.loc[pd.Timestamp("2026-10-08")] = [50.0, 1_000_000]
     assert "price_below_floor" in research_eligibility(frame, as_of=date(2026, 10, 7), limits=LIM,
                                                        actions_reconciled=True, basis_known=True)
+
+
+KW = dict(previous_session=date(2026, 10, 7), allowed_classes=("us_equity", "etf"), order_qty=500,
+          order_notional=10_000.0, limits=LIM, now=NOW, max_quote_age_seconds=60)
+NAN = float("nan")
+
+
+@pytest.mark.parametrize("change,reason", [
+    (dict(spread_bps=NAN), "spread_unknown"), (dict(adv_shares=NAN), "adv_unknown"),
+    (dict(min_notional_usd=NAN), "broker_minimum_unknown"),
+    (dict(quoted_at=NOW - timedelta(seconds=61)), "stale_quote"),
+    (dict(quoted_at=NOW + timedelta(seconds=1)), "stale_quote"),
+    (dict(quoted_at=datetime(2026, 10, 8, 13, 25)), "stale_quote"),
+])
+def test_unknown_or_stale_quote_fields_fail_closed(change, reason):
+    assert reason in executable_eligibility(quote(**change), **KW)
+
+
+@pytest.mark.parametrize("change", [dict(order_qty=NAN), dict(order_notional=NAN), dict(order_qty=-1.0)])
+def test_invalid_order_fails_closed(change):
+    assert "order_invalid" in executable_eligibility(quote(), **(KW | change))
+
+
+@pytest.mark.parametrize("column,reason", [("Close", "price_below_floor"), ("Volume", "illiquid")])
+def test_nan_bars_fail_closed(column, reason):
+    frame = bars()
+    frame.loc[frame.index[-1], column] = NAN
+    assert reason in research_eligibility(frame, as_of=date(2026, 10, 7), limits=LIM, actions_reconciled=True,
+                                          basis_known=True)
+
+
+@pytest.mark.parametrize("change", [dict(max_participation=NAN), dict(max_participation=0.0),
+                                    dict(max_participation=1.5), dict(max_spread_bps=NAN),
+                                    dict(min_price=float("inf")), dict(min_median_dollar_volume=-1.0),
+                                    dict(min_sessions=0), dict(min_sessions=5.5)])
+def test_invalid_limits_refuse_at_construction(change):
+    values = dict(min_sessions=5, min_price=5.0, min_median_dollar_volume=1_000_000.0,
+                  max_spread_bps=50.0, max_participation=0.01) | change
+    with pytest.raises(ValueError):
+        EligibilityLimits(**values)
+
+
+def test_valid_cap_still_refuses_high_participation():
+    assert executable_eligibility(quote(adv_shares=10_000.0), **KW) == ["participation_too_high"]
+
+
+@pytest.mark.parametrize("bad", [float("inf"), -1.0])
+def test_one_infinite_or_negative_volume_in_the_window_fails_closed(bad):
+    frame = bars(volume=1_000_000.0, n=20)
+    frame.loc[frame.index[5], "Volume"] = bad
+    assert "illiquid" in research_eligibility(frame, as_of=date(2026, 10, 7), limits=LIM,
+                                              actions_reconciled=True, basis_known=True)
+    clean = bars(volume=1_000_000, n=20)
+    assert research_eligibility(clean, as_of=date(2026, 10, 7), limits=LIM, actions_reconciled=True,
+                                basis_known=True) == []

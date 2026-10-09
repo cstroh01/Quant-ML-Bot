@@ -136,7 +136,8 @@ PROFILE = ModeProfile(name="paper_small", mode="PAPER", broker="alpaca_paper",
 
 def quote(**extra) -> ExecutableQuote:
     base = dict(tradable=True, halted=False, last_bar_session=S[18], instrument_class="us_equity",
-                spread_bps=8.0, adv_shares=200_000.0, min_notional_usd=1.0)
+                spread_bps=8.0, adv_shares=200_000.0, min_notional_usd=1.0,
+                quoted_at=datetime.combine(S[19], time(9, 20), tzinfo=NY))
     return ExecutableQuote(**(base | extra))
 
 
@@ -153,7 +154,9 @@ ORDERS = {
 
 def executable() -> dict[str, list[str]]:
     return {iid: executable_eligibility(q, previous_session=S[18], allowed_classes=PROFILE.instruments,
-                                        order_qty=qty, order_notional=notional, limits=LIM)
+                                        order_qty=qty, order_notional=notional, limits=LIM,
+                                        now=datetime.combine(S[19], time(9, 20, 30), tzinfo=NY),
+                                        max_quote_age_seconds=60)
             for iid, (q, qty, notional) in ORDERS.items()}
 
 
