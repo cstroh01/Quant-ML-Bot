@@ -145,3 +145,9 @@ def test_tiingo_drops_a_session_not_closed_15_minutes_ago():
     now = datetime(2026, 10, 7, 20, 14, tzinfo=timezone.utc)  # 16:14 New York
     frame, manifest = tiingo(rows, now=now)[0].fetch("AAPL", date(2026, 10, 1), date(2026, 10, 7))
     assert list(frame.index) == [pd.Timestamp("2026-10-06")] and manifest.completed_session == "2026-10-06"
+
+
+def test_a_non_session_label_anywhere_in_the_payload_refuses():
+    rows = [tiingo_row("2026-10-03", 1.0, 1.0), tiingo_row("2026-10-06", 1.0, 1.0)]  # 10-03 is a Saturday
+    with pytest.raises(SourceFetchError, match="NYSE session"):
+        tiingo(rows)[0].fetch("AAPL", date(2026, 10, 1), date(2026, 10, 7))
