@@ -179,6 +179,22 @@ obviously fine and the queue is backed up.
 A PR blocked on this gate is not blocked on the code. It is blocked on an
 explanation, and the explanation is the deliverable.
 
+
+### Rule 9a — Bounded agent merge (Camden, 2026-10-09)
+
+While Camden is unavailable, an agent may merge a pull request only when every condition below holds on the PR's exact head SHA (a new commit voids every check):
+
+1. The branch begins `claude/` or `codex/` and was produced in a Rule 10 lane.
+2. It touches none of: this file, `CLAUDE.md`, `AGENTS.md`, `docs/SCOPE-V1.md`, `docs/autonomy/`, `docs/adr/`, `.github/`, `.claude/`, `exec/`, `docs/trials/`, `data/cache/`, the three pinned 019 scripts, `scripts/live_safety_gate.py`, `scripts/order_gateway.py`, `scripts/mode_config.py`, `reports/api/routes/capital_gate.py`, or any `SafetyConfig` value.
+3. It records or changes no spec D-decision, approval, authorization, or human-gate checkbox, and no task whose text names Camden.
+4. At most 300 added plus removed lines.
+5. Every required check succeeded on the exact head: test, test-windows, web, actionlint, loop-guard, CodeQL.
+6. Two independent exact-head reviews report no unresolved P0 or P1 finding: Codex (the GitHub Codex review completed on that SHA, or a `Codex verdict @<sha>: GREEN` comment) and one Claude reviewer run that did not author the change.
+7. The PR body states the ledger hashes were unchanged before and after.
+8. Camden has not applied the label `hold`, and no comment from Camden asks to wait.
+9. The merge is a merge commit (never squash or rebase), and the merging agent posts one comment naming this rule and each condition's evidence.
+
+Agents may mark such a PR ready for review and post one `@codex review` comment so condition 6 can run. This rule expires 2026-12-31T23:59Z or earlier when Camden says so in chat or removes it. Every other PR still requires Camden's own merge under Rule 9. Camden may revert any agent merge.
 ---
 
 ## Rule 10 — Version control is human-owned
@@ -197,7 +213,7 @@ two lanes — a local session, a worktree, a terminal — runs no `git` at all.
 
 **Exception — the authorized cloud-session lane.** An agent running in Anthropic-managed cloud as a Claude scheduled task configured by Camden, or in a Claude cloud session explicitly started by Camden through the browser, Claude app, or cloud CLI launch, or in an OpenAI-managed Codex cloud task explicitly started by Camden, may clone and fetch the repository; create one new feature branch per review unit it produces; stage explicit paths; commit; and push without force to its own branches only. Claude branches must begin `claude/`; Codex branches must begin `codex/`. Each branch is created from `origin/main` or, for stacked units, from a branch the same session or task created earlier, and carries exactly one draft PR whose base is `main` or that parent branch. A session or task started by an agent at Camden's explicit instruction in chat — for example, an orchestrating session launching parallel cloud sessions or Codex cloud tasks — counts as explicitly started by Camden. At Camden's explicit instruction in chat, a session may also restore a branch Camden deleted, at its last pushed commit, and reopen its PR unchanged.
 
-No push to a branch created by another session or task (except the restore above), no merge, rebase, reset, force-push, tag, history rewrite, or push to `main` is permitted. Agents never approve PRs, merge them, or mark them ready for review. No edit to `docs/trials/` is permitted in this lane. Edits to this file, `CLAUDE.md`, `docs/SCOPE-V1.md`, `docs/autonomy/`, `.github/` or anything in `exec/` are permitted only when Camden explicitly instructs that specific change in chat; each such PR is titled with its governance or `exec/` scope, touches nothing else, and merges only after Camden's own review — line by line for `exec/` (Rule 7) and with his explanation (Rule 9). All other repository protections and human gates remain binding. Local sessions, terminals, worktrees, and cloud sessions continued locally gain no Git permission from this exception.
+No push to a branch created by another session or task (except the restore above), no merge, rebase, reset, force-push, tag, history rewrite, or push to `main` is permitted. Agents never approve PRs, merge them, or mark them ready for review, except as Rule 9a permits. No edit to `docs/trials/` is permitted in this lane. Edits to this file, `CLAUDE.md`, `docs/SCOPE-V1.md`, `docs/autonomy/`, `.github/` or anything in `exec/` are permitted only when Camden explicitly instructs that specific change in chat; each such PR is titled with its governance or `exec/` scope, touches nothing else, and merges only after Camden's own review — line by line for `exec/` (Rule 7) and with his explanation (Rule 9). All other repository protections and human gates remain binding. Local sessions, terminals, worktrees, and cloud sessions continued locally gain no Git permission from this exception.
 
 This is a comprehension rule, continuous with Rule 9. The exception lets a session place its work on a feature branch for review; it does not let the session make the work permanent on `main`. Camden must still explain what the change does, why it is correct, and what would break if it were wrong before he merges it.
 
@@ -215,6 +231,9 @@ draft PR, never `main`, and Rule 9 still gates every merge._
 _Amended 2026-10-05, with Camden's explicit approval: extended the cloud lane to Camden-started Claude cloud sessions and Codex cloud tasks so bounded queue work can use eligible cloud credit and independent providers. One session-owned provider-prefixed branch and draft PR only; protected paths, local Git prohibition, and Camden's comprehension and merge gates remain intact._
 
 _Amended 2026-10-07, Camden's explicit instruction ("amend rule 10, because we're against the clock"): one branch and draft PR per review unit, stacked units allowed; agent-launched sessions at his instruction count as his; restore-on-instruction; governance and `exec/` drafts only on his explicit per-change instruction, still merged only by him after Rules 7 and 9. Local sessions still run no Git. Merge, push to `main`, history rewrite and ledger edits stay forbidden in every lane._
+
+
+_Amended 2026-10-09, Camden's explicit instruction (merge policy option "b", because he will be unavailable): Rule 9a permits a bounded, time-limited agent merge of non-governance, non-execution, non-ledger PRs after CI and two independent exact-head reviews. Every other merge, and every human gate, stays Camden's._
 
 ## Rule 11 — No unsourced figures in any UI, report, or document
 
