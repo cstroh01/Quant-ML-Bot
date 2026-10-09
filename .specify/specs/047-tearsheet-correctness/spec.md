@@ -245,6 +245,9 @@ grep passes for any spelling of the same bug, so it is vacuous.
   is about market statistics, which are conventionally computed on adjusted returns. Changing its
   basis would change `/api/data/stats`, which is out of scope.
 
+- **T005 approved (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`)).** Adding `npm test` to CI's `web` job is approved. The `.github/` edit
+  ships as its own governance PR for Camden's merge.
+
 ## 8. Sequencing and dependencies
 
 - Independent of 035, 041, 043 and 044: no edit to `scripts/data.py`.

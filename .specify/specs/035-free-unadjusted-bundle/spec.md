@@ -208,6 +208,19 @@ Drivers live under `tests/mutation/` and invoke pytest (`CLAUDE.md`, Tests).
 - **D-4 — Window (open; Camden).** Choose the build window. 044's SC-001 uses 2016-01-04 to
   2025-12-31 (§1 of that spec). Matching it is the default proposal.
 
+### Decisions recorded (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`))
+- **Retarget (G3-R).** 035 builds the accepted unadjusted cache for the spec 058 ETF universe.
+- **D-1.** Alpaca raw SIP, 2016 onward, is the second source. EODHD is rejected: on 2026-10-09 the free
+  tier returned one row plus a warning (Codex lane record).
+- **D-2.** `Close` tolerance is relative 1e-3. Basis: vendors differ between the official closing
+  auction price and the last trade. The dividend amount tolerance is absolute $0.0001 per share at the
+  declared per-share basis, because declarations are given to 4 decimals. Values outside tolerance are
+  excluded or disclosed, never averaged.
+- **D-3.** Reconciliation goes in a new module, `scripts/corporate_actions.py`. Its `CLAUDE.md` row is
+  a separate governance PR.
+- **D-4.** The window runs from each instrument's listing date to the latest completed session. Spec
+  058's seal still governs research use.
+
 ## 9. Sequencing
 
 035 edits `scripts/data.py` (unless D-3 says otherwise), and so do 043 and 044. It does not run

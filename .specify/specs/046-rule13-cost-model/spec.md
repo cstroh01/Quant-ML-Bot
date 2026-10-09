@@ -252,3 +252,28 @@ This spec-writing task changes no code, tests, manifests, existing specification
 governance, finish plan, state file, ledger or cache. It produces no strategy
 results. Future implementation still owes Rules 1, 5, 6, 12, 13 and 16 and all
 unchanged independent accounting, provenance and human gates.
+
+### T001 source review — APPROVED (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`))
+- **Source.** Ardia, Guidotti & Kröncke (2024), *Journal of Financial Economics* 161, 103916,
+  doi:10.1016/j.jfineco.2024.103916, CC BY 4.0.
+- **Estimator.** EDGE, Eqs. (23)–(25), p. 6. The specification is the authors' reference algorithm,
+  `bidask` v2.1.0 (MIT), which adds return de-meaning to the printed equations.
+- **Spread convention.** S is the full relative effective spread (Eq. (1), p. 3). The cost model
+  charges S/2 per fill.
+- **Negative S² (G1-N = b).** The spread is √|S²|. This deliberately deviates from the paper's §3.2
+  reset-to-zero, because zero spread would understate cost.
+- **Data requirements.** At least 3 observations. Days with missing O/H/L/C, or with O or C outside
+  [L, H], are dropped (p. 9).
+- **Oracle.** `bidask==2.1.0` as a test-only dependency, compared at absolute tolerance 1e-12.
+  - Fixture: seed 20261009, 21 sessions, true spread 0.01 → 0.007795522223312195.
+  - Negative case: seed 1, true spread 0.0005 → signed −0.003000259646810344.
+  - The fixture generator is private, in the Codex lane.
+- **Impact law.** Tóth et al. (2011), *Physical Review X* 1, 021006,
+  doi:10.1103/PhysRevX.1.021006. Y = 1.0 (D-1).
+- **Volatility (σ).** 21 daily close-to-close log returns, using 22 closes at or before t; ddof = 1.
+- **ADV.** Mean share volume over t−20..t, on the same split basis as Q. Volume whose split basis is
+  unverified is refused.
+
+### T002 amendment — APPROVED (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`))
+For spec 058's universe, "upstream data ready" is satisfied by spec 058 T009's verified data check.
+Specs 035 and 044 still gate the stock-basket paths.
