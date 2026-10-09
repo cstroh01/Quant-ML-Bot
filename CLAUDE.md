@@ -120,6 +120,9 @@ data/cache/                       Generated output (gitignored)
 | `scripts/holdings_import.py` | Read-only external holdings normalization and staleness (spec 054) | Order intents, credentials, network |
 | `scripts/ops_runtime.py` | Due-run calendar, intent leases, run summaries and alert payloads (spec 055) | Signals, sizing, broker credentials |
 | `scripts/data_sources.py` | Free-source adapters' manifests and cross-source checks (spec 056) | Signals, fills, P&L |
+| `scripts/cost_model.py` | Spread (EDGE) and square-root impact cost estimates per fill (spec 046) | Signals, sizing, P&L accounting, downloads, the ledger |
+| `scripts/corporate_actions.py` | Cross-source corporate-action and close reconciliation for the unadjusted cache (spec 035) | Signals, fills, P&L, network |
+| `scripts/portfolio_backtest.py` | Multi-asset weights → next-open fills → portfolio P&L (spec 058) | How weights or signals were produced, downloads |
 | `exec/fidelity_live.py` | LIVE order adapter for Fidelity, preview-default, Rule 7 reviewed lane only (spec 057) | Signals, sizing, anything outside order I/O |
 
 These boundaries are load-bearing. They are what let a model replace a rule
