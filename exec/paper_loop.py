@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import hashlib
 import json
 import os
 import sys
@@ -46,10 +47,11 @@ from alpaca_paper import (  # noqa: E402
     SubmissionUnknown,
 )
 from data import download_market_data, trading_days  # noqa: E402
-from live_safety_gate import LiveSafetyGate, OrderIntent, SafetyConfig, new_client_order_id  # noqa: E402
+from live_safety_gate import LiveSafetyGate, OrderIntent, SafetyConfig  # noqa: E402
 from order_gateway import OrderDeniedError, submit_order  # noqa: E402
 from paper_targets import close_panel, plan_next_open  # noqa: E402
 from mode_config import BuyRequest, ModeProfile, bound_buys, load_profiles  # noqa: E402
+from ops_runtime import client_order_id  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 UNIVERSE = ("AAPL", "AMZN", "GOOGL", "MSFT", "NVDA")
@@ -156,7 +158,12 @@ def run_once(
     now_fn: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
     profile: ModeProfile | None = None,
 ) -> dict:
-    """One loop iteration. Returns the run record; raises ``RunAborted``."""
+    """One loop iteration. Returns the run record; raises ``RunAborted``.
+
+    Spec 055 F03: client ids are deterministic per (profile, session, ticker, side); a submit run
+    refuses while any earlier reservation has no broker record (unknown exposure); a profile's
+    credentials must belong to its fingerprinted account.
+    """
     clock = client.clock()
     broker_now = parse_broker_time(clock["timestamp"])
     today = broker_now.astimezone(NY).date()
@@ -170,6 +177,10 @@ def run_once(
             raise RunAborted(f"{ny_time:%H:%M} ET is past the {PRE_OPEN_CUTOFF:%H:%M} market-on-open cutoff.")
 
     reconciliation = reconcile_pending(gate, client, now_fn()) if submit else []
+    unresolved = [r["client_order_id"] for r in reconciliation if r["broker_status"] is None]
+    if unresolved:
+        raise RunAborted(f"{len(unresolved)} unresolved reservation(s) the broker has no record of: "
+                         f"{unresolved}; reconcile by hand before any new exposure.")
 
     expected = previous_session(today)
     completed = closes.loc[closes.index < pd.Timestamp(today)]
@@ -183,6 +194,11 @@ def run_once(
         raise RunAborted(f"no close on {expected} for {', '.join(missing)}; data is incomplete.")
 
     account = client.account()
+    if profile is not None and not getattr(client, "placeholder", False):
+        number = str(account.get("account_number", "")).strip()
+        if not number or hashlib.sha256(number.encode()).hexdigest() != profile.account_fingerprint:
+            raise RunAborted(f"{profile.name}: credentials reach an account whose fingerprint does not match "
+                             "the profile; refusing to trade the wrong account.")
     equity = float(account["equity"])
     positions = client.positions()
     # Spec 051: with a profile, size against the bot budget, never the broker balance.
@@ -210,7 +226,9 @@ def run_once(
         if not submit:
             actions.append({**record, "outcome": "DRY_RUN"})
             continue
-        intent = OrderIntent(new_client_order_id(), order.ticker, order.delta_quantity)
+        side = "buy" if order.delta_quantity > 0 else "sell"
+        owner = profile.name if profile is not None else "default"
+        intent = OrderIntent(client_order_id(owner, today, order.ticker, side), order.ticker, order.delta_quantity)
         record["client_order_id"] = intent.client_order_id
         snapshot = client.snapshot(gate_prices, parse_time=parse_broker_time)
         try:
