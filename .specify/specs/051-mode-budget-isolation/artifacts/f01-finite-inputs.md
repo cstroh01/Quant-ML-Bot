@@ -31,5 +31,11 @@ FAILED tests/test_051_finite_inputs.py::test_concentration_gate_fails_closed[pri
   every other profile's state and passed. Red on 63e2098: `.`, `./`, `state/..` loaded beside
   `state/paper_large`. Now refused; the causal control loads the identical pair with a sibling dir.
 
+- Third Codex follow-up (2026-10-09): distinct `state_dir`s passed while `log_namespace=
+  'paper_small/../paper_large'` made T007's `state_paths` resolve to `paper_large`'s gate DB and run
+  log. `name` and `log_namespace` must now be portable storage identifiers (`[a-z0-9][a-z0-9_-]{0,62}`,
+  one path component, not a Windows device name). Red on c109fe3: 16 of 16 new cases failed. The
+  consuming `state_paths` refusal lives on #107 (it doesn't exist on this branch's base).
+
 ## Rule 12
-`python tests/mutation/run_051_finite_inputs_mutants.py` → 12/12 killed.
+`python tests/mutation/run_051_finite_inputs_mutants.py` → 13/13 killed (the case-fold namespace mutant is retired as equivalent: identifiers are lowercase-only).

@@ -99,3 +99,24 @@ def test_repo_root_state_dir_is_refused_and_only_the_field_causes_it(root):
     assert set(load_profiles([raw(state_dir="state/root_ok"), raw("paper_large", account="PA-2")]))
     with pytest.raises(ProfileError, match="state_dir"):
         load_profiles([raw(state_dir=root), raw("paper_large", account="PA-2")])
+
+
+@pytest.mark.parametrize("field,value", [
+    ("log_namespace", "paper_small/../paper_large"), ("log_namespace", "a/b"), ("log_namespace", "a\\b"),
+    ("log_namespace", ".."), ("log_namespace", "/abs"), ("log_namespace", "C:x"), ("log_namespace", "ns."),
+    ("log_namespace", "ns "), ("log_namespace", "Paper_Small"), ("log_namespace", "con"), ("log_namespace", "LPT1"),
+    ("name", "paper/small"), ("name", "paper_small/.."), ("name", "nul"), ("name", "Paper"),
+])
+def test_storage_identifiers_must_be_portable_single_components(field, value):
+    values = {"name": "paper_small", "log_namespace": "paper_small"} | {field: value}
+    with pytest.raises(ProfileError, match=f"{field} .*storage identifier"):
+        load_profiles([raw(values.pop("name"), credential_refs=["X_KEY_ID", "X_SECRET"], **values)])
+
+
+def test_codex_alias_pair_is_refused_and_the_sibling_control_loads():
+    small = raw(log_namespace="paper_small/../paper_large")
+    large = raw("paper_large", account="PA-2", state_dir="state/paper_large2", log_namespace="paper_large")
+    with pytest.raises(ProfileError, match="log_namespace .*storage identifier"):
+        load_profiles([small, large])
+    control = dict(small, log_namespace="paper_small")
+    assert set(load_profiles([control, large])) == {"paper_small", "paper_large"}

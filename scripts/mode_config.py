@@ -20,6 +20,15 @@ DEFAULT_PROFILE = "paper_small"
 _DIGEST = re.compile(r"[0-9a-f]{64}")
 _ENV_NAME = re.compile(r"[A-Z][A-Z0-9_]{2,63}")
 _UNIQUE = ("state_dir", "log_namespace", "account_fingerprint", "credential_refs")
+# Names that become one path component (log_namespace dirs, lease/outbox file names): lowercase,
+# no separators, no dots, no trailing dot/space, no Windows device names -> no aliasing on any OS.
+STORAGE_IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9_-]{0,62}")
+_WINDOWS_DEVICES = frozenset({"con", "prn", "aux", "nul"} | {f"{d}{i}" for d in ("com", "lpt") for i in range(1, 10)})
+
+
+def is_storage_identifier(value: str) -> bool:
+    """True only for a portable single path component that cannot alias another one."""
+    return bool(STORAGE_IDENTIFIER.fullmatch(str(value))) and str(value) not in _WINDOWS_DEVICES
 
 
 class ProfileError(ValueError):
@@ -60,6 +69,10 @@ class ModeProfile:
         for field in ("name", "state_dir", "log_namespace", "safety_config_version"):
             if not str(getattr(self, field)).strip():
                 raise ProfileError(f"{self.name}: {field} is required")
+        for field in ("name", "log_namespace"):
+            if not is_storage_identifier(getattr(self, field)):
+                raise ProfileError(f"{self.name}: {field} {getattr(self, field)!r} is not a portable storage identifier "
+                                   "(lowercase a-z 0-9 _ -, one path component, not a device name)")
         raw_dir = str(self.state_dir).replace("\\", "/")
         if _canonical_dir(raw_dir) in (".", ""):
             raise ProfileError(f"{self.name}: state_dir must not be the repo root (it would contain every "

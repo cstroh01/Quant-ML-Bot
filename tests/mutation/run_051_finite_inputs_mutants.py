@@ -11,8 +11,13 @@ muts = {
     "absolute state_dir allowed": ('        if raw_dir.startswith("/") or re.match(r"[A-Za-z]:", raw_dir) or _canonical_dir(raw_dir).startswith(".."):',
                                    '        if False:'),
     "repo root state_dir allowed": ('        if _canonical_dir(raw_dir) in (".", ""):', "        if False:"),
+    "namespace not an identifier": ('        for field in ("name", "log_namespace"):\n            if not is_storage_identifier(getattr(self, field)):',
+                                    '        for field in ("name",):\n            if not is_storage_identifier(getattr(self, field)):'),
+    "device names allowed": ("    return bool(STORAGE_IDENTIFIER.fullmatch(str(value))) and str(value) not in _WINDOWS_DEVICES",
+                             "    return bool(STORAGE_IDENTIFIER.fullmatch(str(value)))"),
     "nesting allowed": ("if key.startswith(other + \"/\") or other.startswith(key + \"/\"):", "if False:"),
-    "namespace case-sensitive": ("return str(key).strip().casefold()", "return key"),
+    # "namespace case-sensitive" retired 2026-10-09: identifiers are lowercase-only, so the casefold
+    # in _identity_key is now redundant and that mutant is equivalent (cannot change behavior).
     "infinite budget": ("math.isfinite(self.bot_budget_usd) and ", ""),
     "negative deployed": ("if deployed_today_usd < 0 or min_notional_usd < 0:", "if False:"),
     "NaN day state": ("        if not math.isfinite(value):\n            raise ValueError(f\"{name} must be finite\")\n    if deployed",
