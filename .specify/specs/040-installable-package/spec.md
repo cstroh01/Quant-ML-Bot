@@ -561,3 +561,8 @@ equivalence fixture, under `spawn`. It asserts:
   before 040, and its §6 lists the amendments 040 needs at that point.
 - Publishing to PyPI.
 - The repo split in ADR 0001 (v1.0 DoD item 6).
+
+## Delegations — Camden, 2026-10-09 (delegation answers G12–G16 in chat; recorded by Claude)
+- **G14.** T001's kickoff check is delegated to the lane. The lane verifies from the tree and PR list
+  that 036 and 041 have merged and that no open PR touches 040's files, and it records the evidence in
+  the unit's PR.

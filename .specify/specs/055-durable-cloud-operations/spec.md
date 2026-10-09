@@ -44,3 +44,11 @@ alert dedupe drops a changed incident; worker changes a risk limit.
 ## 5. Acceptance
 Mutants killed offline; workflow runs green on the private repo; supervised drills (missed run,
 duplicate run, unknown submit, restart) recorded; then the laptop task is retired by Camden.
+
+## Delegations — Camden, 2026-10-09 (delegation answers G12–G16 in chat; recorded by Claude)
+- **G15.** Supervised PAPER drills (restart, crash, concurrency, duplicate, missed-run, kill/reset)
+  run in the Codex lane with schedules disabled. PAPER accounts only.
+- **G16.** If every drill passes, and broker reconciliation and notification delivery are verified,
+  the PAPER schedule may be enabled and the local `paper_large` loop retired. The `.github/` workflow
+  edit that enables the schedule is a governance PR: Rule 9a cannot merge it, so it waits for Camden's
+  merge. LIVE stays off.

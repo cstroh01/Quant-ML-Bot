@@ -245,6 +245,25 @@ invoke pytest (`CLAUDE.md`, Tests).
   into a quarantined quotation file that no live surface links as results. Until decided, X rows stay
   Q-pending-D-5 and closed-spec X figures default to S.
 
+### Decided 2026-10-09 (Claude under Camden's 2026-10-09 delegation; Codex proposal `DECISIONS-FOR-REVIEW.md` cross-checked; ratified by Camden's merge of this PR)
+- **D-1.** A new module, `scripts/disclosure.py`. It owns disclosure text, the register constant,
+  source stamps and an injected UTC clock. It has no signals, fills, sizing or P&L. Its `CLAUDE.md` row
+  is a separate governance PR.
+- **D-2.** Every PROJECT_CONTEXT figure stays S (struck). No figure is regenerated.
+- **D-3.** The six CrossValidationView folds are labelled `EXAMPLE — NOT A RESULT`. The API is not
+  expanded.
+- **D-4.** The full register appears inline on the web tearsheet and the README. Script panels and
+  other views carry a one-line, same-surface reference.
+- **D-5 = (b).** X figures are struck even in audit and history documents. Q covers only figures
+  with a committed source. A struck line keeps its historical context and its source pointer where one
+  exists. This needs no constitution exception.
+- **T007.** The HTML banner anchor is the observed `div.wrap`, located with an HTML parser and not a
+  regular expression. The anchor is rechecked at the admitted revision, and a removed-banner mutant is
+  required.
+- **T008.** The enumerated JSON evidence files are machine evidence outside the quotation-banner
+  class. They are preserved byte-for-byte. Human-facing summaries of them still carry provenance,
+  limitations and the Rule 15 flag.
+
 ## 9. Sequencing
 
 - **047 first.** 047 and 038 share `BacktestTearsheetView.tsx`, `routes/backtest.py`,

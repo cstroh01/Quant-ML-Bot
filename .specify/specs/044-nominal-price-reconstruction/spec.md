@@ -364,3 +364,12 @@ source; it is internal-consistency evidence only.
 - No strategy result is produced or claimed. P-1 and SC-001 figures are data provenance, stamped
   with their source and date.
 - The 041 pay-date policy (`unbounded`) is unchanged.
+
+## Delegations — Camden, 2026-10-09 (delegation answers G12–G16 in chat; recorded by Claude)
+- **G12.** The T003/T004 reviews of `p1_probe.py` are delegated to an exact-head Codex review plus an
+  independent Claude review. Each records its verdict in the PR with evidence.
+- **G13.** The T007 live probe and later bounded fetches may run in the Codex lane on Camden's PC
+  without a per-run "go", provided all three of these hold:
+  - the request caps and endpoint allowlists hold
+  - credentials are never printed
+  - raw responses stay private and only sanitized manifests become public

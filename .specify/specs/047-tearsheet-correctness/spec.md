@@ -248,6 +248,16 @@ grep passes for any spelling of the same bug, so it is vacuous.
 - **T005 approved (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`)).** Adding `npm test` to CI's `web` job is approved. The `.github/` edit
   ships as its own governance PR for Camden's merge.
 
+### Decided 2026-10-09 (Claude under Camden's 2026-10-09 delegation; Codex proposal `DECISIONS-FOR-REVIEW.md` cross-checked; ratified by Camden's merge of this PR)
+- **D-1 = (a).** A minimal web test runner as a dev dependency (Vitest plus Testing Library),
+  rendering real components against synthetic API responses. It carries a Rule 6 line. CI wiring is
+  T005's governance PR.
+- **D-2 = (a).** The tearsheet response carries the run's own unadjusted bars and the causal signal
+  SMA values (FR-004a: send the SMA). There is no adjusted-cache substitution and no SMA reconstructed
+  over nominal candles.
+- **D-3.** MarketDataView keeps adjusted candles and drops the run fill markers. `/api/data/stats` is
+  unchanged.
+
 ## 8. Sequencing and dependencies
 
 - Independent of 035, 041, 043 and 044: no edit to `scripts/data.py`.

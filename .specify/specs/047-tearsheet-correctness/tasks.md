@@ -65,13 +65,13 @@ since the plan's `2942240`, so the plan's line numbers still hold.
 
 ## Phase 0 — decisions and baseline (HUMAN GATE except T004)
 
-- [ ] T001 **HUMAN GATE — D-1, view test method, Camden.** Files: spec §7 (decision line only).
+- [x] T001 **HUMAN GATE — D-1, view test method, Camden.** Files: spec §7 (decision line only).
   **Task:** record (a) web test runner, (b) typed case table at build, or (c) display strings in
   the API, with the basis. **Acceptance:** the recorded option is cited by T005, T008, T012 and
   T014. **Rule 12 planted defect:** a unit diff that adds a web test dependency with no recorded
   D-1 line must be rejected at review; a diff citing the D-1 line is the control. **Depends on:** none.
 
-- [ ] T002 **HUMAN GATE — D-2 and its FR-004a sub-choice, Camden.** Files: spec §7 (decision line
+- [x] T002 **HUMAN GATE — D-2 and its FR-004a sub-choice, Camden.** Files: spec §7 (decision line
   only). **Task:** record the source of chart bars ((a) run bars in the response, (b) a new route,
   (c) no candle chart for runs) and, under (a), whether the signal's SMA is sent and, if so, that it
   is drawn on a separate labelled scale (plan, "Basis flag for D-2"). **Acceptance:** T010 cites the
@@ -79,7 +79,7 @@ since the plan's `2942240`, so the plan's line numbers still hold.
   with no recorded sub-choice must be rejected at review; one citing the line is the control.
   **Depends on:** none.
 
-- [ ] T003 **HUMAN GATE — D-3, `MarketDataView` basis, Camden.** Files: spec §7 (decision line
+- [x] T003 **HUMAN GATE — D-3, `MarketDataView` basis, Camden.** Files: spec §7 (decision line
   only). **Acceptance:** T012 cites the recorded option. **Rule 12 planted defect:** a T012 draft
   that changes `/api/data/stats` must be rejected at review; one that only drops markers is the
   control. **Depends on:** none.
