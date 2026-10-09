@@ -31,3 +31,39 @@ wrong account accepted, deployed notional read as 0 (causal assertion failures, 
 `python tests/mutation/run_055_f03_mutants.py` → 9/9 killed (F03a's 3 plus send before persist,
 intent not recorded, persist failure keeps sending, unsent reservation kept open, earlier
 deployment ignored, CLI submits without persist).
+
+## F03c: storage identifiers and assertion witnesses (split 3/3)
+- `state_paths` refuses any `log_namespace` that isn't one portable component, and any path not
+  directly under `data/live_safety`. Lease filenames and `ops_runner.run_once` refuse non-identifier
+  profiles. Red on 5152d15: 17 of 18 new storage cases failed.
+- Integration with #95: the tests corrupt a VALID profile after construction (`corrupted()`), so
+  `state_paths` itself receives the bad value. Under #95's validation, the old `replace()` fixture
+  failed at construction (12 failed / 6 passed).
+- **Correction (Codex):** the 4074fc6 claim "kills are assertion failures only" was wrong. Its
+  summary filter couldn't tell an `IndexError`/`RuntimeError` inside a test from an assertion
+  ("send before persist" died on `persist.snapshots[-1]`). Now:
+  - the submit watch asserts `ORDERING: broker send happened before any successful durable persist`
+    before indexing;
+  - the failed-persist fake raises `AssertionError("ORDERING: order sent although its persist failed")`;
+  - the CLI test asserts `CLI: reached broker or network ...`;
+  - lease and runner refusals are separate tests.
+  No assertion was removed or loosened; no production code changed.
+- The driver reads pytest's JUnit report. A kill needs a `failure` (not `error`) in the intended test,
+  with an assertion message containing its witness, after a green control. Each mutant must compile,
+  and source bytes are checked restored.
+- Negative control: the 4074fc6 tests under this driver leave 3 mutants alive (send before persist,
+  persist failure keeps sending, CLI submits without persist).
+- **Filesystem alias (Codex, 2026-10-09):** a `paper_small` folder that is a symlink or junction
+  to sibling `paper_large` passed: its resolved parent was still the root, so both profiles got one
+  gate DB and run log. `state_paths` now requires `base.resolve() == root.resolve() / namespace`.
+  The root itself may still be a link, which the workflow uses for `data/live_safety`. Red on
+  7007f9f: DID NOT RAISE. Controls: real sibling folders are accepted and distinct, and a linked
+  root is accepted. Tests use a directory symlink, or an NTFS junction where Windows refuses
+  unprivileged symlinks; they skip only if neither can be created.
+- Limitation: links on the leaf files (`paper-gate.sqlite`, `paper-runs`) inside a profile's own
+  folder are not checked.
+- Rule 12: `python tests/mutation/run_055_f03_mutants.py` → 14/14 killed by named witnesses on this
+  branch AND with #95 (`773251b`) `mode_config.py` + tests overlaid (120 focused tests pass). New
+  mutant: "redirected folder accepted" (the old parent-only check). The resolved-folder guard also
+  refuses the Codex alias, so the identifier mutant is now witnessed by `[Paper_Small]`. The device
+  mutant is witnessed by the lease `[nul]` case, which never resolves paths.

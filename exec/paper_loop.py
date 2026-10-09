@@ -53,7 +53,7 @@ from live_safety_gate import LiveSafetyGate, OrderIntent, SafetyConfig  # noqa: 
 from order_gateway import OrderDeniedError, submit_order  # noqa: E402
 from paper_targets import close_panel, plan_next_open  # noqa: E402
 from mode_config import BuyRequest, ModeProfile, bound_buys, load_profiles  # noqa: E402
-from ops_runtime import client_order_id, open_intents, record_intent  # noqa: E402
+from ops_runtime import client_order_id, open_intents, record_intent, require_storage_identifier  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 UNIVERSE = ("AAPL", "AMZN", "GOOGL", "MSFT", "NVDA")
@@ -345,7 +345,17 @@ def state_paths(profile: ModeProfile | None) -> tuple[Path, Path]:
     """Gate DB and run-log directory; namespaced per profile so profiles never share state."""
     if profile is None:
         return GATE_DB, RUN_LOG_DIR
-    base = ROOT / "data" / "live_safety" / profile.log_namespace
+    root = ROOT / "data" / "live_safety"
+    try:
+        namespace = require_storage_identifier(profile.log_namespace, "log_namespace")
+    except ValueError as exc:
+        raise RunAborted(f"{profile.name}: {exc}") from None
+    base = root / namespace
+    # The root itself may be a link (the workflow links data/live_safety to durable state); the profile
+    # folder may not: a symlink or junction to a sibling would make two profiles share one gate DB.
+    if base.resolve() != root.resolve() / namespace:
+        raise RunAborted(f"{profile.name}: log_namespace resolves to {base.resolve()}, "
+                         f"not {root.resolve() / namespace}; refusing a redirected state folder")
     return base / "paper-gate.sqlite", base / "paper-runs"
 
 
