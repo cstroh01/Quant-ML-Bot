@@ -63,3 +63,15 @@ def test_non_numeric_quantity_refuses():
     body = text("positions_example.csv").replace(",EXMP,EXAMPLE ETF,2,", ",EXMP,EXAMPLE ETF,two,")
     with pytest.raises(HoldingsImportError, match="EXMP"):
         parse_positions_csv(body)
+
+
+@pytest.mark.parametrize("token", ["NaN", "nan", "Infinity", "-inf", "1e999"])
+@pytest.mark.parametrize("parser,name,old", [
+    (parse_positions_csv, "positions_example.csv", "$25.75"),
+    (parse_history_csv, "history_example.csv", ",-51,"),
+])
+def test_non_finite_numbers_refuse(parser, name, old, token):
+    source = text(name)
+    assert old in source
+    with pytest.raises(HoldingsImportError, match="finite"):
+        parser(source.replace(old, f",{token}," if old.startswith(",") else token, 1))
