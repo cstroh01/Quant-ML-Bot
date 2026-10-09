@@ -27,5 +27,9 @@ FAILED tests/test_051_finite_inputs.py::test_concentration_gate_fails_closed[pri
   stay inside the repo — absolute, drive-letter, UNC and `..`-escaping paths are refused, since
   `state/x` and `/abs/.../state/x` can name the same directory and no base is known at load time.
 
+- Second Codex follow-up: `state_dir='.'` (or anything normalizing to the repo root) contained
+  every other profile's state and passed. Red on 63e2098: `.`, `./`, `state/..` loaded beside
+  `state/paper_large`. Now refused; the causal control loads the identical pair with a sibling dir.
+
 ## Rule 12
-`python tests/mutation/run_051_finite_inputs_mutants.py` → 11/11 killed.
+`python tests/mutation/run_051_finite_inputs_mutants.py` → 12/12 killed.

@@ -91,3 +91,11 @@ def test_concentration_gate_fails_closed(prices, qty, kwargs, refused):
 def test_absolute_or_escaping_state_dir_is_refused(state_dir):
     with pytest.raises(ProfileError, match="state_dir must be a relative path"):
         load_profiles([raw(state_dir=state_dir)])
+
+
+@pytest.mark.parametrize("root", [".", "./", "state/..", ""])
+def test_repo_root_state_dir_is_refused_and_only_the_field_causes_it(root):
+    # Causal control: the identical pair with a sibling state_dir loads.
+    assert set(load_profiles([raw(state_dir="state/root_ok"), raw("paper_large", account="PA-2")]))
+    with pytest.raises(ProfileError, match="state_dir"):
+        load_profiles([raw(state_dir=root), raw("paper_large", account="PA-2")])
