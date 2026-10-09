@@ -23,5 +23,9 @@ FAILED tests/test_051_finite_inputs.py::test_concentration_gate_fails_closed[pri
   ticker; invalid portfolio value or limit refuses every ticker. Previously NaN compared False and
   passed; a missing price raised KeyError.
 
+- Follow-up from Codex's independent Windows review (2026-10-08): `state_dir` must be relative and
+  stay inside the repo — absolute, drive-letter, UNC and `..`-escaping paths are refused, since
+  `state/x` and `/abs/.../state/x` can name the same directory and no base is known at load time.
+
 ## Rule 12
-`python tests/mutation/run_051_finite_inputs_mutants.py` → 10/10 killed.
+`python tests/mutation/run_051_finite_inputs_mutants.py` → 11/11 killed.

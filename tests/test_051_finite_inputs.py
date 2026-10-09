@@ -84,3 +84,10 @@ PRICES = {"AAA": 10.0, "BBB": 5.0}
 def test_concentration_gate_fails_closed(prices, qty, kwargs, refused):
     args = dict(portfolio_value=1e6, max_position_pct=0.10) | kwargs
     assert concentration_refusals(BOOK, prices, qty, **args) == refused
+
+
+@pytest.mark.parametrize("state_dir", ["/srv/qmb/state/paper_large", "C:/state/paper_large", "C:\\state\\x",
+                                       "\\\\host\\share\\x", "../state/paper_large", "state/../../x"])
+def test_absolute_or_escaping_state_dir_is_refused(state_dir):
+    with pytest.raises(ProfileError, match="state_dir must be a relative path"):
+        load_profiles([raw(state_dir=state_dir)])

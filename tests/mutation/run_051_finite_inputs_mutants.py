@@ -8,6 +8,8 @@ p = ROOT / "scripts" / "mode_config.py"
 orig = p.read_text()
 muts = {
     "state_dir compared raw": ('    if field == "state_dir":\n        return _canonical_dir(key)', '    if False:\n        return key'),
+    "absolute state_dir allowed": ('        if raw_dir.startswith("/") or re.match(r"[A-Za-z]:", raw_dir) or _canonical_dir(raw_dir).startswith(".."):',
+                                   '        if False:'),
     "nesting allowed": ("if key.startswith(other + \"/\") or other.startswith(key + \"/\"):", "if False:"),
     "namespace case-sensitive": ("return str(key).strip().casefold()", "return key"),
     "infinite budget": ("math.isfinite(self.bot_budget_usd) and ", ""),

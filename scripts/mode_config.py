@@ -60,6 +60,10 @@ class ModeProfile:
         for field in ("name", "state_dir", "log_namespace", "safety_config_version"):
             if not str(getattr(self, field)).strip():
                 raise ProfileError(f"{self.name}: {field} is required")
+        raw_dir = str(self.state_dir).replace("\\", "/")
+        if raw_dir.startswith("/") or re.match(r"[A-Za-z]:", raw_dir) or _canonical_dir(raw_dir).startswith(".."):
+            raise ProfileError(f"{self.name}: state_dir must be a relative path inside the repo "
+                               "(absolute, drive, UNC or escaping paths can alias another profile's state)")
 
 
 def _canonical_dir(path: str) -> str:
