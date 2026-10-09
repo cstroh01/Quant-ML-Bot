@@ -10,7 +10,7 @@
 - [ ] T008 **Human gate (credentials):** Alpaca paper keys into `.env`; `python exec/paper_loop.py` dry run.
 - [ ] T009 **Human gate (first submit):** `--submit` before 09:28 ET; confirm orders at Alpaca; next run releases reservations.
 - [ ] T010 **Human gate:** D-1 to D-5 in spec §3.
-- [ ] T011 Follow-on (lane-safe, `scripts/` only): `scripts/paper_report.py` daily markdown report from `runs.jsonl` with Rule 16 disclosure.
+- [x] T011 Follow-on (lane-safe, `scripts/` only): `scripts/paper_report.py` daily markdown report from `runs.jsonl` with Rule 16 disclosure. PR #50 + daily report; evidence `artifacts/t011-paper-report.md`.
 - [ ] T012 Follow-on (lane-safe): signal-decay monitor — rolling hit rate of the trend state vs next-session return against a coin-flip baseline.
 - [ ] T013 Follow-on (reviewed lane, `exec/`): broker-vs-intended position reconciliation report.
 

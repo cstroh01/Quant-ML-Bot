@@ -1,9 +1,12 @@
-"""049 T011: render existing paper-run JSONL as Markdown on stdout.
+"""049 T011: render existing paper-run JSONL as a daily Markdown report.
 
 Reads the supplied log only. No broker, strategy evaluation, ledger write,
-or inferred performance. Every report names its source line and recorded run
-date; normal records retain their disclosure verbatim. Abort records produced
-by the prototype lack a disclosure and are explicitly marked as such.
+or inferred performance: no return, Sharpe or equity change is ever computed.
+Every report names its source line and recorded run date; normal records
+retain their disclosure verbatim. Abort records produced by the prototype lack
+a disclosure and are explicitly marked as such. The daily report carries the
+Rule 16 block (run disclosures plus ``LIMITATIONS``) at its top and bottom, and
+lists every malformed line instead of skipping it.
 """
 
 from __future__ import annotations
@@ -11,8 +14,38 @@ from __future__ import annotations
 import argparse
 import html
 import json
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
+
+from _project import project_root
+
+NY = ZoneInfo("America/New_York")
+ABORT_DISCLOSURE = "Disclosure: not recorded in the aborted input. No performance result."
+LIMITATIONS = (
+    "Paper mechanics prototype. Not a performance result. Limitations (SCOPE-V1 §6, Rule 16): "
+    "static survivor basket with no delisted names; free-tier corporate-action data; "
+    "no point-in-time fundamentals; daily bars only; modeled, not fill-calibrated, costs."
+)
+CLEAN_OUTCOMES = ("SUBMITTED", "DRY_RUN")
+
+
+def _label(record: dict) -> str:
+    """Offline or placeholder-equity records are examples, never results."""
+    example_label = "EXAMPLE \u2014 NOT A RESULT"
+    placeholder = "placeholder" in str(record.get("equity_source", "")).lower()
+    return example_label if record.get("mode") == "offline_example" or placeholder else ""
+
+
+def log_path(profile: str | None) -> Path:
+    """Default run log, or a profile namespace's log; the name is never a path."""
+    base = project_root() / "data" / "live_safety"
+    if profile is None:
+        return base / "paper-runs" / "runs.jsonl"
+    if profile in ("", ".", "..") or any(sep in profile for sep in "/\\:"):
+        raise ValueError(f"profile must be a plain namespace name, got {profile!r}")
+    return base / profile / "paper-runs" / "runs.jsonl"
 
 
 def _cell(value: Any) -> str:
@@ -53,7 +86,7 @@ def render_run(record: dict, *, source: str) -> str:
         if not isinstance(disclosure, str) or not disclosure.strip():
             raise ValueError("disclosure must be nonempty text")
     elif disclosure is None:
-        disclosure = "Disclosure: not recorded in the aborted input. No performance result."
+        disclosure = ABORT_DISCLOSURE
     if not isinstance(disclosure, str):
         raise ValueError("disclosure must be text")
 
@@ -64,9 +97,7 @@ def render_run(record: dict, *, source: str) -> str:
         raise ValueError("decision must map tickers to objects")
     if not isinstance(actions, list) or not isinstance(reconciliation, list):
         raise ValueError("actions and reconciliation must be lists")
-    example_label = "EXAMPLE \u2014 NOT A RESULT"
-    placeholder = "placeholder" in str(record.get("equity_source", "")).lower()
-    label = example_label if record.get("mode") == "offline_example" or placeholder else ""
+    label = _label(record)
     lines = ["# Paper run", "", f"Source: <code>{html.escape(source)}</code>",
              f"Run at UTC: {_cell(record['run_at_utc'])}",
              f"Session: {_cell(record.get('session'))}",
@@ -92,33 +123,111 @@ def render_run(record: dict, *, source: str) -> str:
     return "\n".join(lines) + "\n"
 
 
-def render_log(path: Path) -> str:
-    """Return one ordered report per nonblank JSONL line; name invalid lines."""
-    path = path.resolve()
-    reports = []
+def read_log(path: Path) -> tuple[list[tuple[str, str, dict]], list[dict]]:
+    """(source, New York run date, record) per valid line, and every invalid line.
+
+    A line is valid only if ``render_run`` accepts it and its ``run_at_utc``
+    carries a zone. Invalid lines are returned with their error, never dropped.
+    """
+    runs, malformed = [], []
     with path.open(encoding="utf-8") as handle:
         for number, line in enumerate(handle, 1):
             if not line.strip():
                 continue
             source = f"{path}:{number}"
             try:
-                reports.append(render_run(json.loads(line), source=source))
+                record = json.loads(line)
+                render_run(record, source=source)
+                stamp = datetime.fromisoformat(str(record["run_at_utc"]).replace("Z", "+00:00"))
+                if stamp.tzinfo is None:
+                    raise ValueError("run_at_utc has no zone")
             except (ValueError, TypeError) as exc:
-                raise ValueError(f"{source}: {exc}") from exc
-    return "\n---\n\n".join(reports)
+                malformed.append({"Line": source, "Error": str(exc)})
+                continue
+            runs.append((source, stamp.astimezone(NY).date().isoformat(), record))
+    return runs, malformed
+
+
+def _day_section(day: str, runs: list[tuple[str, dict]]) -> list[str]:
+    summary, aborted, recon, groups, refusals = [], [], [], {}, []
+    for source, record in runs:
+        if "aborted" in record:
+            aborted.append({"Source": source, "Run at UTC": record["run_at_utc"], "Reason": record["aborted"]})
+            continue
+        label = _label(record)
+        summary.append({"Source": source, "Run at UTC": record["run_at_utc"], "Session": record["session"],
+                        "Mode": record["mode"], "Profile": record.get("profile"), "Equity": record.get("equity"),
+                        "Equity source": record.get("equity_source"),
+                        "Safety config": record["safety_config_version"], "Label": label})
+        recon.extend({"Source": source, **row} for row in record["reconciliation"])
+        for action in record["actions"]:
+            outcome = str(action.get("outcome") or "not recorded")
+            entry = {"Source": source, **action, "outcome": outcome, "Label": label}
+            groups.setdefault(outcome, []).append(entry)
+            if outcome not in CLEAN_OUTCOMES:
+                refusals.append(entry)
+    action_cols = ["Source", "ticker", "delta_quantity", "target_weight", "client_order_id", "reason", "Label"]
+    lines = ["", f"## {day} (New York run date)", "", "### Runs", "",
+             *_table(summary, ["Source", "Run at UTC", "Session", "Mode", "Profile", "Equity",
+                               "Equity source", "Safety config", "Label"]),
+             "", "### Aborted runs", "", *_table(aborted, ["Source", "Run at UTC", "Reason"]),
+             "", f"### Reconciliation ({len(recon)} rows)", "",
+             *_table(recon, ["Source", "client_order_id", "broker_status"]), "", "### Actions by outcome"]
+    for outcome in sorted(groups):
+        lines.extend(["", f"#### {outcome} ({len(groups[outcome])})", "", *_table(groups[outcome], action_cols)])
+    lines.extend(["", "### Refusals and unknown outcomes", "",
+                  *_table(refusals, ["Source", "ticker", "outcome", "reason", "Label"])])
+    return lines
+
+
+def render_daily(path: Path, *, day: str | None = None) -> tuple[str, int]:
+    """Markdown report per New York run date and the malformed-line count.
+
+    The Rule 16 block (every distinct run disclosure plus ``LIMITATIONS``) is
+    printed before the first and after the last section.
+    """
+    path = path.resolve()
+    runs, malformed = read_log(path)
+    if day is not None:
+        runs = [run for run in runs if run[1] == day]
+    disclosures = dict.fromkeys(r.get("disclosure") or ABORT_DISCLOSURE for _, _, r in runs)
+    block = [f"> {LIMITATIONS}", *(f">\n> {text}" for text in disclosures)]
+    lines = ["# Paper daily report", "", f"Source: <code>{html.escape(str(path))}</code>", "", *block]
+    if malformed:
+        lines.extend(["", f"## Malformed lines ({len(malformed)}, not rendered)", "",
+                      *_table(malformed, ["Line", "Error"])])
+    if not runs:
+        lines.extend(["", "No run records" + (f" for {day}." if day else ".")])
+    for current in sorted({run[1] for run in runs}):
+        lines.extend(_day_section(current, [(s, r) for s, d, r in runs if d == current]))
+    lines.extend(["", *block])
+    return "\n".join(lines) + "\n", len(malformed)
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Read an explicit log path and print Markdown; never create output files."""
+    """Print (or write with ``--out``) the daily report. Exit 1 if any line is malformed."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("log", type=Path, help="existing paper-run JSONL path")
+    parser.add_argument("log", type=Path, nargs="?", help="paper-run JSONL (default: the paper loop's log)")
+    parser.add_argument("--profile", help="namespace: data/live_safety/<profile>/paper-runs/runs.jsonl")
+    parser.add_argument("--date", help="New York run date YYYY-MM-DD (default: every date)")
+    parser.add_argument("--out", type=Path, help="write the report here instead of stdout")
     args = parser.parse_args(argv)
+    if args.log is not None and args.profile is not None:
+        parser.error("give a log path or --profile, not both")
     try:
-        report = render_log(args.log)
+        path = (args.log or log_path(args.profile)).resolve()
+        if args.date is not None:
+            date.fromisoformat(args.date)
+        if args.out is not None and args.out.resolve() == path:
+            raise ValueError("--out must not overwrite the input log")
+        report, malformed = render_daily(path, day=args.date)
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
-    print(report, end="")
-    return 0
+    if args.out is not None:
+        args.out.write_text(report, encoding="utf-8")
+    else:
+        print(report, end="")
+    return 1 if malformed else 0
 
 
 if __name__ == "__main__":
