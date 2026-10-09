@@ -97,3 +97,29 @@ def test_nan_bars_fail_closed(column, reason):
     frame.loc[frame.index[-1], column] = NAN
     assert reason in research_eligibility(frame, as_of=date(2026, 10, 7), limits=LIM, actions_reconciled=True,
                                           basis_known=True)
+
+
+@pytest.mark.parametrize("change", [dict(max_participation=NAN), dict(max_participation=0.0),
+                                    dict(max_participation=1.5), dict(max_spread_bps=NAN),
+                                    dict(min_price=float("inf")), dict(min_median_dollar_volume=-1.0),
+                                    dict(min_sessions=0), dict(min_sessions=5.5)])
+def test_invalid_limits_refuse_at_construction(change):
+    values = dict(min_sessions=5, min_price=5.0, min_median_dollar_volume=1_000_000.0,
+                  max_spread_bps=50.0, max_participation=0.01) | change
+    with pytest.raises(ValueError):
+        EligibilityLimits(**values)
+
+
+def test_valid_cap_still_refuses_high_participation():
+    assert executable_eligibility(quote(adv_shares=10_000.0), **KW) == ["participation_too_high"]
+
+
+@pytest.mark.parametrize("bad", [float("inf"), -1.0])
+def test_one_infinite_or_negative_volume_in_the_window_fails_closed(bad):
+    frame = bars(volume=1_000_000.0, n=20)
+    frame.loc[frame.index[5], "Volume"] = bad
+    assert "illiquid" in research_eligibility(frame, as_of=date(2026, 10, 7), limits=LIM,
+                                              actions_reconciled=True, basis_known=True)
+    clean = bars(volume=1_000_000, n=20)
+    assert research_eligibility(clean, as_of=date(2026, 10, 7), limits=LIM, actions_reconciled=True,
+                                basis_known=True) == []

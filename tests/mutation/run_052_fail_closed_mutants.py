@@ -16,7 +16,10 @@ muts = {
     "NaN minimum passes": ("    if not _finite(quote.min_notional_usd):\n        reasons.append(\"broker_minimum_unknown\")\n    elif", "    if"),
     "invalid order passes": ('        reasons.append("order_invalid")\n        return reasons', "        pass"),
     "NaN close passes": ("    if not _finite(last) or last < limits.min_price:", "    if last < limits.min_price:"),
-    "NaN volume skipped": ("dollar.notna().all()", "True"),
+    "non-finite volume skipped": ("bool(dollar.map(_finite).all())", "bool(dollar.notna().all())"),
+    "negative volume skipped": ('bool((window["Volume"] >= 0).all())', "True"),
+    "NaN participation cap": ("        if not (_finite(self.max_participation) and 0 < self.max_participation <= 1):", "        if False:"),
+    "NaN spread limit": ("            if not (_finite(value) and value >= 0):", "            if False:"),
 }
 killed = 0
 for name, (a, b) in muts.items():

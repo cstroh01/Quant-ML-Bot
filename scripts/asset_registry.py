@@ -92,13 +92,25 @@ class EligibilityLimits:
     max_spread_bps: float
     max_participation: float
 
+    def __post_init__(self) -> None:
+        """Limits are configuration: a NaN or out-of-range limit would silently disable its gate."""
+        if isinstance(self.min_sessions, bool) or not isinstance(self.min_sessions, int) or self.min_sessions < 1:
+            raise ValueError("min_sessions must be a positive integer")
+        for name in ("min_price", "min_median_dollar_volume", "max_spread_bps"):
+            value = getattr(self, name)
+            if not (_finite(value) and value >= 0):
+                raise ValueError(f"{name} must be finite and non-negative")
+        if not (_finite(self.max_participation) and 0 < self.max_participation <= 1):
+            raise ValueError("max_participation must be finite and in (0, 1]")
+
 
 def research_eligibility(bars: pd.DataFrame, *, as_of: date, limits: EligibilityLimits,
                          actions_reconciled: bool, basis_known: bool) -> list[str]:
     """Reasons ``bars`` (Close, Volume by session) is not research-eligible on ``as_of``.
 
-    Reads only rows at or before ``as_of``. Empty list means eligible. A NaN close or dollar
-    volume fails closed (``price_below_floor`` / ``illiquid``), never passes a comparison.
+    Reads only rows at or before ``as_of``. Empty list means eligible. A NaN close fails closed
+    (``price_below_floor``); any non-finite dollar volume or negative volume in the 20-row window
+    fails closed (``illiquid``) — one bad observation can leave a median finite.
     """
     past = bars.loc[:pd.Timestamp(as_of)]
     reasons = []
@@ -109,7 +121,8 @@ def research_eligibility(bars: pd.DataFrame, *, as_of: date, limits: Eligibility
         reasons.append("price_below_floor")
     window = past.tail(20)
     dollar = window["Close"] * window["Volume"]
-    median = float(dollar.median()) if not window.empty and dollar.notna().all() else float("nan")
+    usable = not window.empty and bool(dollar.map(_finite).all()) and bool((window["Volume"] >= 0).all())
+    median = float(dollar.median()) if usable else float("nan")
     if not _finite(median) or median < limits.min_median_dollar_volume:
         reasons.append("illiquid")
     if not actions_reconciled:

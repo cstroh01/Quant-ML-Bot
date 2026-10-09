@@ -35,5 +35,11 @@ main: last Close=NaN -> []
 Contract change: callers must pass `quoted_at`, `now`, `max_quote_age_seconds`. Only tests consume
 these today (`grep`); existing tests updated accordingly.
 
+- Follow-up from Codex's independent review (2026-10-08): `EligibilityLimits` validates itself at
+  construction (`max_participation` finite in (0, 1]; floors and spread cap finite ≥ 0;
+  `min_sessions` a positive int) — a NaN cap disabled `participation_too_high`. Research
+  eligibility now checks every observation in the window: one infinite or negative volume left the
+  median finite and the name eligible.
+
 ## Rule 12
-`python tests/mutation/run_052_fail_closed_mutants.py` → 9/9 killed.
+`python tests/mutation/run_052_fail_closed_mutants.py` → 12/12 killed.
