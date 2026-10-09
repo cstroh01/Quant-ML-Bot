@@ -49,3 +49,31 @@ def test_restatement_does_not_overwrite_the_originally_filed_value_before_its_ow
 def test_missing_filed_date_refuses():
     with pytest.raises(ValueError, match="filed"):
         facts_as_of([{"val": 1, "end": "2026-06-30"}], date(2026, 9, 1))
+
+
+@pytest.mark.parametrize("bad", [float("inf"), float("-inf"), 0.0, -5.0, float("nan")])
+@pytest.mark.parametrize("side", ["primary", "check"])
+def test_non_finite_or_non_positive_close_is_a_mismatch(bad, side):
+    a = pd.Series([100.0, 101.0, 102.0], index=IDX)
+    b = a.copy()
+    (a if side == "primary" else b).iloc[1] = bad
+    assert list(close_mismatches(a, b, tolerance_bps=5.0).index) == [pd.Timestamp("2026-10-06")]
+
+
+@pytest.mark.parametrize("tolerance", [float("nan"), float("inf"), -1.0])
+def test_invalid_tolerance_refuses(tolerance):
+    a = pd.Series([100.0], index=IDX[:1])
+    with pytest.raises(ValueError, match="tolerance"):
+        close_mismatches(a, a * 2, tolerance_bps=tolerance)
+
+
+def test_facts_with_the_same_end_but_different_start_are_separate_periods():
+    q3 = {"val": 5, "start": "2026-04-01", "end": "2026-06-30", "filed": "2026-08-01", "form": "10-Q"}
+    ytd = {"val": 9, "start": "2026-01-01", "end": "2026-06-30", "filed": "2026-08-01", "form": "10-Q"}
+    instant = {"val": 50, "end": "2026-06-30", "filed": "2026-08-01", "form": "10-Q"}
+    assert sorted(f["val"] for f in facts_as_of([q3, ytd, instant], date(2026, 8, 2))) == [5, 9, 50]
+
+
+def test_both_sources_infinite_is_a_mismatch_not_agreement():
+    a = pd.Series([100.0, float("inf"), 102.0], index=IDX)
+    assert list(close_mismatches(a, a.copy(), tolerance_bps=5.0).index) == [pd.Timestamp("2026-10-06")]

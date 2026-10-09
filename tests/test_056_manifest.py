@@ -55,3 +55,21 @@ def test_private_permission_never_implies_public():
 def test_unknown_output_class_refuses():
     with pytest.raises(ManifestError, match="output class"):
         may_publish(contract(), "tweet")
+
+
+@pytest.mark.parametrize("session,fetched_at", [
+    ("2026-10-03", NOW),                                            # past Saturday: not an NYSE session
+    ("2026-10-08", NOW),                                            # session not yet closed at fetch
+    ("2026-10-07", datetime(2026, 10, 7, 19, 59, tzinfo=timezone.utc)),  # 15:59 ET, before the close
+])
+def test_session_label_must_be_a_completed_nyse_session(session, fetched_at):
+    with pytest.raises(ManifestError, match="completed_session"):
+        manifest(completed_session=session, fetched_at=fetched_at)
+
+
+def test_calendar_dated_sources_allow_non_sessions_but_never_the_future():
+    assert manifest(completed_session="2026-10-04", label_calendar="calendar_date").completed_session == "2026-10-04"
+    with pytest.raises(ManifestError, match="completed_session"):
+        manifest(completed_session="2026-10-09", label_calendar="calendar_date")
+    with pytest.raises(ManifestError, match="label_calendar"):
+        manifest(label_calendar="lunar")

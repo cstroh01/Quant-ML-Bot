@@ -9,9 +9,14 @@ No network: fetchers live elsewhere and take injected clients.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time as _time
+import math
 import re
 from urllib.parse import parse_qsl, urlsplit
+from zoneinfo import ZoneInfo
+
+_NY = ZoneInfo("America/New_York")
+LABEL_CALENDARS = frozenset({"nyse_session", "calendar_date"})
 
 ADJUSTMENTS = frozenset({"raw", "adjusted"})
 OUTPUT_CLASSES = ("private_research", "public_raw", "public_derived")
@@ -40,6 +45,7 @@ class SourceManifest:
     row_count: int
     sha256: str
     contract_version: str
+    label_calendar: str = "nyse_session"
 
     def __post_init__(self) -> None:
         if not _credential_free(self.endpoint):
@@ -47,9 +53,19 @@ class SourceManifest:
         if self.fetched_at.tzinfo is None:
             raise ManifestError("fetched_at must be timezone-aware")
         try:
-            date.fromisoformat(self.completed_session)
+            label = date.fromisoformat(self.completed_session)
         except ValueError as error:
             raise ManifestError("completed_session must be a YYYY-MM-DD session label") from error
+        if self.label_calendar not in LABEL_CALENDARS:
+            raise ManifestError(f"label_calendar must be one of {sorted(LABEL_CALENDARS)}")
+        if self.label_calendar == "nyse_session":
+            from data import trading_days
+            if trading_days(label, label) != [label]:
+                raise ManifestError(f"completed_session {label} is not an NYSE session")
+            if datetime.combine(label, _time(16, 0), tzinfo=_NY) > self.fetched_at:
+                raise ManifestError(f"completed_session {label} had not closed when fetched")
+        elif label > self.fetched_at.astimezone(_NY).date():
+            raise ManifestError(f"completed_session {label} is after the fetch date")
         if self.adjustment not in ADJUSTMENTS:
             raise ManifestError(f"adjustment must be one of {sorted(ADJUSTMENTS)}")
         if not (isinstance(self.row_count, int) and self.row_count >= 0):
@@ -82,26 +98,34 @@ import pandas as pd
 def close_mismatches(primary: pd.Series, check: pd.Series, *, tolerance_bps: float) -> pd.DataFrame:
     """Sessions where two independent closes disagree beyond tolerance or one is missing.
 
-    Mismatches are reported for exclusion or disclosure; values are never averaged.
+    Mismatches are reported for exclusion or disclosure; values are never averaged. A missing,
+    non-finite or non-positive close on either side is a mismatch; the tolerance must be finite and >= 0.
     """
-    frame = pd.concat({"primary": primary, "check": check}, axis=1)
-    missing = frame["primary"].isna() | frame["check"].isna()
+    if not (math.isfinite(tolerance_bps) and tolerance_bps >= 0):
+        raise ValueError("tolerance_bps must be finite and non-negative")
+    frame = pd.concat({"primary": primary, "check": check}, axis=1).astype(float)
+    valid = frame.apply(lambda col: col.map(math.isfinite) & (col > 0))
+    missing = ~(valid["primary"] & valid["check"])
     diff_bps = (frame["check"] / frame["primary"] - 1).abs() * 1e4
     return frame[missing | (diff_bps > tolerance_bps)]
 
 
 def facts_as_of(facts: list[dict], as_of: date) -> list[dict]:
-    """For each period end, the latest fact filed on or before ``as_of`` (original until restated)."""
-    best: dict[str, dict] = {}
+    """For each (start, end) period, the latest fact filed on or before ``as_of`` (original until restated).
+
+    Durations sharing an end (quarter vs year-to-date) and instants (no start) stay separate periods.
+    """
+    best: dict[tuple[str, str], dict] = {}
     for item in facts:
         if not item.get("filed"):
             raise ValueError("every EDGAR fact needs its filed date")
         if date.fromisoformat(item["filed"]) > as_of:
             continue
-        current = best.get(item["end"])
+        key = (item["end"], item.get("start") or "")
+        current = best.get(key)
         if current is None or item["filed"] > current["filed"]:
-            best[item["end"]] = item
-    return [best[end] for end in sorted(best)]
+            best[key] = item
+    return [best[key] for key in sorted(best)]
 
 
 # --- U4a: price adapters on injected transports (T005). Tests inject fakes; only human-authorized runs fetch. ---
@@ -156,8 +180,10 @@ class _Fetcher:
         digest.update(payload)
         return payload
 
-    def _manifest(self, endpoint: str, fetched_at: datetime, label: str, rows: int, digest) -> SourceManifest:
-        return SourceManifest(self.source, endpoint, fetched_at, label, "raw", rows, digest.hexdigest(), CONTRACT_VERSION)
+    def _manifest(self, endpoint: str, fetched_at: datetime, label: str, rows: int, digest,
+                  label_calendar: str = "nyse_session") -> SourceManifest:
+        return SourceManifest(self.source, endpoint, fetched_at, label, "raw", rows, digest.hexdigest(), CONTRACT_VERSION,
+                              label_calendar)
 
     def _bars(self, rows: list[dict], labels, fields: dict, cutoff: datetime, endpoint: str, fetched_at, digest):
         """Raw session-indexed frame keeping labels whose 16:00 New York close is at or before ``cutoff``."""
@@ -169,6 +195,12 @@ class _Fetcher:
         if frame.index.has_duplicates:
             raise SourceFetchError(f"{self.source} returned duplicate session labels")
         frame = frame.sort_index()
+        if len(frame):
+            from data import trading_days
+            sessions = set(trading_days(frame.index[0].date(), frame.index[-1].date()))
+            stray = [d.date() for d in frame.index if d.date() not in sessions]
+            if stray:
+                raise SourceFetchError(f"{self.source} returned labels that are not NYSE sessions: {stray[:3]}")
         frame = frame[(frame.index.tz_localize(NY) + pd.Timedelta(hours=16)) <= cutoff]
         if frame.empty:
             raise SourceFetchError(f"{self.source} returned no completed session")
@@ -308,7 +340,7 @@ class EdgarSubmissions(_Edgar):
                               "filing_date": pd.to_datetime(recent["filingDate"]),
                               "accepted_at": pd.to_datetime(recent["acceptanceDateTime"].str[:19]).dt.tz_localize(NY)})
         label = frame["filing_date"].max().strftime("%Y-%m-%d")
-        return frame, self._manifest(endpoint, fetched_at, label, len(frame), digest)
+        return frame, self._manifest(endpoint, fetched_at, label, len(frame), digest, "calendar_date")
 
 
 @dataclass
@@ -325,7 +357,7 @@ class EdgarCompanyFacts(_Edgar):
                 for unit, items in body["units"].items() for item in items]
         if not rows:
             raise SourceFetchError("sec companyfacts returned no facts")
-        return rows, self._manifest(endpoint, fetched_at, max(r["filed"] for r in rows), len(rows), digest)
+        return rows, self._manifest(endpoint, fetched_at, max(r["filed"] for r in rows), len(rows), digest, "calendar_date")
 
     @staticmethod
     def as_of(rows: list[dict], concept: str, unit: str, as_of: date, taxonomy: str = "us-gaap") -> list[dict]:
@@ -368,7 +400,7 @@ class OpenFigiMap(_Limited):
             rows += [{**job, **hit} for job, answer in zip(batch, answers)
                      for hit in answer.get("data") or [{"status": answer.get("warning") or answer.get("error")}]]
         label = pd.Timestamp(fetched_at).tz_convert(NY).strftime("%Y-%m-%d")  # dated snapshot, not history
-        return pd.DataFrame(rows), self._manifest(endpoint, fetched_at, label, len(rows), digest)
+        return pd.DataFrame(rows), self._manifest(endpoint, fetched_at, label, len(rows), digest, "calendar_date")
 
 
 @dataclass
@@ -394,7 +426,7 @@ class AlfredSeries(_Limited):
                               "realtime_end": [date.fromisoformat(o["realtime_end"]) for o in obs],
                               "value": pd.to_numeric(pd.Series([o["value"] for o in obs]), errors="coerce")})
         label = max(frame["realtime_start"]).isoformat()
-        return frame, self._manifest(endpoint, fetched_at, label, len(frame), digest)
+        return frame, self._manifest(endpoint, fetched_at, label, len(frame), digest, "calendar_date")
 
     @staticmethod
     def vintage(frame: pd.DataFrame, as_of: date) -> pd.Series:
@@ -434,4 +466,4 @@ class FrenchFactors(_Fetcher):
         frame = pd.DataFrame([[float(v) for v in r[1:]] for r in rows], index=index,
                              columns=[c.strip() for c in lines[header].split(",")[1:]])
         frame = frame.mask(frame.isin([-99.99, -999.0])) / 100
-        return frame, self._manifest(endpoint, fetched_at, index[-1].strftime("%Y-%m-%d"), len(frame), digest)
+        return frame, self._manifest(endpoint, fetched_at, index[-1].strftime("%Y-%m-%d"), len(frame), digest, "calendar_date")
