@@ -123,6 +123,7 @@ data/cache/                       Generated output (gitignored)
 | `scripts/cost_model.py` | Spread (EDGE) and square-root impact cost estimates per fill (spec 046) | Signals, sizing, P&L accounting, downloads, the ledger |
 | `scripts/corporate_actions.py` | Cross-source corporate-action and close reconciliation for the unadjusted cache (spec 035) | Signals, fills, P&L, network |
 | `scripts/portfolio_backtest.py` | Multi-asset weights → next-open fills → portfolio P&L (spec 058) | How weights or signals were produced, downloads |
+| `scripts/disclosure.py` | Limitations register text, provenance/source stamps and Rule 11/15/16 labels with an injected UTC clock (spec 038) | Signals, fills, sizing, P&L, network |
 | `exec/fidelity_live.py` | LIVE order adapter for Fidelity, preview-default, Rule 7 reviewed lane only (spec 057) | Signals, sizing, anything outside order I/O |
 
 These boundaries are load-bearing. They are what let a model replace a rule
