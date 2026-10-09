@@ -1,0 +1,16 @@
+{
+  "source": "openfigi",
+  "source_sha": "13d915d6034a5fb1214cab29d9292b754c9fa265",
+  "unit": "056 T006",
+  "fetched_at": "2026-10-09T19:36:37.620296+00:00",
+  "attribution": "run by Codex on Camden's PC at Camden's instruction, 2026-10-09T19:36:37.620296+00:00",
+  "outcome": "RECORDED_FOR_REVIEW",
+  "rights_note": "056 research.md: FIGI and associated metadata MIT; preserve notice; input identifier rights remain separate. Current mapping does not prove historical membership. https://www.openfigi.com/about/faq",
+  "requests": [
+    {"endpoint_path": "/v3/mapping", "host": "api.openfigi.com", "method": "POST", "parameters": {}, "requested_at_utc": "2026-10-09T19:36:38.083915+00:00", "http_status": 200, "row_counts": {"rows": 2, "[].data": 1}, "sha256": "9244c03015e435328afd602d7ac6fcc2e5512d161d7e4a9ac6a1edcaad6fbdc7", "field_names": ["[].data", "[].data[].compositeFIGI", "[].data[].exchCode", "[].data[].figi", "[].data[].marketSector", "[].data[].name", "[].data[].securityDescription", "[].data[].securityType", "[].data[].securityType2", "[].data[].shareClassFIGI", "[].data[].ticker"]}
+  ],
+  "adapter_runs": [
+    {"status": "OBSERVED_ADAPTER_OUTPUT", "manifest": {"source": "openfigi_v3_mapping", "endpoint": "https://api.openfigi.com/v3/mapping", "fetched_at": "2026-10-09T19:36:38.083915+00:00", "completed_session": "2026-10-09", "adjustment": "raw", "row_count": 2, "sha256": "9244c03015e435328afd602d7ac6fcc2e5512d161d7e4a9ac6a1edcaad6fbdc7", "contract_version": "2026-10-07", "label_calendar": "calendar_date"}}
+  ],
+  "limitations": "Bounded first-fetch evidence only. Full historical entitlement, survivorship/delisting completeness and public derived-result rights remain UNVERIFIED where not separately cleared. No cross-source or trading-result acceptance is claimed."
+}

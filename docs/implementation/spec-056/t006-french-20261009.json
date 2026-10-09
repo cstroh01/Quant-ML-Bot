@@ -1,0 +1,16 @@
+{
+  "source": "french",
+  "source_sha": "13d915d6034a5fb1214cab29d9292b754c9fa265",
+  "unit": "056 T006",
+  "fetched_at": "2026-10-09T19:36:40.923594+00:00",
+  "attribution": "run by Codex on Camden's PC at Camden's instruction, 2026-10-09T19:36:40.923594+00:00",
+  "outcome": "RECORDED_FOR_REVIEW",
+  "rights_note": "056 research.md: downloadable research factors, explicit raw/public-derived redistribution rights UNVERIFIED; CIZ convention labeled, no underlying CRSP entitlement. https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/data_library.html",
+  "requests": [
+    {"endpoint_path": "/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip", "host": "mba.tuck.dartmouth.edu", "method": "GET", "parameters": {}, "requested_at_utc": "2026-10-09T19:36:41.400622+00:00", "http_status": 200, "row_counts": {}, "sha256": "2f29e22546069914890a712680a6f81f3680ebc3543b52864484d209ca13a7db", "field_names": ["HML", "Mkt-RF", "RF", "SMB"]}
+  ],
+  "adapter_runs": [
+    {"status": "OBSERVED_ADAPTER_OUTPUT", "manifest": {"source": "kenneth_french_CIZ", "endpoint": "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/F-F_Research_Data_Factors_daily_CSV.zip", "fetched_at": "2026-10-09T19:36:41.400622+00:00", "completed_session": "2026-08-31", "adjustment": "raw", "row_count": 26317, "sha256": "2f29e22546069914890a712680a6f81f3680ebc3543b52864484d209ca13a7db", "contract_version": "2026-10-07", "label_calendar": "calendar_date"}}
+  ],
+  "limitations": "Bounded first-fetch evidence only. Full historical entitlement, survivorship/delisting completeness and public derived-result rights remain UNVERIFIED where not separately cleared. No cross-source or trading-result acceptance is claimed."
+}
