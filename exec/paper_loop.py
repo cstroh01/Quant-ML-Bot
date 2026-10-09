@@ -22,6 +22,7 @@ backtest assumes, so the run refuses to submit while the market is open. Nothing
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import os
 import sys
@@ -48,6 +49,7 @@ from data import download_market_data, trading_days  # noqa: E402
 from live_safety_gate import LiveSafetyGate, OrderIntent, SafetyConfig, new_client_order_id  # noqa: E402
 from order_gateway import OrderDeniedError, submit_order  # noqa: E402
 from paper_targets import close_panel, plan_next_open  # noqa: E402
+from mode_config import BuyRequest, ModeProfile, bound_buys, load_profiles  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 UNIVERSE = ("AAPL", "AMZN", "GOOGL", "MSFT", "NVDA")
@@ -152,6 +154,7 @@ def run_once(
     closes: pd.DataFrame,
     submit: bool,
     now_fn: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+    profile: ModeProfile | None = None,
 ) -> dict:
     """One loop iteration. Returns the run record; raises ``RunAborted``."""
     clock = client.clock()
@@ -182,14 +185,26 @@ def run_once(
     account = client.account()
     equity = float(account["equity"])
     positions = client.positions()
+    # Spec 051: with a profile, size against the bot budget, never the broker balance.
+    sizing_equity = min(profile.bot_budget_usd, equity) if profile is not None else equity
     decision, orders = plan_next_open(
-        completed, session, equity=equity, positions=positions, entries_halted=False
+        completed, session, equity=sizing_equity, positions=positions, entries_halted=False
     )
     last = completed.loc[session]
+    budget_refusals = []
+    if profile is not None:
+        buys = [o for o in orders if o.delta_quantity > 0]
+        accepted, refused = bound_buys(
+            profile, [BuyRequest(o.ticker, o.delta_quantity, float(last[o.ticker]), False) for o in buys],
+            settled_cash=float(account.get("cash", 0.0)), deployed_today_usd=0.0, min_notional_usd=1.0)
+        sized = {a.ticker: a.quantity for a in accepted}
+        orders = [o for o in orders if o.delta_quantity < 0] + [
+            dataclasses.replace(o, delta_quantity=sized[o.ticker]) for o in buys if o.ticker in sized]
+        budget_refusals = [{"ticker": t, "outcome": "BUDGET_REFUSED", "reason": r} for t, r in refused]
     gate_prices = {t: float(last[t]) * (1.0 + GAP_ALLOWANCE) for t in completed.columns if pd.notna(last[t])}
 
     placeholder = bool(getattr(client, "placeholder", False))
-    actions = []
+    actions = list(budget_refusals)
     for order in orders:
         record = {"ticker": order.ticker, "delta_quantity": order.delta_quantity, "target_weight": order.target_weight}
         if not submit:
@@ -217,11 +232,42 @@ def run_once(
         "session": str(session.date()),
         "equity": equity,
         "safety_config_version": PAPER_SAFETY_CONFIG.version,
+        "profile": profile.name if profile is not None else None,
         "reconciliation": reconciliation,
         "decision": json.loads(decision.to_json(orient="index")),
         "actions": actions,
         "disclosure": "Paper mechanics prototype. Not a performance result (SCOPE §6; spec 049).",
     }
+
+
+def load_paper_profile(path: Path | None, name: str) -> ModeProfile:
+    """The named spec 051 profile; this loop only ever runs PAPER at Alpaca paper."""
+    if path is None:
+        raise RunAborted("--profile needs --profiles-file")
+    profiles = load_profiles(json.loads(Path(path).read_text(encoding="utf-8")))
+    if name not in profiles:
+        raise RunAborted(f"profile {name!r} not in {path}")
+    profile = profiles[name]
+    if profile.mode != "PAPER" or profile.broker != "alpaca_paper":
+        raise RunAborted(f"{name}: the paper loop runs PAPER alpaca_paper profiles only")
+    return profile
+
+
+def state_paths(profile: ModeProfile | None) -> tuple[Path, Path]:
+    """Gate DB and run-log directory; namespaced per profile so profiles never share state."""
+    if profile is None:
+        return GATE_DB, RUN_LOG_DIR
+    base = ROOT / "data" / "live_safety" / profile.log_namespace
+    return base / "paper-gate.sqlite", base / "paper-runs"
+
+
+def profile_environ(profile: ModeProfile, environ: Any) -> dict:
+    """Alpaca credentials for this profile only, taken from the env names it lists."""
+    key = [r for r in profile.credential_refs if r.endswith("_KEY_ID")]
+    secret = [r for r in profile.credential_refs if r.endswith("_SECRET")]
+    if len(key) != 1 or len(secret) != 1:
+        raise RunAborted(f"{profile.name}: credential_refs must name one *_KEY_ID and one *_SECRET")
+    return {"APCA_API_KEY_ID": environ.get(key[0], ""), "APCA_API_SECRET_KEY": environ.get(secret[0], "")}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -230,27 +276,31 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
     parser.add_argument("--offline", action="store_true", help="dry run with no broker and no credentials")
     parser.add_argument("--period", default="2y")
+    parser.add_argument("--profile", help="spec 051 PAPER profile name (requires --profiles-file)")
+    parser.add_argument("--profiles-file", type=Path, help="private JSON list of spec 051 profiles")
     args = parser.parse_args(argv)
     if args.offline and args.submit:
         parser.error("--offline cannot --submit")
 
+    profile = load_paper_profile(args.profiles_file, args.profile) if args.profile else None
+    gate_db, run_log_dir = state_paths(profile)
     if args.offline:
         client: Any = OfflineClient(datetime.now(timezone.utc))
     else:
         if args.env_file.exists():
             load_env_file(args.env_file, os.environ)  # type: ignore[arg-type]
-        client = AlpacaPaperClient()
+        client = AlpacaPaperClient(environ=profile_environ(profile, os.environ)) if profile else AlpacaPaperClient()
     closes = close_panel(download_market_data(list(UNIVERSE), period=args.period, force_refresh=True))
-    GATE_DB.parent.mkdir(parents=True, exist_ok=True)
-    gate = LiveSafetyGate(GATE_DB, PAPER_SAFETY_CONFIG)
+    gate_db.parent.mkdir(parents=True, exist_ok=True)
+    gate = LiveSafetyGate(gate_db, PAPER_SAFETY_CONFIG)
     try:
-        record = run_once(client=client, gate=gate, closes=closes, submit=args.submit)
+        record = run_once(client=client, gate=gate, closes=closes, submit=args.submit, profile=profile)
     except RunAborted as exc:
         record = {"run_at_utc": datetime.now(timezone.utc).isoformat(), "aborted": str(exc)}
     finally:
         gate.close()
-    RUN_LOG_DIR.mkdir(parents=True, exist_ok=True)
-    with (RUN_LOG_DIR / "runs.jsonl").open("a", encoding="utf-8") as handle:
+    run_log_dir.mkdir(parents=True, exist_ok=True)
+    with (run_log_dir / "runs.jsonl").open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(record, default=str) + "\n")
     print(json.dumps({k: record[k] for k in record if k != "decision"}, indent=2, default=str))
     return 1 if "aborted" in record else 0
