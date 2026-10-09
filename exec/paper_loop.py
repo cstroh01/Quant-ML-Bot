@@ -26,6 +26,8 @@ import dataclasses
 import hashlib
 import json
 import os
+import shlex
+import subprocess
 import sys
 from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
@@ -51,7 +53,7 @@ from live_safety_gate import LiveSafetyGate, OrderIntent, SafetyConfig  # noqa: 
 from order_gateway import OrderDeniedError, submit_order  # noqa: E402
 from paper_targets import close_panel, plan_next_open  # noqa: E402
 from mode_config import BuyRequest, ModeProfile, bound_buys, load_profiles  # noqa: E402
-from ops_runtime import client_order_id  # noqa: E402
+from ops_runtime import client_order_id, open_intents, record_intent  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 UNIVERSE = ("AAPL", "AMZN", "GOOGL", "MSFT", "NVDA")
@@ -97,6 +99,22 @@ class OfflineClient:
 
     def positions(self) -> dict:
         return {}
+
+
+@dataclasses.dataclass(frozen=True)
+class Durable:
+    """Spec 055 F03: where order intents live and how to make them durable before each send.
+
+    ``persist`` must leave the intents log AND the gate's reservations durable off this machine
+    (the workflow pushes the state branch) or raise; nothing is sent until it returns.
+    """
+
+    intents_dir: Path
+    persist: Callable[[], None]
+
+
+class PersistFailed(RuntimeError):
+    """State could not be made durable; the order was not sent."""
 
 
 class RunAborted(RuntimeError):
@@ -157,12 +175,15 @@ def run_once(
     submit: bool,
     now_fn: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
     profile: ModeProfile | None = None,
+    durable: Durable | None = None,
 ) -> dict:
     """One loop iteration. Returns the run record; raises ``RunAborted``.
 
     Spec 055 F03: client ids are deterministic per (profile, session, ticker, side); a submit run
     refuses while any earlier reservation has no broker record (unknown exposure); a profile's
-    credentials must belong to its fingerprinted account.
+    credentials must belong to its fingerprinted account; with ``durable``, each order's intent and
+    reservation are persisted before the broker sees it, and today's earlier buy intents count
+    against the daily deploy cap.
     """
     clock = client.clock()
     broker_now = parse_broker_time(clock["timestamp"])
@@ -212,7 +233,8 @@ def run_once(
         buys = [o for o in orders if o.delta_quantity > 0]
         accepted, refused = bound_buys(
             profile, [BuyRequest(o.ticker, o.delta_quantity, float(last[o.ticker]), False) for o in buys],
-            settled_cash=float(account.get("cash", 0.0)), deployed_today_usd=0.0, min_notional_usd=1.0)
+            settled_cash=float(account.get("cash", 0.0)),
+            deployed_today_usd=_deployed_today(durable, today), min_notional_usd=1.0)
         sized = {a.ticker: a.quantity for a in accepted}
         orders = [o for o in orders if o.delta_quantity < 0] + [
             dataclasses.replace(o, delta_quantity=sized[o.ticker]) for o in buys if o.ticker in sized]
@@ -221,6 +243,7 @@ def run_once(
 
     placeholder = bool(getattr(client, "placeholder", False))
     actions = list(budget_refusals)
+    halted_by_persist = False
     for order in orders:
         record = {"ticker": order.ticker, "delta_quantity": order.delta_quantity, "target_weight": order.target_weight}
         if not submit:
@@ -230,10 +253,21 @@ def run_once(
         owner = profile.name if profile is not None else "default"
         intent = OrderIntent(client_order_id(owner, today, order.ticker, side), order.ticker, order.delta_quantity)
         record["client_order_id"] = intent.client_order_id
+        record["notional"] = abs(order.delta_quantity) * float(last[order.ticker])
+        if halted_by_persist:
+            record.update(outcome="NOT_SENT", reason="an earlier persist failed this run")
+            actions.append(record)
+            continue
         snapshot = client.snapshot(gate_prices, parse_time=parse_broker_time)
+        send = _durable_send(client, durable, today, side, record["notional"])
         try:
-            submit_order(gate, snapshot=snapshot, intent=intent, now=now_fn(), submit=client.submit_market_on_open)
+            submit_order(gate, snapshot=snapshot, intent=intent, now=now_fn(), submit=send)
             record["outcome"] = "SUBMITTED"
+        except PersistFailed as exc:
+            gate.record_order_outcome(intent.client_order_id, terminal=True, reason="NOT_SENT_PERSIST_FAILED",
+                                      now=now_fn())
+            record.update(outcome="NOT_SENT", reason=str(exc))
+            halted_by_persist = True
         except OrderDeniedError as exc:
             record.update(outcome="DENIED", reason=exc.decision.reason)
         except SubmissionUnknown as exc:
@@ -256,6 +290,42 @@ def run_once(
         "actions": actions,
         "disclosure": "Paper mechanics prototype. Not a performance result (SCOPE §6; spec 049).",
     }
+
+
+def _deployed_today(durable: Durable | None, today: date) -> float:
+    """Buy notional already recorded for ``today`` by earlier invocations (sent or not: conservative)."""
+    if durable is None:
+        return 0.0
+    return sum(float(row["intent"].get("notional", 0.0)) for row in open_intents(durable.intents_dir)
+               if row["intent"].get("session") == today.isoformat() and row["intent"].get("side") == "buy")
+
+
+def _durable_send(client: Any, durable: Durable | None, today: date, side: str, notional: float):
+    """The gateway's submit callable: record the intent, persist, and only then call the broker.
+
+    Runs after the gate has reserved the order (``submit_order`` calls it only on ALLOW), so the
+    persisted state holds both the reservation and the intent before the broker sees anything.
+    """
+    def send(intent: OrderIntent):
+        if durable is not None:
+            record_intent(durable.intents_dir, intent.client_order_id,
+                          {"session": today.isoformat(), "ticker": intent.instrument, "side": side,
+                           "qty": abs(float(intent.delta_quantity)), "notional": notional})
+            try:
+                durable.persist()
+            except Exception as exc:  # noqa: BLE001 - any persist failure means "do not send"
+                raise PersistFailed(f"state not persisted ({type(exc).__name__}); order not sent") from None
+        return client.submit_market_on_open(intent)
+    return send
+
+
+def persist_command(command: str) -> Callable[[], None]:
+    """A ``Durable.persist`` that runs ``command`` (e.g. ops/persist_state.sh) and raises on non-zero."""
+    def persist() -> None:
+        result = subprocess.run(shlex.split(command), capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"persist command exited {result.returncode}")
+    return persist
 
 
 def load_paper_profile(path: Path | None, name: str) -> ModeProfile:
@@ -296,11 +366,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--period", default="2y")
     parser.add_argument("--profile", help="spec 051 PAPER profile name (requires --profiles-file)")
     parser.add_argument("--profiles-file", type=Path, help="private JSON list of spec 051 profiles")
+    parser.add_argument("--persist-command",
+                        help="spec 055 F03: run before each broker send to make intents and reservations durable")
     args = parser.parse_args(argv)
     if args.offline and args.submit:
         parser.error("--offline cannot --submit")
 
     profile = load_paper_profile(args.profiles_file, args.profile) if args.profile else None
+    if args.submit and profile is not None and not args.persist_command:
+        raise RunAborted("--submit with --profile requires --persist-command (spec 055 F03)")  # before any network
     gate_db, run_log_dir = state_paths(profile)
     if args.offline:
         client: Any = OfflineClient(datetime.now(timezone.utc))
@@ -312,7 +386,10 @@ def main(argv: list[str] | None = None) -> int:
     gate_db.parent.mkdir(parents=True, exist_ok=True)
     gate = LiveSafetyGate(gate_db, PAPER_SAFETY_CONFIG)
     try:
-        record = run_once(client=client, gate=gate, closes=closes, submit=args.submit, profile=profile)
+        durable = (Durable(intents_dir=gate_db.parent, persist=persist_command(args.persist_command))
+                   if args.persist_command else None)
+        record = run_once(client=client, gate=gate, closes=closes, submit=args.submit, profile=profile,
+                          durable=durable)
     except RunAborted as exc:
         record = {"run_at_utc": datetime.now(timezone.utc).isoformat(), "aborted": str(exc)}
     finally:
