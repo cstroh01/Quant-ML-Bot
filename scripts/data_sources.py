@@ -240,3 +240,98 @@ class TiingoDailyRaw(_Fetcher):
         labels = pd.to_datetime([r["date"][:10] for r in rows])
         cutoff = fetched_at - timedelta(minutes=15)
         return self._bars(rows, labels, {f: f for f in _OHLCV}, cutoff, endpoint, fetched_at, digest)
+
+
+# --- U4b1: SEC EDGAR adapters and the shared rate limit (T005). Same injected-transport contract as U4a. ---
+
+import time
+from dataclasses import field
+
+
+@dataclass
+class RateLimit:
+    """At most one request per ``interval`` seconds on an injected clock; share one instance per provider."""
+
+    interval: float
+    clock: Callable[[], float] = time.monotonic
+    sleep: Callable[[float], None] = time.sleep
+    last: float | None = None
+
+    def wait(self) -> None:
+        if self.last is not None and (gap := self.interval - (self.clock() - self.last)) > 0:
+            self.sleep(gap)
+        self.last = self.clock()
+
+
+SEC_RATE = RateLimit(0.1)  # SEC fair access: <=10 requests/second aggregate across EDGAR endpoints
+
+
+@dataclass
+class _Limited(_Fetcher):
+    limit: RateLimit | None = None
+
+    def _request(self, *args, **kwargs) -> bytes:
+        self.limit.wait()
+        return super()._request(*args, **kwargs)
+
+
+@dataclass
+class _Edgar(_Limited):
+    user_agent: str | None = None  # SEC requires a declared "Name email"; else read from SEC_USER_AGENT
+    limit: RateLimit = field(default_factory=lambda: SEC_RATE)
+
+    def _sec(self, url: str):
+        agent = self.user_agent or os.environ.get("SEC_USER_AGENT", "")
+        if "@" not in agent:
+            raise SourceFetchError("SEC requests need a User-Agent naming a contact email (SEC_USER_AGENT)")
+        digest = hashlib.sha256()
+        return json.loads(self._request(digest, url, {"User-Agent": agent})), digest
+
+
+@dataclass
+class EdgarSubmissions(_Edgar):
+    """Recent filings (accession, form, filing date label, acceptance instant) for one CIK; older ``files`` pages unread.
+
+    EDGAR's ``acceptanceDateTime`` carries a ``Z`` that is not trusted: its wall clock is read as New York time,
+    the later and so conservative reading for point-in-time joins.
+    """
+
+    source = "sec_edgar_submissions"
+
+    def fetch(self, cik: int) -> tuple[pd.DataFrame, SourceManifest]:
+        fetched_at, endpoint = self.now(), f"https://data.sec.gov/submissions/CIK{cik:010d}.json"
+        doc, digest = self._sec(endpoint)
+        recent = pd.DataFrame(doc["filings"]["recent"])
+        if recent.empty:
+            raise SourceFetchError("sec submissions returned no filings")
+        frame = pd.DataFrame({"accession": recent["accessionNumber"], "form": recent["form"],
+                              "filing_date": pd.to_datetime(recent["filingDate"]),
+                              "accepted_at": pd.to_datetime(recent["acceptanceDateTime"].str[:19]).dt.tz_localize(NY)})
+        label = frame["filing_date"].max().strftime("%Y-%m-%d")
+        return frame, self._manifest(endpoint, fetched_at, label, len(frame), digest)
+
+
+@dataclass
+class EdgarCompanyFacts(_Edgar):
+    """Every XBRL fact for one CIK with taxonomy, concept, unit, period, accession and filed date kept."""
+
+    source = "sec_edgar_companyfacts"
+
+    def fetch(self, cik: int) -> tuple[list[dict], SourceManifest]:
+        fetched_at, endpoint = self.now(), f"https://data.sec.gov/api/xbrl/companyfacts/CIK{cik:010d}.json"
+        doc, digest = self._sec(endpoint)
+        rows = [{"taxonomy": taxonomy, "concept": concept, "unit": unit, **item}
+                for taxonomy, concepts in doc["facts"].items() for concept, body in concepts.items()
+                for unit, items in body["units"].items() for item in items]
+        if not rows:
+            raise SourceFetchError("sec companyfacts returned no facts")
+        return rows, self._manifest(endpoint, fetched_at, max(r["filed"] for r in rows), len(rows), digest)
+
+    @staticmethod
+    def as_of(rows: list[dict], concept: str, unit: str, as_of: date, taxonomy: str = "us-gaap") -> list[dict]:
+        """One concept in one unit as known on ``as_of``: per (start, end) period, via ``facts_as_of``."""
+        chosen = [r for r in rows if (r["taxonomy"], r["concept"], r["unit"]) == (taxonomy, concept, unit)]
+        out = []
+        for start in {r.get("start") for r in chosen}:
+            out += facts_as_of([r for r in chosen if r.get("start") == start], as_of)
+        return sorted(out, key=lambda r: (r["end"], r.get("start") or ""))
