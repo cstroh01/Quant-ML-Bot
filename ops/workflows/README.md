@@ -16,3 +16,10 @@ paper loop against an account a cloud profile also trades. Agents never see secr
 
 Until spec 051 T007 (reviewed `exec/` wiring) merges, each profile runs the existing 049 loop
 against its own Alpaca paper account; the per-profile budget and daily cap apply after that wiring.
+
+**Delivery and durability (055 F02):** the runner pushes the claimed lease to `ops-state` before the
+broker command (`ops/persist_state.sh`); if that push fails, no order is sent. Summaries and
+incidents are queued under `ops/outbox/` and posted by `scripts/ops_deliver.py`: one rolling issue
+titled "paper-loop daily summary", one issue per new incident. Undelivered items retry next run.
+A `lease_held` incident means an earlier run never finished: reconcile at the broker before
+clearing the lease by hand.

@@ -21,8 +21,9 @@ import subprocess
 import sys
 import uuid
 
-from ops_runtime import (Incident, LeaseHeld, acquire_lease, atomic_write, complete_lease, due_run,
-                         incidents_to_send, missed_sessions)
+from ops_runtime import (SUMMARY_TITLE, Incident, LeaseHeld, _lease_path, acquire_lease, atomic_write,
+                         complete_lease, due_run, incidents_to_send, missed_sessions, queue_outbox,
+                         summary_from_loop_record)
 
 
 def _jsonl(path: Path) -> list[dict]:
@@ -58,14 +59,32 @@ def _deliver(ops: Path, incidents: list[Incident]) -> int:
     fresh = incidents_to_send(incidents, sent)
     for incident in fresh:
         _append(ops / "incidents.jsonl", {"kind": incident.kind, "profile": incident.profile, "detail": incident.detail})
+        queue_outbox(ops.parent, f"incident-{incident.fingerprint()[:16]}", kind="incident",
+                     title=f"[{incident.profile}] {incident.kind}", body=incident.detail)
     atomic_write(sent_path, json.dumps(sent, sort_keys=True))
     return len(fresh)
 
 
-def run_once(state_dir, *, profile: str, command: list[str], now: datetime, strategy_version: str) -> dict:
+def _last_record(run_log) -> dict | None:
+    if run_log is None or not Path(run_log).exists():
+        return None
+    lines = [line for line in Path(run_log).read_text(encoding="utf-8").splitlines() if line.strip()]
+    try:
+        return json.loads(lines[-1]) if lines else None
+    except ValueError:
+        return None
+
+
+def run_once(state_dir, *, profile: str, command: list[str], now: datetime, strategy_version: str,
+             persist_command: list[str] | None = None, run_log=None) -> dict:
     """One invocation. Missed sessions are checked on EVERY invocation, due or not, from the later of
     the last completed session and this profile's first-ever invocation; the run identity records
-    (profile, session, strategy_version)."""
+    (profile, session, strategy_version).
+
+    With ``persist_command``, the claimed lease is made durable BEFORE the broker command runs; if
+    persisting fails the command never runs, the lease is released and a ``persist_failed``
+    incident is queued. Every executed run queues one daily summary in ``<state>/ops/outbox``.
+    """
     if not str(strategy_version).strip():
         raise ValueError("strategy_version is required for the run identity")
     ops = Path(state_dir) / "ops"
@@ -90,6 +109,15 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
         incidents.append(Incident("lease_held", profile, f"{decision.session}: {held}; reconcile before any rerun"))
         return {"status": "lease_held", "session": decision.session.isoformat(),
                 "new_incidents": _deliver(ops, incidents)}
+    if persist_command is not None:
+        persisted = subprocess.run(persist_command, capture_output=True, text=True)
+        if persisted.returncode != 0:
+            _lease_path(state_dir, profile, decision.session).unlink()  # nothing durable, nothing sent
+            incidents.append(Incident("persist_failed", profile,
+                                      f"{decision.session}: state not persisted (exit {persisted.returncode}); "
+                                      "broker command not run"))
+            return {"status": "persist_failed", "session": decision.session.isoformat(),
+                    "new_incidents": _deliver(ops, incidents)}
     result = subprocess.run(command, capture_output=True, text=True)
     status = "completed" if result.returncode == 0 else "failed"
     complete_lease(state_dir, profile, decision.session, run_id=run_id)
@@ -99,6 +127,10 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
     _append(ops / "runs.jsonl", record)
     if status == "failed":
         incidents.append(Incident("failure", profile, f"{decision.session} exit {result.returncode}"))
+    body = summary_from_loop_record(_last_record(run_log), profile=profile, session=decision.session,
+                                    model=strategy_version)
+    queue_outbox(state_dir, f"summary-{profile}-{decision.session.isoformat()}", kind="summary",
+                 title=SUMMARY_TITLE, body=f"Run status: {status} (exit {result.returncode})\n{body}")
     return record | {"new_incidents": _deliver(ops, incidents)}
 
 
@@ -109,9 +141,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--profile", required=True)
     parser.add_argument("--strategy-version", required=True, help="pinned code/strategy identity, e.g. the deploy SHA")
     parser.add_argument("--command", required=True, help="the wrapped run, e.g. 'python exec/paper_loop.py --submit'")
+    parser.add_argument("--persist-command", help="run after the lease is claimed and before --command; non-zero aborts")
+    parser.add_argument("--run-log", type=Path, help="the wrapped loop's runs.jsonl, for the daily summary")
     args = parser.parse_args(argv)
     result = run_once(args.state_dir, profile=args.profile, command=shlex.split(args.command),
-                      now=_now(), strategy_version=args.strategy_version)
+                      now=_now(), strategy_version=args.strategy_version,
+                      persist_command=shlex.split(args.persist_command) if args.persist_command else None,
+                      run_log=args.run_log)
     print(json.dumps(result, sort_keys=True, default=str))
     ok = result["status"] in ("completed", "done", "not_session", "before_window", "after_cutoff")
     return 0 if ok and not result["new_incidents"] else 1

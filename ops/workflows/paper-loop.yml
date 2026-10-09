@@ -60,16 +60,24 @@ jobs:
           mkdir -p "$QMB_STATE_DIR/live_safety" data && ln -sfn "$QMB_STATE_DIR/live_safety" data/live_safety
           # Profiles (budgets, fingerprints, credential names) live only in a private secret.
           printf '%s' "$QMB_PROFILES_JSON" > "$RUNNER_TEMP/profiles.json"
+          # F02b: the claimed lease is pushed to ops-state BEFORE the broker command; a failed push
+          # aborts the run (no orders) and queues a persist_failed incident.
           python scripts/ops_runner.py --state-dir "$QMB_STATE_DIR" --profile ${{ matrix.profile }} \
             --strategy-version "${{ vars.QMB_PINNED_SHA }}" \
+            --persist-command "bash ops/persist_state.sh ${{ github.workspace }}/state lease ${{ matrix.profile }}" \
+            --run-log "$QMB_STATE_DIR/live_safety/${{ matrix.profile }}/paper-runs/runs.jsonl" \
             --command "python exec/paper_loop.py --submit --profile ${{ matrix.profile }} --profiles-file $RUNNER_TEMP/profiles.json"
+      - name: Deliver summary and incidents
+        if: always()
+        working-directory: qmb
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Items leave ops/outbox only after a successful post; failures retry on the next run.
+        run: python scripts/ops_deliver.py --state-dir "${{ github.workspace }}/state/${{ matrix.profile }}"
       - name: Persist state
         if: always()
-        working-directory: state
-        run: |
-          git config user.name qmb-ops && git config user.email qmb-ops@users.noreply.github.com
-          git add -A && git commit -m "ops state ${{ matrix.profile }} $(date -u +%FT%TZ)" || true
-          git push origin HEAD:ops-state
+        working-directory: qmb
+        run: bash ops/persist_state.sh "${{ github.workspace }}/state" "${{ matrix.profile }} $(date -u +%FT%TZ)"
       - uses: actions/upload-artifact@v7
         if: always()
         with:
