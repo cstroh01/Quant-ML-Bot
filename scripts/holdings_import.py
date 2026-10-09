@@ -155,6 +155,7 @@ CAPABILITIES = frozenset({"read_holdings", "read_activity", "submit_orders"})
 SOURCE_CAPABILITIES: dict[str, frozenset[str]] = {
     "fidelity_positions_csv": frozenset({"read_holdings"}),
     "fidelity_history_csv": frozenset({"read_activity"}),
+    "fidelity_live_positions": frozenset({"read_holdings"}),  # 057 U2 positions read (FR-008)
 }
 MAX_AGE_SESSIONS = 1  # D-3: stale after one NYSE business day
 _EPS = 1e-9
