@@ -14,13 +14,15 @@ from __future__ import annotations
 import argparse
 from datetime import date, datetime, timezone
 import json
+import os
 from pathlib import Path
 import shlex
 import subprocess
 import sys
 import uuid
 
-from ops_runtime import Incident, acquire_lease, complete_lease, due_run, incidents_to_send, missed_sessions
+from ops_runtime import (Incident, LeaseHeld, acquire_lease, atomic_write, complete_lease, due_run,
+                         incidents_to_send, missed_sessions)
 
 
 def _jsonl(path: Path) -> list[dict]:
@@ -31,6 +33,8 @@ def _append(path: Path, record: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(record, sort_keys=True, default=str) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
 
 
 def _now() -> datetime:
@@ -43,8 +47,7 @@ def _first_seen(ops: Path, profile: str, session: date) -> date:
     seen = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     if profile not in seen:
         seen[profile] = session.isoformat()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(seen, sort_keys=True), encoding="utf-8")
+        atomic_write(path, json.dumps(seen, sort_keys=True))
     return date.fromisoformat(seen[profile])
 
 
@@ -55,8 +58,7 @@ def _deliver(ops: Path, incidents: list[Incident]) -> int:
     fresh = incidents_to_send(incidents, sent)
     for incident in fresh:
         _append(ops / "incidents.jsonl", {"kind": incident.kind, "profile": incident.profile, "detail": incident.detail})
-    sent_path.parent.mkdir(parents=True, exist_ok=True)
-    sent_path.write_text(json.dumps(sent, sort_keys=True), encoding="utf-8")
+    atomic_write(sent_path, json.dumps(sent, sort_keys=True))
     return len(fresh)
 
 
@@ -80,7 +82,14 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
         return {"status": decision.status, "session": decision.session.isoformat(),
                 "new_incidents": _deliver(ops, incidents)}
     run_id = uuid.uuid4().hex
-    acquire_lease(state_dir, profile, decision.session, run_id=run_id)
+    try:
+        acquire_lease(state_dir, profile, decision.session, run_id=run_id)
+    except LeaseHeld as held:
+        # A lease with no completed run record means an earlier run started and never finished:
+        # its orders may exist. Never rerun automatically; reconcile at the broker first.
+        incidents.append(Incident("lease_held", profile, f"{decision.session}: {held}; reconcile before any rerun"))
+        return {"status": "lease_held", "session": decision.session.isoformat(),
+                "new_incidents": _deliver(ops, incidents)}
     result = subprocess.run(command, capture_output=True, text=True)
     status = "completed" if result.returncode == 0 else "failed"
     complete_lease(state_dir, profile, decision.session, run_id=run_id)

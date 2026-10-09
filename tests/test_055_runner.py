@@ -60,12 +60,12 @@ def test_missed_sessions_are_reported_as_incidents(tmp_path):
 def test_concurrent_worker_holding_the_lease_blocks_execution(tmp_path):
     import pytest
     from datetime import date as _date
-    from ops_runtime import LeaseHeld, acquire_lease
+    from ops_runtime import acquire_lease
     acquire_lease(tmp_path, "paper_small", _date(2026, 10, 8), run_id="other-worker")
     marker = tmp_path / "ran.txt"
     cmd = [sys.executable, "-c", f"open({str(marker)!r}, 'w').write('x')"]
-    with pytest.raises(LeaseHeld):
-        run_once(tmp_path, profile="paper_small", command=cmd, now=datetime(2026, 10, 8, 8, 30, tzinfo=NY))
+    result = run_once(tmp_path, profile="paper_small", command=cmd, now=datetime(2026, 10, 8, 8, 30, tzinfo=NY))
+    assert result["status"] == "lease_held"  # F02a: reported as an incident, never rerun
     assert not marker.exists()
 
 

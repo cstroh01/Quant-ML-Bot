@@ -67,6 +67,37 @@ class LeaseHeld(RuntimeError):
     """A run for this (profile, session) already started or finished."""
 
 
+class IntentLogCorrupt(RuntimeError):
+    """The intent log has a torn or unparseable line; no new intent until a human reconciles it."""
+
+
+def _fsync_dir(directory: Path) -> None:
+    """Make a create/rename in ``directory`` durable (no-op where directories can't be opened)."""
+    try:
+        fd = os.open(directory, os.O_RDONLY)
+    except OSError:
+        return
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
+
+
+def atomic_write(path, text: str) -> None:
+    """Replace ``path`` with ``text`` so a crash leaves the old or the new content, never a mix."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    with tmp.open("w", encoding="utf-8") as stream:
+        stream.write(text)
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(tmp, path)
+    _fsync_dir(path.parent)
+
+
 def _lease_path(state_dir, profile: str, session: date) -> Path:
     return Path(state_dir) / "leases" / f"{profile}-{session.isoformat()}.json"
 
@@ -83,14 +114,19 @@ def acquire_lease(state_dir, profile: str, session: date, *, run_id: str) -> Non
         json.dump({"run_id": run_id, "state": "running"}, stream)
         stream.flush()
         os.fsync(stream.fileno())
+    _fsync_dir(path.parent)
 
 
 def complete_lease(state_dir, profile: str, session: date, *, run_id: str) -> None:
     path = _lease_path(state_dir, profile, session)
-    lease = json.loads(path.read_text(encoding="utf-8"))
-    if lease["run_id"] != run_id:
-        raise LeaseHeld(f"{profile} {session} is held by {lease['run_id']}, not {run_id}")
-    path.write_text(json.dumps({"run_id": run_id, "state": "completed"}), encoding="utf-8")
+    try:
+        lease = json.loads(path.read_text(encoding="utf-8"))
+        holder = lease["run_id"]
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise LeaseHeld(f"{profile} {session} lease is unreadable (torn write?); reconcile by hand") from error
+    if holder != run_id:
+        raise LeaseHeld(f"{profile} {session} is held by {holder}, not {run_id}")
+    atomic_write(path, json.dumps({"run_id": run_id, "state": "completed"}))
 
 
 def client_order_id(profile: str, session: date, ticker: str, side: str) -> str:
@@ -104,10 +140,24 @@ def _intents_path(state_dir) -> Path:
 
 
 def open_intents(state_dir) -> list[dict]:
+    """Every recorded intent; raises ``IntentLogCorrupt`` on a torn final line or unparseable record."""
     path = _intents_path(state_dir)
     if not path.exists():
         return []
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    text = path.read_text(encoding="utf-8")
+    if text and not text.endswith("\n"):
+        raise IntentLogCorrupt(f"{path.name}: last record is torn (no newline); reconcile before trading")
+    rows = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+            row["client_order_id"], row["intent"]
+        except (ValueError, KeyError, TypeError) as error:
+            raise IntentLogCorrupt(f"{path.name}: line {number} is not a valid intent record") from error
+        rows.append(row)
+    return rows
 
 
 def record_intent(state_dir, client_id: str, intent: dict) -> None:
