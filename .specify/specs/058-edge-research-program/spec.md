@@ -2,7 +2,7 @@
 
 **Spec number**: 058
 **Created**: 2026-10-09
-**Status**: Draft. Decisions D-1 to D-3 are recorded below (Camden, 2026-10-09). D-4 and D-5 are open.
+**Status**: Draft. Decisions D-1 to D-5 are recorded (Camden, 2026-10-09).
 Governance follow-ups (a `docs/SCOPE-V1.md` universe amendment, a spec 033 family-N amendment) are
 separate PRs, each touching only its own file.
 **Related**: 033 (ledger, DSR, PBO, Gate 3), 035/056 (free data), 046 (cost model), 052 (registry),
@@ -130,12 +130,12 @@ Approximate net annualized Sharpe needed for DSR ≥ 0.95 (HAC t ≥ 3 binds les
 - **FR-006 Publication.** Every surface shows the family DSR, the lifetime-N DSR, HAC t, PBO (S = 16),
   the holdout result, the baselines, costs, folds, purge and embargo, and the limitations register.
 
-## 8. Open decisions
-- **D-4 Holdout pass condition (Camden).** Proposed: the selected configuration's holdout net Sharpe is
-  above 0 and its one-sided HAC t is ≥ 1.645. Gate 3's thresholds still apply to the research window
-  as spec 033 defines them.
-- **D-5 Cost model gate (Camden).** Confirm that §5 research waits for 046 T001/T002 rather than
-  running provisional costs.
+## 8. Recorded decisions, continued (Camden, 2026-10-09)
+- **D-4 Holdout pass condition.** The selected configuration passes the holdout only if its holdout
+  net Sharpe is above 0 **and** its one-sided HAC t is ≥ 1.645. Gate 3's thresholds (spec 033)
+  still apply to the research window. Both must pass.
+- **D-5 Costs first.** §5 research runs wait for spec 046 T001/T002 (Camden's source review). No
+  provisional-cost run may be selected, gated or published as a result.
 
 ## 9. Out of scope
 Intraday data, single stocks, futures, leverage above 1.0, ML models in this family. ML stays a later
