@@ -26,7 +26,7 @@ class RichClient(FakeClient):
     """Broker reports far more equity and cash than the bot's budget."""
 
     def account(self):
-        return {"equity": "1000000", "cash": "1000000", "status": "ACTIVE"}
+        return {"equity": "1000000", "cash": "1000000", "status": "ACTIVE", "account_number": "PA-1"}  # raw()'s account
 
 
 def run(profile, client=None):
@@ -58,7 +58,7 @@ def test_no_profile_keeps_the_original_behavior():
 
 
 def test_budget_refusals_are_recorded_with_reasons():
-    record = run(small(), client=type("Broke", (RichClient,), {"account": lambda self: {"equity": "1000000", "cash": "0", "status": "ACTIVE"}})())
+    record = run(small(), client=type("Broke", (RichClient,), {"account": lambda self: {"equity": "1000000", "cash": "0", "status": "ACTIVE", "account_number": "PA-1"}})())
     refused = [a for a in record["actions"] if a["outcome"] == "BUDGET_REFUSED"]
     assert refused and all(a["reason"] == "insufficient_settled_cash" for a in refused)
 
