@@ -5,3 +5,6 @@
 - [x] T004 U3 contracts red + EDGAR as-of filter. Mutant: fact used before filed date.
 - [x] T005 U4 adapters with injected clients, offline fixtures.
 - [ ] T006 **Human (Camden)**: free keys as secrets; authorized first fetch per source; manifests hashed.
+
+## F02 — repository-readable acceptance (amendment 2026-10-09)
+- [x] T007 Docs only: inline the already-adopted M01–M10 detail, replace the private pointer, and verify IDs/control/refusal wording. This closes the documentation dependency only; runtime gates and T006 remain separately unverified.
