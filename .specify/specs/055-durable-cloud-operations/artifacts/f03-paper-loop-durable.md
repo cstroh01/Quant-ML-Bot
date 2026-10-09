@@ -56,5 +56,14 @@ FAILED tests/test_055_paper_loop_durable.py::test_daily_deployment_counts_earlie
 - A reservation the broker never saw blocks every later submit until a human marks it terminal;
   that is deliberate (unknown is never read as "not sent").
 
+## Storage identifiers (Codex follow-up 2026-10-09)
+A profile with `log_namespace='paper_small/../paper_large'` made `state_paths` return paper_large's
+gate DB and run log. Now `state_paths` refuses any namespace that isn't a portable single
+component (`ops_runtime.require_storage_identifier`), and also any path that doesn't resolve
+directly under `data/live_safety`. Lease filenames and `ops_runner.run_once` require the same
+identifier for `profile`. `tests/test_055_storage_identifiers.py`: red on 5152d15, 17 failed /
+1 passed (the valid-lease control); sibling control `paper_small` resolves separately from
+`paper_large`. The 051 load-time rule is on #95 (773251b).
+
 ## Rule 12
-`python tests/mutation/run_055_f03_mutants.py` → 9/9 killed.
+`python tests/mutation/run_055_f03_mutants.py` → 13/13 killed.

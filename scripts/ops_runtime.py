@@ -61,6 +61,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 
 
 class LeaseHeld(RuntimeError):
@@ -98,8 +99,20 @@ def atomic_write(path, text: str) -> None:
     _fsync_dir(path.parent)
 
 
+_IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9_-]{0,62}")
+_WINDOWS_DEVICES = frozenset({"con", "prn", "aux", "nul"} | {f"{d}{i}" for d in ("com", "lpt") for i in range(1, 10)})
+
+
+def require_storage_identifier(value: str, what: str = "profile") -> str:
+    """Return ``value`` only if it is one portable path component (lowercase a-z 0-9 _ -, no dots,
+    no separators, not a Windows device name), so it can never alias another file or directory."""
+    if not (isinstance(value, str) and _IDENTIFIER.fullmatch(value)) or value in _WINDOWS_DEVICES:
+        raise ValueError(f"{what} {value!r} is not a portable storage identifier")
+    return value
+
+
 def _lease_path(state_dir, profile: str, session: date) -> Path:
-    return Path(state_dir) / "leases" / f"{profile}-{session.isoformat()}.json"
+    return Path(state_dir) / "leases" / f"{require_storage_identifier(profile)}-{session.isoformat()}.json"
 
 
 def acquire_lease(state_dir, profile: str, session: date, *, run_id: str) -> None:
