@@ -47,16 +47,22 @@ jobs:
       - name: Run if due
         working-directory: qmb
         env:
-          APCA_API_KEY_ID: ${{ matrix.profile == 'paper_small' && secrets.PAPER_SMALL_KEY_ID || secrets.PAPER_LARGE_KEY_ID }}
-          APCA_API_SECRET_KEY: ${{ matrix.profile == 'paper_small' && secrets.PAPER_SMALL_SECRET || secrets.PAPER_LARGE_SECRET }}
+          # Each profile reads only the env names its credential_refs list (spec 051 T007).
+          PAPER_SMALL_KEY_ID: ${{ matrix.profile == 'paper_small' && secrets.PAPER_SMALL_KEY_ID || '' }}
+          PAPER_SMALL_SECRET: ${{ matrix.profile == 'paper_small' && secrets.PAPER_SMALL_SECRET || '' }}
+          PAPER_LARGE_KEY_ID: ${{ matrix.profile == 'paper_large' && secrets.PAPER_LARGE_KEY_ID || '' }}
+          PAPER_LARGE_SECRET: ${{ matrix.profile == 'paper_large' && secrets.PAPER_LARGE_SECRET || '' }}
+          QMB_PROFILES_JSON: ${{ secrets.QMB_PROFILES_JSON }}
           QMB_STATE_DIR: ${{ github.workspace }}/state/${{ matrix.profile }}
         run: |
           test ! -f "$QMB_STATE_DIR/KILL" || { echo "killed"; exit 1; }
           # paper_loop writes its gate DB and run log under data/live_safety; point that at durable state
           mkdir -p "$QMB_STATE_DIR/live_safety" data && ln -sfn "$QMB_STATE_DIR/live_safety" data/live_safety
+          # Profiles (budgets, fingerprints, credential names) live only in a private secret.
+          printf '%s' "$QMB_PROFILES_JSON" > "$RUNNER_TEMP/profiles.json"
           python scripts/ops_runner.py --state-dir "$QMB_STATE_DIR" --profile ${{ matrix.profile }} \
             --strategy-version "${{ vars.QMB_PINNED_SHA }}" \
-            --command "python exec/paper_loop.py --submit"
+            --command "python exec/paper_loop.py --submit --profile ${{ matrix.profile }} --profiles-file $RUNNER_TEMP/profiles.json"
       - name: Persist state
         if: always()
         working-directory: state
