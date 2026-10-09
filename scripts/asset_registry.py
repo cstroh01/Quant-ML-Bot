@@ -110,7 +110,7 @@ def research_eligibility(bars: pd.DataFrame, *, as_of: date, limits: Eligibility
 
     Reads only rows at or before ``as_of``. Empty list means eligible. A NaN close fails closed
     (``price_below_floor``); any non-finite dollar volume or negative volume in the 20-row window
-    fails closed (``illiquid``) â€” one bad observation can leave a median finite.
+    fails closed (``illiquid``) — one bad observation can leave a median finite.
     """
     past = bars.loc[:pd.Timestamp(as_of)]
     reasons = []
