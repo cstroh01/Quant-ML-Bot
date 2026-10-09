@@ -1,0 +1,20 @@
+{
+  "source": "tiingo",
+  "source_sha": "13d915d6034a5fb1214cab29d9292b754c9fa265",
+  "unit": "056 T006",
+  "fetched_at": "2026-10-09T19:36:26.294927+00:00",
+  "attribution": "run by Codex on Camden's PC at Camden's instruction, 2026-10-09T19:36:26.294927+00:00",
+  "outcome": "RECORDED_FOR_REVIEW",
+  "rights_note": "Spec 056 research.md, checked 2026-10-07: internal use; no raw redistribution; public derived-result permission UNVERIFIED. https://app.tiingo.com/tos/",
+  "requests": [
+    {"endpoint_path": "/tiingo/daily/AAPL/prices", "host": "api.tiingo.com", "method": "GET", "parameters": {"startDate": "2020-08-24", "endDate": "2020-09-08", "format": "json"}, "requested_at_utc": "2026-10-09T19:36:26.811219+00:00", "http_status": 200, "row_counts": {"rows": 11}, "sha256": "778a215e7fc8f75a2db8202cfebd4e2e13ce53c9bf80851b94b8f3fb6ea0c2c6", "field_names": ["[].adjClose", "[].adjHigh", "[].adjLow", "[].adjOpen", "[].adjVolume", "[].close", "[].date", "[].divCash", "[].high", "[].low", "[].open", "[].splitFactor", "[].volume"]},
+    {"endpoint_path": "/tiingo/daily/NVDA/prices", "host": "api.tiingo.com", "method": "GET", "parameters": {"startDate": "2024-06-03", "endDate": "2024-06-17", "format": "json"}, "requested_at_utc": "2026-10-09T19:36:27.648993+00:00", "http_status": 200, "row_counts": {"rows": 11}, "sha256": "8ffee5dde94f8c09470a1c57d37a3fe885e75d8a9fb08d28e5578fed1967946d", "field_names": ["[].adjClose", "[].adjHigh", "[].adjLow", "[].adjOpen", "[].adjVolume", "[].close", "[].date", "[].divCash", "[].high", "[].low", "[].open", "[].splitFactor", "[].volume"]},
+    {"endpoint_path": "/tiingo/daily/AAPL", "host": "api.tiingo.com", "method": "GET", "parameters": {}, "requested_at_utc": "2026-10-09T19:36:27.849461+00:00", "http_status": 200, "row_counts": {}, "sha256": "b169324965ba1823405dabc2778f6a28d1f56965e6dba467f6f0e041b2853dfa", "field_names": ["description", "endDate", "exchangeCode", "name", "startDate", "ticker"]},
+    {"endpoint_path": "/tiingo/daily/NVDA", "host": "api.tiingo.com", "method": "GET", "parameters": {}, "requested_at_utc": "2026-10-09T19:36:28.007538+00:00", "http_status": 200, "row_counts": {}, "sha256": "d8629d5f82ba619bf060d7b9db80635bfb13cf75e4123de5c51d1b528c63232a", "field_names": ["description", "endDate", "exchangeCode", "name", "startDate", "ticker"]}
+  ],
+  "adapter_runs": [
+    {"symbol": "AAPL", "status": "OBSERVED_ADAPTER_OUTPUT", "manifest": {"source": "tiingo_eod_raw", "endpoint": "https://api.tiingo.com/tiingo/daily/AAPL/prices?startDate=2020-08-24&endDate=2020-09-08&format=json", "fetched_at": "2026-10-09T19:36:26.811219+00:00", "completed_session": "2020-09-08", "adjustment": "raw", "row_count": 11, "sha256": "778a215e7fc8f75a2db8202cfebd4e2e13ce53c9bf80851b94b8f3fb6ea0c2c6", "contract_version": "2026-10-07", "label_calendar": "nyse_session"}},
+    {"symbol": "NVDA", "status": "OBSERVED_ADAPTER_OUTPUT", "manifest": {"source": "tiingo_eod_raw", "endpoint": "https://api.tiingo.com/tiingo/daily/NVDA/prices?startDate=2024-06-03&endDate=2024-06-17&format=json", "fetched_at": "2026-10-09T19:36:27.648993+00:00", "completed_session": "2024-06-17", "adjustment": "raw", "row_count": 11, "sha256": "8ffee5dde94f8c09470a1c57d37a3fe885e75d8a9fb08d28e5578fed1967946d", "contract_version": "2026-10-07", "label_calendar": "nyse_session"}}
+  ],
+  "limitations": "Bounded first-fetch evidence only. Full historical entitlement, survivorship/delisting completeness and public derived-result rights remain UNVERIFIED where not separately cleared. No cross-source or trading-result acceptance is claimed."
+}

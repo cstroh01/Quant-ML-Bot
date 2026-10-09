@@ -1,0 +1,16 @@
+{
+  "source": "alfred",
+  "source_sha": "13d915d6034a5fb1214cab29d9292b754c9fa265",
+  "unit": "056 T006",
+  "fetched_at": "2026-10-09T19:36:38.871123+00:00",
+  "attribution": "run by Codex on Camden's PC at Camden's instruction, 2026-10-09T19:36:38.871123+00:00",
+  "outcome": "RECORDED_FOR_REVIEW",
+  "rights_note": "056 research.md: series-owner copyright survives API access; government-rate series chosen for review, public rights still require confirmation. No intraday PIT claim. https://fred.stlouisfed.org/docs/api/terms_of_use.html",
+  "requests": [
+    {"endpoint_path": "/fred/series/observations", "host": "api.stlouisfed.org", "method": "GET", "parameters": {"series_id": "DGS10", "realtime_start": "2024-06-01", "realtime_end": "2024-06-30", "file_type": "json", "limit": "100000"}, "requested_at_utc": "2026-10-09T19:36:39.389887+00:00", "http_status": 200, "row_counts": {"observations": 16303}, "sha256": "b18af3a7aeda4f0df078576481d7c946a4c1a6298b71ab134206dcceee36cea6", "field_names": ["count", "file_type", "limit", "observation_end", "observation_start", "observations", "observations[].date", "observations[].realtime_end", "observations[].realtime_start", "observations[].value", "offset", "order_by", "output_type", "realtime_end", "realtime_start", "sort_order", "units"]}
+  ],
+  "adapter_runs": [
+    {"status": "OBSERVED_ADAPTER_OUTPUT", "manifest": {"source": "alfred_observations", "endpoint": "https://api.stlouisfed.org/fred/series/observations?series_id=DGS10&realtime_start=2024-06-01&realtime_end=2024-06-30&file_type=json&limit=100000", "fetched_at": "2026-10-09T19:36:39.389887+00:00", "completed_session": "2024-06-28", "adjustment": "raw", "row_count": 16303, "sha256": "b18af3a7aeda4f0df078576481d7c946a4c1a6298b71ab134206dcceee36cea6", "contract_version": "2026-10-07", "label_calendar": "calendar_date"}}
+  ],
+  "limitations": "Bounded first-fetch evidence only. Full historical entitlement, survivorship/delisting completeness and public derived-result rights remain UNVERIFIED where not separately cleared. No cross-source or trading-result acceptance is claimed."
+}
