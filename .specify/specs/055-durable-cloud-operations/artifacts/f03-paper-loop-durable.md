@@ -1,4 +1,4 @@
-# 055 F03a (exec/, Rule 7): deterministic ids, account binding, restart block (split 1 of 3 from #107)
+# 055 F03a–F03b (exec/, Rule 7): ids, account, restart; durable send (splits 1–2 of 3 from #107)
 
 Split from #107 (`8316d6e`) to meet the ≤300 changed-line unit cap (044 SC-007 / 045 FR-005).
 Stack: F02b3 (tree == #104) → F03a (this) → F03b durable send → F03c storage identifiers; F03c's
@@ -14,10 +14,20 @@ tree equals #107's. Fakes only (049 FakeClient with a synthetic account number).
 - `tests/test_051_paper_loop_profile.py`: its broker fake reports the synthetic account its profile
   fingerprints (the new check correctly aborted without it).
 
+- **F03b:** `Durable(intents_dir, persist)`. The gateway's submit callable (runs only after the gate
+  reserved the order) records the intent (session, ticker, side, qty, notional), calls `persist`,
+  and only then calls the broker. A persist failure → `PersistFailed`: the reservation is marked
+  terminal `NOT_SENT_PERSIST_FAILED` and no further order in the run is sent.
+- **F03b:** today's earlier buy intents (sent or not) count as `deployed_today_usd` for
+  `bound_buys`, across invocations and even with a fresh gate DB.
+- **F03b:** CLI `--persist-command`; `--submit --profile` without it aborts before any network call.
+  The workflow passes `bash ops/persist_state.sh <state> intent <profile>`; a test parses the line.
+
 ## Red
-Recorded on #107 against an inert stub on 8279582: random ids, no restart block, wrong account
-accepted (causal assertion failures, not import errors).
+Recorded on #107 against an inert stub on 8279582: random ids, sends with nothing persisted, a persist failure still sending, no restart block,
+wrong account accepted, deployed notional read as 0 (causal assertion failures, not import errors).
 
 ## Rule 12
-`python tests/mutation/run_055_f03_mutants.py` → 3/3 killed (random ids, unknown reservations
-ignored, account not verified).
+`python tests/mutation/run_055_f03_mutants.py` → 9/9 killed (F03a's 3 plus send before persist,
+intent not recorded, persist failure keeps sending, unsent reservation kept open, earlier
+deployment ignored, CLI submits without persist).
