@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them.",
+  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden.",
   "items": [
     {
       "id": "Q1",
@@ -369,6 +369,1196 @@
       "depends_on": [
         "Q24 PR merged",
         "Q25 PR merged"
+      ]
+    },
+    {
+      "id": "Q31",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T046",
+      "summary": "Make T034-T040 green with the paper fixture and verify; tick T034/T037/T039/T040/T046 only with cited evidence.",
+      "allowed_paths": [
+        "tests/test_033_dsr.py",
+        "scripts/selection_bias.py",
+        ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
+        "docs/implementation/spec-033/",
+        "tests/mutation/run_033_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q29 PR merged"
+      ]
+    },
+    {
+      "id": "Q32",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T056+T057+T058+T059+T060+T061",
+      "summary": "Phase 8 tests (authorized 2026-10-09): Gate 3 evidence artifact schema, decision table (DSR>=0.95 AND HAC t>=3.0, PBO S=16 computed), immutable artifact/index, route no-artifact=unknown, offline command; confirm red against current code. Include family-N + lifetime-N per 033 2026-10-09 amendment.",
+      "allowed_paths": [
+        "tests/test_033_gate3.py",
+        ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
+        "docs/implementation/spec-033/",
+        "tests/mutation/run_033_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q31 PR merged"
+      ]
+    },
+    {
+      "id": "Q33",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T062+T063+T064",
+      "summary": "Phase 9 implementation: scripts/generate_gate3_evidence.py, capital_gate route reads/validates the artifact, Gate 3 description. Never run concurrently with 038 T054.",
+      "allowed_paths": [
+        "scripts/generate_gate3_evidence.py",
+        "reports/api/routes/capital_gate.py",
+        ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
+        "docs/implementation/spec-033/",
+        "tests/mutation/run_033_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q32 PR merged"
+      ],
+      "note": "Touches a Rule 9a-excluded path or records a decision: build and open the PR, but only Camden merges."
+    },
+    {
+      "id": "Q34",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T065+T066+T067+T068+T069",
+      "summary": "Rule 12 planted strategy fixture, clean control, mutation driver incl. N_current substitution mutant; record evidence.",
+      "allowed_paths": [
+        "tests/mutation/run_spec_033_gate_mutants.py",
+        ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
+        "docs/implementation/spec-033/",
+        "tests/mutation/run_033_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q33 PR merged"
+      ]
+    },
+    {
+      "id": "Q35",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T070+T071+T072+T073+T074",
+      "summary": "Phase 10 verification and docs (not T075, which is Camden's explanation).",
+      "allowed_paths": [
+        ".specify/specs/033-trial-ledger-dsr-pbo-gate/plan.md",
+        ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
+        "docs/implementation/spec-033/",
+        "tests/mutation/run_033_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q34 PR merged"
+      ]
+    },
+    {
+      "id": "Q36",
+      "kind": "report",
+      "status": "ready",
+      "spec_task": "035 T002",
+      "summary": "Compile research.md from the merged T001 records (PR #127) only; rows without evidence stay UNVERIFIED. Then append to tasks.md a dated note that 035 is retargeted to the 058 ETF universe (decisions in spec \u00a78, 2026-10-09) and list which later tasks change scope; do not change task acceptance text beyond that note.",
+      "allowed_paths": [
+        ".specify/specs/035-free-unadjusted-bundle/research.md",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": []
+    },
+    {
+      "id": "Q37",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "035 T004+T005+T006",
+      "summary": "U0 baseline then U1 pure dividend reconciler in scripts/corporate_actions.py (D-3) with D-2 tolerances (abs $0.0001/share at declared basis).",
+      "allowed_paths": [
+        "docs/implementation/spec-035/u0-baseline-",
+        "tests/test_035_reconcile.py",
+        "scripts/data.py",
+        "scripts/corporate_actions.py",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q36 PR merged",
+        "CLAUDE.md module-rows PR (#132) merged"
+      ]
+    },
+    {
+      "id": "Q38",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "035 T007+T008",
+      "summary": "U2 Close cross-check (relative 1e-3, D-2) in scripts/corporate_actions.py.",
+      "allowed_paths": [
+        "tests/test_035_close_check.py",
+        "scripts/corporate_actions.py",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q37 PR merged"
+      ]
+    },
+    {
+      "id": "Q39",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "035 T009+T010",
+      "summary": "U3a manifest v3 writer path.",
+      "allowed_paths": [
+        "tests/test_035_manifest_v3.py",
+        "scripts/data.py",
+        "tests/test_041_pay_date_bound.py",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q38 PR merged"
+      ]
+    },
+    {
+      "id": "Q40",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "035 T011+T012",
+      "summary": "U3b loader refusals and attrs.",
+      "allowed_paths": [
+        "tests/test_035_manifest_v3.py",
+        "scripts/data.py",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q39 PR merged"
+      ]
+    },
+    {
+      "id": "Q41",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "035 T013+T014",
+      "summary": "U4 second-source adapter (Alpaca raw SIP, D-1) and credential handling from environment only; offline fakes.",
+      "allowed_paths": [
+        "tests/test_035_second_source.py",
+        ".specify/specs/035-free-unadjusted-bundle/research.md",
+        "scripts/data.py",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q40 PR merged"
+      ]
+    },
+    {
+      "id": "Q42",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "035 T016+T017",
+      "summary": "U6 disclosure renderer and wiring.",
+      "allowed_paths": [
+        "tests/test_035_disclosure.py",
+        "scripts/ma_crossover_backtest.py",
+        "reports/api/routes/backtest.py",
+        "reports/api/schemas.py",
+        "reports/web/src/types/api.ts",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q41 PR merged",
+        "Q46 PR merged"
+      ]
+    },
+    {
+      "id": "Q43",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "035 T018+T019",
+      "summary": "U8 build script scripts/build_unadjusted_bundle.py for the 058 universe (offline tests; the real build is Codex/Camden).",
+      "allowed_paths": [
+        "tests/test_035_build_bundle.py",
+        "scripts/build_unadjusted_bundle.py",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q42 PR merged"
+      ]
+    },
+    {
+      "id": "Q44",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "035 T020+T021",
+      "summary": "U7 mutation driver M1-M9 and offline close-out.",
+      "allowed_paths": [
+        "tests/mutation/run_035_mutants.py",
+        "tests/test_035_mutants.py",
+        "docs/implementation/spec-035/offline-close-",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q43 PR merged"
+      ]
+    },
+    {
+      "id": "Q45",
+      "kind": "report",
+      "status": "ready",
+      "spec_task": "038 T010+T011",
+      "summary": "Baseline and static register re-verification at the unit's revision (string re-verify; flag any new unregistered surface).",
+      "allowed_paths": [
+        "returns/",
+        "docs/implementation/spec-038/baseline-",
+        "docs/cleanup-audit-2026-09-18/AUDIT.md",
+        "docs/audit-2026-09-12/AUDIT.md",
+        "docs/audit-2026-09-12/probe-results.json",
+        "docs/audit-2026-09-12/direction-baseline.json",
+        "docs/audit-2026-09-12/coverage.csv",
+        "docs/audit-2026-09-12/coverage.json",
+        "docs/audit-2026-09-12/REMEDIATION_PLAN.md",
+        "docs/audit-2026-09-12/remediation-map.html",
+        "NIGHT_RUN_SUMMARY.md",
+        ".specify/specs/002-backtest-costs-baselines/spec.md",
+        ".specify/specs/002-backtest-costs-baselines/plan.md",
+        ".specify/specs/006-embargo-window-semantics/spec.md",
+        ".specify/specs/009-selectable-target/spec.md",
+        ".specify/specs/012-cost-aware-entry-rule/spec.md",
+        ".specify/specs/014-scale-free-features/spec.md",
+        ".specify/specs/014-scale-free-features/plan.md",
+        ".specify/specs/014-scale-free-features/tasks.md",
+        ".specify/specs/017-position-sizing-risk/spec.md",
+        ".specify/specs/017-position-sizing-risk/research.md",
+        ".specify/specs/017-position-sizing-risk/tasks.md",
+        "docs/PROJECT_CONTEXT.md",
+        ".specify/specs/017-position-sizing-risk/quickstart.md",
+        ".specify/specs/020-unadjusted-price-data/spec.md",
+        "docs/audit-2026-09-12/CODEX_LANE_HANDOFF.md",
+        "docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md",
+        "README.md",
+        "reports/web/README.md",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": []
+    },
+    {
+      "id": "Q46",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T020+T021+T022",
+      "summary": "R: register + provenance stamp in scripts/disclosure.py (D-1); register constant copied verbatim from SCOPE \u00a76 as amended 2026-10-09.",
+      "allowed_paths": [
+        "tests/test_038_register.py",
+        "tests/test_038_stamp.py",
+        "tests/mutation/run_038_register_stamp_mutants.py",
+        "scripts/disclosure.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q45 PR merged",
+        "CLAUDE.md disclosure-row PR (#138) merged",
+        "decisions PR (#137) merged"
+      ]
+    },
+    {
+      "id": "Q47",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T030",
+      "summary": "P1 terminal panels.",
+      "allowed_paths": [
+        "scripts/return_stats.py",
+        "scripts/feature_diagnostics.py",
+        "tests/test_return_stats.py",
+        "tests/test_038_panels_p1.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q46 PR merged"
+      ]
+    },
+    {
+      "id": "Q48",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T031",
+      "summary": "P2 terminal panels.",
+      "allowed_paths": [
+        "scripts/autocorrelation_check.py",
+        "scripts/stationarity_check.py",
+        "tests/test_038_panels_p2.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q47 PR merged"
+      ]
+    },
+    {
+      "id": "Q49",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T032",
+      "summary": "P3 terminal panels.",
+      "allowed_paths": [
+        "scripts/scratch_aapl_correlations.py",
+        "scripts/scratch_multiticker_collinearity.py",
+        "tests/test_038_panels_p3.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q48 PR merged"
+      ]
+    },
+    {
+      "id": "Q50",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T033",
+      "summary": "P4 ma_crossover panels.",
+      "allowed_paths": [
+        "scripts/ma_crossover_backtest.py",
+        "tests/test_038_panels_p4.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q49 PR merged"
+      ]
+    },
+    {
+      "id": "Q51",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T040",
+      "summary": "F: stamped figures.",
+      "allowed_paths": [
+        "scripts/plotting.py",
+        "scripts/ma_crossover_backtest.py",
+        "scripts/return_stats.py",
+        "scripts/data_pipeline_sanity_check.py",
+        "scripts/autocorrelation_check.py",
+        "scripts/stationarity_check.py",
+        "tests/test_return_stats.py",
+        "tests/test_data_pipeline_sanity_check.py",
+        "tests/test_038_figures.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q50 PR merged"
+      ]
+    },
+    {
+      "id": "Q52",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T060",
+      "summary": "D1 Q banners (D-5 decided (b)).",
+      "allowed_paths": [
+        "docs/audit-2026-09-12/AUDIT.md",
+        "docs/audit-2026-09-12/REMEDIATION_PLAN.md",
+        "NIGHT_RUN_SUMMARY.md",
+        "docs/audit-2026-09-12/remediation-map.html",
+        "tests/test_038_static_guard.py",
+        "tests/mutation/run_038_static_mutants.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q45 PR merged",
+        "decisions PR (#137) merged"
+      ]
+    },
+    {
+      "id": "Q53",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T061",
+      "summary": "D2 closed-spec strikes, D2a first; split D2b/D2c into follow-up PRs if over 300 lines.",
+      "allowed_paths": [
+        "tests/test_038_static_guard.py",
+        "tests/mutation/run_038_static_mutants.py",
+        ".specify/specs/002-backtest-costs-baselines/spec.md",
+        ".specify/specs/002-backtest-costs-baselines/plan.md",
+        ".specify/specs/006-embargo-window-semantics/spec.md",
+        ".specify/specs/009-selectable-target/spec.md",
+        ".specify/specs/012-cost-aware-entry-rule/spec.md",
+        ".specify/specs/014-scale-free-features/spec.md",
+        ".specify/specs/014-scale-free-features/plan.md",
+        ".specify/specs/014-scale-free-features/tasks.md",
+        ".specify/specs/017-position-sizing-risk/spec.md",
+        ".specify/specs/017-position-sizing-risk/research.md",
+        ".specify/specs/017-position-sizing-risk/tasks.md",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q52 PR merged"
+      ]
+    },
+    {
+      "id": "Q54",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T062",
+      "summary": "D3 PROJECT_CONTEXT (D-2: all S).",
+      "allowed_paths": [
+        "docs/PROJECT_CONTEXT.md",
+        "tests/test_038_static_guard.py",
+        "tests/mutation/run_038_static_mutants.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q53 PR merged"
+      ]
+    },
+    {
+      "id": "Q55",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T063",
+      "summary": "D4 labels.",
+      "allowed_paths": [
+        "NIGHT_RUN_SUMMARY.md",
+        ".specify/specs/017-position-sizing-risk/tasks.md",
+        ".specify/specs/020-unadjusted-price-data/spec.md",
+        "docs/audit-2026-09-12/CODEX_LANE_HANDOFF.md",
+        "docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md",
+        "docs/audit-2026-09-12/AUDIT.md",
+        "docs/audit-2026-09-12/coverage.json",
+        "tests/test_038_static_guard.py",
+        "tests/mutation/run_038_static_mutants.py",
+        ".specify/specs/017-position-sizing-risk/quickstart.md",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q54 PR merged"
+      ]
+    },
+    {
+      "id": "Q56",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T064",
+      "summary": "D5 README register (inline, D-4) and reports/web README.",
+      "allowed_paths": [
+        "README.md",
+        "reports/web/README.md",
+        "tests/test_038_static_guard.py",
+        "tests/mutation/run_038_static_mutants.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q55 PR merged",
+        "Q46 PR merged"
+      ]
+    },
+    {
+      "id": "Q57",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T065",
+      "summary": "X quotations per D-5 (b): strike absent-source figures, keep context and source pointer.",
+      "allowed_paths": [
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q56 PR merged"
+      ]
+    },
+    {
+      "id": "Q58",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T050",
+      "summary": "A1 tearsheet API (after 047 U2a).",
+      "allowed_paths": [
+        "reports/api/routes/backtest.py",
+        "reports/api/schemas.py",
+        "tests/test_038_api_tearsheet.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q46 PR merged",
+        "Q67 PR merged"
+      ]
+    },
+    {
+      "id": "Q59",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T051",
+      "summary": "A2 data/diagnostics API.",
+      "allowed_paths": [
+        "reports/api/routes/data.py",
+        "reports/api/routes/diagnostics.py",
+        "reports/api/schemas.py",
+        "tests/test_038_api_data.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q58 PR merged"
+      ]
+    },
+    {
+      "id": "Q60",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T052",
+      "summary": "A3 ml_rundown API.",
+      "allowed_paths": [
+        "reports/api/routes/ml_rundown.py",
+        "reports/api/schemas.py",
+        "tests/test_038_api_ml_rundown.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q59 PR merged"
+      ]
+    },
+    {
+      "id": "Q61",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T053",
+      "summary": "A4 holding bars and drawdown anchor.",
+      "allowed_paths": [
+        "reports/api/routes/backtest.py",
+        "tests/test_038_api_bars_drawdown.py",
+        "scripts/ma_crossover_backtest.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q60 PR merged"
+      ]
+    },
+    {
+      "id": "Q62",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T054",
+      "summary": "A5 capital gate API. Never concurrent with 033 Q33.",
+      "allowed_paths": [
+        "reports/api/routes/capital_gate.py",
+        "tests/test_038_api_capital_gate.py",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q61 PR merged",
+        "Q33 PR merged"
+      ],
+      "note": "Touches a Rule 9a-excluded path or records a decision: build and open the PR, but only Camden merges."
+    },
+    {
+      "id": "Q63",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T055+T056+T057+T058+T059+T059a",
+      "summary": "V0-V5 web views, one PR per view if needed; runtime tests via the 047 T005 runner.",
+      "allowed_paths": [
+        "reports/web/src/types/api.ts",
+        "reports/web/src/components/views/BacktestTearsheetView.tsx",
+        "reports/web/src/components/views/MarketDataView.tsx",
+        "reports/web/src/components/views/FeatureDiagnosticsView.tsx",
+        "reports/web/src/components/layout/MLRundownPane.tsx",
+        "reports/web/src/components/views/CrossValidationView.tsx",
+        "reports/web/src/components/views/CapitalGateView.tsx",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q62 PR merged",
+        "047 T005 governance PR merged",
+        "Q70 PR merged"
+      ]
+    },
+    {
+      "id": "Q64",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T080",
+      "summary": "Close-out acceptance matrix.",
+      "allowed_paths": [
+        "returns/",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q63 PR merged",
+        "Q57 PR merged"
+      ]
+    },
+    {
+      "id": "Q65",
+      "kind": "report",
+      "status": "ready",
+      "spec_task": "047 T004",
+      "summary": "Fresh clean-main baseline (pytest + npm lint/build).",
+      "allowed_paths": [
+        "docs/implementation/spec-047/baseline-",
+        ".specify/specs/047-tearsheet-correctness/tasks.md",
+        "docs/implementation/spec-047/",
+        "tests/mutation/run_047_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": []
+    },
+    {
+      "id": "Q66",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "047 T008+T009",
+      "summary": "U1b view friction display with runtime tests.",
+      "allowed_paths": [
+        "reports/web/src/types/api.ts",
+        "BacktestTearsheetView.tsx",
+        ".specify/specs/047-tearsheet-correctness/tasks.md",
+        "docs/implementation/spec-047/",
+        "tests/mutation/run_047_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "047 T005 governance PR merged"
+      ]
+    },
+    {
+      "id": "Q67",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "047 T010+T011",
+      "summary": "U2a run bars and causal SMA in the tearsheet response (D-2 a).",
+      "allowed_paths": [
+        "tests/test_047_chart_bars.py",
+        "reports/api/routes/backtest.py",
+        "reports/api/schemas.py",
+        ".specify/specs/047-tearsheet-correctness/tasks.md",
+        "docs/implementation/spec-047/",
+        "tests/mutation/run_047_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "decisions PR (#137) merged"
+      ]
+    },
+    {
+      "id": "Q68",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "047 T012+T013",
+      "summary": "U2b chart draws run bars; MarketDataView drops markers (D-3).",
+      "allowed_paths": [
+        "CandlestickChart.tsx",
+        "BacktestTearsheetView.tsx",
+        "App.tsx",
+        "MarketDataView.tsx",
+        "api.ts",
+        ".specify/specs/047-tearsheet-correctness/tasks.md",
+        "docs/implementation/spec-047/",
+        "tests/mutation/run_047_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q67 PR merged",
+        "047 T005 governance PR merged"
+      ]
+    },
+    {
+      "id": "Q69",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "047 T014+T015",
+      "summary": "U3 null drawdown renders N/A.",
+      "allowed_paths": [
+        "BacktestTearsheetView.tsx",
+        ".specify/specs/047-tearsheet-correctness/tasks.md",
+        "docs/implementation/spec-047/",
+        "tests/mutation/run_047_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q68 PR merged"
+      ]
+    },
+    {
+      "id": "Q70",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "047 T016",
+      "summary": "Close 047.",
+      "allowed_paths": [
+        "docs/implementation/spec-047/close-",
+        ".specify/specs/047-tearsheet-correctness/tasks.md",
+        "docs/implementation/spec-047/",
+        "tests/mutation/run_047_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q69 PR merged",
+        "Q66 PR merged"
+      ]
+    },
+    {
+      "id": "Q71",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "046 T007+T008+T009+T010",
+      "summary": "U2 harness, reconciliation and recorder wiring; split into <=300-line PRs.",
+      "allowed_paths": [
+        "tests/test_046_cost_wiring.py",
+        "scripts/backtest_harness.py",
+        "scripts/metrics.py",
+        "tests/test_backtest_harness.py",
+        "tests/test_019_ledger.py",
+        "tests/test_019_metrics.py",
+        "tests/test_metrics.py",
+        "scripts/trial_runner.py",
+        "scripts/ma_crossover_backtest.py",
+        "scripts/selection_bias.py",
+        "tests/spec033_support.py",
+        ".specify/specs/046-rule13-cost-model/artifacts/u2.txt",
+        ".specify/specs/046-rule13-cost-model/tasks.md",
+        "tests/fixtures/spec_033/runner_inventory.json",
+        "docs/implementation/spec-046/",
+        "tests/mutation/run_046_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q8 PR merged"
+      ],
+      "note": "scripts/backtest_harness.py is shared with 047 U1a (merged); coordinate."
+    },
+    {
+      "id": "Q72",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "046 T011+T012+T013+T014",
+      "summary": "U3 API/report disclosure and frontend cost contract.",
+      "allowed_paths": [
+        "tests/test_046_cost_reporting.py",
+        "tests/test_reports_api.py",
+        "tests/test_no_fabricated_values.py",
+        "reports/api/routes/backtest.py",
+        "reports/api/schemas.py",
+        "scripts/ma_crossover_backtest.py",
+        "reports/web/src/types/api.ts",
+        "reports/web/src/services/api.ts",
+        "reports/web/src/App.tsx",
+        "reports/web/src/components/views/BacktestTearsheetView.tsx",
+        "tests/test_046_cost_model.py",
+        "tests/test_046_cost_wiring.py",
+        ".specify/specs/046-rule13-cost-model/artifacts/u3.txt",
+        ".specify/specs/046-rule13-cost-model/tasks.md",
+        "docs/implementation/spec-046/",
+        "tests/mutation/run_046_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q71 PR merged",
+        "Q67 PR merged"
+      ]
+    },
+    {
+      "id": "Q73",
+      "kind": "report",
+      "status": "ready",
+      "spec_task": "044 T005",
+      "summary": "Baseline.",
+      "allowed_paths": [
+        ".specify/specs/044-nominal-price-reconstruction/artifacts/baseline.txt",
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
+        "docs/implementation/spec-044/",
+        "tests/mutation/run_044_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": []
+    },
+    {
+      "id": "Q74",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "044 T009",
+      "summary": "Cross-check (SC-004, D-5) by a lane other than the drafting lane; also perform the G12-delegated T003/T004 code reviews as recorded verdicts in the PR (Claude side).",
+      "allowed_paths": [
+        "split-table-crosscheck.md",
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
+        "docs/implementation/spec-044/",
+        "tests/mutation/run_044_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "decisions PR (#137) merged"
+      ]
+    },
+    {
+      "id": "Q75",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "044 T010+T011",
+      "summary": "Unit 1 fixture migration and seams (tests only).",
+      "allowed_paths": [
+        "tests/test_020_unadjusted_price_data.py",
+        "tests/test_041_pay_date_bound.py",
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
+        "docs/implementation/spec-044/",
+        "tests/mutation/run_044_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q73 PR merged"
+      ]
+    },
+    {
+      "id": "Q76",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "044 T020+T021+T022+T023+T024+T025",
+      "summary": "Unit 2 contracts A, red.",
+      "allowed_paths": [
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
+        "docs/implementation/spec-044/",
+        "tests/mutation/run_044_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q75 PR merged"
+      ]
+    },
+    {
+      "id": "Q77",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "044 T030+T031+T032+T033+T034",
+      "summary": "Unit 3 contracts B, red.",
+      "allowed_paths": [
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
+        "docs/implementation/spec-044/",
+        "tests/mutation/run_044_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q76 PR merged"
+      ]
+    },
+    {
+      "id": "Q78",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "044 T040+T041+T042",
+      "summary": "Unit 4 reconstruction core in scripts/data.py (do not run concurrently with 035 data.py units).",
+      "allowed_paths": [
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
+        "docs/implementation/spec-044/",
+        "tests/mutation/run_044_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q77 PR merged",
+        "Q40 PR merged",
+        "044 T008 selections recorded"
+      ]
+    },
+    {
+      "id": "Q79",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "044 T050+T051+T052",
+      "summary": "Unit 5 conventions and labels.",
+      "allowed_paths": [
+        "tests/test_044_loader_untouched.py",
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
+        "docs/implementation/spec-044/",
+        "tests/mutation/run_044_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q78 PR merged"
+      ]
+    },
+    {
+      "id": "Q80",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "044 T060+T061",
+      "summary": "Unit 6 mutation evidence.",
+      "allowed_paths": [
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
+        "docs/implementation/spec-044/",
+        "tests/mutation/run_044_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q79 PR merged"
+      ]
+    },
+    {
+      "id": "Q81",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "044 T070+T071",
+      "summary": "Unit 7 independent split table.",
+      "allowed_paths": [
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
+        "docs/implementation/spec-044/",
+        "tests/mutation/run_044_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q80 PR merged"
+      ]
+    },
+    {
+      "id": "Q82",
+      "kind": "report",
+      "status": "ready",
+      "spec_task": "058 T003",
+      "summary": "Baseline evidence.",
+      "allowed_paths": [
+        "docs/implementation/spec-058/baseline-",
+        "scripts/",
+        "reports/",
+        ".specify/specs/058-edge-research-program/tasks.md",
+        "docs/implementation/spec-058/",
+        "tests/mutation/run_058_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": []
+    },
+    {
+      "id": "Q83",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "058 T014",
+      "summary": "Walk-forward runner (purged/embargoed; research window <= 2023-09-29; research_attempt(family='058-edge')). Never writes the real ledger in tests.",
+      "allowed_paths": [
+        ".specify/specs/058-edge-research-program/tasks.md",
+        "docs/implementation/spec-058/",
+        "tests/mutation/run_058_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q24 PR merged",
+        "Q25 PR merged",
+        "Q30 PR merged",
+        "Q23 PR merged",
+        "Q8 PR merged"
+      ]
+    },
+    {
+      "id": "Q84",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "058 T017",
+      "summary": "Gate 3 evidence artifact for 058 (PASS only if research-window Gate 3 AND D-4 pass); depends on 033 Phase 9.",
+      "allowed_paths": [
+        ".specify/specs/058-edge-research-program/tasks.md",
+        "docs/implementation/spec-058/",
+        "tests/mutation/run_058_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q33 PR merged",
+        "Q83 PR merged"
+      ]
+    },
+    {
+      "id": "Q85",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "058 T018",
+      "summary": "Publication: tearsheet fields per FR-006, limitations, README truthfulness; renders FAIL as clearly as PASS.",
+      "allowed_paths": [
+        ".specify/specs/058-edge-research-program/tasks.md",
+        "docs/implementation/spec-058/",
+        "tests/mutation/run_058_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q84 PR merged",
+        "Q64 PR merged"
+      ]
+    },
+    {
+      "id": "Q86",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "040 T001+T002+T003+T004+T005+T006",
+      "summary": "Preconditions and measurement (T001 check delegated by G14: verify 036/041 merged and no open PR touches 040 files; record evidence).",
+      "allowed_paths": [
+        "runner-renames.json",
+        "scripts/",
+        "tests/test_unadjusted_caller_wiring.py",
+        "ac1-allowlist.json",
+        ".specify/specs/040-installable-package/tasks.md",
+        "docs/implementation/spec-040/",
+        "tests/mutation/run_040_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q85 PR merged"
+      ]
+    },
+    {
+      "id": "Q87",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "040 T010+T011+T012+T013+T014",
+      "summary": "Gate tooling, each red-proven.",
+      "allowed_paths": [
+        "tools/ac1_filter.py",
+        "tests/test_040_ac1_filter.py",
+        "tools/compare_junit.py",
+        "tests/test_040_ledger_boundary.py",
+        "tests/test_040_installability.py",
+        "pyproject.toml",
+        "scripts/_project.py",
+        ".specify/specs/040-installable-package/tasks.md",
+        "docs/implementation/spec-040/",
+        "tests/mutation/run_040_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q86 PR merged"
+      ]
+    },
+    {
+      "id": "Q88",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "040 T015+T016+T017+T018",
+      "summary": "New inert files (runner-renames.json under docs/trials is ledger-adjacent: if it must be written under docs/trials, stop and report).",
+      "allowed_paths": [
+        "pyproject.toml",
+        "src/qmb/__init__.py",
+        "src/qmb/_project.py",
+        "scripts/_project.py",
+        "tests/repo_paths.py",
+        ".specify/specs/040-installable-package/tasks.md",
+        "docs/implementation/spec-040/",
+        "tests/mutation/run_040_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q87 PR merged"
+      ]
+    },
+    {
+      "id": "Q89",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "040 T019",
+      "summary": "THE MIGRATION (atomic, larger than 300 lines by design; includes T020-T047 except T045). Build on one branch with full gates; Camden merges.",
+      "allowed_paths": [
+        "scripts/",
+        "src/qmb/",
+        "tests/",
+        "reports/api/",
+        "README.md",
+        "pyproject.toml",
+        ".specify/specs/040-installable-package/",
+        "docs/implementation/spec-040/"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q88 PR merged"
+      ],
+      "note": "Over 300 lines and touches many shared files: Rule 9a cannot merge it. T045 (.github) is a separate governance PR."
+    },
+    {
+      "id": "Q90",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "040 T050+T051+T052+T053+T054+T055+T056+T057",
+      "summary": "Phase 4 gates and hand-off evidence.",
+      "allowed_paths": [
+        "tools/compare_junit.py",
+        ".specify/specs/040-installable-package/",
+        "docs/implementation/spec-040/",
+        "tests/mutation/run_040_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q89 PR merged"
       ]
     }
   ]
