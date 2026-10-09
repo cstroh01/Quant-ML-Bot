@@ -4,7 +4,7 @@ Run: python tests/mutation/run_033_t014_mutants.py
 
 Each mutant edits ONE site of `bypasses`/`classified` in an isolated copy (spec 043 D-4 helper). A
 kill counts only when the JUnit report shows a FAILURE (never an error) in a T014 test whose
-assertion message carries the named witness. The unchanged copy must pass with exactly the six T014
+assertion message carries the named witness. The unchanged copy must pass with exactly the seven T014
 tests collected, every mutated file must compile, and the guard source, the read-only inventory and
 the `docs/trials/` bytes must be identical before and after.
 """
@@ -23,7 +23,7 @@ GUARD = "tests/test_033_trial_instrumentation.py"
 INVENTORY = "tests/fixtures/spec_033/runner_inventory.json"
 COPIED = ("scripts", "reports/api", "tests/context.py", INVENTORY, GUARD)
 SELECT = (GUARD, "-k", "t014")
-COLLECTED = 6
+COLLECTED = 7
 # (name, exact old fragment, mutant fragment, witness in the assertion message)
 MUTANTS = (
     ("inventory ignored", "inventory = classified(root)", "inventory = {}", "T014 CANDIDATE"),
@@ -34,6 +34,8 @@ MUTANTS = (
     ("test-only wins over a runner class", 'if kinds == {"test-only"}}', 'if "test-only" in kinds}', "T014 CONFLICT"),
     ("unknown class exempt", 'if kinds == {"test-only"}}',
      'if kinds.isdisjoint({"candidate runner", "required baseline"})}', "T014 FAIL-CLOSED"),
+    ("internal exemption by basename", "if relative in INTERNAL:",
+     'if path.name in {"trial_runner.py", "trial_registry.py"}:', "T014 BASENAME"),
     ("missing runner path silent", "if not (root / p).is_file()]", "if False]", "T014 FAIL-CLOSED"),
 )
 ASSERTION = ("AssertionError", "assert ")
@@ -45,7 +47,7 @@ def tree_digest(relatives) -> dict[str, str]:
 
 
 def run_copy(mutant) -> list[tuple[str, str, str]]:
-    """(kind, test name, message) for every failure/error; raises unless exactly six were collected."""
+    """(kind, test name, message) for every failure/error; raises unless exactly seven were collected."""
     with tempfile.TemporaryDirectory(prefix="t014-") as temporary:
         root = copy_into(Path(temporary), COPIED)
         if mutant is not None:
