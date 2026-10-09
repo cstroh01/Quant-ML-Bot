@@ -39,7 +39,9 @@ for name, spec in MUTS.items():
                             "-p", "no:cacheprovider"], capture_output=True, cwd=ROOT)
     finally:
         path.write_text(orig)
-    ok = r.returncode != 0
+    summary = (r.stdout.decode(errors="replace").strip().splitlines() or [""])[-1]
+    # A kill must be an assertion failure, never a collection/constructor error.
+    ok = r.returncode == 1 and " failed" in summary and " error" not in summary
     killed += ok
     print(("KILLED  " if ok else "SURVIVED"), name)
 print(f"{killed}/{len(MUTS)} killed")

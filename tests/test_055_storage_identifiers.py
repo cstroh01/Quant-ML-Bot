@@ -2,7 +2,7 @@
 
 Path resolution only: no broker, no DB writes. EXAMPLE — NOT A RESULT.
 """
-from dataclasses import replace
+import copy
 from datetime import date, datetime
 from pathlib import Path
 import sys
@@ -26,8 +26,27 @@ LARGE = load_profiles([raw("paper_large", account="PA-2")])["paper_large"]
 SMALL = load_profiles([raw()])["paper_small"]
 
 
+def corrupted(profile, **fields):
+    """A copy of a VALID profile with fields overwritten after construction.
+
+    Spec 051 (#95) refuses these values when a profile is built; this helper bypasses that on
+    purpose so the consumer under test (``state_paths``) actually receives the invalid identifier.
+    """
+    clone = copy.copy(profile)
+    for name, value in fields.items():
+        object.__setattr__(clone, name, value)
+    return clone
+
+
+def test_corrupted_helper_changes_only_the_named_field():
+    clone = corrupted(SMALL, log_namespace="x/y")
+    assert clone.log_namespace == "x/y" and SMALL.log_namespace == "paper_small"
+    assert {k: v for k, v in vars(clone).items() if k != "log_namespace"} == \
+        {k: v for k, v in vars(SMALL).items() if k != "log_namespace"}
+
+
 def test_codex_alias_namespace_is_refused_by_the_consuming_state_paths():
-    alias = replace(SMALL, log_namespace="paper_small/../paper_large")  # field-causal: only this differs
+    alias = corrupted(SMALL, log_namespace="paper_small/../paper_large")  # field-causal: only this differs
     with pytest.raises(paper_loop.RunAborted, match="log_namespace"):
         paper_loop.state_paths(alias)
     gate_s, log_s = paper_loop.state_paths(SMALL)  # sibling control
@@ -37,10 +56,10 @@ def test_codex_alias_namespace_is_refused_by_the_consuming_state_paths():
 
 
 @pytest.mark.parametrize("namespace", ["a/b", "a\\b", "..", ".", "/abs", "C:x", "ns.", "ns ", "Paper_Small",
-                                       "con", "LPT1"])  # "" is refused earlier, at profile construction
+                                       "con", "LPT1", ""])
 def test_any_non_identifier_namespace_is_refused(namespace):
-    with pytest.raises(paper_loop.RunAborted):
-        paper_loop.state_paths(replace(SMALL, log_namespace=namespace))
+    with pytest.raises(paper_loop.RunAborted, match="log_namespace"):
+        paper_loop.state_paths(corrupted(SMALL, log_namespace=namespace))
 
 
 @pytest.mark.parametrize("profile", ["paper_small/../paper_large", "../x", "a/b", "Paper", "nul"])

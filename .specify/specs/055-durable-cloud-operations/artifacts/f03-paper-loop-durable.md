@@ -65,5 +65,16 @@ identifier for `profile`. `tests/test_055_storage_identifiers.py`: red on 5152d1
 1 passed (the valid-lease control); sibling control `paper_small` resolves separately from
 `paper_large`. The 051 load-time rule is on #95 (773251b).
 
+## Integration fix with #95 (Codex, 2026-10-09)
+With #95's load-time rule, `dataclasses.replace(SMALL, log_namespace=...)` raised `ProfileError` at
+construction, so the old fixture never reached `state_paths` (old file under a #95 overlay:
+12 failed, 6 passed). The tests now build a VALID profile and corrupt it afterwards through the named
+helper `corrupted()` (copy + `object.__setattr__`), so `state_paths` itself receives the bad value and
+must raise `RunAborted` mentioning `log_namespace`; `""` is back in the bad cases. A helper test proves
+only the named field changes. Verified on this branch and with #95 (`773251b`) `mode_config.py` and its
+tests overlaid in a private copy: 58 and 112 focused tests pass.
+
 ## Rule 12
-`python tests/mutation/run_055_f03_mutants.py` → 13/13 killed.
+`python tests/mutation/run_055_f03_mutants.py` → 13/13 killed on this branch AND under the #95 overlay.
+The driver now counts a kill only as an assertion failure (`exit 1`, summary has "failed" and no
+"error"), never a collection or constructor error.
