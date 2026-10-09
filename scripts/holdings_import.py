@@ -15,6 +15,7 @@ from datetime import date, datetime, timedelta
 import csv
 import hashlib
 import io
+import math
 import re
 from zoneinfo import ZoneInfo
 
@@ -73,9 +74,12 @@ def _number(value: str, field: str, symbol: str, *, blank_ok: bool = True) -> fl
             return None
         raise HoldingsImportError(f"{symbol}: {field} is blank")
     try:
-        return float(cleaned)
+        number = float(cleaned)
     except ValueError as error:
         raise HoldingsImportError(f"{symbol}: {field} {value!r} is not numeric") from error
+    if not math.isfinite(number):  # float() accepts "NaN", "Infinity" and overflows like "1e999"
+        raise HoldingsImportError(f"{symbol}: {field} {value!r} is not a finite number")
+    return number
 
 
 def _downloaded(text: str) -> datetime:
