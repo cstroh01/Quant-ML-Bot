@@ -79,8 +79,8 @@ def test_jsonl_cli_preserves_order_and_changes_no_input(tmp_path, capsys):
     before = path.read_bytes()
     assert paper_report.main([str(path)]) == 0
     report = capsys.readouterr().out
-    assert f"{path.resolve()}:1" in report
-    assert f"{path.resolve()}:3" in report
+    assert paper_report._cell(f"{path.resolve()}:1") in report
+    assert paper_report._cell(f"{path.resolve()}:3") in report
     assert report.index("2026-10-06") < report.index("2026-10-07")
     assert path.read_bytes() == before
 
@@ -94,7 +94,7 @@ def test_malformed_lines_are_reported_not_skipped(tmp_path, capsys):
     report = capsys.readouterr().out
     assert "## Malformed lines" in report and "SUBMITTED" in report
     for number in (2, 3, 4, 5):
-        assert f"{path.resolve()}:{number}" in report.split("## 2026")[0]
+        assert paper_report._cell(f"{path.resolve()}:{number}") in report.split("## 2026")[0]
 
 
 def test_disclosure_drop_mutant_is_killed():
