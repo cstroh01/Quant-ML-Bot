@@ -6,3 +6,5 @@ take injected HTTP clients so tests stay offline).
 - **U2** cross-source close/action checks (FR-004).
 - **U3** EDGAR facts as-of filter (FR-005).
 - **U4** fetcher adapters per adopted source with injected clients; human-authorized first runs.
+
+- **F02 / T007** documentation repair: spec.md + acceptance-matrix.md + tasks.md; inline only the previously adopted M01–M10, with no runtime or provider change.

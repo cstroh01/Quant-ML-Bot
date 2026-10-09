@@ -35,8 +35,10 @@ Choose, verify and adopt the best free data per role, with terms checked for a p
 - **Macro:** ALFRED vintages; Treasury yields. **Factors:** Kenneth French library (attribution only).
 - **FR-007 Publication rights.** Neither Alpaca nor Tiingo free access permits redistributing their data.
   Raw provider data never enters the public repo; public outputs are limited to classes whose rights
-  are verified, otherwise synthetic. Codex's draft (`codex-lane/056-free-data-stack-DRAFT.md`, private)
-  supplies the detailed FR/M01–M10 matrix adopted as this spec's acceptance detail.
+  are verified, otherwise synthetic. The adopted M01–M10 acceptance detail is available in
+  [acceptance-matrix.md](acceptance-matrix.md), including each consuming assertion and clean control.
+  Amendment 2026-10-09 (056 F02): inline the already-adopted detail; no additional draft requirement
+  or M11–M23 gate is adopted by this documentation repair.
 
 ## 4. Rule 12 mutants
 Adjusted series stamped as raw; manifest missing fetched_at accepted; EDGAR fact used before its
