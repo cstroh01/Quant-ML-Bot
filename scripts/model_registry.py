@@ -41,8 +41,14 @@ def write_artifact(directory, model, **context) -> dict:
 
 
 def load_verified(directory, *, expected: dict):
-    """Load a model only if its bytes and every expected context field match its manifest."""
+    """Load a model only if its bytes and every required context field match its manifest.
+
+    ``expected`` must name every field in ``REQUIRED``; nothing is unpickled until all match.
+    """
     directory = Path(directory)
+    missing = [field for field in REQUIRED if field not in expected]
+    if missing:
+        raise ManifestError(f"expected context missing: {', '.join(missing)}; every field is verified")
     manifest = json.loads((directory / "manifest.json").read_text(encoding="utf-8"))
     blob = (directory / "model.pkl").read_bytes()
     if hashlib.sha256(blob).hexdigest() != manifest["artifact_sha256"]:
@@ -69,55 +75,100 @@ class PromotionError(ValueError):
 
 @dataclass(frozen=True)
 class Evidence:
+    """Immutable promotion evidence, bound to one artifact, one configuration and one mode."""
     gate3_pass: bool
     gate3_digest: str
     gate3_session: date
     oos_beats_baselines: bool
     shadow_sessions: int
     breaches: int
+    artifact_sha256: str
+    config_sha256: str
+    mode: str
+
+
+MODES = ("PAPER", "LIVE")
 
 
 class Registry:
-    """Append-only event log; the champion is derived, never edited in place."""
+    """Append-only event log for one mode; the champion is derived, never edited in place.
 
-    def __init__(self, path):
+    A champion exists only through ``promote`` with bound, fresh evidence and Camden's approval.
+    """
+
+    def __init__(self, path, *, mode: str):
+        if mode not in MODES:
+            raise PromotionError(f"unknown mode {mode!r}")
         self.path = Path(path)
+        self.mode = mode
 
     def history(self) -> list[dict]:
         if not self.path.exists():
             return []
-        return json.loads(self.path.read_text(encoding="utf-8"))
+        events = json.loads(self.path.read_text(encoding="utf-8"))
+        foreign = {e.get("mode") for e in events} - {self.mode}
+        if foreign:
+            raise PromotionError(f"registry file holds events for mode {sorted(map(str, foreign))}, not {self.mode}")
+        return events
 
     def _append(self, event: dict) -> None:
-        events = self.history() + [event]
+        events = self.history() + [event | {"mode": self.mode}]
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(events, indent=1, default=str), encoding="utf-8")
 
-    def champion(self) -> str | None:
+    def _stack(self) -> list[str]:
         stack: list[str] = []
         for event in self.history():
-            if event["event"] in ("promote",) or (event["event"] == "register" and event["stage"] == "champion"):
+            if event["event"] == "promote":
                 stack.append(event["model"])
-            elif event["event"] == "rollback" and len(stack) > 1:
+            elif event["event"] == "rollback":
                 stack.pop()
+        return stack
+
+    def champion(self) -> str | None:
+        stack = self._stack()
         return stack[-1] if stack else None
 
-    def register(self, model: str, *, stage: str, approver: str | None = None, session: date | None = None) -> None:
-        if stage not in ("challenger", "champion"):
-            raise PromotionError(f"unknown stage {stage!r}")
-        if stage == "champion" and approver != "Camden":
-            raise PromotionError("only Camden may install a champion; retraining registers a challenger")
-        self._append({"event": "register", "model": model, "stage": stage, "approver": approver, "session": session})
+    def register(self, model: str, *, stage: str, artifact_sha256: str, config_sha256: str,
+                 approver: str | None = None, session: date | None = None) -> None:
+        """Record a challenger bound to its artifact and configuration digests."""
+        if stage != "challenger":
+            raise PromotionError("register records challengers only; a champion is installed by promote() "
+                                 "with bound evidence")
+        for name, digest in (("artifact", artifact_sha256), ("config", config_sha256)):
+            if not _HEX64.fullmatch(str(digest)):
+                raise PromotionError(f"{name} digest missing")
+        if any(e["event"] == "register" and e["model"] == model for e in self.history()):
+            raise PromotionError(f"model {model!r} already registered")
+        self._append({"event": "register", "model": model, "stage": stage, "approver": approver,
+                      "session": session, "artifact_sha256": artifact_sha256, "config_sha256": config_sha256})
 
     def promote(self, model: str, evidence: Evidence, *, approver: str, session: date,
                 max_evidence_age_sessions: int) -> None:
-        """Champion := model, only on Camden's approval with complete, fresh, immutable evidence."""
+        """Champion := model, only on Camden's approval with complete, fresh evidence bound to it."""
         if approver != "Camden":
             raise PromotionError("only Camden promotes")
+        for name, value in (("shadow_sessions", evidence.shadow_sessions), ("breaches", evidence.breaches),
+                            ("max_evidence_age_sessions", max_evidence_age_sessions)):
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise PromotionError(f"{name} must be a non-negative integer, got {value!r}")
+        if not (isinstance(evidence.gate3_pass, bool) and isinstance(evidence.oos_beats_baselines, bool)):
+            raise PromotionError("Gate 3 and the OOS baseline comparison must be literal booleans (literal passes only)")
+        record = next((e for e in self.history() if e["event"] == "register" and e["model"] == model), None)
+        if record is None:
+            raise PromotionError(f"model {model!r} is not a registered challenger")
+        if evidence.mode != self.mode:
+            raise PromotionError(f"evidence mode {evidence.mode!r} does not match registry mode {self.mode!r}")
+        if evidence.artifact_sha256 != record["artifact_sha256"]:
+            raise PromotionError("evidence artifact digest does not match the registered artifact")
+        if evidence.config_sha256 != record["config_sha256"]:
+            raise PromotionError("evidence config digest does not match the registered configuration")
         if not evidence.gate3_pass:
             raise PromotionError("Gate 3 did not pass")
-        if not _HEX64.fullmatch(evidence.gate3_digest):
+        if not _HEX64.fullmatch(str(evidence.gate3_digest)):
             raise PromotionError("Gate 3 evidence digest missing")
+        if evidence.gate3_session > session:
+            raise PromotionError("Gate 3 evidence is dated in the future")
         from data import trading_days
         if len(trading_days(evidence.gate3_session, session)) - 1 > max_evidence_age_sessions:
             raise PromotionError("Gate 3 evidence is stale")
@@ -131,8 +182,12 @@ class Registry:
                       "evidence": evidence.__dict__})
 
     def rollback(self, *, reason: str, session: date) -> None:
-        if self.champion() is None:
+        """Restore the previous champion; refuses when there is none to restore."""
+        stack = self._stack()
+        if not stack:
             raise PromotionError("no champion to roll back")
+        if len(stack) < 2:
+            raise PromotionError("no previous champion to restore")
         self._append({"event": "rollback", "reason": reason, "session": session})
 
 

@@ -46,3 +46,12 @@ def test_incomplete_context_refuses_to_write(tmp_path, field):
     bad = dict(CONTEXT); bad.pop(field)
     with pytest.raises(ManifestError, match=field):
         write_artifact(tmp_path, {"coef": [0.1]}, **bad)
+
+
+@pytest.mark.parametrize("expected", [{}, {f: CONTEXT[f] for f in CONTEXT if f != "seed"}])
+def test_partial_expected_context_refuses_before_unpickling(tmp_path, expected, monkeypatch):
+    write_artifact(tmp_path, {"coef": [0.1]}, **CONTEXT)
+    import model_registry
+    monkeypatch.setattr(model_registry.pickle, "loads", lambda _b: pytest.fail("unpickled before verification"))
+    with pytest.raises(ManifestError, match="expected context missing"):
+        load_verified(tmp_path, expected=expected)
