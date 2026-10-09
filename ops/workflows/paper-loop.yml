@@ -55,6 +55,7 @@ jobs:
           # paper_loop writes its gate DB and run log under data/live_safety; point that at durable state
           mkdir -p "$QMB_STATE_DIR/live_safety" data && ln -sfn "$QMB_STATE_DIR/live_safety" data/live_safety
           python scripts/ops_runner.py --state-dir "$QMB_STATE_DIR" --profile ${{ matrix.profile }} \
+            --strategy-version "${{ vars.QMB_PINNED_SHA }}" \
             --command "python exec/paper_loop.py --submit"
       - name: Persist state
         if: always()
