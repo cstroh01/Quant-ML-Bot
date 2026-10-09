@@ -104,3 +104,6 @@ never touched.
 | Copy-based harness | ACs must run entry points with the variable unset, and the real ledger must never be exposed | Running entry points in the real repository: that is exactly how the incident happened |
 | Child harness that patches data access | E2–E4 call `download_market_data`, and tests allow no network. Without reachability, AC-1 passes vacuously for any entry point that fails on data first | Relying on missing data: a false green (Rule 12) |
 | Minimal `pyproject.toml` now | FR-006's marker must exist before 040 | Depth-based root until 040: the failure 040 L1 names |
+
+## F01 / T037 (2026-10-09)
+Test-harness correction after Windows CI observed an empty shared PID-log line. Change only ledger_guard_child.py, its focused contracts and T037 evidence/status; independent worker files avoid concurrent append. Keep every existing E4 assertion and all ledger guards unchanged. Acceptance uses isolated copies and whole-ledger tripwires. Deps: none.

@@ -187,3 +187,6 @@ U2 (T023–T026) → U3 (T027) → U4 (T028–T029) → U5 (T030) → U6 (T031, 
 scope) → T032 → T033 → T034 → T035 → T036 → **then spec 040 may start** (its
 T001, with the §6 amendments applied). No step replaces a failed or unexecuted
 gate with a focused green claim.
+
+## F01 — spawned-worker evidence (2026-10-09)
+- [x] T037 Repair the T011/T025 E4 harness shared PID append: one file per actual worker, strict malformed-record refusal, exact process-ID controls, causal planted defects and isolated full-suite/ledger checks. No recording guard or research implementation change.
