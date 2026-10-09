@@ -64,6 +64,14 @@ jobs:
             --strategy-version "${{ vars.QMB_PINNED_SHA }}" \
             --run-log "$QMB_STATE_DIR/live_safety/${{ matrix.profile }}/paper-runs/runs.jsonl" \
             --command "python exec/paper_loop.py --submit --profile ${{ matrix.profile }} --profiles-file $RUNNER_TEMP/profiles.json"
+      - name: Deliver summary and incidents
+        if: always()
+        working-directory: qmb
+        env:
+          GH_TOKEN: ${{ github.token }}
+        # Items leave ops/outbox only after a successful post; failures retry on the next run.
+        # --repo is the PRIVATE repository running this workflow; the qmb checkout's remote is public.
+        run: python scripts/ops_deliver.py --repo "${{ github.repository }}" --state-dir "${{ github.workspace }}/state/${{ matrix.profile }}"
       - name: Persist state
         if: always()
         working-directory: state
@@ -82,5 +90,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh issue create --title "paper-loop ${{ matrix.profile }} failed $(date -u +%F)" \
+          gh issue create -R "${{ github.repository }}" --title "paper-loop ${{ matrix.profile }} failed $(date -u +%F)" \
             --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
