@@ -196,15 +196,18 @@ class Incident:
 def daily_summary(run: dict) -> str:
     """Plain-text daily summary; ends with the one next operator action, or none."""
     orders = ", ".join(f"{status}: {count}" for status, count in sorted(run["orders"].items())) or "none"
-    diffs = ", ".join(f"{t}: {d}" for t, d in sorted(run["position_differences"].items())) or "none"
-    needs = []
+    differences = run["position_differences"]
+    diffs = "not reported" if differences is None else (
+        ", ".join(f"{t}: {d}" for t, d in sorted(differences.items())) or "none")
+    data_session = run["data_session"].isoformat() if run["data_session"] is not None else "not reported"
+    needs = list(run.get("notes", ()))
     if run["orders"].get("unknown"):
         needs.append("check UNKNOWN orders at the broker")
-    if run["position_differences"]:
+    if differences:
         needs.append("review position differences")
     return "\n".join([
         f"Profile: {run['profile']}  Session: {run['session'].isoformat()}",
-        f"Data session: {run['data_session'].isoformat()}  Model: {run['model']}",
+        f"Data session: {data_session}  Model: {run['model']}",
         f"Orders: {orders}",
         f"Open reservations: {run['open_reservations']}",
         f"Position differences: {diffs}",
@@ -221,3 +224,39 @@ def incidents_to_send(incidents: list[Incident], sent: dict[str, str]) -> list[I
             sent[incident.key()] = incident.fingerprint()
             out.append(incident)
     return out
+
+
+# --- F02b: summaries built from the paper loop's own run record; outbox for reliable delivery ---
+
+_TERMINAL = frozenset({"FILLED", "CANCELLED", "CANCELED", "EXPIRED", "REJECTED"})
+SUMMARY_TITLE = "paper-loop daily summary"
+
+
+def summary_from_loop_record(record: dict | None, *, profile: str, session: date, model: str) -> str:
+    """Daily summary from 049's run record; missing or aborted records say so in the next action."""
+    notes = []
+    if record is None:
+        notes.append("loop record missing: inspect the run log")
+        record = {}
+    if "aborted" in record:
+        notes.append(f"aborted: {record['aborted']}")
+    orders: dict[str, int] = {}
+    for action in record.get("actions", []):
+        outcome = str(action.get("outcome", "unknown")).lower()
+        orders[outcome] = orders.get(outcome, 0) + 1
+    open_reservations = sum(1 for row in record.get("reconciliation", [])
+                            if str(row.get("broker_status")).upper() not in _TERMINAL)
+    try:  # 049 records its last completed data session as "session"
+        data_session = date.fromisoformat(str(record["session"])[:10]) if "session" in record else None
+    except ValueError:
+        data_session = None
+    return daily_summary({"profile": profile, "session": session, "data_session": data_session, "model": model,
+                          "orders": orders, "open_reservations": open_reservations,
+                          "position_differences": None, "notes": notes})
+
+
+def queue_outbox(state_dir, name: str, *, kind: str, title: str, body: str) -> Path:
+    """Durably queue one message; delivery later moves it out only after a successful post."""
+    path = Path(state_dir) / "ops" / "outbox" / f"{name}.json"
+    atomic_write(path, json.dumps({"kind": kind, "title": title, "body": body}, sort_keys=True))
+    return path

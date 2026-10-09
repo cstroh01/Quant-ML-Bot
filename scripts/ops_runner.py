@@ -21,8 +21,9 @@ import subprocess
 import sys
 import uuid
 
-from ops_runtime import (Incident, LeaseHeld, acquire_lease, atomic_write, complete_lease, due_run,
-                         incidents_to_send, missed_sessions)
+from ops_runtime import (SUMMARY_TITLE, Incident, LeaseHeld, acquire_lease, atomic_write,
+                         complete_lease, due_run, incidents_to_send, missed_sessions, queue_outbox,
+                         summary_from_loop_record)
 
 
 def _jsonl(path: Path) -> list[dict]:
@@ -58,14 +59,46 @@ def _deliver(ops: Path, incidents: list[Incident]) -> int:
     fresh = incidents_to_send(incidents, sent)
     for incident in fresh:
         _append(ops / "incidents.jsonl", {"kind": incident.kind, "profile": incident.profile, "detail": incident.detail})
+        queue_outbox(ops.parent, f"incident-{incident.fingerprint()[:16]}", kind="incident",
+                     title=f"[{incident.profile}] {incident.kind}", body=incident.detail)
     atomic_write(sent_path, json.dumps(sent, sort_keys=True))
     return len(fresh)
 
 
-def run_once(state_dir, *, profile: str, command: list[str], now: datetime, strategy_version: str) -> dict:
+def _log_size(run_log) -> int:
+    return Path(run_log).stat().st_size if run_log is not None and Path(run_log).exists() else 0
+
+
+def _appended_record(run_log, offset: int, profile: str) -> dict | None:
+    """The last record the wrapped command appended in THIS invocation, or None.
+
+    Bytes before ``offset`` (the log's size when the command started) are never read, so a command
+    that exits before appending can't be reported with yesterday's record; a record naming another
+    profile is not this run's record.
+    """
+    if run_log is None or not Path(run_log).exists():
+        return None
+    with Path(run_log).open("rb") as stream:
+        stream.seek(offset)
+        fresh = stream.read().decode("utf-8", errors="replace")
+    lines = [line for line in fresh.splitlines() if line.strip()]
+    try:
+        record = json.loads(lines[-1]) if lines else None
+    except ValueError:
+        return None
+    if not isinstance(record, dict) or record.get("profile", profile) != profile:
+        return None
+    return record
+
+
+def run_once(state_dir, *, profile: str, command: list[str], now: datetime, strategy_version: str,
+             run_log=None) -> dict:
     """One invocation. Missed sessions are checked on EVERY invocation, due or not, from the later of
     the last completed session and this profile's first-ever invocation; the run identity records
-    (profile, session, strategy_version)."""
+    (profile, session, strategy_version).
+
+    Every executed run queues one daily summary in ``<state>/ops/outbox``.
+    """
     if not str(strategy_version).strip():
         raise ValueError("strategy_version is required for the run identity")
     ops = Path(state_dir) / "ops"
@@ -90,6 +123,7 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
         incidents.append(Incident("lease_held", profile, f"{decision.session}: {held}; reconcile before any rerun"))
         return {"status": "lease_held", "session": decision.session.isoformat(),
                 "new_incidents": _deliver(ops, incidents)}
+    log_offset = _log_size(run_log)
     result = subprocess.run(command, capture_output=True, text=True)
     status = "completed" if result.returncode == 0 else "failed"
     complete_lease(state_dir, profile, decision.session, run_id=run_id)
@@ -99,6 +133,11 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
     _append(ops / "runs.jsonl", record)
     if status == "failed":
         incidents.append(Incident("failure", profile, f"{decision.session} exit {result.returncode}"))
+    body = summary_from_loop_record(_appended_record(run_log, log_offset, profile), profile=profile,
+                                    session=decision.session,
+                                    model=strategy_version)
+    queue_outbox(state_dir, f"summary-{profile}-{decision.session.isoformat()}", kind="summary",
+                 title=SUMMARY_TITLE, body=f"Run status: {status} (exit {result.returncode})\n{body}")
     return record | {"new_incidents": _deliver(ops, incidents)}
 
 
@@ -109,9 +148,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--profile", required=True)
     parser.add_argument("--strategy-version", required=True, help="pinned code/strategy identity, e.g. the deploy SHA")
     parser.add_argument("--command", required=True, help="the wrapped run, e.g. 'python exec/paper_loop.py --submit'")
+    parser.add_argument("--run-log", type=Path, help="the wrapped loop's runs.jsonl, for the daily summary")
     args = parser.parse_args(argv)
     result = run_once(args.state_dir, profile=args.profile, command=shlex.split(args.command),
-                      now=_now(), strategy_version=args.strategy_version)
+                      now=_now(), strategy_version=args.strategy_version,
+                      run_log=args.run_log)
     print(json.dumps(result, sort_keys=True, default=str))
     ok = result["status"] in ("completed", "done", "not_session", "before_window", "after_cutoff")
     return 0 if ok and not result["new_incidents"] else 1
