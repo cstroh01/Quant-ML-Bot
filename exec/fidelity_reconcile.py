@@ -6,8 +6,9 @@ through an already-connected ``FidelityLive`` adapter.
 What this module guarantees:
 
 - **Unknown stays unknown (FR-006).** A reservation is released only when Fidelity reports a
-  terminal status for its client id. No record, a non-terminal status, or a status call that fails
-  keeps it open, and ``require_reconciled`` refuses any new decision while one is unresolved.
+  terminal status for its client id. Everything else keeps it open. Only an explicitly allowlisted
+  working status (``WORKING``) lets new decisions proceed; no record, a failed lookup, a literal
+  UNKNOWN or any unrecognized status makes ``require_reconciled`` refuse.
 - **A security challenge stops everything.** ``HaltProfile`` from the adapter propagates.
 - **Positions feed 054 as ``read_holdings`` (FR-008)** with an explicit source name, quantities
   from Fidelity and prices supplied by the caller; a position without a finite positive price is
@@ -25,6 +26,9 @@ from fidelity_live import BrokerError, HaltProfile
 from holdings_import import _CASH_SYMBOLS, HoldingsImportError, Position, PositionsSnapshot
 
 TERMINAL = frozenset({"FILLED", "CANCELLED", "CANCELED", "EXPIRED", "REJECTED"})
+# Explicit allowlist: a status is "working" only if named here. Anything else, including a literal
+# UNKNOWN or a status this code has never seen, is unresolved and blocks new decisions.
+WORKING = frozenset({"OPEN", "ACCEPTED", "PENDING", "NEW", "WORKING", "PARTIALLY_FILLED"})
 SOURCE = "fidelity_live_positions"
 
 
@@ -48,20 +52,23 @@ def reconcile(gate: Any, adapter: Any, *, now: datetime) -> list[dict]:
         except BrokerError as exc:
             report.append({"client_order_id": client_id, "state": "status_unavailable", "detail": str(exc)})
             continue
-        if status is None:
+        code = "_".join(str(status).upper().split()) if status is not None else None
+        if code is None:
             report.append({"client_order_id": client_id, "state": "unknown"})
-        elif str(status).upper() in TERMINAL:
-            gate.record_order_outcome(client_id, terminal=True, reason=str(status).upper(), now=now)
-            report.append({"client_order_id": client_id, "state": "released", "status": str(status).upper()})
+        elif code in TERMINAL:
+            gate.record_order_outcome(client_id, terminal=True, reason=code, now=now)
+            report.append({"client_order_id": client_id, "state": "released", "status": code})
+        elif code in WORKING:
+            report.append({"client_order_id": client_id, "state": "working", "status": code})
         else:
-            report.append({"client_order_id": client_id, "state": "working", "status": str(status)})
+            report.append({"client_order_id": client_id, "state": "unrecognized", "status": str(status)})
     return report
 
 
 def require_reconciled(gate: Any, adapter: Any, *, now: datetime) -> list[dict]:
     """Reconcile, then refuse unless every open reservation has a known (working or terminal) state."""
     report = reconcile(gate, adapter, now=now)
-    blocked = [r["client_order_id"] for r in report if r["state"] in ("unknown", "status_unavailable")]
+    blocked = [r["client_order_id"] for r in report if r["state"] != "released" and r["state"] != "working"]
     if blocked:
         raise ReconciliationBlocked(f"{len(blocked)} reservation(s) without a known outcome: {blocked}")
     return report

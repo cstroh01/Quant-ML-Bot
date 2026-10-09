@@ -7,10 +7,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 p = ROOT / "exec" / "fidelity_reconcile.py"
 orig = p.read_text()
 MUTS = {
-    "unknown released": ('        if status is None:\n            report.append({"client_order_id": client_id, "state": "unknown"})',
-                         '        if status is None:\n            gate.record_order_outcome(client_id, terminal=True, reason="NONE", now=now)\n            report.append({"client_order_id": client_id, "state": "unknown"})'),
-    "working released": ("        elif str(status).upper() in TERMINAL:", "        elif True:"),
-    "lookup failure blocks nothing": ('    blocked = [r["client_order_id"] for r in report if r["state"] in ("unknown", "status_unavailable")]',
+    "unknown released": ('        if code is None:\n            report.append({"client_order_id": client_id, "state": "unknown"})',
+                         '        if code is None:\n            gate.record_order_outcome(client_id, terminal=True, reason="NONE", now=now)\n            report.append({"client_order_id": client_id, "state": "unknown"})'),
+    "working released": ("        elif code in TERMINAL:", "        elif True:"),
+    "unrecognized treated as working": ("        elif code in WORKING:", "        elif True:"),
+    "lookup failure blocks nothing": ('    blocked = [r["client_order_id"] for r in report if r["state"] != "released" and r["state"] != "working"]',
                                       '    blocked = [r["client_order_id"] for r in report if r["state"] in ("unknown",)]'),
     "challenge swallowed": ("        except HaltProfile:\n            raise\n", ""),
     "unpriced valued at zero": ("                raise HoldingsImportError(f\"{symbol}: no finite positive price", "                price = 0.0  # (f\"{symbol}: no finite positive price"),

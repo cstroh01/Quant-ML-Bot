@@ -103,3 +103,18 @@ def test_live_positions_source_declares_read_holdings_only():
     require_capability(SOURCE, "read_holdings")
     with pytest.raises(CapabilityError):
         require_capability(SOURCE, "submit_orders")
+
+
+@pytest.mark.parametrize("status", ["UNKNOWN", "unknown", "Verifying", "", "SUSPENDED?"])
+def test_unrecognized_or_unknown_status_blocks_new_decisions(status):
+    gate = Gate("a")
+    with pytest.raises(ReconciliationBlocked):
+        require_reconciled(gate, Adapter({"a": status}), now=NOW)
+    assert gate.released == []
+
+
+@pytest.mark.parametrize("status", ["OPEN", "ACCEPTED", "Partially Filled", "pending"])
+def test_known_working_statuses_allow_decisions_and_stay_open(status):
+    gate = Gate("a")
+    report = require_reconciled(gate, Adapter({"a": status}), now=NOW)
+    assert report[0]["state"] == "working" and gate.released == []

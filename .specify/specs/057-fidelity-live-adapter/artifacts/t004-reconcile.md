@@ -21,5 +21,20 @@ hooks and a fake adapter. No Fidelity call. EXAMPLE — NOT A RESULT. Stacked on
   quantity, refuses (never valued at zero). `holdings_import.SOURCE_CAPABILITIES` declares the
   source for `read_holdings` only (FR-008).
 
+## Codex follow-up (2026-10-08 23:49 CT)
+Red on 8944bed: a returned `UNKNOWN` or any unrecognized status counted as working and let
+decisions proceed.
+```
+FAILED tests/test_057_reconcile.py::test_unrecognized_or_unknown_status_blocks_new_decisions[UNKNOWN]
+FAILED tests/test_057_reconcile.py::test_unrecognized_or_unknown_status_blocks_new_decisions[unknown]
+FAILED tests/test_057_reconcile.py::test_unrecognized_or_unknown_status_blocks_new_decisions[Verifying]
+FAILED tests/test_057_reconcile.py::test_unrecognized_or_unknown_status_blocks_new_decisions[]
+FAILED tests/test_057_reconcile.py::test_unrecognized_or_unknown_status_blocks_new_decisions[SUSPENDED?]
+5 failed, 16 passed in 0.33s
+```
+Now only an explicit allowlist (`WORKING`: OPEN, ACCEPTED, PENDING, NEW, WORKING, PARTIALLY_FILLED;
+spaces normalized to `_`) is working. Anything else is `unrecognized` and blocks; terminal codes
+release as before. Controls: OPEN, ACCEPTED, "Partially Filled", pending allow decisions and stay open.
+
 ## Rule 12
-`python tests/mutation/run_057_t004_mutants.py` → 6/6 killed.
+`python tests/mutation/run_057_t004_mutants.py` → 7/7 killed.
