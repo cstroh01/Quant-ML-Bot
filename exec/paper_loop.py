@@ -356,7 +356,13 @@ def state_paths(profile: ModeProfile | None) -> tuple[Path, Path]:
     if base.resolve() != root.resolve() / namespace:
         raise RunAborted(f"{profile.name}: log_namespace resolves to {base.resolve()}, "
                          f"not {root.resolve() / namespace}; refusing a redirected state folder")
-    return base / "paper-gate.sqlite", base / "paper-runs"
+    # Nor may either leaf: a link on the DB file or run-log dir would send writes into a sibling profile.
+    gate, runs = base / "paper-gate.sqlite", base / "paper-runs"
+    if gate.resolve() != base.resolve() / gate.name:
+        raise RunAborted(f"{profile.name}: paper-gate.sqlite resolves to {gate.resolve()}; refusing a redirected gate DB")
+    if runs.resolve() != base.resolve() / runs.name:
+        raise RunAborted(f"{profile.name}: paper-runs resolves to {runs.resolve()}; refusing a redirected run log")
+    return gate, runs
 
 
 def profile_environ(profile: ModeProfile, environ: Any) -> dict:

@@ -37,6 +37,8 @@ MUTS.update({
     "device names allowed": (RT, " or value in _WINDOWS_DEVICES:", ":"),
     "redirected folder accepted": (PL, "    if base.resolve() != root.resolve() / namespace:",
                                    "    if base.resolve().parent != root.resolve():"),
+    "gate DB leaf redirect accepted": (PL, "    if gate.resolve() != base.resolve() / gate.name:", "    if False:"),
+    "run-log leaf redirect accepted": (PL, "    if runs.resolve() != base.resolve() / runs.name:", "    if False:"),
 })
 # mutant -> (intended test-name prefix, required text in the assertion message)
 WITNESS = {
@@ -57,6 +59,10 @@ WITNESS = {
     # Lease names never touch resolve(), so this witness holds on Windows too (where con may resolve to a device).
     "device names allowed": ("test_lease_refuses_non_identifier_profiles[nul]", "DID NOT RAISE"),
     "redirected folder accepted": ("test_profile_dir_redirected_to_a_sibling_is_refused", "DID NOT RAISE"),
+    "gate DB leaf redirect accepted": ("test_a_leaf_redirected_into_a_sibling_profile_is_refused[paper-gate.sqlite]",
+                                       "DID NOT RAISE"),
+    "run-log leaf redirect accepted": ("test_a_leaf_redirected_into_a_sibling_profile_is_refused[paper-runs]",
+                                       "DID NOT RAISE"),
 }
 FILES = ["tests/test_055_paper_loop_durable.py", "tests/test_049_paper_loop.py",
          "tests/test_051_paper_loop_profile.py", "tests/test_055_storage_identifiers.py"]

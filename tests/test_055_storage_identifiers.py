@@ -129,3 +129,28 @@ def test_a_linked_live_safety_root_like_the_workflow_is_accepted(tmp_path, monke
     monkeypatch.setattr(paper_loop, "ROOT", tmp_path / "repo")
     gate, runs = paper_loop.state_paths(SMALL)
     assert gate.resolve().parent == (state / "paper_small").resolve()
+
+
+@pytest.mark.parametrize("leaf", ["paper-gate.sqlite", "paper-runs"])
+def test_a_leaf_redirected_into_a_sibling_profile_is_refused(temp_root, leaf):
+    for name in ("paper_small", "paper_large"):
+        (temp_root / name).mkdir()
+    target = temp_root / "paper_large" / leaf
+    if leaf == "paper-runs":
+        target.mkdir()
+        make_dir_link(temp_root / "paper_small" / leaf, target)
+    else:  # the target DB need not exist: a dangling link still redirects the first write
+        try:
+            os.symlink(target, temp_root / "paper_small" / leaf)
+        except (OSError, NotImplementedError):  # unprivileged Windows: a junction still exercises the guard
+            target.mkdir()
+            make_dir_link(temp_root / "paper_small" / leaf, target)
+    with pytest.raises(paper_loop.RunAborted, match=f"{leaf} resolves to"):
+        paper_loop.state_paths(SMALL)
+    paper_loop.state_paths(LARGE)  # the sibling's own real leaf is still accepted
+
+
+def test_real_and_not_yet_created_leaves_are_accepted(temp_root):
+    (temp_root / "paper_small" / "paper-runs").mkdir(parents=True)  # real run-log dir, DB not yet created
+    gate, runs = paper_loop.state_paths(SMALL)
+    assert (gate.name, runs.name) == ("paper-gate.sqlite", "paper-runs") and not gate.exists()
