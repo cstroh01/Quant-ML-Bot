@@ -21,7 +21,7 @@ import subprocess
 import sys
 import uuid
 
-from ops_runtime import (SUMMARY_TITLE, Incident, LeaseHeld, acquire_lease, atomic_write,
+from ops_runtime import (SUMMARY_TITLE, Incident, LeaseHeld, _lease_path, acquire_lease, atomic_write,
                          complete_lease, due_run, incidents_to_send, missed_sessions, queue_outbox,
                          summary_from_loop_record)
 
@@ -92,12 +92,14 @@ def _appended_record(run_log, offset: int, profile: str) -> dict | None:
 
 
 def run_once(state_dir, *, profile: str, command: list[str], now: datetime, strategy_version: str,
-             run_log=None) -> dict:
+             persist_command: list[str] | None = None, run_log=None) -> dict:
     """One invocation. Missed sessions are checked on EVERY invocation, due or not, from the later of
     the last completed session and this profile's first-ever invocation; the run identity records
     (profile, session, strategy_version).
 
-    Every executed run queues one daily summary in ``<state>/ops/outbox``.
+    With ``persist_command``, the claimed lease is made durable BEFORE the broker command runs; if
+    persisting fails the command never runs, the lease is released and a ``persist_failed``
+    incident is queued. Every executed run queues one daily summary in ``<state>/ops/outbox``.
     """
     if not str(strategy_version).strip():
         raise ValueError("strategy_version is required for the run identity")
@@ -123,6 +125,15 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
         incidents.append(Incident("lease_held", profile, f"{decision.session}: {held}; reconcile before any rerun"))
         return {"status": "lease_held", "session": decision.session.isoformat(),
                 "new_incidents": _deliver(ops, incidents)}
+    if persist_command is not None:
+        persisted = subprocess.run(persist_command, capture_output=True, text=True)
+        if persisted.returncode != 0:
+            _lease_path(state_dir, profile, decision.session).unlink()  # nothing durable, nothing sent
+            incidents.append(Incident("persist_failed", profile,
+                                      f"{decision.session}: state not persisted (exit {persisted.returncode}); "
+                                      "broker command not run"))
+            return {"status": "persist_failed", "session": decision.session.isoformat(),
+                    "new_incidents": _deliver(ops, incidents)}
     log_offset = _log_size(run_log)
     result = subprocess.run(command, capture_output=True, text=True)
     status = "completed" if result.returncode == 0 else "failed"
@@ -148,10 +159,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--profile", required=True)
     parser.add_argument("--strategy-version", required=True, help="pinned code/strategy identity, e.g. the deploy SHA")
     parser.add_argument("--command", required=True, help="the wrapped run, e.g. 'python exec/paper_loop.py --submit'")
+    parser.add_argument("--persist-command", help="run after the lease is claimed and before --command; non-zero aborts")
     parser.add_argument("--run-log", type=Path, help="the wrapped loop's runs.jsonl, for the daily summary")
     args = parser.parse_args(argv)
     result = run_once(args.state_dir, profile=args.profile, command=shlex.split(args.command),
                       now=_now(), strategy_version=args.strategy_version,
+                      persist_command=shlex.split(args.persist_command) if args.persist_command else None,
                       run_log=args.run_log)
     print(json.dumps(result, sort_keys=True, default=str))
     ok = result["status"] in ("completed", "done", "not_session", "before_window", "after_cutoff")
