@@ -72,13 +72,21 @@
     {
       "id": "Q8",
       "kind": "fix",
-      "status": "blocked",
+      "status": "ready",
       "spec_task": "046 U1 (T003-T006)",
-      "summary": "Spec 046 implementation chain. Blocked until T001 (published-source verification) and T002 (upstream evidence) are recorded and S1/S2/044 implementation prerequisites are complete. Do not take.",
+      "summary": "Spec 046 U1: tests/test_046_cost_model.py contracts first (T003/T004), then pure EDGE estimator + square-root impact in scripts/cost_model.py (T005), evidence (T006). Use the T001 decisions recorded in 046 spec.md (bidask v2.1.0 algorithm; negative S^2 -> sqrt(|S^2|); S/2 per fill; oracle fixtures; sigma/ADV conventions). Adding bidask==2.1.0 to requirements-dev.txt is allowed with its Rule 6 line.",
       "depends_on": [
-        "046 T001",
-        "046 T002"
-      ]
+        "gate-answers PR (#130) merged",
+        "CLAUDE.md module-rows PR (#132) merged"
+      ],
+      "allowed_paths": [
+        "tests/test_046_cost_model.py",
+        "scripts/cost_model.py",
+        "requirements-dev.txt",
+        ".specify/specs/046-rule13-cost-model/artifacts/u1.txt",
+        "tests/mutation/run_046_u1_mutants.py"
+      ],
+      "file_cap_lines": 300
     },
     {
       "id": "Q9",
@@ -171,12 +179,13 @@
     {
       "id": "Q18",
       "kind": "report",
-      "status": "ready",
+      "status": "done",
       "summary": "Spec 038 tasks.md from merged spec.md and plan.md. Rule 12 mutant per gate; no task names a person except true human gates.",
       "output": ".specify/specs/038-disclosure-sweep/tasks.md",
       "depends_on": [
         "Q17 PR merged"
-      ]
+      ],
+      "note": "Delivered by PR #56 (038 tasks.md merged, 0c7f674)."
     },
     {
       "id": "Q19",
@@ -233,6 +242,134 @@
       ],
       "pr": 51,
       "note": "Merged 2026-10-07; identity verified by changed files: scripts/paper_monitor.py, tests/test_049_paper_monitor.py. Duplicate PR title is not task identity."
+    },
+    {
+      "id": "Q23",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "058 T007",
+      "summary": "Holdout seal (spec 058 FR-002): tests first in tests/test_058_holdout.py, then a sealed_sessions/require_holdout_token helper in scripts/data_sources.py. Sessions >= 2023-10-02 refused without a one-shot token bound to the selected configuration hash; second use refused. Mutants: cutoff shifted one session, token reused, token bound to another hash.",
+      "allowed_paths": [
+        "tests/test_058_holdout.py",
+        "scripts/data_sources.py",
+        "tests/mutation/run_058_t007_mutants.py",
+        "docs/implementation/spec-058/T007-holdout-seal.md"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "#126 merged"
+      ]
+    },
+    {
+      "id": "Q24",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "058 T010",
+      "summary": "Portfolio accounting (spec 058 D-6): tests first in tests/test_058_portfolio.py (hand two-asset oracle; signal close t, fill open t+1; missing row = not tradable), then scripts/portfolio_backtest.py. Costs via an injected per-fill cost callable (046 model plugs in later). Lookahead mutants required.",
+      "allowed_paths": [
+        "tests/test_058_portfolio.py",
+        "scripts/portfolio_backtest.py",
+        "tests/mutation/run_058_t010_mutants.py",
+        "docs/implementation/spec-058/T010-portfolio.md"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "CLAUDE.md module-rows PR (#132) merged"
+      ]
+    },
+    {
+      "id": "Q25",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "058 T011",
+      "summary": "Signals H1-H8 from .specify/specs/058-edge-research-program/declaration.json as pure functions in scripts/signals.py over a wide close panel; per hypothesis a future-row perturbation test and a listing-date (insufficient lookback) test in tests/test_058_signals.py.",
+      "allowed_paths": [
+        "tests/test_058_signals.py",
+        "scripts/signals.py",
+        "tests/mutation/run_058_t011_mutants.py"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "#126 merged"
+      ]
+    },
+    {
+      "id": "Q26",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T040",
+      "summary": "HAC oracle at the Gate 3 boundary: exact t = 3.0 and one representable value below, in tests/test_033_dsr.py (tests only unless a real defect is found, then report).",
+      "allowed_paths": [
+        "tests/test_033_dsr.py",
+        "tests/mutation/run_033_t040_mutants.py"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": []
+    },
+    {
+      "id": "Q27",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T037",
+      "summary": "Isolated trial-Sharpe dispersion and extreme-value benchmark unit tests in tests/test_033_dsr.py.",
+      "allowed_paths": [
+        "tests/test_033_dsr.py",
+        "tests/mutation/run_033_t037_mutants.py"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q26 PR merged"
+      ]
+    },
+    {
+      "id": "Q28",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T035",
+      "summary": "Fold-join and boundary cases in tests/test_033_dsr.py.",
+      "allowed_paths": [
+        "tests/test_033_dsr.py",
+        "tests/mutation/run_033_t035_mutants.py"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q27 PR merged"
+      ]
+    },
+    {
+      "id": "Q29",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T039+T044",
+      "summary": "Lifetime N composed from the immutable backfill artifact plus ledger starts (synthetic backfill only; raw N, never matrix columns), plus family-N per spec 033 2026-10-09 amendment using trial_registry.family_status.",
+      "allowed_paths": [
+        "tests/test_033_dsr.py",
+        "scripts/selection_bias.py",
+        "tests/mutation/run_033_t039_mutants.py"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q28 PR merged",
+        "gate-answers PR (#130) merged"
+      ]
+    },
+    {
+      "id": "Q30",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "058 T012+T013",
+      "summary": "Sizing tests for the 10% vol target and gross <= 1 via portfolio_risk (tests only unless new behavior is required), then H9/H10 combos and the two Rule 4 baselines (seeded random) as weight builders.",
+      "allowed_paths": [
+        "tests/test_058_sizing.py",
+        "scripts/portfolio_risk.py",
+        "scripts/signals.py",
+        "tests/mutation/run_058_t012_mutants.py"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q24 PR merged",
+        "Q25 PR merged"
+      ]
     }
   ]
 }
