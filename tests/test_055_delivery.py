@@ -1,7 +1,7 @@
-"""Spec 055 F02b: summaries and incidents queued and delivered reliably (F02b1/F02b2 of the split).
+"""Spec 055 F02b: state persisted before the broker command; summaries and incidents delivered reliably.
 
-Fakes only: the "broker command" is a tiny Python one-liner; the poster is a recording fake.
-No network, no GitHub call. EXAMPLE — NOT A RESULT.
+Fakes only: the "broker command" and "persist command" are tiny Python one-liners; the poster is a
+recording fake. No network, no GitHub call. EXAMPLE — NOT A RESULT.
 """
 from datetime import date, datetime
 import json
@@ -23,13 +23,38 @@ def marker_cmd(path, code=0):
     return [sys.executable, "-c", f"open({str(path)!r}, 'w').write('x'); raise SystemExit({code})"]
 
 
-def go(tmp_path, command, run_log=None, now=DUE):
+def persist_cmd(log, code=0):
+    """Records what state existed at persist time (the lease must already be there)."""
+    script = ("import sys, pathlib, json; d = pathlib.Path(sys.argv[1]);"
+              f"open({str(log)!r}, 'a').write(json.dumps(sorted(p.name for p in (d / 'leases').glob('*'))) + '\\n');"
+              f"raise SystemExit({code})")
+    return [sys.executable, "-c", script]
+
+
+def go(tmp_path, command, persist=None, run_log=None, now=DUE):
+    persist_command = None if persist is None else persist + [str(tmp_path)]
     return run_once(tmp_path, profile="paper_small", command=command, now=now, strategy_version="v1",
-                    run_log=run_log)
+                    persist_command=persist_command, run_log=run_log)
 
 
 def outbox(tmp_path):
     return sorted((tmp_path / "ops" / "outbox").glob("*.json"))
+
+
+def test_lease_is_persisted_before_the_broker_command_runs(tmp_path):
+    log, ran = tmp_path / "persist.log", tmp_path / "ran.txt"
+    result = go(tmp_path, marker_cmd(ran), persist=persist_cmd(log))
+    assert result["status"] == "completed" and ran.exists()
+    assert json.loads(log.read_text().splitlines()[0]) == ["paper_small-2026-10-08.json"]
+
+
+def test_failed_persist_never_runs_the_broker_and_releases_the_lease(tmp_path):
+    log, ran = tmp_path / "persist.log", tmp_path / "ran.txt"
+    result = go(tmp_path, marker_cmd(ran), persist=persist_cmd(log, code=2))
+    assert result["status"] == "persist_failed" and not ran.exists()
+    assert not list((tmp_path / "leases").glob("*"))  # nothing durable happened, so a retry is safe
+    kinds = [json.loads(p.read_text())["kind"] for p in outbox(tmp_path)]
+    assert "incident" in kinds
 
 
 def test_summary_from_the_loop_record_counts_outcomes_and_open_reservations():

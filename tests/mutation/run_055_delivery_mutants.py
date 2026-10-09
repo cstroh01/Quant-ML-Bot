@@ -7,6 +7,9 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 RN, RD, RT = (ROOT / "scripts" / n for n in ("ops_runner.py", "ops_deliver.py", "ops_runtime.py"))
 WF = ROOT / "ops" / "workflows" / "paper-loop.yml"
 MUTS = {
+    "persist after broker": (RN, "    if persist_command is not None:\n        persisted", "    if False:\n        persisted"),
+    "broker runs on persist failure": (RN, "        if persisted.returncode != 0:", "        if False:"),
+    "lease kept on persist failure": (RN, "            _lease_path(state_dir, profile, decision.session).unlink()", "            pass"),
     "no summary queued": (RN, '    queue_outbox(state_dir, f"summary-', '    (lambda *a, **k: None)(state_dir, f"summary-'),
     "incident not queued": (RN, "        queue_outbox(ops.parent, f\"incident-", "        (lambda *a, **k: None)(ops.parent, f\"incident-"),
     "moved before posting": (RD, "            poster(message[\"kind\"], message[\"title\"], message[\"body\"])\n",
