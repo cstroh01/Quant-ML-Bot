@@ -62,6 +62,7 @@ jobs:
           printf '%s' "$QMB_PROFILES_JSON" > "$RUNNER_TEMP/profiles.json"
           python scripts/ops_runner.py --state-dir "$QMB_STATE_DIR" --profile ${{ matrix.profile }} \
             --strategy-version "${{ vars.QMB_PINNED_SHA }}" \
+            --run-log "$QMB_STATE_DIR/live_safety/${{ matrix.profile }}/paper-runs/runs.jsonl" \
             --command "python exec/paper_loop.py --submit --profile ${{ matrix.profile }} --profiles-file $RUNNER_TEMP/profiles.json"
       - name: Persist state
         if: always()
