@@ -5,6 +5,7 @@ from pathlib import Path
 from context import SCRIPTS_DIR
 
 ROOT = SCRIPTS_DIR.parent
+INTERNAL = {"scripts/trial_runner.py", "scripts/trial_registry.py"}
 PRIMITIVES = {"run_backtest", "nested_walk_forward", "fit_predict_walk_forward", "evaluate_walk_forward", "tune_on_fold", "score_fold"}
 
 def callee(node, aliases):
@@ -39,9 +40,9 @@ def bypasses(root):
     paths = {path for folder in ("scripts", "reports/api") for path in (root / folder).rglob("*.py")}
     paths |= {root / p for p in runners if (root / p).is_file()}
     for path in sorted(paths):
-        if path.name in {"trial_runner.py", "trial_registry.py"}:
-            continue
         relative = path.relative_to(root).as_posix()
+        if relative in INTERNAL:  # the ledger's own modules, by exact canonical path only
+            continue
         tree = ast.parse(path.read_text(encoding="utf-8-sig"))
         aliases = {alias.asname or alias.name: alias.name for n in ast.walk(tree) if isinstance(n, ast.ImportFrom) for alias in n.names}
         assignments = [(n.targets[0].id, n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)
@@ -162,3 +163,14 @@ def test_t014_real_inventory_classes_and_test_only_locations():
     calls = json.loads((ROOT / INVENTORY).read_text(encoding="utf-8"))["calls"]
     assert {c["classification"] for c in calls} == CLASSES, "T014 CLASSES"
     assert all(c["path"].startswith("tests/") for c in calls if c["classification"] == "test-only"), "T014 TEST-ONLY LOCATION"
+
+
+def test_t014_internal_module_exemption_is_exact_canonical_path_only(tmp_path):
+    """Only scripts/trial_runner.py and scripts/trial_registry.py are internal; a same-named file elsewhere is not."""
+    plant(tmp_path, {"tools/trial_runner.py": "run_backtest(prices)\n", "tools/trial_registry.py": "run_backtest(prices)\n",
+                     "scripts/sub/trial_runner.py": "run_backtest(prices)\n",
+                     "scripts/trial_runner.py": "run_backtest(prices)\n", "scripts/trial_registry.py": "run_backtest(prices)\n"},
+          [("tools/trial_runner.py", "run_backtest", "candidate runner"), ("tools/trial_registry.py", "run_backtest", "candidate runner")])
+    found = bypasses(tmp_path)
+    assert found == ["scripts/sub/trial_runner.py:1 run_backtest", "tools/trial_registry.py:1 run_backtest",
+                     "tools/trial_runner.py:1 run_backtest"], f"T014 BASENAME: {found}"

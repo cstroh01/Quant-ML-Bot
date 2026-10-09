@@ -51,3 +51,13 @@ real tree. All 160 `test-only` entries are under `tests/`; no production file is
 - `trials.jsonl` `1bb5dbfe…5275f30f`, `trials.head.json` `f83b1b9b…7d22d764`: unchanged before and
   after. `returns/` absent.
 - Owner-side evidence. Exact-head CI and Codex's Windows review are separate.
+
+## Follow-up — exact-path internal exemption (Codex BLOCK @13d915d, P1)
+Codex reproduced that any file named `trial_runner.py` / `trial_registry.py` was skipped by basename,
+so an inventoried candidate at `tools/trial_runner.py` escaped the guard. The exemption is now the two
+canonical paths only (`INTERNAL`). New test
+`test_t014_internal_module_exemption_is_exact_canonical_path_only`: red on `13d915d` (1 failed, 11
+passed), green after the fix. Covers `tools/trial_runner.py`, `tools/trial_registry.py`,
+`scripts/sub/trial_runner.py` (flagged) and the canonical pair (clean control). Driver gains mutant
+"internal exemption by basename" → `T014 BASENAME`: 8/8 killed, control green with 7 collected.
+Full suite (Linux, Py 3.13.16) on this change: 1723 passed, 1386 subtests, 1 warning, exit 0; ledger unchanged.
