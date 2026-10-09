@@ -53,3 +53,38 @@ def test_training_rows_are_purged_before_each_test_window():
     for train_rows, test_rows in zip(meta["train_rows"], meta["test_rows"]):
         # label_horizon=1: the last row before the test window would see into it and must be purged
         assert max(r for r in train_rows if r < min(test_rows)) <= min(test_rows) - 2
+
+
+class SpyModel(LogisticRegression):
+    """LogisticRegression that records the rows each fit sees (via y's index, which the pipeline
+    passes through unscaled)."""
+    fits: list = []
+
+    def fit(self, X, y, sample_weight=None):
+        SpyModel.fits.append(list(y.index))
+        return super().fit(X, y, sample_weight)
+
+
+def test_model_is_fit_on_exactly_the_folds_training_rows():
+    SpyModel.fits = []
+    _, meta = fold_local_predictions(panel(), ["x1", "x2"], "y", SpyModel,
+                                     label_horizon=1, embargo_bars=2, initial_train_months=12, test_months=6)
+    assert len(SpyModel.fits) == meta["folds"]
+    for fit_rows, train_rows, test_rows in zip(SpyModel.fits, meta["train_rows"], meta["test_rows"]):
+        assert fit_rows == train_rows
+        assert not set(fit_rows) & set(test_rows)
+        assert max(fit_rows) < min(test_rows)
+
+
+def test_each_embargo_gap_stays_out_of_every_later_folds_training():
+    frame = panel()
+    _, meta = run(frame)
+    embargo = meta["embargo"]
+    assert meta["folds"] >= 3, "need a fold that trains past an earlier gap"
+    for k, test_rows in enumerate(meta["test_rows"]):
+        gap = set(range(max(test_rows) + 1, max(test_rows) + 1 + embargo))
+        after_gap = max(test_rows) + 1 + embargo
+        for later in meta["train_rows"][k + 1:]:
+            assert not gap & set(later)
+            if max(later) > after_gap:
+                assert after_gap in later  # gap is exactly `embargo` rows, not longer
