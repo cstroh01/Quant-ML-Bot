@@ -50,9 +50,16 @@ The free stack:
 | Historical dividend **payment** dates, 10-year | none available free | Verified 2026-09-25. yfinance exposes ex-dates only. This is why spec 020 Q1 resolves to a declared conservative bound rather than a vendor field. |
 | Point-in-time fundamentals | none available free | Out of scope; see §6 |
 
-Consequence accepted deliberately: the universe is a static survivor basket and
-the data has no survivorship-bias protection. That is a **stated limitation**,
-not a solved problem, and it is disclosed everywhere results appear.
+Consequence accepted deliberately: the data has no survivorship-bias protection.
+That is a **stated limitation**, not a solved problem, and it is disclosed
+everywhere results appear.
+
+_Amended 2026-10-09 (Camden, spec 058 D-2):_ Gate 3 research uses the fixed
+25-ETF multi-asset universe declared in `.specify/specs/058-edge-research-program/`.
+It covers US equity, sectors, international equity, Treasuries, credit, real
+assets and the dollar. ETFs that have closed are absent, which still leaves some
+survivorship bias. The earlier 5-stock basket remains only as the machinery smoke-test
+panel.
 
 ## 3. v1.0 — Definition of Done
 
@@ -117,9 +124,10 @@ deadline never justifies relaxing one.
 
 Stated in the README and in every surface that reports a result:
 
-- **Survivorship bias.** Static 5-ticker mega-cap survivor panel
-  (AAPL/MSFT/GOOGL/NVDA/AMZN), selected as of 2026. No delisted names. Results
-  are an accounting and machinery smoke test, not evidence of generalizable alpha.
+- **Survivorship bias.** Research uses a fixed 25-ETF universe chosen as of
+  2026 (spec 058). ETFs that have closed are absent. The 5-ticker mega-cap panel
+  (AAPL/MSFT/GOOGL/NVDA/AMZN) remains a machinery smoke test, not evidence of
+  generalizable alpha. No delisted names in either.
 - **Corporate-action data is free-tier and only partially reconciled.** yfinance
   has documented split/dividend/100× pricing defects, and the only free second
   source covers one year of history, so older actions are unreconciled by
