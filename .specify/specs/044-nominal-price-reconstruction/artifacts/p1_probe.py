@@ -165,6 +165,9 @@ def self_check() -> int:
     filed = provider(["2020-01-02", "2020-03-31", "2020-06-01", "2020-09-01"], [100.0] * 4, [0.0, 0.0, 2.0, 2.0])
     q1_row = "AAPL,2020-01-01,2020-03-31,390,410,10-Q,2020-04-30,0000000000-20-000001,https://example.invalid/q"
     paid = provider(["2024-01-02", "2024-06-10"], [100.0, 100.0], [0.0, 4.0], [0.01, 0.0])
+    # The required case is 2024-03-05 (last dividend before the split); q3_row declares only 2024-01-02,
+    # a row that alone would PASS, so only the required-case gate can stop it (T002a, Rule 12).
+    two_paid = provider(["2024-01-02", "2024-03-05", "2024-06-10"], [100.0] * 3, [0.0, 0.0, 4.0], [0.01, 0.01, 0.0])
     q3_row = "NVDA,2024-01-02,0.04,not_applicable,2023-12-01,8-K,0000000000-23-000001,https://example.invalid/d"
     googl = {"GOOGL": provider(["2014-03-27", "2015-01-02"], [100.0, 100.0], [2.0, 0.0])}
     odd = {"GOOGL": provider(["2014-03-27", "2015-01-02"], [100.0, 100.0], [2.002, 0.0])}
@@ -206,6 +209,7 @@ def self_check() -> int:
          "STOP"),
         ("dividend NaN refused (F8)", raises(nan_dividend), True),
         ("dividend negative refused (F8)", raises(good.assign(Dividends=[0.0, -0.5, 0.0])), True),
+        ("dividend infinite refused (F8)", raises(good.assign(Dividends=[0.0, math.inf, 0.0])), True),
         ("Q-P1 control", q_p1({"AAPL": filed}, [], [], csv(RANGES, q1_row))[0], "PASS"),
         # A wide filed range holds provider (100) and rebuilt (400) closes alike: it cannot discriminate.
         ("Q-P1 provider inside the range (F3)", q_p1({"AAPL": filed}, [], [], csv(RANGES, q1_row.replace(
@@ -213,8 +217,8 @@ def self_check() -> int:
         ("Q-P1 filed after the split (F3)", q_p1({"AAPL": filed}, [], [], csv(RANGES, q1_row.replace(
             "2020-04-30", "2020-06-01")))[0], "STOP"),
         ("Q-P3 control", q_p3({"NVDA": paid}, [], [], csv(DECLARED, q3_row))[0], "PASS"),
-        ("Q-P3 required case missing (F3)", q_p3({"NVDA": paid}, [], [], csv(DECLARED, q3_row.replace(
-            "2024-01-02", "2024-01-03")))[0], "STOP"),
+        ("Q-P3 required case missing (F3)", q_p3({"NVDA": two_paid}, [], [], csv(DECLARED, q3_row))[1].split(":")[0],
+         "required cases have no declared row"),
         ("Q-P1 rebuilt outside the range (F3)", q1(q1_row.replace(",390,410,", ",490,510,")), "STOP"),
         ("Q-P1 low above high (F3)", q1(q1_row.replace(",390,410,", ",403,397,")), "STOP"),
         ("Q-P1 one later split only (F3)", q1("AAPL,2020-06-01,2020-08-31,195,205,10-Q,2020-07-30,"
@@ -240,6 +244,7 @@ def self_check() -> int:
         ("read_inputs off-basket ticker (F7)", rejects(q3_row.replace("NVDA", "TSLA")), True),
         ("revision full sha accepted", refuses("0123456789abcdef" * 2 + "01234567"), False),
         ("revision short sha refused (F7)", refuses("d8adac3"), True),
+        ("revision sha with a suffix refused (F7)", refuses("0123456789abcdef" * 2 + "01234567-dirty"), True),
         ("run control", statuses(lambda _: good, after_close), ["Horizon: PASS", "boom: STOP", "pass: PASS"]),
         ("run future-dated response (F2)", statuses(lambda _: good, after_close.replace(hour=14)),
          ["Horizon: STOP", "boom: STOP", "pass: STOP"]),
