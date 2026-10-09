@@ -41,9 +41,12 @@ def deliver(state_dir, poster: Poster) -> tuple[int, int]:
     return delivered, failed
 
 
-def gh_poster(repo: str | None = None) -> Poster:
-    """Post through the GitHub CLI: summaries comment on one rolling issue, incidents open an issue."""
-    base = ["gh"] + ([] if repo is None else ["-R", repo])
+def gh_poster(repo: str) -> Poster:
+    """Post through the GitHub CLI to ``repo`` only: summaries comment on one rolling issue, incidents
+    open an issue."""
+    if not repo or "/" not in repo:
+        raise ValueError("repo must be owner/name")
+    base = ["gh", "-R", repo]
 
     def run(args: list[str], body: str | None = None) -> str:
         return subprocess.run(base + args, input=body, capture_output=True, text=True, check=True).stdout
@@ -68,7 +71,8 @@ def gh_poster(repo: str | None = None) -> Poster:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Deliver queued 055 summaries and incidents")
     parser.add_argument("--state-dir", type=Path, required=True)
-    parser.add_argument("--repo", help="owner/name; defaults to the current repository")
+    parser.add_argument("--repo", required=True,
+                        help="owner/name to post to; required so delivery never defaults to the checkout's remote")
     args = parser.parse_args(argv)
     delivered, failed = deliver(args.state_dir, gh_poster(args.repo))
     print(json.dumps({"delivered": delivered, "failed": failed}))

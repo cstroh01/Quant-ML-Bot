@@ -246,7 +246,11 @@ def summary_from_loop_record(record: dict | None, *, profile: str, session: date
         orders[outcome] = orders.get(outcome, 0) + 1
     open_reservations = sum(1 for row in record.get("reconciliation", [])
                             if str(row.get("broker_status")).upper() not in _TERMINAL)
-    return daily_summary({"profile": profile, "session": session, "data_session": None, "model": model,
+    try:  # 049 records its last completed data session as "session"
+        data_session = date.fromisoformat(str(record["session"])[:10]) if "session" in record else None
+    except ValueError:
+        data_session = None
+    return daily_summary({"profile": profile, "session": session, "data_session": data_session, "model": model,
                           "orders": orders, "open_reservations": open_reservations,
                           "position_differences": None, "notes": notes})
 

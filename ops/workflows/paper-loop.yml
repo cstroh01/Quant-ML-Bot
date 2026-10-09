@@ -73,7 +73,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         # Items leave ops/outbox only after a successful post; failures retry on the next run.
-        run: python scripts/ops_deliver.py --state-dir "${{ github.workspace }}/state/${{ matrix.profile }}"
+        # --repo is the PRIVATE repository running this workflow; the qmb checkout's remote is public.
+        run: python scripts/ops_deliver.py --repo "${{ github.repository }}" --state-dir "${{ github.workspace }}/state/${{ matrix.profile }}"
       - name: Persist state
         if: always()
         working-directory: qmb
@@ -89,5 +90,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh issue create --title "paper-loop ${{ matrix.profile }} failed $(date -u +%F)" \
+          gh issue create -R "${{ github.repository }}" --title "paper-loop ${{ matrix.profile }} failed $(date -u +%F)" \
             --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

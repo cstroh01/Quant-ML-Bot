@@ -65,14 +65,30 @@ def _deliver(ops: Path, incidents: list[Incident]) -> int:
     return len(fresh)
 
 
-def _last_record(run_log) -> dict | None:
+def _log_size(run_log) -> int:
+    return Path(run_log).stat().st_size if run_log is not None and Path(run_log).exists() else 0
+
+
+def _appended_record(run_log, offset: int, profile: str) -> dict | None:
+    """The last record the wrapped command appended in THIS invocation, or None.
+
+    Bytes before ``offset`` (the log's size when the command started) are never read, so a command
+    that exits before appending can't be reported with yesterday's record; a record naming another
+    profile is not this run's record.
+    """
     if run_log is None or not Path(run_log).exists():
         return None
-    lines = [line for line in Path(run_log).read_text(encoding="utf-8").splitlines() if line.strip()]
+    with Path(run_log).open("rb") as stream:
+        stream.seek(offset)
+        fresh = stream.read().decode("utf-8", errors="replace")
+    lines = [line for line in fresh.splitlines() if line.strip()]
     try:
-        return json.loads(lines[-1]) if lines else None
+        record = json.loads(lines[-1]) if lines else None
     except ValueError:
         return None
+    if not isinstance(record, dict) or record.get("profile", profile) != profile:
+        return None
+    return record
 
 
 def run_once(state_dir, *, profile: str, command: list[str], now: datetime, strategy_version: str,
@@ -118,6 +134,7 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
                                       "broker command not run"))
             return {"status": "persist_failed", "session": decision.session.isoformat(),
                     "new_incidents": _deliver(ops, incidents)}
+    log_offset = _log_size(run_log)
     result = subprocess.run(command, capture_output=True, text=True)
     status = "completed" if result.returncode == 0 else "failed"
     complete_lease(state_dir, profile, decision.session, run_id=run_id)
@@ -127,7 +144,8 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
     _append(ops / "runs.jsonl", record)
     if status == "failed":
         incidents.append(Incident("failure", profile, f"{decision.session} exit {result.returncode}"))
-    body = summary_from_loop_record(_last_record(run_log), profile=profile, session=decision.session,
+    body = summary_from_loop_record(_appended_record(run_log, log_offset, profile), profile=profile,
+                                    session=decision.session,
                                     model=strategy_version)
     queue_outbox(state_dir, f"summary-{profile}-{decision.session.isoformat()}", kind="summary",
                  title=SUMMARY_TITLE, body=f"Run status: {status} (exit {result.returncode})\n{body}")
