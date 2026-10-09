@@ -19,6 +19,16 @@ What this module guarantees:
 - **Intent before placement.** The preview's confirmation number is durably
   recorded against the bot's deterministic client id (spec 055) before the
   place call, so an unknown outcome is reconcilable by confirmation number.
+- **Any error once ``place`` is called is outcome-unknown.** The request may have
+  reached Fidelity whatever the exception, so it is ``SubmissionUnknown``: never
+  retried, reconciled by confirmation number.
+- **A client id is used once.** A repeat ``submit`` for a recorded client id never
+  previews or places again: it returns the known order, or raises
+  ``SubmissionUnknown`` if Fidelity has no record yet; a different order under the
+  same id refuses.
+- **Errors are redacted.** Broker exceptions surface only as their type name, with
+  no chained cause, so URLs, account numbers or tokens in a library message never
+  reach a log.
 """
 
 from __future__ import annotations
@@ -105,9 +115,21 @@ class FidelityLive:
             raise BrokerError(f"login failed: {type(exc).__name__}") from None
         self._connected = True
 
+    def _call(self, stage: str, fn, *args):
+        """Run a non-placing broker call; challenges halt, anything else is redacted to its type."""
+        try:
+            return fn(*args)
+        except SecurityChallenge:
+            self._halted = True
+            raise HaltProfile(f"{self._profile.name}: security challenge at {stage}; halted") from None
+        except BrokerError as exc:
+            raise type(exc)(f"{stage} failed: {type(exc).__name__}") from None
+        except Exception as exc:  # noqa: BLE001 - library messages may carry URLs or account data
+            raise BrokerError(f"{stage} failed: {type(exc).__name__}") from None
+
     def positions(self) -> dict[str, float]:
         self._check_halt()
-        return self._broker.positions()
+        return self._call("positions", self._broker.positions)
 
     def submit(self, intent: OrderIntent, *, arming: ArmingRecord | None, now: datetime) -> str:
         """Preview, record, then place one market order. Call only via order_gateway after ALLOW."""
@@ -120,28 +142,45 @@ class FidelityLive:
             raise NotArmed(str(exc)) from None
         side = "B" if intent.delta_quantity > 0 else "S"
         quantity = abs(float(intent.delta_quantity))
-        try:
-            conf_num = self._broker.preview(intent.instrument, side, quantity)
-        except SecurityChallenge:
-            self._halted = True
-            raise HaltProfile(f"{self._profile.name}: security challenge at preview; halted") from None
+        previous = self._recorded(intent.client_order_id)
+        if previous is not None:
+            return self._resubmission(intent.client_order_id, previous, intent.instrument, side, quantity)
+        conf_num = self._call("preview", self._broker.preview, intent.instrument, side, quantity)
         record_intent(self._state_dir, intent.client_order_id,
                       {"symbol": intent.instrument, "side": side, "qty": quantity, "conf_num": conf_num})
         try:
             return self._broker.place(intent.instrument, side, quantity, conf_num)
         except SecurityChallenge:
             self._halted = True
-            raise HaltProfile(f"{self._profile.name}: security challenge at placement; halted") from None
-        except TimeoutError:
-            raise SubmissionUnknown(f"{intent.client_order_id}: placement outcome unknown") from None
+            raise HaltProfile(f"{self._profile.name}: security challenge at placement; halted; "
+                              f"{intent.client_order_id} outcome unknown, reconcile") from None
+        except Exception as exc:  # noqa: BLE001 - once place is called, the order may exist
+            raise SubmissionUnknown(f"{intent.client_order_id}: placement outcome unknown "
+                                    f"({type(exc).__name__}); reconcile, never retry") from None
+
+    def _recorded(self, client_order_id: str) -> dict | None:
+        for row in open_intents(self._state_dir):
+            if row["client_order_id"] == client_order_id:
+                return row["intent"]
+        return None
+
+    def _resubmission(self, client_order_id: str, previous: dict, symbol: str, side: str, quantity: float) -> str:
+        """A client id already previewed: return the known order; never preview or place twice."""
+        if (previous["symbol"], previous["side"], previous["qty"]) != (symbol, side, quantity):
+            raise BrokerError(f"{client_order_id} was recorded for a different order; refusing")
+        status = self._call("status", self._broker.status, previous["conf_num"])
+        if status is None:
+            raise SubmissionUnknown(f"{client_order_id}: recorded but Fidelity has no order yet; "
+                                    "reconcile by confirmation number, never resubmit")
+        return previous["conf_num"]
 
     def order_status(self, client_order_id: str) -> str | None:
         """Fidelity's status for the bot's client id, or None if never previewed/recorded."""
         self._check_halt()
-        for row in open_intents(self._state_dir):
-            if row["client_order_id"] == client_order_id:
-                return self._broker.status(row["intent"]["conf_num"])
-        return None
+        previous = self._recorded(client_order_id)
+        if previous is None:
+            return None
+        return self._call("status", self._broker.status, previous["conf_num"])
 
 
 class LibraryBroker:
@@ -173,12 +212,11 @@ class LibraryBroker:
         return conf
 
     def place(self, symbol: str, side: str, quantity: float, conf_num: str) -> str:
+        order = self._order(symbol, side, quantity)  # built before the send: errors here sent nothing
         try:
-            response = self._client.equity_orders.place_order(self._order(symbol, side, quantity), conf_num)
-        except Exception as exc:
-            if "Timeout" in type(exc).__name__:
-                raise TimeoutError from None
-            raise BrokerError(f"place failed: {type(exc).__name__}") from None
+            response = self._client.equity_orders.place_order(order, conf_num)
+        except Exception as exc:  # noqa: BLE001 - the request may have reached Fidelity
+            raise SubmissionUnknown(f"place outcome unknown: {type(exc).__name__}") from None
         return response.conf_num or conf_num
 
     def status(self, conf_num: str) -> str | None:
