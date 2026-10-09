@@ -3,8 +3,9 @@
 U1 guarantees: identity is a stable instrument id, never a ticker; a fact is
 visible in ``snapshot(as_of)`` only if it took effect on or before ``as_of``
 AND was observed no later than the end of that session (America/New_York), so
-a late-filed fact cannot leak backward; delisted instruments remain in every
-snapshot, marked inactive after their delisting; snapshots hash
+a late-filed fact cannot leak backward; an instrument is active only once a
+``listed`` fact is visible and until a later ``delisted`` fact; delisted
+instruments remain in every snapshot, marked inactive; snapshots hash
 deterministically. Pure: no network.
 """
 from __future__ import annotations
@@ -56,9 +57,11 @@ class Registry:
         for fact in self._facts:
             if fact.effective_date > as_of or fact.observed_at > cutoff:
                 continue
-            entry = state.setdefault(fact.instrument_id, {"active": True})
+            entry = state.setdefault(fact.instrument_id, {"active": False})
             entry[fact.field] = fact.value
-            if fact.field == "delisted":
+            if fact.field == "listed":
+                entry["active"] = True
+            elif fact.field == "delisted":
                 entry["active"] = False
         return state
 
@@ -69,7 +72,16 @@ class Registry:
 
 # --- U2/U3: research and executable eligibility with named reasons (FR-003/004/007) ---
 
+import math
+
 import pandas as pd
+
+
+def _finite(x) -> bool:
+    try:
+        return math.isfinite(float(x))
+    except (TypeError, ValueError):
+        return False
 
 
 @dataclass(frozen=True)
@@ -85,16 +97,20 @@ def research_eligibility(bars: pd.DataFrame, *, as_of: date, limits: Eligibility
                          actions_reconciled: bool, basis_known: bool) -> list[str]:
     """Reasons ``bars`` (Close, Volume by session) is not research-eligible on ``as_of``.
 
-    Reads only rows at or before ``as_of``. Empty list means eligible.
+    Reads only rows at or before ``as_of``. Empty list means eligible. A NaN close or dollar
+    volume fails closed (``price_below_floor`` / ``illiquid``), never passes a comparison.
     """
     past = bars.loc[:pd.Timestamp(as_of)]
     reasons = []
     if len(past) < limits.min_sessions:
         reasons.append("insufficient_history")
-    if past.empty or float(past["Close"].iloc[-1]) < limits.min_price:
+    last = float(past["Close"].iloc[-1]) if not past.empty else float("nan")
+    if not _finite(last) or last < limits.min_price:
         reasons.append("price_below_floor")
     window = past.tail(20)
-    if window.empty or float((window["Close"] * window["Volume"]).median()) < limits.min_median_dollar_volume:
+    dollar = window["Close"] * window["Volume"]
+    median = float(dollar.median()) if not window.empty and dollar.notna().all() else float("nan")
+    if not _finite(median) or median < limits.min_median_dollar_volume:
         reasons.append("illiquid")
     if not actions_reconciled:
         reasons.append("corporate_actions_unreconciled")
@@ -112,12 +128,22 @@ class ExecutableQuote:
     spread_bps: float
     adv_shares: float
     min_notional_usd: float
+    quoted_at: datetime
 
 
 def executable_eligibility(quote: ExecutableQuote, *, previous_session: date, allowed_classes: tuple[str, ...],
-                           order_qty: float, order_notional: float, limits: EligibilityLimits) -> list[str]:
-    """Reasons an order may not be sent now; inputs come from an injected read-only snapshot."""
+                           order_qty: float, order_notional: float, limits: EligibilityLimits,
+                           now: datetime, max_quote_age_seconds: float) -> list[str]:
+    """Reasons an order may not be sent now; inputs come from an injected read-only snapshot.
+
+    Fails closed: an unknown (non-finite) spread, ADV or broker minimum, an invalid order, or a
+    quote that is naive, future-dated or older than ``max_quote_age_seconds`` each name a reason.
+    """
+    if now.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
     reasons = []
+    if quote.quoted_at.tzinfo is None or not (0 <= (now - quote.quoted_at).total_seconds() <= max_quote_age_seconds):
+        reasons.append("stale_quote")
     if not quote.tradable:
         reasons.append("not_tradable")
     if quote.halted:
@@ -126,11 +152,20 @@ def executable_eligibility(quote: ExecutableQuote, *, previous_session: date, al
         reasons.append("stale_bar")
     if quote.instrument_class not in allowed_classes:
         reasons.append("class_not_permitted")
-    if quote.spread_bps > limits.max_spread_bps:
+    if not (_finite(order_qty) and order_qty > 0 and _finite(order_notional) and order_notional > 0):
+        reasons.append("order_invalid")
+        return reasons
+    if not _finite(quote.spread_bps):
+        reasons.append("spread_unknown")
+    elif quote.spread_bps > limits.max_spread_bps:
         reasons.append("spread_too_wide")
-    if quote.adv_shares <= 0 or order_qty / quote.adv_shares > limits.max_participation:
+    if not _finite(quote.adv_shares):
+        reasons.append("adv_unknown")
+    elif quote.adv_shares <= 0 or order_qty / quote.adv_shares > limits.max_participation:
         reasons.append("participation_too_high")
-    if order_notional < quote.min_notional_usd:
+    if not _finite(quote.min_notional_usd):
+        reasons.append("broker_minimum_unknown")
+    elif order_notional < quote.min_notional_usd:
         reasons.append("below_broker_minimum")
     return reasons
 
@@ -139,8 +174,8 @@ def executable_eligibility(quote: ExecutableQuote, *, previous_session: date, al
 
 
 def causal_membership(registry: Registry, sessions: list[date]) -> dict[date, set[str]]:
-    """Active instruments for each session, from that session's own snapshot only."""
-    return {s: {i for i, entry in registry.snapshot(s).items() if entry.get("active", True)} for s in sessions}
+    """Active (listed, not delisted) instruments for each session, from that session's own snapshot only."""
+    return {s: {i for i, entry in registry.snapshot(s).items() if entry.get("active") is True} for s in sessions}
 
 
 def fold_local_cross_section(frame: pd.DataFrame, column: str, train_rows: list):
