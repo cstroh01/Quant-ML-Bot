@@ -154,6 +154,9 @@ def executable_eligibility(quote: ExecutableQuote, *, previous_session: date, al
     """
     if now.tzinfo is None:
         raise ValueError("now must be timezone-aware")
+    if isinstance(max_quote_age_seconds, bool) or not (_finite(max_quote_age_seconds) and float(max_quote_age_seconds) >= 0):
+        raise ValueError("max_quote_age_seconds must be finite and non-negative")
+    max_quote_age_seconds = float(max_quote_age_seconds)
     reasons = []
     if quote.quoted_at.tzinfo is None or not (0 <= (now - quote.quoted_at).total_seconds() <= max_quote_age_seconds):
         reasons.append("stale_quote")
@@ -170,6 +173,8 @@ def executable_eligibility(quote: ExecutableQuote, *, previous_session: date, al
         return reasons
     if not _finite(quote.spread_bps):
         reasons.append("spread_unknown")
+    elif quote.spread_bps < 0:
+        reasons.append("spread_invalid")
     elif quote.spread_bps > limits.max_spread_bps:
         reasons.append("spread_too_wide")
     if not _finite(quote.adv_shares):
@@ -178,6 +183,8 @@ def executable_eligibility(quote: ExecutableQuote, *, previous_session: date, al
         reasons.append("participation_too_high")
     if not _finite(quote.min_notional_usd):
         reasons.append("broker_minimum_unknown")
+    elif quote.min_notional_usd < 0:
+        reasons.append("broker_minimum_invalid")
     elif order_notional < quote.min_notional_usd:
         reasons.append("below_broker_minimum")
     return reasons

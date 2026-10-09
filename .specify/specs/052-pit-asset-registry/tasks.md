@@ -6,3 +6,5 @@
 - [x] T005 U4 causal membership helper; fold-local cross-sectional fit contract.
 - [x] T006 Synthetic dated panel acceptance; full suite; mutation evidence.
 - [ ] T007 Populate from 056 sources (network = human-authorized run); hash snapshot.
+
+- [x] T008 F02: refuse non-finite/negative/non-numeric/boolean quote-age configuration and negative spread/broker minimum; named refusals, valid/zero/stale controls, causal mutants and isolated Windows full suite. Files: asset_registry.py, new quote-domain contracts/driver, F02 evidence and this status only.
