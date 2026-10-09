@@ -62,10 +62,17 @@ def test_any_non_identifier_namespace_is_refused(namespace):
         paper_loop.state_paths(corrupted(SMALL, log_namespace=namespace))
 
 
-@pytest.mark.parametrize("profile", ["paper_small/../paper_large", "../x", "a/b", "Paper", "nul"])
-def test_lease_and_runner_refuse_non_identifier_profiles(tmp_path, profile):
+BAD_PROFILES = ["paper_small/../paper_large", "../x", "a/b", "Paper", "nul"]
+
+
+@pytest.mark.parametrize("profile", BAD_PROFILES)
+def test_lease_refuses_non_identifier_profiles(tmp_path, profile):
     with pytest.raises(ValueError, match="storage identifier"):
         acquire_lease(tmp_path, profile, date(2026, 10, 8), run_id="r")
+
+
+@pytest.mark.parametrize("profile", BAD_PROFILES)
+def test_runner_refuses_non_identifier_profiles(tmp_path, profile):
     with pytest.raises(ValueError, match="storage identifier"):
         run_once(tmp_path, profile=profile, command=["true"], strategy_version="v1",  # after cutoff: no lease path,
                  now=datetime(2026, 10, 8, 10, 0, tzinfo=ZoneInfo("America/New_York")))  # so only the runner's check can refuse

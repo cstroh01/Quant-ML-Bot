@@ -74,7 +74,26 @@ must raise `RunAborted` mentioning `log_namespace`; `""` is back in the bad case
 only the named field changes. Verified on this branch and with #95 (`773251b`) `mode_config.py` and its
 tests overlaid in a private copy: 58 and 112 focused tests pass.
 
+## Assertion-witness correction (Codex, 2026-10-09)
+Correction: the 4074fc6 driver's "assertion failures only" claim was wrong. It filtered the pytest
+summary for "failed" without "error", which cannot tell an assertion from an IndexError or
+RuntimeError raised inside a test body. Codex showed "send before persist" had zero assertion
+failures: `watch()` hit `IndexError` on `persist.snapshots[-1]`, and its sibling raised
+`RuntimeError("push rejected")`.
+- The submit watch now asserts `ORDERING: broker send happened before any successful durable persist`
+  before indexing, and the failed-persist test's broker fake raises
+  `AssertionError("ORDERING: order sent although its persist failed")` on any send.
+- The CLI test patches the broker client and data download to assert `CLI: reached broker or network
+  ...`, so a missing refusal fails by name instead of with a `BrokerError`.
+- The lease and runner refusals are separate tests (same assertions) so each mutant has its own witness.
+- No existing assertion was removed or loosened. No production code changed.
+- The driver now reads pytest's JUnit report. A kill needs a `failure` (never an `error`) in the
+  mutant's intended test, with an assertion message containing its witness text. It runs a green
+  control first, checks that each mutant compiles, and checks that source bytes are restored.
+
+Negative control: the 4074fc6 test files under this driver leave 3 mutants alive (send before
+persist, persist failure keeps sending, CLI submits without persist), confirming the gap.
+
 ## Rule 12
-`python tests/mutation/run_055_f03_mutants.py` → 13/13 killed on this branch AND under the #95 overlay.
-The driver now counts a kill only as an assertion failure (`exit 1`, summary has "failed" and no
-"error"), never a collection or constructor error.
+`python tests/mutation/run_055_f03_mutants.py` → 13/13 killed by named assertion witnesses on this
+branch AND with #95 (`773251b`) `mode_config.py` + tests overlaid (117 focused tests pass there).

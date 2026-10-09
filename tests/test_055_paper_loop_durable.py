@@ -86,6 +86,8 @@ def test_each_send_happens_only_after_its_intent_and_reservation_were_persisted(
     original = client.submit_market_on_open
 
     def watch(intent):
+        assert persist.snapshots and persist.snapshots[-1] is not None, \
+            "ORDERING: broker send happened before any successful durable persist"
         submitted_before.append((intent.client_order_id, persist.snapshots[-1]))
         return original(intent)
 
@@ -99,6 +101,11 @@ def test_each_send_happens_only_after_its_intent_and_reservation_were_persisted(
 def test_failed_persist_sends_nothing_further_and_releases_the_unsent_reservation(env):
     tmp, gate = env
     client = Client()
+
+    def refuse_send(intent):
+        raise AssertionError("ORDERING: order sent although its persist failed")
+
+    client.submit_market_on_open = refuse_send
     record = run(env, client, Persist(tmp, gate, fail_at=0))
     assert client.submitted == []
     outcomes = [a["outcome"] for a in record["actions"] if "client_order_id" in a]
@@ -157,7 +164,7 @@ def test_daily_deployment_counts_earlier_invocations_of_the_same_session(env):
         a.get("notional", 0) for a in record["actions"] if a.get("outcome") == "SUBMITTED") <= 1000.0 + 1e-6
 
 
-def test_workflow_gives_the_paper_loop_a_persist_command_and_cli_requires_it(tmp_path):
+def test_workflow_gives_the_paper_loop_a_persist_command_and_cli_requires_it(tmp_path, monkeypatch):
     import shlex
     text = (ROOT / "ops" / "workflows" / "paper-loop.yml").read_text()
     line = next(l for l in text.splitlines() if "exec/paper_loop.py --submit" in l)
@@ -166,5 +173,11 @@ def test_workflow_gives_the_paper_loop_a_persist_command_and_cli_requires_it(tmp
     assert "--persist-command" in args and args[args.index("--persist-command") + 1].startswith("bash ops/persist_state.sh")
     profiles = tmp_path / "p.json"
     profiles.write_text(json.dumps([raw(account=ACCOUNT)]))
+
+    def no_network(*_a, **_k):
+        raise AssertionError("CLI: reached broker or network before refusing a missing --persist-command")
+
+    monkeypatch.setattr(paper_loop, "AlpacaPaperClient", no_network)
+    monkeypatch.setattr(paper_loop, "download_market_data", no_network)
     with pytest.raises(paper_loop.RunAborted, match="persist-command"):
         paper_loop.main(["--submit", "--profile", "paper_small", "--profiles-file", str(profiles)])
