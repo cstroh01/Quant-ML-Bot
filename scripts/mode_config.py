@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+import math
+import posixpath
 import re
 
 PAPER_BROKERS = frozenset({"alpaca_paper"})
@@ -18,6 +20,15 @@ DEFAULT_PROFILE = "paper_small"
 _DIGEST = re.compile(r"[0-9a-f]{64}")
 _ENV_NAME = re.compile(r"[A-Z][A-Z0-9_]{2,63}")
 _UNIQUE = ("state_dir", "log_namespace", "account_fingerprint", "credential_refs")
+# Names that become one path component (log_namespace dirs, lease/outbox file names): lowercase,
+# no separators, no dots, no trailing dot/space, no Windows device names -> no aliasing on any OS.
+STORAGE_IDENTIFIER = re.compile(r"[a-z0-9][a-z0-9_-]{0,62}")
+_WINDOWS_DEVICES = frozenset({"con", "prn", "aux", "nul"} | {f"{d}{i}" for d in ("com", "lpt") for i in range(1, 10)})
+
+
+def is_storage_identifier(value: str) -> bool:
+    """True only for a portable single path component that cannot alias another one."""
+    return bool(STORAGE_IDENTIFIER.fullmatch(str(value))) and str(value) not in _WINDOWS_DEVICES
 
 
 class ProfileError(ValueError):
@@ -49,8 +60,8 @@ class ModeProfile:
             raise ProfileError(f"{self.name}: account_fingerprint must be a SHA-256 hex digest")
         if not self.credential_refs or not all(_ENV_NAME.fullmatch(r) for r in self.credential_refs):
             raise ProfileError(f"{self.name}: credential_refs must be environment variable names")
-        if not (self.bot_budget_usd > 0):
-            raise ProfileError(f"{self.name}: bot_budget_usd must be positive")
+        if not (math.isfinite(self.bot_budget_usd) and self.bot_budget_usd > 0):
+            raise ProfileError(f"{self.name}: bot_budget_usd must be positive and finite")
         if not (0 < self.daily_deploy_fraction <= 1):
             raise ProfileError(f"{self.name}: daily_deploy_fraction must be in (0, 1]")
         if not self.instruments or not set(self.instruments) <= INSTRUMENTS:
@@ -58,10 +69,38 @@ class ModeProfile:
         for field in ("name", "state_dir", "log_namespace", "safety_config_version"):
             if not str(getattr(self, field)).strip():
                 raise ProfileError(f"{self.name}: {field} is required")
+        for field in ("name", "log_namespace"):
+            if not is_storage_identifier(getattr(self, field)):
+                raise ProfileError(f"{self.name}: {field} {getattr(self, field)!r} is not a portable storage identifier "
+                                   "(lowercase a-z 0-9 _ -, one path component, not a device name)")
+        raw_dir = str(self.state_dir).replace("\\", "/")
+        if _canonical_dir(raw_dir) in (".", ""):
+            raise ProfileError(f"{self.name}: state_dir must not be the repo root (it would contain every "
+                               "other profile's state)")
+        if raw_dir.startswith("/") or re.match(r"[A-Za-z]:", raw_dir) or _canonical_dir(raw_dir).startswith(".."):
+            raise ProfileError(f"{self.name}: state_dir must be a relative path inside the repo "
+                               "(absolute, drive, UNC or escaping paths can alias another profile's state)")
+
+
+def _canonical_dir(path: str) -> str:
+    """Case-folded, separator-normalized path used only for isolation comparisons."""
+    return posixpath.normpath(str(path).replace("\\", "/")).casefold().rstrip("/")
+
+
+def _identity_key(field: str, key: str) -> str:
+    if field == "state_dir":
+        return _canonical_dir(key)
+    if field == "log_namespace":
+        return str(key).strip().casefold()
+    return key
 
 
 def load_profiles(raw_profiles: list[dict]) -> dict[str, ModeProfile]:
-    """Validate every profile and refuse any shared namespace or identity."""
+    """Validate every profile and refuse any shared namespace or identity.
+
+    State directories are compared after normalizing separators, ``.``/``..`` and case, and a
+    directory nested inside another profile's is refused; log namespaces compare case-insensitively.
+    """
     profiles: dict[str, ModeProfile] = {}
     seen: dict[str, dict] = {field: {} for field in _UNIQUE}
     for raw in raw_profiles:
@@ -77,6 +116,11 @@ def load_profiles(raw_profiles: list[dict]) -> dict[str, ModeProfile]:
         for field in _UNIQUE:
             keys = getattr(profile, field)
             for key in (keys if field == "credential_refs" else (keys,)):
+                key = _identity_key(field, key)
+                if field == "state_dir":
+                    for other, owner in seen[field].items():
+                        if key.startswith(other + "/") or other.startswith(key + "/"):
+                            raise ProfileError(f"state_dir of {profile.name!r} nests with {owner!r}'s")
                 if key in seen[field]:
                     raise ProfileError(f"{field} shared by {seen[field][key]!r} and {profile.name!r}")
                 seen[field][key] = profile.name
@@ -132,7 +176,6 @@ def require_armed(profile: ModeProfile, record: ArmingRecord | None, *, now: dat
 # --- U2: budget-bounded, daily-capped, settled-cash buy sizing (FR-004/005/007/008) ---
 
 from decimal import ROUND_FLOOR, Decimal
-import math
 
 _SIX = Decimal("0.000001")
 
@@ -154,6 +197,9 @@ class SizedBuy:
 
 def sizing_equity(profile: ModeProfile, *, bot_owned_value: float, bot_cash: float) -> float:
     """Equity the bot may size against: its budget, never the broker account's balance."""
+    for name, value in (("bot_owned_value", bot_owned_value), ("bot_cash", bot_cash)):
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
     return min(profile.bot_budget_usd, bot_owned_value + bot_cash)
 
 
@@ -172,8 +218,15 @@ def bound_buys(profile: ModeProfile, buys: list[BuyRequest], *, settled_cash: fl
     quantities only ever shrink and are floored (whole shares unless both the
     profile and the instrument allow fractions, then six decimals); each dropped
     buy carries one reason: daily_cap, insufficient_settled_cash, budget_exhausted
-    or below_minimum. Sells are not this function's concern.
+    or below_minimum. Sells are not this function's concern. Non-finite day state, or a
+    negative ``deployed_today_usd``, raises rather than widening the cap.
     """
+    for name, value in (("settled_cash", settled_cash), ("deployed_today_usd", deployed_today_usd),
+                        ("min_notional_usd", min_notional_usd)):
+        if not math.isfinite(value):
+            raise ValueError(f"{name} must be finite")
+    if deployed_today_usd < 0 or min_notional_usd < 0:
+        raise ValueError("deployed_today_usd and min_notional_usd must be non-negative")
     cap_left = Decimal(str(profile.daily_deploy_fraction * profile.bot_budget_usd)) - Decimal(str(deployed_today_usd))
     cash_left = Decimal(str(settled_cash))
     accepted: list[SizedBuy] = []
@@ -225,8 +278,12 @@ def bot_sell_quantities(desired_bot_qty: dict[str, float], holdings: list[Holdin
     """Sell quantities that move bot-owned lots down to ``desired_bot_qty``.
 
     Guarantees: only ``owner == "bot"`` quantity is ever sold; an external holding
-    never produces a sell, whether or not it appears in the targets.
+    never produces a sell, whether or not it appears in the targets; a non-finite
+    target raises instead of being read as zero (which would liquidate).
     """
+    for ticker, target in desired_bot_qty.items():
+        if not math.isfinite(float(target)):
+            raise ValueError(f"{ticker}: target quantity must be finite")
     owned: dict[str, float] = {}
     for holding in holdings:
         if holding.owner == "bot":
@@ -249,7 +306,24 @@ def aggregate_exposure(holdings: list[Holding], prices: dict[str, float]) -> dic
 
 def concentration_refusals(holdings: list[Holding], prices: dict[str, float], proposed_buy_qty: dict[str, float],
                            *, portfolio_value: float, max_position_pct: float) -> list[str]:
-    """Tickers whose post-buy exposure, external holdings included, exceeds the limit."""
-    exposure = aggregate_exposure(holdings, prices)
-    return sorted(t for t, q in proposed_buy_qty.items()
-                  if exposure.get(t, 0.0) + q * prices[t] > max_position_pct * portfolio_value)
+    """Tickers whose post-buy exposure, external holdings included, exceeds the limit.
+
+    Fails closed: a missing, non-finite or non-positive price, a non-finite or negative proposed
+    quantity, or an invalid portfolio value or limit refuses the affected (or every) ticker.
+    """
+    def good(x) -> bool:
+        return isinstance(x, (int, float)) and math.isfinite(x)
+
+    if not (good(portfolio_value) and portfolio_value > 0 and good(max_position_pct) and 0 < max_position_pct <= 1):
+        return sorted(proposed_buy_qty)
+    limit = max_position_pct * portfolio_value
+    refused = []
+    for ticker, qty in proposed_buy_qty.items():
+        price = prices.get(ticker)
+        if not (good(price) and price > 0 and good(qty) and qty >= 0):
+            refused.append(ticker)
+            continue
+        held = sum(h.quantity for h in holdings if h.ticker == ticker)
+        if held * price + qty * price > limit:
+            refused.append(ticker)
+    return sorted(refused)
