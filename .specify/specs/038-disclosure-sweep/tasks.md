@@ -36,22 +36,22 @@ D-1–D-5 stay open, and a task that consumes one waits for the human decision r
 
 ## Phase 0 — human gates (no lane unit consumes an open one)
 
-- [ ] T001 **HUMAN GATE — D-1, Camden.** Choose helper placement. If a new module, the `CLAUDE.md`
+- [x] T001 **HUMAN GATE — D-1, Camden.** Choose helper placement. If a new module, the `CLAUDE.md`
   module-table row is a human governance edit. Blocks T020–T022 and every unit that consumes them.
-- [ ] T002 **HUMAN GATE — D-4, Camden.** Inline register or same-surface reference, per surface class.
+- [x] T002 **HUMAN GATE — D-4, Camden.** Inline register or same-surface reference, per surface class.
   Blocks T030–T033 (panel form), T050, T055–T059 and T064.
-- [ ] T003 **HUMAN GATE — D-3, Camden.** CrossValidationView: `EXAMPLE — NOT A RESULT` labels or real fold
+- [x] T003 **HUMAN GATE — D-3, Camden.** CrossValidationView: `EXAMPLE — NOT A RESULT` labels or real fold
   configuration served from `scripts/walk_forward_cv.py`. A served configuration is a new API contract. Blocks T059.
-- [ ] T004 **HUMAN GATE — D-2, Camden.** Any PROJECT_CONTEXT or plot figure moved from S to G, with its
+- [x] T004 **HUMAN GATE — D-2, Camden.** Any PROJECT_CONTEXT or plot figure moved from S to G, with its
   named source. Regeneration needing market data is a separate human network task. Default S stands.
-- [ ] T005 **HUMAN GATE — D-5, Camden.** Q versus Rule 11 for absent-source (X) figures: (a), (b) or (c).
+- [x] T005 **HUMAN GATE — D-5, Camden.** Q versus Rule 11 for absent-source (X) figures: (a), (b) or (c).
   Option (a) may need a constitution amendment, which is outside every lane. Blocks T065.
-- [ ] T006 **HUMAN GATE — 047 D-1 runtime view test runner, Camden.** M9 and every render claim wait on
+- [x] T006 **HUMAN GATE — 047 D-1 runtime view test runner, Camden.** M9 and every render claim wait on
   the runner 047 actually adopts. A TypeScript source scan cannot certify rendering.
-- [ ] T007 **HUMAN GATE — HTML anchor, Camden.** `docs/audit-2026-09-12/remediation-map.html` has no literal `<body>` or
+- [x] T007 **HUMAN GATE — HTML anchor, Camden.** `docs/audit-2026-09-12/remediation-map.html` has no literal `<body>` or
   `</head>`; its first body element is `<div class="wrap">` at `:220`. Confirm that as the FR-006 anchor
   and how the guard locates it, or revise plan.md. Blocks T060 for that file.
-- [ ] T008 **HUMAN GATE — JSON evidence, Camden.** `docs/cleanup-audit-2026-09-18/checks.json`,
+- [x] T008 **HUMAN GATE — JSON evidence, Camden.** `docs/cleanup-audit-2026-09-18/checks.json`,
   `docs/cleanup-audit-2026-09-18/inventory.json` and the `docs/audit-2026-09-12/*.json` evidence cannot carry a Markdown banner. Decide whether
   they are outside Q (machine evidence, not a reader surface) or need a plan revision.
 

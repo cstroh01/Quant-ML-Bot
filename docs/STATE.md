@@ -55,6 +55,17 @@ at `26983da`.
 | 038 and 047 decisions | Delegated to Claude; ratified by Camden's merge of the decision PR | Camden merge |
 | `exec/` PRs (#101, #112–#117, #119) | Rule 7 line-by-line review record | Camden (blocks LIVE only) |
 
+## Delegations (Camden, 2026-10-09 (delegation answers G12–G16 in chat; recorded by Claude))
+
+- **G12.** 044 T003/T004 reviews: Codex plus Claude.
+- **G13.** Bounded fetches and the 044 T007 probe: the Codex lane, without a per-run "go".
+- **G14.** The 040 T001 kickoff check: the lane.
+- **G15.** PAPER drills: Codex.
+- **G16.** Enabling the PAPER schedule after all drills pass. The `.github/` PR for it still needs
+  Camden's merge.
+- **G17 is not in force.** Lane-merging decision PRs would conflict with constitution Rule 9a
+  condition 3. Delegated decisions are ratified by Camden merging the decision PR.
+
 ## Human gates (standing list)
 
 The loop never crosses these. Reaching one means: write the blocker above, stop.
@@ -62,7 +73,7 @@ The loop never crosses these. Reaching one means: write the blocker above, stop.
 - **Merge.** Rule 9: Camden merges. The one exception is a Rule 9a-eligible PR, until 2026-12-31.
 - **D-decisions.** Any spec decision marked open, gated, or "Camden".
 - **Live network probes.** Any market-data fetch, vendor API call, or other
-  external network use outside pytest's fakes.
+  external network use outside pytest's fakes. Exception: bounded fetches in the Codex lane per G13.
 - **Capital gate.** `docs/SCOPE-V1.md` §5, any `SafetyConfig` value, anything in `exec/` (Rule 7).
 - **Governance text.** The constitution, `CLAUDE.md`, `docs/SCOPE-V1.md`,
   ADR acceptance, `docs/autonomy/`, `.github/`.
