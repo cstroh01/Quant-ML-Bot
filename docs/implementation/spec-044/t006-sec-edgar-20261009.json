@@ -1,0 +1,12 @@
+{
+  "unit": "044 T006",
+  "source_sha": "13d915d6034a5fb1214cab29d9292b754c9fa265",
+  "attribution": "run by Codex on Camden's PC at Camden's instruction, 2026-10-09T19:36:31.745510+00:00",
+  "fetched_at": "2026-10-09T19:36:31.745510+00:00",
+  "requests": [
+    {"endpoint_path": "/Archives/edgar/data/320193/000119312513416534/d590790d10k.htm", "host": "www.sec.gov", "method": "GET", "parameters": {}, "requested_at_utc": "2026-10-09T19:36:36.496963+00:00", "http_status": 200, "row_counts": {}, "sha256": "5a478b884ce046046045aa080cf1a09742bd4d7c68d1724f2721ad51b22dc70d", "field_names": []}
+  ],
+  "citation": {"issuer": "AAPL", "form": "10-K", "accession": "0001193125-13-416534", "filed": "2013-10-30", "url": "https://www.sec.gov/Archives/edgar/data/320193/000119312513416534/d590790d10k.htm"},
+  "completion": "PARTIAL: primary filing retrieved and hashed; reported quarterly high/low and share basis are not independently verified; declared-dividend cases remain UNVERIFIED. No T006 completion or T007 probe claim.",
+  "public_data_values": "none"
+}
