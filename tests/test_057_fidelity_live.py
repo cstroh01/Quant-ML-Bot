@@ -150,3 +150,82 @@ def test_sell_is_sent_as_sell(tmp_path):
     live.connect()
     live.submit(intent(-1.5), arming=armed(live_profile()), now=NOW)
     assert broker.calls[0] == ("preview", "AAA", "S", 1.5)
+
+
+# --- U1 fixes (Codex coordination 2026-10-08): post-place errors, redaction, same-client-id retry ---
+
+SECRET_TEXT = "https://fidelity.example/acct=Z12345678?token=p-synthetic-hunter2"
+
+
+@pytest.mark.parametrize("error", [ConnectionResetError(SECRET_TEXT), RuntimeError(SECRET_TEXT), OSError(SECRET_TEXT),
+                                   BrokerError(SECRET_TEXT), ValueError(SECRET_TEXT)])
+def test_every_post_place_error_is_outcome_unknown_and_redacted(tmp_path, error):
+    broker = FakeBroker(place_error=error)
+    live = adapter(tmp_path, broker)
+    live.connect()
+    with pytest.raises(SubmissionUnknown) as caught:
+        live.submit(intent(), arming=armed(live_profile()), now=NOW)
+    assert "hunter2" not in str(caught.value) and "Z12345678" not in str(caught.value)
+    assert caught.value.__cause__ is None and caught.value.__suppress_context__
+    assert [c[0] for c in broker.calls] == ["preview", "place"]
+
+
+@pytest.mark.parametrize("stage", ["preview", "status", "positions"])
+def test_other_broker_errors_are_redacted(tmp_path, stage):
+    broker = FakeBroker(preview_error=RuntimeError(SECRET_TEXT) if stage == "preview" else None)
+    if stage != "preview":
+        def boom(*_a, **_k):
+            raise RuntimeError(SECRET_TEXT)
+        setattr(broker, stage, boom)
+    live = adapter(tmp_path, broker)
+    live.connect()
+    with pytest.raises(BrokerError) as caught:
+        if stage == "preview":
+            live.submit(intent(), arming=armed(live_profile()), now=NOW)
+        elif stage == "status":
+            live.submit(intent(), arming=armed(live_profile()), now=NOW)  # records an intent first
+            live.order_status("qmb-20261008-abc")
+        else:
+            live.positions()
+    assert "hunter2" not in str(caught.value) and caught.value.__cause__ is None
+    if stage == "preview":
+        assert [c[0] for c in broker.calls] == ["preview"]  # nothing placed
+
+
+def test_retry_of_a_known_order_returns_it_without_a_second_preview_or_place(tmp_path):
+    broker = FakeBroker()
+    live = adapter(tmp_path, broker)
+    live.connect()
+    assert live.submit(intent(), arming=armed(live_profile()), now=NOW) == "CONF-1"
+    assert live.submit(intent(), arming=armed(live_profile()), now=NOW) == "CONF-1"
+    assert [c[0] for c in broker.calls] == ["preview", "place"]
+
+
+def test_retry_after_unknown_with_no_broker_record_never_places_again(tmp_path):
+    broker = FakeBroker(place_error=TimeoutError())
+    live = adapter(tmp_path, broker)
+    live.connect()
+    with pytest.raises(SubmissionUnknown):
+        live.submit(intent(), arming=armed(live_profile()), now=NOW)
+    broker.status = lambda conf: None  # Fidelity shows no such order (yet)
+    broker.place_error = None
+    with pytest.raises(SubmissionUnknown, match="reconcile"):
+        live.submit(intent(), arming=armed(live_profile()), now=NOW)
+    assert [c[0] for c in broker.calls] == ["preview", "place"]
+
+
+def test_client_id_reused_for_a_different_order_refuses_before_any_call(tmp_path):
+    broker = FakeBroker()
+    live = adapter(tmp_path, broker)
+    live.connect()
+    live.submit(intent(), arming=armed(live_profile()), now=NOW)
+    with pytest.raises(BrokerError, match="different order"):
+        live.submit(intent(qty=5.0), arming=armed(live_profile()), now=NOW)
+    assert [c[0] for c in broker.calls] == ["preview", "place"]
+
+
+def test_challenge_at_placement_says_the_outcome_is_unknown(tmp_path):
+    live = adapter(tmp_path, FakeBroker(place_error=SecurityChallenge("warning")))
+    live.connect()
+    with pytest.raises(HaltProfile, match="outcome unknown"):
+        live.submit(intent(), arming=armed(live_profile()), now=NOW)
