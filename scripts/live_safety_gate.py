@@ -910,6 +910,12 @@ class SafetyGate:
                 self._write_kv({"kill_confirmed": True})
                 self._log_locked("KILL_CONFIRMED", {})
                 status_result = KILL_CONFIRMED
+            # Spec 032 audit: contrary later evidence revokes a stored confirmation, so
+            # reset_kill can never rely on a stale broker-side clear.
+            if status_result is not None:
+                if status_result != KILL_CONFIRMED and state["kill_confirmed"]:
+                    self._write_kv({"kill_confirmed": False})
+                    self._log_locked("KILL_CONFIRMATION_REVOKED", {"status": status_result})
             self._conn.execute("COMMIT")
         except Exception:
             self._conn.execute("ROLLBACK")
