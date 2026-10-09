@@ -133,8 +133,12 @@ reconstructs as `99.999999`. Its bound is `|rebuilt − nominal| ≤ F × q / 2`
     `datetime.now(timezone.utc)`. The as-of instant is localized to `America/New_York`
     explicitly. The last completed session is the latest `trading_days` session on or before the
     as-of date whose 16:00 New York close has passed. The adapter refuses unless
+    `last_response_session <= last_completed_session` **and**
     `len(trading_days(last_response_session + 1 day, last_completed_session)) <= 1`. The error is
-    `split-factor horizon check failed`. The manifest records `split_horizon_as_of_utc` and
+    `split-factor horizon check failed`. _Amended 2026-10-08 (043 triage F2; same rule already in
+    `artifacts/p1_rules.py` and self-checked on PR #92):_ a response ending after the last completed
+    session (today's partial bar) gives a reversed, empty range, so the lag reads 0 and would pass;
+    the ordering condition is checked first. The manifest records `split_horizon_as_of_utc` and
     `split_factor_basis_through` (the last response session).
   - **Requested coverage.** The sliced window must be non-empty. Its first session must equal
     `trading_days(start, end)[0]`, and its last must equal the last trading day on or before
