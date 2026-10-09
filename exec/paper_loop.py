@@ -351,8 +351,11 @@ def state_paths(profile: ModeProfile | None) -> tuple[Path, Path]:
     except ValueError as exc:
         raise RunAborted(f"{profile.name}: {exc}") from None
     base = root / namespace
-    if base.resolve().parent != root.resolve():  # belt and braces: one component, directly under root
-        raise RunAborted(f"{profile.name}: log_namespace resolves outside {root}")
+    # The root itself may be a link (the workflow links data/live_safety to durable state); the profile
+    # folder may not: a symlink or junction to a sibling would make two profiles share one gate DB.
+    if base.resolve() != root.resolve() / namespace:
+        raise RunAborted(f"{profile.name}: log_namespace resolves to {base.resolve()}, "
+                         f"not {root.resolve() / namespace}; refusing a redirected state folder")
     return base / "paper-gate.sqlite", base / "paper-runs"
 
 

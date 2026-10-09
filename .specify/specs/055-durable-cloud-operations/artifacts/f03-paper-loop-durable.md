@@ -53,5 +53,17 @@ deployment ignored, CLI submits without persist).
   and source bytes are checked restored.
 - Negative control: the 4074fc6 tests under this driver leave 3 mutants alive (send before persist,
   persist failure keeps sending, CLI submits without persist).
-- Rule 12: `python tests/mutation/run_055_f03_mutants.py` → 13/13 killed by named witnesses on this
-  branch AND with #95 (`773251b`) `mode_config.py` + tests overlaid (117 focused tests pass).
+- **Filesystem alias (Codex, 2026-10-09):** a `paper_small` folder that is a symlink or junction
+  to sibling `paper_large` passed: its resolved parent was still the root, so both profiles got one
+  gate DB and run log. `state_paths` now requires `base.resolve() == root.resolve() / namespace`.
+  The root itself may still be a link, which the workflow uses for `data/live_safety`. Red on
+  7007f9f: DID NOT RAISE. Controls: real sibling folders are accepted and distinct, and a linked
+  root is accepted. Tests use a directory symlink, or an NTFS junction where Windows refuses
+  unprivileged symlinks; they skip only if neither can be created.
+- Limitation: links on the leaf files (`paper-gate.sqlite`, `paper-runs`) inside a profile's own
+  folder are not checked.
+- Rule 12: `python tests/mutation/run_055_f03_mutants.py` → 14/14 killed by named witnesses on this
+  branch AND with #95 (`773251b`) `mode_config.py` + tests overlaid (120 focused tests pass). New
+  mutant: "redirected folder accepted" (the old parent-only check). The resolved-folder guard also
+  refuses the Codex alias, so the identifier mutant is now witnessed by `[Paper_Small]`. The device
+  mutant is witnessed by the lease `[nul]` case, which never resolves paths.

@@ -35,6 +35,8 @@ MUTS.update({
     "runner profile not checked": (RN, "    require_storage_identifier(profile)  # names lease and outbox files",
                                    "    (lambda _p: None)(profile)  # names lease and outbox files"),
     "device names allowed": (RT, " or value in _WINDOWS_DEVICES:", ":"),
+    "redirected folder accepted": (PL, "    if base.resolve() != root.resolve() / namespace:",
+                                   "    if base.resolve().parent != root.resolve():"),
 })
 # mutant -> (intended test-name prefix, required text in the assertion message)
 WITNESS = {
@@ -47,10 +49,14 @@ WITNESS = {
     "account not verified": ("test_credentials_for_another_account", "DID NOT RAISE"),
     "earlier deployment ignored": ("test_daily_deployment_counts_earlier", "assert ("),
     "cli submits without persist": ("test_workflow_gives_the_paper_loop", "CLI: reached broker or network"),
-    "namespace not checked": ("test_codex_alias_namespace_is_refused", "DID NOT RAISE"),
+    # The resolved-folder guard also refuses the Codex alias, so the identifier check is witnessed by a
+    # case only it can refuse (an uppercase name resolves to itself).
+    "namespace not checked": ("test_any_non_identifier_namespace_is_refused[Paper_Small]", "DID NOT RAISE"),
     "lease name not checked": ("test_lease_refuses_non_identifier_profiles", "DID NOT RAISE"),
     "runner profile not checked": ("test_runner_refuses_non_identifier_profiles", "DID NOT RAISE"),
-    "device names allowed": ("test_any_non_identifier_namespace_is_refused[con]", "DID NOT RAISE"),
+    # Lease names never touch resolve(), so this witness holds on Windows too (where con may resolve to a device).
+    "device names allowed": ("test_lease_refuses_non_identifier_profiles[nul]", "DID NOT RAISE"),
+    "redirected folder accepted": ("test_profile_dir_redirected_to_a_sibling_is_refused", "DID NOT RAISE"),
 }
 FILES = ["tests/test_055_paper_loop_durable.py", "tests/test_049_paper_loop.py",
          "tests/test_051_paper_loop_profile.py", "tests/test_055_storage_identifiers.py"]
