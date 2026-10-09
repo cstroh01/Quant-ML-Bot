@@ -14,6 +14,8 @@ muts = {
  "mode unbound": ("if evidence.mode != self.mode:", "if False:"),
  "foreign mode file read": ("if foreign:", "if False:"),
  "unregistered promote": ("if record is None:", "if False and record is None:"),
+ "NaN counts accepted": ("            if isinstance(value, bool) or not isinstance(value, int) or value < 0:", "            if False:"),
+ "truthy passes accepted": ("        if not (isinstance(evidence.gate3_pass, bool) and isinstance(evidence.oos_beats_baselines, bool)):", "        if False:"),
  "rollback single champion": ("if len(stack) < 2:", "if False:"),
 }
 killed = 0

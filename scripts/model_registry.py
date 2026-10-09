@@ -148,6 +148,12 @@ class Registry:
         """Champion := model, only on Camden's approval with complete, fresh evidence bound to it."""
         if approver != "Camden":
             raise PromotionError("only Camden promotes")
+        for name, value in (("shadow_sessions", evidence.shadow_sessions), ("breaches", evidence.breaches),
+                            ("max_evidence_age_sessions", max_evidence_age_sessions)):
+            if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+                raise PromotionError(f"{name} must be a non-negative integer, got {value!r}")
+        if not (isinstance(evidence.gate3_pass, bool) and isinstance(evidence.oos_beats_baselines, bool)):
+            raise PromotionError("Gate 3 and the OOS baseline comparison must be literal booleans (literal passes only)")
         record = next((e for e in self.history() if e["event"] == "register" and e["model"] == model), None)
         if record is None:
             raise PromotionError(f"model {model!r} is not a registered challenger")

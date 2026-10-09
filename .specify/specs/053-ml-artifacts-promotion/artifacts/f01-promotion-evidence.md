@@ -19,5 +19,9 @@ Promotion tests could not import: `Evidence` had no artifact/config/mode binding
 - `Registry` is bound to one mode and refuses a file holding another mode's events.
 - Rollback with no previous champion refuses instead of silently doing nothing.
 
+- Follow-up from Codex's independent Windows review (2026-10-08): `shadow_sessions`, `breaches` and
+  `max_evidence_age_sessions` must be non-negative ints (NaN compared False and passed both the
+  shadow-length and staleness checks); `gate3_pass`/`oos_beats_baselines` must be real booleans.
+
 ## Rule 12
-`python tests/mutation/run_053_promotion_fix_mutants.py` → 9/9 killed (partial expected accepted, champion via register, future Gate 3, artifact/config/mode unbound, foreign-mode file, unregistered promote, single-champion rollback).
+`python tests/mutation/run_053_promotion_fix_mutants.py` → 11/11 killed (NaN counts, truthy non-boolean passes, partial expected accepted, champion via register, future Gate 3, artifact/config/mode unbound, foreign-mode file, unregistered promote, single-champion rollback).

@@ -92,3 +92,28 @@ def test_rollback_without_a_previous_champion_refuses(tmp_path):
     with pytest.raises(PromotionError, match="previous"):
         r.rollback(reason="x", session=date(2026, 10, 9))
     assert r.champion() == "m1"
+
+
+NAN = float("nan")
+
+
+@pytest.mark.parametrize("change", [dict(shadow_sessions=NAN), dict(shadow_sessions=25.0), dict(breaches=NAN),
+                                    dict(breaches=-1), dict(shadow_sessions=True)])
+def test_non_integer_evidence_counts_refuse(tmp_path, change):
+    r = reg(tmp_path)
+    with pytest.raises(PromotionError, match="non-negative integer"):
+        promote(r, "m2", replace(GOOD, **change))
+    assert r.champion() == "m1"
+
+
+@pytest.mark.parametrize("max_age", [NAN, float("inf"), 10.0, -1])
+def test_invalid_evidence_age_limit_refuses(tmp_path, max_age):
+    r = reg(tmp_path)
+    with pytest.raises(PromotionError, match="max_evidence_age_sessions"):
+        promote(r, "m2", max_age=max_age)
+
+
+@pytest.mark.parametrize("change", [dict(gate3_pass="yes"), dict(oos_beats_baselines=1)])
+def test_truthy_non_boolean_passes_refuse(tmp_path, change):
+    with pytest.raises(PromotionError, match="literal passes"):
+        promote(reg(tmp_path), "m2", replace(GOOD, **change))
