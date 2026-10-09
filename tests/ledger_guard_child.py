@@ -46,11 +46,32 @@ def fake_nested(frame, **kwargs):
     return frame["Label"].copy(), list(range(len(frame))), [{}]
 
 
+def _record_worker_pid(root: Path) -> None:
+    """Each spawned worker owns its PID file; there is no concurrent shared append."""
+    pid = os.getpid()
+    folder = root / "guard-worker-pids"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / f"{pid}.pid").write_text(str(pid), encoding="ascii")
+
+
+def _read_worker_pids(root: Path) -> list[int]:
+    """Read completed workers' evidence; malformed records fail rather than being skipped."""
+    pids = []
+    for path in sorted((root / "guard-worker-pids").glob("*.pid")):
+        try:
+            pid = int(path.read_text(encoding="ascii"))
+        except ValueError:
+            raise ValueError(f"invalid worker PID evidence: {path.name}") from None
+        if pid <= 0 or path.stem != str(pid):
+            raise ValueError(f"invalid worker PID evidence: {path.name}")
+        pids.append(pid)
+    return sorted(pids)
+
+
 def worker_init(*args):
     """Install offline model stubs in actual spawned E4 workers."""
     check_isolation()
-    with (ROOT / "guard-worker-pids.jsonl").open("a") as stream:
-        stream.write(str(os.getpid()) + "\n")
+    _record_worker_pid(ROOT)
     import feature_set_comparison as module
     module._worker_init(*args)
     module.build_features = fake_features
@@ -146,7 +167,7 @@ def dispatch(entry, enabled, outcome):
         module.download_market_data = download
         module._worker_init = worker_init
         module.main(max_workers=2, record_trial=enabled)
-        outcome["worker_pids"] = [int(pid) for pid in (ROOT / "guard-worker-pids.jsonl").read_text().splitlines()]
+        outcome["worker_pids"] = _read_worker_pids(ROOT)
         outcome["parent_pid"] = os.getpid()
     elif entry == "E5":
         tearsheet_requests(cache, outcome)
