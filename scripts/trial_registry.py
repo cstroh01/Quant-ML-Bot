@@ -25,6 +25,9 @@ ROLES = {"candidate", "buy_and_hold_baseline", "random_signal_baseline", "synthe
 TERMINALS = {"completed", "rejected", "errored", "abandoned"}
 CONFIG_FIELDS = set("data universe date_range features transforms target model cv seed initial_capital commission slippage liquidation risk_free".split())
 ZERO = "0" * 64
+# Spec 058 D-1: a preregistered family's trials are refused until its declaration is in docs/trials.
+FAMILY_DIR = "docs/trials/families"
+DECLARED_FAMILIES = {"058-edge": ".specify/specs/058-edge-research-program/declaration.json"}
 ENABLE_ACTION = ("pass --record-trial to the CLI, or wrap library code in "
                  "`with production_recording(reason=...)`")
 # Spec 043 D-1 B: production recording is per-run, never environmental. Only
@@ -206,6 +209,61 @@ def serialized(path: Path, timeout: float = 10.):
                 time.sleep(.01)
 
 
+def _family_path(family: str, root: Path) -> Path:
+    if family not in DECLARED_FAMILIES:
+        raise ValueError(f"family {family!r} has no preregistered declaration source")
+    return Path(root) / FAMILY_DIR / f"{family}.json"
+
+
+def declare_family(family: str, *, root: Path = ROOT, synthetic: bool = False) -> dict:
+    """Write the one-time, immutable family declaration (spec 058 T005/T006).
+
+    Guarantees: production writes require deliberate enablement and happen before any
+    trial of that family exists; a second declaration never replaces the first.
+    """
+    root = Path(root).resolve()
+    path = _family_path(family, root)
+    if (root == ROOT) == synthetic:
+        raise ValueError("synthetic declarations require an injected root, and only those")
+    if not synthetic:
+        _require_production_enabled("trial_registry.declare_family", path)
+    source = root / DECLARED_FAMILIES[family]
+    declaration = json.loads(source.read_text(encoding="utf-8"))
+    if declaration.get("family") != family:
+        raise ValueError(f"declaration source names family {declaration.get('family')!r}, not {family!r}")
+    ledger = TrialLedger(root, synthetic=synthetic)
+    state = ledger.verify()
+    if any(e["family"] == family for e in state["events"]):
+        raise ValueError(f"family {family!r} already has trials; it can no longer be preregistered")
+    record = {"family": family, "declaration": declaration, "declaration_hash": digest(declaration),
+              "source": DECLARED_FAMILIES[family], "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+              "ledger_head_at_declaration": state["head"], "declared_at_utc": datetime.now(timezone.utc).isoformat()}
+    record["record_hash"] = digest(record)
+    immutable_write(path, canonical_json(record))
+    return record
+
+
+def verify_family(family: str, *, root: Path = ROOT) -> dict:
+    """Return the verified declaration record, or raise naming the missing or altered declaration."""
+    path = _family_path(family, root)
+    if not path.exists():
+        raise ValueError(f"family {family!r} requires its declaration (spec 058 T006) at {FAMILY_DIR}")
+    record = json.loads(path.read_bytes())
+    claimed = record.pop("record_hash", None)
+    if (claimed != digest(record) or record.get("family") != family
+            or digest(record.get("declaration")) != record.get("declaration_hash")):
+        raise ValueError(f"family {family!r} declaration record is altered or malformed")
+    return {**record, "record_hash": claimed}
+
+
+def family_status(family: str, ledger: "TrialLedger") -> dict:
+    """Candidate starts in a declared family against its cap; over the cap voids family N (058 D-1)."""
+    cap = verify_family(family, root=ledger.root)["declaration"]["n_family_cap"]
+    n = sum(1 for e in ledger.verify()["events"] if e["event_type"] == "started" and e["family"] == family
+            and e["role"] in {"candidate", "synthetic_test"})
+    return {"family": family, "n_family": n, "cap": cap, "within_cap": n <= cap}
+
+
 class TrialLedger:
     """One append-only authority. Injected roots are exclusively synthetic fixtures."""
     def __init__(self, root: Path = ROOT, *, relative_path: str = "docs/trials/trials.jsonl", synthetic: bool = False):
@@ -279,6 +337,7 @@ class TrialLedger:
         if not self.synthetic: _require_production_enabled(runner, self.path)
         if role not in ROLES: raise ValueError("unknown trial role")
         if role == "synthetic_test" and not self.synthetic: raise ValueError("synthetic role requires injected ledger")
+        if family in DECLARED_FAMILIES: verify_family(family, root=self.root)
         normalized, hashed = canonical_config(config, root=self.root)
         with serialized(self.path):
             state = self.verify()
