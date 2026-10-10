@@ -2,6 +2,7 @@
 import copy
 import json
 import math
+from fractions import Fraction
 import numpy as np
 import pandas as pd
 import pytest
@@ -167,3 +168,39 @@ def test_t034_committed_literal_matrix_hash_and_canonical_body():
     actual = canonical_json({k: v for k, v in result.items() if k != "matrix_hash"})
     assert actual == T034_BODY, f"T034 CANONICAL: {actual!r}"
     assert result["matrix_hash"] == T034_MATRIX_SHA, f"T034 HASH: {result['matrix_hash']}"
+
+
+# --- T040: hand-calculated HAC t-stat oracle at the Gate 3 boundary (t >= 3.0). The oracle is exact
+# rational Newey-West/Bartlett arithmetic on dyadic inputs, never metrics.mean_log_return_se itself.
+def t040_exact_t_squared(values, lags):
+    x = [Fraction(v) for v in values]; n = len(x); mean = sum(x) / n; c = [v - mean for v in x]
+    gamma = [sum(c[i] * c[i - j] for i in range(j, n)) / n for j in range(lags + 1)]
+    variance = gamma[0] + 2 * sum((1 - Fraction(j, lags + 1)) * gamma[j] for j in range(1, lags + 1))
+    return mean * mean / (variance / n)
+
+
+def test_t040_hac_gate_boundary_oracle():
+    """EXAMPLE — NOT A RESULT. Exact 3.0, one value below, lag floor, undefined SE, log risk-free."""
+    hac = api("selection_bias", "hac_t_stat")
+    exact, lagged = [1.25, .25, 1.25, .25], [.875, -.125, .875, -.125]  # centered +/-0.5, all dyadic
+    assert t040_exact_t_squared(exact, 0) == 9 and t040_exact_t_squared(lagged, 1) == 9, "T040 DECLARED"
+    assert hac(exact, horizon=3, lags=1)["reason"] == "hac_lag_below_horizon", "T040 GATE: lags = horizon-2"
+    floor = hac(exact, horizon=3, lags=2, annual_risk_free=0.)  # exact t^2 = 27 with Bartlett weights 2/3, 1/3
+    assert floor["reason"] is None and floor["hac_lags"] == 2, f"T040 GATE: lags = horizon-1 {floor}"
+    result = hac(exact, horizon=1, lags=0, annual_risk_free=0.)
+    assert result["value"] == 3.0, f"T040 EXACT: {result['value']!r}"
+    assert result["standard_error"] == .25 and result["hac_lags"] == 0, f"T040 EXACT: {result}"
+    result = hac(lagged, horizon=2, lags=1, annual_risk_free=0.)
+    assert result["value"] == 3.0 and result["standard_error"] == .125, f"T040 LAG: {result}"
+    assert t040_exact_t_squared(exact, 2) == 27 and floor["value"] == pytest.approx(math.sqrt(27), abs=1e-12), f"T040 LAG: {floor}"
+    below = [1.25, .25, 1.25, .25 - 2**-51]  # exact t^2 = 9 - 2^-47: t sits about 2.5 ulps under 3
+    assert 0 < 9 - t040_exact_t_squared(below, 0) < 2**-46, "T040 DECLARED: below"
+    value = hac(below, horizon=1, lags=0, annual_risk_free=0.)["value"]
+    assert value < 3.0 and value == 3. - 2 * math.ulp(3.), f"T040 BELOW: {value!r}"  # stable for every sum order
+    for values, lags in (([.25] * 8, 0), (exact, 4), ([.25, float("nan"), .5, .75], 0)):
+        undefined_se = hac(values, horizon=1, lags=lags, annual_risk_free=0.)
+        assert undefined_se["value"] is None and undefined_se["reason"] == "nonpositive_hac_se", f"T040 SE: {undefined_se}"
+    daily = math.log1p(.1) / 252  # log-return convention: subtract log1p(annual) / days, not annual / days
+    shifted = hac([v + daily for v in exact], horizon=1, lags=0, annual_risk_free=.1, days_per_year=252)
+    assert shifted["value"] == pytest.approx(3.0, abs=1e-9), f"T040 RISKFREE: {shifted['value']!r}"
+    assert shifted["mean_excess_log_return"] == pytest.approx(.75, abs=1e-12), f"T040 RISKFREE: {shifted}"
