@@ -9,3 +9,5 @@ fastapi==0.142.2
 httpx==0.28.1
 # Rule 6: pytest collects unittest classes and parametrized function tests together; stdlib unittest cannot collect the existing pytest cases.
 pytest==9.1.1
+# Rule 6: spec 046 T001 names the authors' EDGE reference implementation as the test oracle; no existing dependency computes the Ardia-Guidotti-Kroencke spread. Test-only.
+bidask==2.1.0
