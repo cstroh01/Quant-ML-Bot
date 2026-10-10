@@ -1,12 +1,8 @@
 """Rule 12 driver for spec 058 T007: the holdout seal (FR-002, D-3).
 
-Run: python tests/mutation/run_058_t007_mutants.py
-
-Each mutant edits ONE site of `scripts/data_sources.py` in an isolated copy (spec 043 D-4 helper).
-A kill counts only when the JUnit report shows a FAILURE (never an error) in a T007 test whose
-assertion message carries the named witness. The unchanged copy must pass with exactly the
-COLLECTED tests, every mutated file must compile, and the guard source and the `docs/trials/`
-bytes must be identical before and after.
+Run: python tests/mutation/run_058_t007_mutants.py. One-site mutants of `scripts/data_sources.py` in
+an isolated copy; a kill is a FAILURE (never an error) whose assertion carries the witness. Same
+control and byte-identity checks as run_058_t005_mutants.py.
 """
 from __future__ import annotations
 
