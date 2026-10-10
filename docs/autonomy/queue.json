@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden.",
+  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden. 2026-10-09 correction (Codex B1 #139): report units without output converted to fix; allowed_paths rebuilt from full task text as repo paths; Q89/Q90 blocked (atomic, over 300 lines); Q91-Q94 added. Conventions: (1) a tests-first unit whose tests are red lands them as pytest.mark.xfail(strict=True, reason='<spec> T0nn red until Qnn') or vitest test.fails, and the implementing unit removes the marker, so main and the required checks stay green; (2) TypeScript mutation drivers live under reports/web/mutation/drivers/ with their own vitest config, outside the default include, so they never mutate a view while the default suite runs.",
   "items": [
     {
       "id": "Q1",
@@ -257,7 +257,8 @@
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "#126 merged"
+        "#126 merged",
+        "Q82 PR merged"
       ]
     },
     {
@@ -274,7 +275,8 @@
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "CLAUDE.md module-rows PR (#132) merged"
+        "CLAUDE.md module-rows PR (#132) merged",
+        "Q82 PR merged"
       ]
     },
     {
@@ -290,7 +292,8 @@
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "#126 merged"
+        "#126 merged",
+        "Q82 PR merged"
       ]
     },
     {
@@ -351,7 +354,8 @@
       "depends_on": [
         "Q28 PR merged",
         "gate-answers PR (#130) merged"
-      ]
+      ],
+      "note": "scripts/trial_registry.py is read-only here: call family_status, do not edit it."
     },
     {
       "id": "Q30",
@@ -375,8 +379,8 @@
       "id": "Q31",
       "kind": "fix",
       "status": "ready",
-      "spec_task": "033 T046",
-      "summary": "Make T034-T040 green with the paper fixture and verify; tick T034/T037/T039/T040/T046 only with cited evidence.",
+      "spec_task": "033 T034+T046",
+      "summary": "Close the remaining T034 gap (pin one committed literal matrix hash in tests/test_033_dsr.py), make T034-T040 green with the paper fixture, verify reported DSR/t-stat inputs independently of the output object, and record evidence. Tick T034, T035, T037, T039, T040, T044 and T046 only with cited evidence (T035 from Q28, T037 from Q27, T039/T044 from Q29, T040 from Q26).",
       "allowed_paths": [
         "tests/test_033_dsr.py",
         "scripts/selection_bias.py",
@@ -387,7 +391,8 @@
       "file_cap_lines": 300,
       "depends_on": [
         "Q29 PR merged"
-      ]
+      ],
+      "note": "T046 = 'Make T034-T040 green' so T035 must also be evidenced and ticked; T044 (lifetime N composition, done in Q29) has no other unit with tasks.md in allowed_paths, so it is ticked here. No unit Q26-Q29 does T034's 'one committed matrix hash' (checkbox-audit-20261004.md:49), so it is done here."
     },
     {
       "id": "Q32",
@@ -397,6 +402,8 @@
       "summary": "Phase 8 tests (authorized 2026-10-09): Gate 3 evidence artifact schema, decision table (DSR>=0.95 AND HAC t>=3.0, PBO S=16 computed), immutable artifact/index, route no-artifact=unknown, offline command; confirm red against current code. Include family-N + lifetime-N per 033 2026-10-09 amendment.",
       "allowed_paths": [
         "tests/test_033_gate3.py",
+        "tests/spec033_support.py",
+        "tests/fixtures/spec_033/",
         ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
         "docs/implementation/spec-033/",
         "tests/mutation/run_033_"
@@ -404,17 +411,18 @@
       "file_cap_lines": 300,
       "depends_on": [
         "Q31 PR merged"
-      ]
+      ],
+      "note": "tests/spec033_support.py:12 freezes GATE_FIELDS (T006) without n_family/family fields, so the 2026-10-09 family-N + lifetime-N amendment requires editing it. Test-only labelled Gate 3 fixtures go in tests/fixtures/spec_033/ (plan.md:58). T061 red evidence goes in docs/implementation/spec-033/. Red tests must not reach main alone: land them as strict xfail (removed in Q33/Q34) or stack Q33 on this branch, or the required 'test' check fails (Rule 9a cond. 5)."
     },
     {
       "id": "Q33",
       "kind": "fix",
       "status": "ready",
-      "spec_task": "033 T062+T063+T064",
-      "summary": "Phase 9 implementation: scripts/generate_gate3_evidence.py, capital_gate route reads/validates the artifact, Gate 3 description. Never run concurrently with 038 T054.",
+      "spec_task": "033 T062",
+      "summary": "Phase 9 implementation part 1: scripts/generate_gate3_evidence.py verifies all inputs, calculates once offline, writes a new immutable artifact, appends its index record, never overwrites; make the T056-T058/T060 tests green. No real artifact is generated or committed (FR-047; T031 backfill not approved). Never run concurrently with 038 T054.",
       "allowed_paths": [
         "scripts/generate_gate3_evidence.py",
-        "reports/api/routes/capital_gate.py",
+        "tests/test_033_gate3.py",
         ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
         "docs/implementation/spec-033/",
         "tests/mutation/run_033_"
@@ -423,24 +431,46 @@
       "depends_on": [
         "Q32 PR merged"
       ],
-      "note": "Touches a Rule 9a-excluded path or records a decision: build and open the PR, but only Camden merges."
+      "note": "reports/api/routes/capital_gate.py is a forbidden path for queue agents (capital_gate API route; also Rule 9a cond. 2, constitution.md:187). T063 (route reads/validates artifact) and T064 (replace 'remains positive' text at capital_gate.py:41) are removed from this unit and need a separate Camden-authorized unit (proposed Q33b) that only Camden merges. tests/test_033_gate3.py added so the agent can drop strict-xfail markers for T062-covered cases; route tests (T059) stay red/xfail until Q33b. Artifacts written only to tmp dirs in tests; reports/artifacts/capital_gate/gate3/ (plan.md:51) is not committed. Earlier note: Touches a Rule 9a-excluded path or records a decision: build and open the PR, but only Camden merges."
+    },
+    {
+      "id": "Q91",
+      "kind": "fix",
+      "status": "blocked",
+      "spec_task": "033 T063+T064",
+      "summary": "capital_gate route reads and verifies the Gate 3 evidence artifact (split from Q33).",
+      "allowed_paths": [
+        "reports/api/routes/capital_gate.py",
+        "tests/test_033_gate3.py",
+        ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
+        "docs/implementation/spec-033/"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q33 PR merged"
+      ],
+      "note": "Blocked: reports/api/routes/capital_gate.py is a forbidden lane path. Needs Camden's explicit per-change authorization and Camden's merge. Q34, Q35 and Q84 wait on it."
     },
     {
       "id": "Q34",
       "kind": "fix",
-      "status": "ready",
+      "status": "blocked",
       "spec_task": "033 T065+T066+T067+T068+T069",
       "summary": "Rule 12 planted strategy fixture, clean control, mutation driver incl. N_current substitution mutant; record evidence.",
       "allowed_paths": [
         "tests/mutation/run_spec_033_gate_mutants.py",
+        "tests/test_033_gate3.py",
+        "tests/fixtures/spec_033/",
         ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
         "docs/implementation/spec-033/",
         "tests/mutation/run_033_"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q33 PR merged"
-      ]
+        "Q33 PR merged",
+        "Q91 PR merged"
+      ],
+      "note": "Blocked on the route: T065/T066 require 'the real evaluator and route' to return failed/passed with the evidence path, which needs T063 in reports/api/routes/capital_gate.py (forbidden to queue agents). Unblock once Camden authorizes and merges Q33b. Planted/clean fixtures go in tests/fixtures/spec_033/ and assertions in tests/test_033_gate3.py; mutants run on copied modules only (T067/T068), so no edit to scripts/generate_gate3_evidence.py is allowed here."
     },
     {
       "id": "Q35",
@@ -449,6 +479,7 @@
       "spec_task": "033 T070+T071+T072+T073+T074",
       "summary": "Phase 10 verification and docs (not T075, which is Camden's explanation).",
       "allowed_paths": [
+        "docs/audit-2026-09-12/REMEDIATION_PLAN.md",
         ".specify/specs/033-trial-ledger-dsr-pbo-gate/plan.md",
         ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
         "docs/implementation/spec-033/",
@@ -457,22 +488,25 @@
       "file_cap_lines": 300,
       "depends_on": [
         "Q34 PR merged"
-      ]
+      ],
+      "note": "T070 edits docs/audit-2026-09-12/REMEDIATION_PLAN.md:181 (finding 30 still assigned to 035) without changing the finding text or historical evidence; docs/HANDOFF-2026-09-25.md is historical and is not edited. T075 is Camden's Rule 9 explanation and is excluded; the agent may update the draft in docs/implementation/spec-033/ but must not tick T075. T073 may not be ticked while the full suite is red. Transitively blocked through Q34; T070 is independent and could be split into its own ready unit."
     },
     {
       "id": "Q36",
-      "kind": "report",
+      "kind": "fix",
       "status": "ready",
       "spec_task": "035 T002",
       "summary": "Compile research.md from the merged T001 records (PR #127) only; rows without evidence stay UNVERIFIED. Then append to tasks.md a dated note that 035 is retargeted to the 058 ETF universe (decisions in spec \u00a78, 2026-10-09) and list which later tasks change scope; do not change task acceptance text beyond that note.",
       "allowed_paths": [
         ".specify/specs/035-free-unadjusted-bundle/research.md",
         ".specify/specs/035-free-unadjusted-bundle/tasks.md",
-        "docs/implementation/spec-035/",
-        "tests/mutation/run_035_"
+        "docs/implementation/spec-035/"
       ],
       "file_cap_lines": 300,
-      "depends_on": []
+      "depends_on": [
+        "PR #127 (035 T001 records: docs/implementation/spec-035/fr001-*-20261009.md) merged"
+      ],
+      "note": "Converted to fix: the unit must write research.md AND append a dated retarget note (and tick T002) in tasks.md, which a single-output report cannot do. T001 and T003 are HUMAN GATE checkboxes; do not tick them (T003's decisions are already recorded in spec section 8, 2026-10-09). Rule 12 checklist evidence (planted unverified row fails, cited row passes) goes in docs/implementation/spec-035/. Rows not covered by fr001-*.md (dividend basis, corporate-action depth, EODHD history, SEC EDGAR spot-check) stay UNVERIFIED. The retarget note must flag T018 ('five tickers') and T022/T023 (AAPL/NVDA build and smoke) as scope-changed by the 058 ETF universe."
     },
     {
       "id": "Q37",
@@ -483,7 +517,6 @@
       "allowed_paths": [
         "docs/implementation/spec-035/u0-baseline-",
         "tests/test_035_reconcile.py",
-        "scripts/data.py",
         "scripts/corporate_actions.py",
         ".specify/specs/035-free-unadjusted-bundle/tasks.md",
         "docs/implementation/spec-035/",
@@ -493,7 +526,8 @@
       "depends_on": [
         "Q36 PR merged",
         "CLAUDE.md module-rows PR (#132) merged"
-      ]
+      ],
+      "note": "scripts/data.py removed: D-3 (spec.md:219) places the reconciler in the new pure module scripts/corporate_actions.py (no I/O), so U1 must not touch data.py (which 041/043/044 also hold). The tasks.md T006 file name scripts/corporate_action_reconciliation.py is superseded by recorded D-3. CLAUDE.md already carries the corporate_actions.py row. Line budget is tight (plan U1 est. 270 lines plus the U0 baseline note): if over 300, split T004 out and report."
     },
     {
       "id": "Q38",
@@ -522,15 +556,16 @@
       "allowed_paths": [
         "tests/test_035_manifest_v3.py",
         "scripts/data.py",
-        "tests/test_041_pay_date_bound.py",
         ".specify/specs/035-free-unadjusted-bundle/tasks.md",
         "docs/implementation/spec-035/",
         "tests/mutation/run_035_"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q38 PR merged"
-      ]
+        "Q38 PR merged",
+        "Q81 PR merged"
+      ],
+      "note": "tests/test_041_pay_date_bound.py removed: T009 says the existing v2 oracle there 'is not edited' and the standing rules forbid editing existing assertions; the M2 v3 oracle is a new test in tests/test_035_manifest_v3.py. Blocked by a dependency inversion: tasks.md T009 requires 044 merged, but queue Q78 (044 T040-T042, Unit 4) waits on Q40 (035 U3b). Either reorder the queue so 044 Units 4-7 land before Q39 (drop Q78's Q40 dependency) or revise 035 plan/tasks to remove the 044 dependency. That is a sequencing decision for Camden. Unblocked 2026-10-09 by ordering 044 first (Q81 = 044 Unit 7 merged satisfies \"044 merged\")."
     },
     {
       "id": "Q40",
@@ -558,7 +593,6 @@
       "summary": "U4 second-source adapter (Alpaca raw SIP, D-1) and credential handling from environment only; offline fakes.",
       "allowed_paths": [
         "tests/test_035_second_source.py",
-        ".specify/specs/035-free-unadjusted-bundle/research.md",
         "scripts/data.py",
         ".specify/specs/035-free-unadjusted-bundle/tasks.md",
         "docs/implementation/spec-035/",
@@ -567,7 +601,8 @@
       "file_cap_lines": 300,
       "depends_on": [
         "Q40 PR merged"
-      ]
+      ],
+      "note": "research.md removed: T013 requires the D-1 (Alpaca raw SIP) research.md row to be already verified and cited by the test. A code agent must not edit research.md to mark it verified. If the row is UNVERIFIED after Q36, stop and report. Credentials come from the environment only, and no key appears in tests, logs or evidence. Transitively blocked through Q39."
     },
     {
       "id": "Q42",
@@ -607,7 +642,27 @@
       "file_cap_lines": 300,
       "depends_on": [
         "Q42 PR merged"
-      ]
+      ],
+      "note": "Retargeted to the 058 ETF universe (spec 035 section 8 G3-R), so T018's 'five tickers' acceptance changes scope through Q36's dated note. The script must take tickers as an argument or config and must not hard-code any 058 section-4 ticker under scripts/: 058 D-1(b) and its baseline require that no section-4 ticker appears in scripts/, reports/ or docs/trials/. Tests use synthetic tickers and a temp cache root, never data/cache/. The real build (T022) is a HUMAN GATE."
+    },
+    {
+      "id": "Q94",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "035 T015",
+      "summary": "U5 Tiingo adapter (conditional; research records Tiingo raw close as nominal, so not void).",
+      "allowed_paths": [
+        "scripts/data.py",
+        "tests/test_035_tiingo.py",
+        ".specify/specs/035-free-unadjusted-bundle/tasks.md",
+        "docs/implementation/spec-035/",
+        "tests/mutation/run_035_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q41 PR merged"
+      ],
+      "note": "If research.md shows T015 void, record 'void per research.md row <n>' in tasks.md instead of code. Tickers are arguments, never hard-coded under scripts/. Preserve scripts/data.py line endings."
     },
     {
       "id": "Q44",
@@ -625,51 +680,24 @@
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q43 PR merged"
-      ]
+        "Q43 PR merged",
+        "Q94 PR merged"
+      ],
+      "note": "T020 depends on T015 if T015 is not void. No queue unit covers 035 T015, and README-20261009.md records Tiingo raw close as NOMINAL for AAPL and NVDA, so T015 is probably not void. A T015 unit is needed (tests/test_035_tiingo.py, scripts/data.py, tasks.md). T021's evidence file and tasks.md tick are covered."
     },
     {
       "id": "Q45",
-      "kind": "report",
+      "kind": "fix",
       "status": "ready",
       "spec_task": "038 T010+T011",
       "summary": "Baseline and static register re-verification at the unit's revision (string re-verify; flag any new unregistered surface).",
       "allowed_paths": [
-        "returns/",
         "docs/implementation/spec-038/baseline-",
-        "docs/cleanup-audit-2026-09-18/AUDIT.md",
-        "docs/audit-2026-09-12/AUDIT.md",
-        "docs/audit-2026-09-12/probe-results.json",
-        "docs/audit-2026-09-12/direction-baseline.json",
-        "docs/audit-2026-09-12/coverage.csv",
-        "docs/audit-2026-09-12/coverage.json",
-        "docs/audit-2026-09-12/REMEDIATION_PLAN.md",
-        "docs/audit-2026-09-12/remediation-map.html",
-        "NIGHT_RUN_SUMMARY.md",
-        ".specify/specs/002-backtest-costs-baselines/spec.md",
-        ".specify/specs/002-backtest-costs-baselines/plan.md",
-        ".specify/specs/006-embargo-window-semantics/spec.md",
-        ".specify/specs/009-selectable-target/spec.md",
-        ".specify/specs/012-cost-aware-entry-rule/spec.md",
-        ".specify/specs/014-scale-free-features/spec.md",
-        ".specify/specs/014-scale-free-features/plan.md",
-        ".specify/specs/014-scale-free-features/tasks.md",
-        ".specify/specs/017-position-sizing-risk/spec.md",
-        ".specify/specs/017-position-sizing-risk/research.md",
-        ".specify/specs/017-position-sizing-risk/tasks.md",
-        "docs/PROJECT_CONTEXT.md",
-        ".specify/specs/017-position-sizing-risk/quickstart.md",
-        ".specify/specs/020-unadjusted-price-data/spec.md",
-        "docs/audit-2026-09-12/CODEX_LANE_HANDOFF.md",
-        "docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md",
-        "README.md",
-        "reports/web/README.md",
-        ".specify/specs/038-disclosure-sweep/tasks.md",
-        "docs/implementation/spec-038/",
-        "tests/mutation/run_038_"
+        ".specify/specs/038-disclosure-sweep/tasks.md"
       ],
       "file_cap_lines": 300,
-      "depends_on": []
+      "depends_on": [],
+      "note": "Converted report->fix: the unit must tick T010+T011 in tasks.md and the evidence file name is date-stamped (baseline-<YYYYMMDD>.md), so a single fixed `output` cannot express it. Evidence only: no source/doc edit. All register paths, pinned scripts, save_figure callers and docs/trials/ are READ (hashed/verified), never edited; the previous list (AUDIT.md, closed specs, PROJECT_CONTEXT, README, etc.) wrongly authorized edits. `returns/` removed: the task verifies docs/trials/returns/ is ABSENT (docs/trials/ is forbidden). If T011 finds an unregistered surface (e.g. .specify/specs/017-position-sizing-risk/quickstart.md:79-80 is already unassigned), record it and stop; the plan.md row is a separate PR."
     },
     {
       "id": "Q46",
@@ -742,6 +770,7 @@
         "scripts/scratch_aapl_correlations.py",
         "scripts/scratch_multiticker_collinearity.py",
         "tests/test_038_panels_p3.py",
+        "tests/fixtures/spec_038/",
         ".specify/specs/038-disclosure-sweep/tasks.md",
         "docs/implementation/spec-038/",
         "tests/mutation/run_038_"
@@ -813,15 +842,15 @@
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q45 PR merged",
-        "decisions PR (#137) merged"
-      ]
+        "Q57 PR merged"
+      ],
+      "note": "Rule 11 (constitution:248-250): AUDIT.md, REMEDIATION_PLAN.md, remediation-map.html and NIGHT_RUN_SUMMARY.md hold absent-source (X) figures, so a PR touching them cannot merge until those figures are removed. Under D-5 (b) the T065 strike (Q57) must land first. remediation-map.html banner additionally requires T007 (HTML anchor, human gate) recorded; if #137 does not record T007, skip that file and leave T060 partially open. Q-pending-D-5 rows are already struck by Q57."
     },
     {
       "id": "Q53",
       "kind": "fix",
       "status": "ready",
-      "spec_task": "038 T061",
+      "spec_task": "038 T061 (D2a only)",
       "summary": "D2 closed-spec strikes, D2a first; split D2b/D2c into follow-up PRs if over 300 lines.",
       "allowed_paths": [
         "tests/test_038_static_guard.py",
@@ -831,9 +860,45 @@
         ".specify/specs/006-embargo-window-semantics/spec.md",
         ".specify/specs/009-selectable-target/spec.md",
         ".specify/specs/012-cost-aware-entry-rule/spec.md",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q52 PR merged"
+      ],
+      "note": "T061 says D2a, D2b, D2c are EACH separately admitted, so this unit is D2a only; D2b (014 spec/plan/tasks) and D2c (017 spec/research/tasks) need their own queue units (see concerns). Do not tick T061 until all three sub-units merge; record D2a evidence only."
+    },
+    {
+      "id": "Q92",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T061 (D2b only)",
+      "summary": "D2b closed-spec strikes in spec 014.",
+      "allowed_paths": [
+        "tests/test_038_static_guard.py",
         ".specify/specs/014-scale-free-features/spec.md",
         ".specify/specs/014-scale-free-features/plan.md",
         ".specify/specs/014-scale-free-features/tasks.md",
+        ".specify/specs/038-disclosure-sweep/tasks.md",
+        "docs/implementation/spec-038/",
+        "tests/mutation/run_038_"
+      ],
+      "file_cap_lines": 300,
+      "depends_on": [
+        "Q53 PR merged"
+      ],
+      "note": "Split from Q53 per T061 (D2a, D2b, D2c each admitted separately). Do not tick T061; Q93 ticks it."
+    },
+    {
+      "id": "Q93",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "038 T061 (D2c only)",
+      "summary": "D2c closed-spec strikes in spec 017; ticks T061.",
+      "allowed_paths": [
+        "tests/test_038_static_guard.py",
         ".specify/specs/017-position-sizing-risk/spec.md",
         ".specify/specs/017-position-sizing-risk/research.md",
         ".specify/specs/017-position-sizing-risk/tasks.md",
@@ -843,8 +908,9 @@
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q52 PR merged"
-      ]
+        "Q92 PR merged"
+      ],
+      "note": "Split from Q53 per T061."
     },
     {
       "id": "Q54",
@@ -878,18 +944,18 @@
         "docs/audit-2026-09-12/CODEX_LANE_HANDOFF.md",
         "docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md",
         "docs/audit-2026-09-12/AUDIT.md",
-        "docs/audit-2026-09-12/coverage.json",
         "tests/test_038_static_guard.py",
         "tests/mutation/run_038_static_mutants.py",
-        ".specify/specs/017-position-sizing-risk/quickstart.md",
         ".specify/specs/038-disclosure-sweep/tasks.md",
         "docs/implementation/spec-038/",
         "tests/mutation/run_038_"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q54 PR merged"
-      ]
+        "Q54 PR merged",
+        "Q93 PR merged"
+      ],
+      "note": "Removed .specify/specs/017-position-sizing-risk/quickstart.md: register row is 'unassigned' and T063 says it waits for a plan.md row (separate plan revision PR) - leave T063 partially open for it. Removed docs/audit-2026-09-12/coverage.json: it is the relink TARGET (read only) and is T008 JSON evidence. Rule 11: 017 tasks.md:182-196 holds X figures struck by D2c, so this PR touching 017 tasks.md cannot merge before D2c; AUDIT.md/NIGHT_RUN_SUMMARY.md X figures are struck by Q57 (transitively earlier)."
     },
     {
       "id": "Q56",
@@ -919,14 +985,22 @@
       "spec_task": "038 T065",
       "summary": "X quotations per D-5 (b): strike absent-source figures, keep context and source pointer.",
       "allowed_paths": [
+        "docs/audit-2026-09-12/AUDIT.md",
+        "docs/audit-2026-09-12/REMEDIATION_PLAN.md",
+        "docs/audit-2026-09-12/remediation-map.html",
+        "NIGHT_RUN_SUMMARY.md",
+        "tests/test_038_static_guard.py",
+        "tests/mutation/run_038_static_mutants.py",
         ".specify/specs/038-disclosure-sweep/tasks.md",
         "docs/implementation/spec-038/",
         "tests/mutation/run_038_"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q56 PR merged"
-      ]
+        "Q45 PR merged",
+        "decisions PR (#137) merged"
+      ],
+      "note": "Previous allowed_paths contained no target document, so the unit could do nothing. Targets = Q-pending-D-5 register rows: AUDIT.md:30-37; REMEDIATION_PLAN.md:145,:292 (52.99% only); remediation-map.html:361,:483 (52.99%),:362,:476 (0.0844%); NIGHT_RUN_SUMMARY.md:125-137,:148. Committed-source Q figures (53.54%, probe values) stay. Reordered FIRST among D units: Rule 11 blocks merging any PR that touches these surfaces while X figures remain, so Q52/Q55 depend on this. Only valid if #137 records D-5 = (b) in spec.md \u00a78; if D-5 is still open, mark blocked (T005). Starts the shared static guard file; red/mutant/control per Rule 12."
     },
     {
       "id": "Q58",
@@ -945,8 +1019,10 @@
       "file_cap_lines": 300,
       "depends_on": [
         "Q46 PR merged",
-        "Q67 PR merged"
-      ]
+        "Q67 PR merged",
+        "Q70 PR merged"
+      ],
+      "note": "047 spec section 8: no 038 unit may hold BacktestTearsheetView.tsx, routes/backtest.py, schemas.py or types/api.ts while 047 is open; waits for Q70 (047 closed)."
     },
     {
       "id": "Q59",
@@ -996,7 +1072,6 @@
       "allowed_paths": [
         "reports/api/routes/backtest.py",
         "tests/test_038_api_bars_drawdown.py",
-        "scripts/ma_crossover_backtest.py",
         ".specify/specs/038-disclosure-sweep/tasks.md",
         "docs/implementation/spec-038/",
         "tests/mutation/run_038_"
@@ -1004,12 +1079,13 @@
       "file_cap_lines": 300,
       "depends_on": [
         "Q60 PR merged"
-      ]
+      ],
+      "note": "Removed scripts/ma_crossover_backtest.py: T053 ADOPTS the existing mean_holding_bars helper (ma_crossover_backtest.py:72, import only) rather than adding/editing one; not in the T053 Files line, and editing it would change the 021 fingerprint. T053 says the holding-bars method is 'chosen in the unit PR before code': the PR records a design choice, so treat as Rule 9a-excluded (Camden merges)."
     },
     {
       "id": "Q62",
       "kind": "fix",
-      "status": "ready",
+      "status": "blocked",
       "spec_task": "038 T054",
       "summary": "A5 capital gate API. Never concurrent with 033 Q33.",
       "allowed_paths": [
@@ -1024,12 +1100,12 @@
         "Q61 PR merged",
         "Q33 PR merged"
       ],
-      "note": "Touches a Rule 9a-excluded path or records a decision: build and open the PR, but only Camden merges."
+      "note": "Blocked: T054's only source file is reports/api/routes/capital_gate.py, a forbidden lane path (routine \u00a74 'Capital gate'; constitution Rule 9a list :187). Needs a separate human change: either Camden does T054 himself / instructs it explicitly in chat as a reviewed capital-gate PR, or a governance amendment to docs/autonomy/routine-prompt.md + Rule 9a permitting lane edits to this route. Also waits on 033 releasing the route (Q33) and never runs concurrently with 033 Phases 8-9. Earlier note: Touches a Rule 9a-excluded path or records a decision: build and open the PR, but only Camden merges."
     },
     {
       "id": "Q63",
       "kind": "fix",
-      "status": "ready",
+      "status": "blocked",
       "spec_task": "038 T055+T056+T057+T058+T059+T059a",
       "summary": "V0-V5 web views, one PR per view if needed; runtime tests via the 047 T005 runner.",
       "allowed_paths": [
@@ -1049,7 +1125,8 @@
         "Q62 PR merged",
         "047 T005 governance PR merged",
         "Q70 PR merged"
-      ]
+      ],
+      "note": "Blocked: (1) T055-T059a are six separately-admitted V units (tasks.md:180-203), combined far over 300 lines - must be split into six queue units; (2) T055's new ProvenanceBanner/LimitationsBlock component paths are 'undecided; fix explicitly before admission' (tasks.md:185-186) - needs a tasks.md/plan.md path revision PR; (3) allowed_paths omit all runtime test files (runner = vitest, include 'src/**/*.test.{ts,tsx}'; 047 layout reports/web/src/test/) and TS mutation fixtures; (4) T059 needs D-3 (T003) and T059a needs T054 (Q62, blocked) and 033's route release. Proposed split in concerns."
     },
     {
       "id": "Q64",
@@ -1058,31 +1135,32 @@
       "spec_task": "038 T080",
       "summary": "Close-out acceptance matrix.",
       "allowed_paths": [
-        "returns/",
-        ".specify/specs/038-disclosure-sweep/tasks.md",
-        "docs/implementation/spec-038/",
-        "tests/mutation/run_038_"
+        "docs/implementation/spec-038/close-",
+        ".specify/specs/038-disclosure-sweep/tasks.md"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q63 PR merged",
-        "Q57 PR merged"
-      ]
+        "Q57 PR merged",
+        "Q56 PR merged",
+        "Q51 PR merged",
+        "Q93 PR merged"
+      ],
+      "note": "Removed `returns/`: T080 verifies docs/trials/returns/ is ABSENT (forbidden path); listing it authorizes creating it. Removed tests/mutation/run_038_: close-out re-runs existing drivers, edits none. Added Q51 (F unit was not transitively upstream of Q63/Q57) and the D2b/D2c units. T080 cannot claim closure while Q62/Q63 are blocked and H lane T070 (Camden) is open: it records them as open human items."
     },
     {
       "id": "Q65",
-      "kind": "report",
+      "kind": "fix",
       "status": "ready",
       "spec_task": "047 T004",
       "summary": "Fresh clean-main baseline (pytest + npm lint/build).",
       "allowed_paths": [
         "docs/implementation/spec-047/baseline-",
-        ".specify/specs/047-tearsheet-correctness/tasks.md",
-        "docs/implementation/spec-047/",
-        "tests/mutation/run_047_"
+        ".specify/specs/047-tearsheet-correctness/tasks.md"
       ],
       "file_cap_lines": 300,
-      "depends_on": []
+      "depends_on": [],
+      "note": "Converted report->fix: T004 needs the baseline file AND the T004 tick in tasks.md (two files). Write a NEW docs/implementation/spec-047/baseline-<YYYYMMDD>.md on clean main: pytest exit code + passed/failed/xfailed/errors, Python version, commit SHA, ledger check (trials.jsonl lines+SHA-256, trials.head.json SHA-256, returns/ absent), reports/web npm run lint and npm run build (npm test optional extra). Cite baseline-20261007.md as the earlier pre-U1a working-checkout baseline; do not edit it. Tick T004 only; T006/T007 ticks belong to the docs-reconciliation unit (evidence PR #53). Linux run is evidence; Camden's Windows venv is the gate. Dropped tests/mutation/run_047_ (T004 has no planted defect) and the broad docs/implementation/spec-047/ prefix (would allow editing u1a/baseline-20261007 evidence)."
     },
     {
       "id": "Q66",
@@ -1092,15 +1170,18 @@
       "summary": "U1b view friction display with runtime tests.",
       "allowed_paths": [
         "reports/web/src/types/api.ts",
-        "BacktestTearsheetView.tsx",
+        "reports/web/src/components/views/BacktestTearsheetView.tsx",
+        "reports/web/src/components/views/BacktestTearsheetView.test.tsx",
+        "reports/web/src/test/fixtures/",
+        "reports/web/mutation/run_047_",
         ".specify/specs/047-tearsheet-correctness/tasks.md",
-        "docs/implementation/spec-047/",
-        "tests/mutation/run_047_"
+        "docs/implementation/spec-047/u1b-"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "047 T005 governance PR merged"
-      ]
+        "decisions PR (#137) merged"
+      ],
+      "note": "T008 web test lives beside the view (vitest include src/**/*.test.{ts,tsx}). V1 is a TypeScript mutant: driver + its own single-test vitest config go under reports/web/mutation/run_047_* using mutation/mutate.ts runMutant/control (helper itself is T005 governance output, not editable). Driver must NOT be named mutation/*.test.ts unless it is safe to run in the default suite: runMutant edits BacktestTearsheetView.tsx in place and the default vitest run would race with BacktestTearsheetView.test.tsx in another worker. No Python mutant here, so tests/mutation/run_047_ dropped. T008 must cite the recorded D-1 line (T001 acceptance) -> depends on decisions PR #137; T005 dependency satisfied (PR #141) and dropped; T007 merged (#53). Record FR-008 byte-identity check (Rf line, FRICTION MODEL header and $commission / bps line, 1e-9 badge, TutorCard, MarketDataView:98 caption). Must not run while any 038 unit holds BacktestTearsheetView.tsx/api.ts."
     },
     {
       "id": "Q67",
@@ -1113,13 +1194,14 @@
         "reports/api/routes/backtest.py",
         "reports/api/schemas.py",
         ".specify/specs/047-tearsheet-correctness/tasks.md",
-        "docs/implementation/spec-047/",
+        "docs/implementation/spec-047/u2a-",
         "tests/mutation/run_047_"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "decisions PR (#137) merged"
-      ]
+      ],
+      "note": "Python mutants M4, M5, M4a (or M4a') via tests/mutation_support_019.py::killed (read-only) run through the route on fixture_client (tests/api_fixtures.py, read-only); dividend-only bundle built inside tests/test_047_chart_bars.py via publish_bundle (tests/unadjusted_fixtures.py read-only). T010 must cite the recorded D-2 option and FR-004a SMA sub-choice from #137. Record 021 SHA-256 fingerprints of routes/backtest.py before/after. tests/test_reports_api.py:107-137 is read-only (FR-008) and is not in scope. Narrowed evidence prefix to u2a- so earlier 047 evidence files cannot be rewritten."
     },
     {
       "id": "Q68",
@@ -1128,20 +1210,26 @@
       "spec_task": "047 T012+T013",
       "summary": "U2b chart draws run bars; MarketDataView drops markers (D-3).",
       "allowed_paths": [
-        "CandlestickChart.tsx",
-        "BacktestTearsheetView.tsx",
-        "App.tsx",
-        "MarketDataView.tsx",
-        "api.ts",
+        "reports/web/src/components/charts/CandlestickChart.tsx",
+        "reports/web/src/components/charts/CandlestickChart.test.tsx",
+        "reports/web/src/components/views/BacktestTearsheetView.tsx",
+        "reports/web/src/components/views/BacktestTearsheetView.test.tsx",
+        "reports/web/src/components/views/MarketDataView.tsx",
+        "reports/web/src/components/views/MarketDataView.test.tsx",
+        "reports/web/src/App.tsx",
+        "reports/web/src/types/api.ts",
+        "reports/web/src/test/fixtures/",
+        "reports/web/mutation/run_047_",
         ".specify/specs/047-tearsheet-correctness/tasks.md",
-        "docs/implementation/spec-047/",
-        "tests/mutation/run_047_"
+        "docs/implementation/spec-047/u2b-"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q67 PR merged",
-        "047 T005 governance PR merged"
-      ]
+        "Q69 PR merged",
+        "decisions PR (#137) merged"
+      ],
+      "note": "Bare basenames resolved: 'api.ts' is reports/web/src/types/api.ts (plan.md:111, :213 RunBar type), not services/api.ts. V2/V3/V4 are TS mutants -> reports/web/mutation/run_047_* (same in-place-race caveat as Q66); no Python mutant, tests/mutation/run_047_ dropped. T012 needs T003 (D-3) and T002 (D-2 SMA sub-choice) recorded -> #137; T009 via Q66 (transitive through Q69). Serialized after Q69 because U2b and U3 share BacktestTearsheetView.tsx and must never run concurrently (tasks.md:209-210); U3 is smaller and decision-light, so it goes first. MarketDataView.tsx:98 caption untouched; /api/data/stats unchanged. Plan estimate 160 lines + tests over 3 test files; if the measured total exceeds 300 the unit STOPS for a plan revision (tasks.md:56-58), it is not split or compressed."
     },
     {
       "id": "Q69",
@@ -1150,15 +1238,19 @@
       "spec_task": "047 T014+T015",
       "summary": "U3 null drawdown renders N/A.",
       "allowed_paths": [
-        "BacktestTearsheetView.tsx",
+        "reports/web/src/components/views/BacktestTearsheetView.tsx",
+        "reports/web/src/components/views/BacktestTearsheetView.test.tsx",
+        "reports/web/src/test/fixtures/",
+        "reports/web/mutation/run_047_",
         ".specify/specs/047-tearsheet-correctness/tasks.md",
-        "docs/implementation/spec-047/",
-        "tests/mutation/run_047_"
+        "docs/implementation/spec-047/u3-"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q68 PR merged"
-      ]
+        "Q66 PR merged",
+        "decisions PR (#137) merged"
+      ],
+      "note": "T014 depends only on T005 (merged #141) and T009 (Q66); it does not wait on U2b decisions (tasks.md:209-210), so the former 'Q68 PR merged' dependency is replaced and Q68 instead depends on Q69 to keep the shared-file serialization. formatPercentOrNA stays in BacktestTearsheetView.tsx (task Files names only that file + the test); M6 is a TS mutant -> reports/web/mutation/run_047_*; Python prefix dropped. T014 must cite the D-1 line (#137). Baseline table's null fields keep rendering the em dash (:456)."
     },
     {
       "id": "Q70",
@@ -1169,14 +1261,16 @@
       "allowed_paths": [
         "docs/implementation/spec-047/close-",
         ".specify/specs/047-tearsheet-correctness/tasks.md",
-        "docs/implementation/spec-047/",
+        ".specify/specs/047-tearsheet-correctness/spec.md",
+        "tests/test_047_close_report.py",
         "tests/mutation/run_047_"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q69 PR merged",
-        "Q66 PR merged"
-      ]
+        "Q68 PR merged",
+        "Q69 PR merged"
+      ],
+      "note": "Added spec.md: T016 Files include 'the spec Status line' (.specify/specs/047-tearsheet-correctness/spec.md:6 is stale 'Draft spec.md only'); edit that line only. Rule 12 planted defect (close report missing one mutant's control line must fail the checklist) needs a checker: tests/test_047_close_report.py, with the planted-copy driver under tests/mutation/run_047_. Removed the broad docs/implementation/spec-047/ prefix so prior unit evidence stays immutable. Close compares against Q65's fresh baseline. Do NOT tick human-gate boxes T001-T003/T005 as agent work; tick them only by citing the merged records (#137, #141), otherwise leave them for Camden. Q66 is transitive via Q68->Q69->Q66."
     },
     {
       "id": "Q71",
@@ -1194,19 +1288,15 @@
         "tests/test_metrics.py",
         "scripts/trial_runner.py",
         "scripts/ma_crossover_backtest.py",
-        "scripts/selection_bias.py",
-        "tests/spec033_support.py",
         ".specify/specs/046-rule13-cost-model/artifacts/u2.txt",
         ".specify/specs/046-rule13-cost-model/tasks.md",
-        "tests/fixtures/spec_033/runner_inventory.json",
-        "docs/implementation/spec-046/",
         "tests/mutation/run_046_"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q8 PR merged"
       ],
-      "note": "scripts/backtest_harness.py is shared with 047 U1a (merged); coordinate."
+      "note": "Removed read-only paths: scripts/selection_bias.py and tests/spec033_support.py (T009 'read-only'), tests/fixtures/spec_033/runner_inventory.json (T010 'read-only'). Removed docs/implementation/spec-046/: 046 evidence is artifacts/u2.txt. Summary 'split into <=300-line PRs' contradicts 046 tasks.md:21-24: U2 is ONE <=300-line unit; if it cannot fit, stop for a plan revision, never a silent extra unit/PR. Existing-test edits only where the cost interface changes; no assertion weakened. Any edit to a pinned 019 caller (feature_set_comparison.py, multi_ticker_comparison.py, logistic_baseline.py) waits on T002 human authorization + budgeted plan revision (T010). backtest_harness.py and metrics.py also sit on 021's whole-file list; record hashes. Depends on Q8 (046 U1 T003-T006) which carries the T001/T002 human-gate prerequisites. Earlier note: scripts/backtest_harness.py is shared with 047 U1a (merged); coordinate."
     },
     {
       "id": "Q72",
@@ -1218,6 +1308,8 @@
         "tests/test_046_cost_reporting.py",
         "tests/test_reports_api.py",
         "tests/test_no_fabricated_values.py",
+        "tests/test_046_cost_model.py",
+        "tests/test_046_cost_wiring.py",
         "reports/api/routes/backtest.py",
         "reports/api/schemas.py",
         "scripts/ma_crossover_backtest.py",
@@ -1225,33 +1317,33 @@
         "reports/web/src/services/api.ts",
         "reports/web/src/App.tsx",
         "reports/web/src/components/views/BacktestTearsheetView.tsx",
-        "tests/test_046_cost_model.py",
-        "tests/test_046_cost_wiring.py",
+        "reports/web/src/components/views/BacktestTearsheetView.test.tsx",
+        "reports/web/src/test/fixtures/",
+        "reports/web/mutation/run_046_",
         ".specify/specs/046-rule13-cost-model/artifacts/u3.txt",
         ".specify/specs/046-rule13-cost-model/tasks.md",
-        "docs/implementation/spec-046/",
         "tests/mutation/run_046_"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q71 PR merged",
-        "Q67 PR merged"
-      ]
+        "Q70 PR merged"
+      ],
+      "note": "T013 requires a rendered check with API fixtures and an M9 render assertion that fails ('compilation alone is insufficient'); pytest cannot render React, so the vitest view test + reports/web/mutation/run_046_ driver were added (spec text names only Python tests: flag for plan alignment, not a scope widening). Removed docs/implementation/spec-046/ (046 evidence is artifacts/u3.txt). Dependency changed Q67 -> Q70: 046 U3 removes the flat-bps text and fields from BacktestTearsheetView.tsx/api.ts/routes/schemas that every 047 unit must keep byte-identical (047 FR-008 check, tasks.md:48-51) and edits the same files as 047 U1b/U2b/U3, so 047 must close first (Q70 implies Q67). tests/test_reports_api.py: add narrow cases only, no existing assertion edited. U3 spans API+CLI+4 frontend files+tests: if measured total >300, stop for plan revision (tasks.md:21-24), do not split."
     },
     {
       "id": "Q73",
-      "kind": "report",
+      "kind": "fix",
       "status": "ready",
       "spec_task": "044 T005",
       "summary": "Baseline.",
       "allowed_paths": [
         ".specify/specs/044-nominal-price-reconstruction/artifacts/baseline.txt",
-        ".specify/specs/044-nominal-price-reconstruction/tasks.md",
-        "docs/implementation/spec-044/",
-        "tests/mutation/run_044_"
+        ".specify/specs/044-nominal-price-reconstruction/tasks.md"
       ],
       "file_cap_lines": 300,
-      "depends_on": []
+      "depends_on": [],
+      "note": "Converted report->fix: T005 writes artifacts/baseline.txt AND ticks tasks.md T005 (two files), so a single-output report cannot complete it. Offline only: python -m pytest tests; record exit code and counts; must show 0 failed / 0 errors or the unit stops. Take it immediately before Q75 (tasks.md :4 is single-threaded; a baseline taken long before Unit 1 is stale)."
     },
     {
       "id": "Q74",
@@ -1260,15 +1352,17 @@
       "spec_task": "044 T009",
       "summary": "Cross-check (SC-004, D-5) by a lane other than the drafting lane; also perform the G12-delegated T003/T004 code reviews as recorded verdicts in the PR (Claude side).",
       "allowed_paths": [
-        "split-table-crosscheck.md",
+        ".specify/specs/044-nominal-price-reconstruction/artifacts/split-table-crosscheck.md",
         ".specify/specs/044-nominal-price-reconstruction/tasks.md",
-        "docs/implementation/spec-044/",
-        "tests/mutation/run_044_"
+        "docs/implementation/spec-044/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "decisions PR (#137) merged"
-      ]
+        "decisions PR (#137) merged",
+        "044 T007 probe output committed (Codex lane under G13)",
+        "044 T008 selections recorded"
+      ],
+      "note": "Blocked for the cloud lane. T009 needs: (1) the provider column 'from P-1', which only exists after Camden's T007 run; (2) closing the 2026 primary-8-K check and the MSFT no-split source, which are SEC fetches (routine \u00a74: no SEC/vendor network); (3) 'Camden spot-checks at least one citation per ticker' (task names Camden). T003/T004 are explicitly '(Camden)' reviews (tasks.md:46-49); no G12 delegation record was found in the repo or the project docs, so the lane may not perform or record them as verdicts. Unblock route: Codex/Camden bounded fetch lane for the SEC rows after T007, then a lane-eligible unit limited to filling verified rows in split-table-crosscheck.md. Path fixed from bare basename to full repo path. Corrected 2026-10-09: G12/G13 are recorded in spec 044 Delegations and STATE.md on main, so this is waiting, not blocked. Camden's per-ticker citation spot-check (T009) is required before merge: leave the PR draft and list it for Camden; Rule 9a does not merge it."
     },
     {
       "id": "Q75",
@@ -1285,8 +1379,10 @@
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q73 PR merged"
-      ]
+        "Q73 PR merged",
+        "044 T008 selections recorded"
+      ],
+      "note": "T010's volume change is applied 'only if T008 selected \u00f7F', so Unit 1 cannot be written before T008 (which follows Camden's T007). T011 records each migrated test's actual red/green state in the unit evidence file under docs/implementation/spec-044/. Landing intentionally red tests on main makes the required full-suite check fail (see concerns): use strict xfail with the named reason, or hold Units 1-4 on one branch for a single merge, per Camden's choice."
     },
     {
       "id": "Q76",
@@ -1295,14 +1391,15 @@
       "spec_task": "044 T020+T021+T022+T023+T024+T025",
       "summary": "Unit 2 contracts A, red.",
       "allowed_paths": [
+        "tests/test_044_nominal_reconstruction.py",
         ".specify/specs/044-nominal-price-reconstruction/tasks.md",
-        "docs/implementation/spec-044/",
-        "tests/mutation/run_044_"
+        "docs/implementation/spec-044/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q75 PR merged"
-      ]
+      ],
+      "note": "New file tests/test_044_nominal_reconstruction.py (part 1). Tests only; the split oracle (_validate_split_discontinuities, SPLIT_RATIO_RELATIVE_TOLERANCE) and scripts/data.py are not edited. Fixtures labelled 'EXAMPLE \u2014 NOT A RESULT', hand-written literal factors. T025 records red per test with its named reason in docs/implementation/spec-044/. Red-on-main issue: see concerns."
     },
     {
       "id": "Q77",
@@ -1311,14 +1408,16 @@
       "spec_task": "044 T030+T031+T032+T033+T034",
       "summary": "Unit 3 contracts B, red.",
       "allowed_paths": [
+        "tests/test_044_nominal_reconstruction.py",
         ".specify/specs/044-nominal-price-reconstruction/tasks.md",
-        "docs/implementation/spec-044/",
-        "tests/mutation/run_044_"
+        "docs/implementation/spec-044/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q76 PR merged"
-      ]
+        "Q76 PR merged",
+        "044 T008 selections recorded"
+      ],
+      "note": "Part 2 of tests/test_044_nominal_reconstruction.py. T032 tests 'the branch T008 selected' (FR-005 volume, FR-012 same-day), so it needs T008. T033 drives run_backtest read-only (scripts/backtest_harness.py is not edited). T034 records red per test."
     },
     {
       "id": "Q78",
@@ -1327,16 +1426,19 @@
       "spec_task": "044 T040+T041+T042",
       "summary": "Unit 4 reconstruction core in scripts/data.py (do not run concurrently with 035 data.py units).",
       "allowed_paths": [
+        "scripts/data.py",
+        "tests/test_044_nominal_reconstruction.py",
+        "tests/test_020_unadjusted_price_data.py",
+        "tests/test_041_pay_date_bound.py",
         ".specify/specs/044-nominal-price-reconstruction/tasks.md",
-        "docs/implementation/spec-044/",
-        "tests/mutation/run_044_"
+        "docs/implementation/spec-044/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q77 PR merged",
-        "Q40 PR merged",
         "044 T008 selections recorded"
-      ]
+      ],
+      "note": "Implementation lives in scripts/data.py only (plan.md Rule 8 row: data.py only). The three test files are allowed ONLY to remove strict-xfail markers from tests that now pass, if Units 1-3 landed with them; no assertion edits. Do not edit _validate_split_discontinuities, SPLIT_RATIO_RELATIVE_TOLERANCE or load_unadjusted_market_data (tests/test_044_loader_untouched.py pins the loader). Keep data.py mixed CRLF/LF exactly. Do not run concurrently with 035 data.py units (Q37, Q39-Q41) or 041/043. Q40 dependency removed 2026-10-09 to break the 035 T009 / 044 inversion: 035 Q37-Q38 no longer edit scripts/data.py, and Q39 now waits for Q81. Preserve scripts/data.py line endings."
     },
     {
       "id": "Q79",
@@ -1345,15 +1447,15 @@
       "spec_task": "044 T050+T051+T052",
       "summary": "Unit 5 conventions and labels.",
       "allowed_paths": [
-        "tests/test_044_loader_untouched.py",
+        "scripts/data.py",
         ".specify/specs/044-nominal-price-reconstruction/tasks.md",
-        "docs/implementation/spec-044/",
-        "tests/mutation/run_044_"
+        "docs/implementation/spec-044/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q78 PR merged"
-      ]
+      ],
+      "note": "T050/T051 edit scripts/data.py (FR-004/005/012 per T008, FR-007 labels and docstring, and FR-010's single loader attrs line '\"volume_basis\": manifest.get(\"volume_basis\")'). tests/test_044_loader_untouched.py was REMOVED from allowed_paths: T051 requires it to 'stay green with no pin change', so editing it would weaken a guard. T052 confirms zero oracle diff by reading the files and runs the full suite."
     },
     {
       "id": "Q80",
@@ -1362,14 +1464,16 @@
       "spec_task": "044 T060+T061",
       "summary": "Unit 6 mutation evidence.",
       "allowed_paths": [
+        "tests/test_044_nominal_reconstruction.py",
+        "tests/mutation/run_044_",
         ".specify/specs/044-nominal-price-reconstruction/tasks.md",
-        "docs/implementation/spec-044/",
-        "tests/mutation/run_044_"
+        "docs/implementation/spec-044/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q79 PR merged"
-      ]
+      ],
+      "note": "Mutants M1, M2, M3 (T008 branch), M4, M6 are wired through tests/mutation_support_019.py::killed (used read-only, not edited) from tests/test_044_nominal_reconstruction.py (plan: file is written 'in parts across Units 2, 3, 6 and 7'); an optional driver goes under tests/mutation/run_044_*. scripts/data.py is not edited (mutants act on copies). T061 records control and kill per mutant as separate statuses."
     },
     {
       "id": "Q81",
@@ -1378,31 +1482,31 @@
       "spec_task": "044 T070+T071",
       "summary": "Unit 7 independent split table.",
       "allowed_paths": [
+        "tests/test_044_nominal_reconstruction.py",
+        "scripts/data.py",
         ".specify/specs/044-nominal-price-reconstruction/tasks.md",
-        "docs/implementation/spec-044/",
-        "tests/mutation/run_044_"
+        "docs/implementation/spec-044/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q80 PR merged"
-      ]
+        "Q80 PR merged",
+        "Q74 done (T009 crosscheck verified, verified_through set)"
+      ],
+      "note": "T070 tests (part 4 of tests/test_044_nominal_reconstruction.py, incl. 'the constant equals the crosscheck file', which reads artifacts/split-table-crosscheck.md read-only); T071 adds the FR-006 constant, comparison (D-4 relative 1e-9) and constructor seam in scripts/data.py plus M5. The constant must come from the VERIFIED crosscheck, so this depends on T009. If T070+T071 exceed 300 lines, split into two units (task text)."
     },
     {
       "id": "Q82",
-      "kind": "report",
+      "kind": "fix",
       "status": "ready",
       "spec_task": "058 T003",
       "summary": "Baseline evidence.",
       "allowed_paths": [
         "docs/implementation/spec-058/baseline-",
-        "scripts/",
-        "reports/",
-        ".specify/specs/058-edge-research-program/tasks.md",
-        "docs/implementation/spec-058/",
-        "tests/mutation/run_058_"
+        ".specify/specs/058-edge-research-program/tasks.md"
       ],
       "file_cap_lines": 300,
-      "depends_on": []
+      "depends_on": [],
+      "note": "Converted report->fix: the output name is date-stamped (baseline-<YYYYMMDD>.md, unknown until run day) and T003 also needs its tasks.md tick. scripts/ and reports/ REMOVED from allowed_paths: T003 only searches them (and docs/trials/, read-only) for \u00a74 tickers; write access there was far too broad. Record suite counts, the two ledger hashes, and the no-\u00a74-ticker proof. Ordering: as a baseline it should precede the 058 code units (Q23-Q25, Q30); see concerns. Ordered 2026-10-09 ahead of Q23-Q25 so the Phase 0 baseline precedes 058 code."
     },
     {
       "id": "Q83",
@@ -1411,9 +1515,11 @@
       "spec_task": "058 T014",
       "summary": "Walk-forward runner (purged/embargoed; research window <= 2023-09-29; research_attempt(family='058-edge')). Never writes the real ledger in tests.",
       "allowed_paths": [
-        ".specify/specs/058-edge-research-program/tasks.md",
-        "docs/implementation/spec-058/",
-        "tests/mutation/run_058_"
+        "scripts/edge_walk_forward.py",
+        "tests/test_058_walk_forward.py",
+        "tests/mutation/run_058_t014_mutants.py",
+        "docs/implementation/spec-058/T014-walk-forward.md",
+        ".specify/specs/058-edge-research-program/tasks.md"
       ],
       "file_cap_lines": 300,
       "depends_on": [
@@ -1422,41 +1528,45 @@
         "Q30 PR merged",
         "Q23 PR merged",
         "Q8 PR merged"
-      ]
+      ],
+      "note": "058 names no file for T014 (no 058 plan.md); paths follow the sibling units' convention (Q23/Q24/Q25: tests/test_058_<x>.py, tests/mutation/run_058_t0NN_mutants.py, docs/implementation/spec-058/T0NN-<x>.md). New entry point scripts/edge_walk_forward.py composes walk_forward_cv.walk_forward_splits, signals (Q25), portfolio_risk sizing (Q30), portfolio_backtest (Q24), cost_model (Q8) and the holdout-sealed loader (Q23), all read-only; if any of those modules needs new behavior, stop and report (module boundary). Requirements: purge + embargo >= longest lookback; research window ends 2023-09-29 and the runner never requests later sessions; every run via trial_runner.research_attempt(family='058-edge'); tests use the synthetic ledger root only and assert the real docs/trials/ hashes unchanged; runs before 046 lands are labelled 'EXAMPLE \u2014 NOT A RESULT' (FR-004). Never execute T015 (Camden's real run). If >300 lines, split tests-first (red, strict xfail) then implementation. Whether this new entry point needs a CLAUDE.md module-table row is Camden's call (governance PR, not this unit)."
     },
     {
       "id": "Q84",
       "kind": "fix",
-      "status": "ready",
+      "status": "blocked",
       "spec_task": "058 T017",
       "summary": "Gate 3 evidence artifact for 058 (PASS only if research-window Gate 3 AND D-4 pass); depends on 033 Phase 9.",
       "allowed_paths": [
         ".specify/specs/058-edge-research-program/tasks.md",
-        "docs/implementation/spec-058/",
-        "tests/mutation/run_058_"
+        "docs/implementation/spec-058/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q33 PR merged",
-        "Q83 PR merged"
-      ]
+        "Q83 PR merged",
+        "058 T015 run by Camden (ledger-writing, result-bearing)",
+        "058 T016 holdout run authorized and run by Camden (HUMAN GATE)"
+      ],
+      "note": "Blocked. T017's verdict is 'research-window Gate 3 AND D-4 (holdout)'; both inputs only exist after T015 (writes the real ledger; G5: Camden's command) and T016 (HUMAN GATE). The artifact itself is written by 033's scripts/generate_gate3_evidence.py into reports/artifacts/capital_gate/gate3/ (033 plan.md:51) and is read by the capital_gate route, so producing a real one is a Camden-run step, not a lane edit. If code is needed for the 058 composition (family-N Gate 3 + D-4 holdout evaluator) on synthetic fixtures, it needs a spec decomposition that names the files; T017 names none."
     },
     {
       "id": "Q85",
       "kind": "fix",
-      "status": "ready",
+      "status": "blocked",
       "spec_task": "058 T018",
       "summary": "Publication: tearsheet fields per FR-006, limitations, README truthfulness; renders FAIL as clearly as PASS.",
       "allowed_paths": [
-        ".specify/specs/058-edge-research-program/tasks.md",
+        "README.md",
         "docs/implementation/spec-058/",
-        "tests/mutation/run_058_"
+        ".specify/specs/058-edge-research-program/tasks.md"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q84 PR merged",
+        "Q84 done (real 058 Gate 3 artifact exists)",
         "Q64 PR merged"
-      ]
+      ],
+      "note": "Blocked behind Q84: T018 publishes the actual result (FR-006 fields incl. holdout result, family and lifetime-N DSR, HAC t, PBO S=16, baselines, folds/purge/embargo, costs, limitations) and README truthfulness, none of which exist before T015-T017. T018 names no files; the tearsheet/report surfaces that would render the FR-006 fields (scripts/tearsheet_payload.py, reports/api/routes/backtest.py, reports/api/schemas.py, reports/web/src/...) need a spec decomposition naming them before this can be queued; allowed_paths kept minimal until then. A PASS hands off to 053 shadow/PAPER only; never arms LIVE."
     },
     {
       "id": "Q86",
@@ -1465,18 +1575,17 @@
       "spec_task": "040 T001+T002+T003+T004+T005+T006",
       "summary": "Preconditions and measurement (T001 check delegated by G14: verify 036/041 merged and no open PR touches 040 files; record evidence).",
       "allowed_paths": [
-        "runner-renames.json",
-        "scripts/",
-        "tests/test_unadjusted_caller_wiring.py",
-        "ac1-allowlist.json",
+        ".specify/specs/040-installable-package/artifacts/",
+        ".specify/specs/040-installable-package/ac1-allowlist.json",
+        ".specify/specs/040-installable-package/spec.md",
         ".specify/specs/040-installable-package/tasks.md",
-        "docs/implementation/spec-040/",
-        "tests/mutation/run_040_"
+        "docs/implementation/spec-040/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q85 PR merged"
-      ]
+        "Q83 PR merged"
+      ],
+      "note": "Blocked: T001 is '(Camden)' in tasks.md and gate packet G8 says 'T001 ... stays yours, at kickoff'; no G14 delegation record was found in the repo or project docs. T002 needs a PRE export without a Git process (Dulwich object read or a Camden archive), outside the lane's authorized git ops. T006 ends with 'Camden reviews this file'. Path fixes: removed scripts/ and tests/test_unadjusted_caller_wiring.py (T005 only re-inventories/reads them), removed bare 'runner-renames.json' (T004 only measures values; the file is T018's, under docs/trials/), resolved 'ac1-allowlist.json' to .specify/specs/040-installable-package/ac1-allowlist.json (spec.md:305). Outputs: artifacts/pre.xml (T003), artifacts/trials-pre.sha256 (T004), re-inventory into docs/implementation/spec-040/MIGRATION-INVENTORY.md (T005), ac1-allowlist.json + spec \u00a77 manifest (T006). Dependency changed from Q85 to Q83: G8 makes 040 wait for 058's CODE, not its publication. Corrected 2026-10-09: G14 (spec 040 Delegations, STATE.md) delegates T001 to the lane. PRE goes stale as other units merge; Q89 must refresh it on its own branch."
     },
     {
       "id": "Q87",
@@ -1485,21 +1594,20 @@
       "spec_task": "040 T010+T011+T012+T013+T014",
       "summary": "Gate tooling, each red-proven.",
       "allowed_paths": [
-        "tools/ac1_filter.py",
+        ".specify/specs/040-installable-package/tools/ac1_filter.py",
+        ".specify/specs/040-installable-package/tools/compare_junit.py",
         "tests/test_040_ac1_filter.py",
-        "tools/compare_junit.py",
         "tests/test_040_ledger_boundary.py",
         "tests/test_040_installability.py",
-        "pyproject.toml",
-        "scripts/_project.py",
         ".specify/specs/040-installable-package/tasks.md",
-        "docs/implementation/spec-040/",
-        "tests/mutation/run_040_"
+        "docs/implementation/spec-040/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
-        "Q86 PR merged"
-      ]
+        "Q86 PR merged",
+        "Camden's T006 review of ac1-allowlist.json recorded"
+      ],
+      "note": "Tool paths corrected: the spec places them under .specify/specs/040-installable-package/tools/, not repo-root tools/ (spec.md:314, :321, :345; plan.md:49). pyproject.toml and scripts/_project.py REMOVED: T010-T014 edit neither (T014 copies pyproject.toml into tmp_path only). The existing project_root() cases in tests/test_043_project_root.py are retargeted in Phase 3 (Q89), not here; editing them now would turn green tests red. T013/T014 are 'red until Phase 3' by design: see concerns on landing red tests on main (strict xfail with the named reason is the only merge-safe form)."
     },
     {
       "id": "Q88",
@@ -1511,21 +1619,21 @@
         "pyproject.toml",
         "src/qmb/__init__.py",
         "src/qmb/_project.py",
-        "scripts/_project.py",
         "tests/repo_paths.py",
+        "tests/test_040_installability.py",
         ".specify/specs/040-installable-package/tasks.md",
-        "docs/implementation/spec-040/",
-        "tests/mutation/run_040_"
+        "docs/implementation/spec-040/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q87 PR merged"
-      ]
+      ],
+      "note": "T018 (docs/trials/runner-renames.json) is EXCLUDED: docs/trials/ is forbidden to the lane; it needs Camden (or a separately ratified write route) using T004's values. scripts/_project.py REMOVED: T016 calls it a 'move', but scripts/trial_registry.py:20, scripts/signal_decay.py:28 and scripts/paper_report.py:22 import 'from _project import project_root', so deleting it in Phase 2 breaks main and is not 'inert'; create src/qmb/_project.py as a copy now and leave the deletion to Phase 3 (Q89), or stop and report for a spec amendment. tests/test_040_installability.py added for T017's AST no-sys.path assertion."
     },
     {
       "id": "Q89",
       "kind": "fix",
-      "status": "ready",
+      "status": "blocked",
       "spec_task": "040 T019",
       "summary": "THE MIGRATION (atomic, larger than 300 lines by design; includes T020-T047 except T045). Build on one branch with full gates; Camden merges.",
       "allowed_paths": [
@@ -1542,24 +1650,25 @@
       "depends_on": [
         "Q88 PR merged"
       ],
-      "note": "Over 300 lines and touches many shared files: Rule 9a cannot merge it. T045 (.github) is a separate governance PR."
+      "note": "Cannot run under the 300-line routine: T019-T047 are ONE atomic working-tree change by spec ('No intermediate state is committed or gated'; 29 module moves + ~176 import edits), and Rule 9a cannot merge >300 lines. It also needs forbidden paths: CLAUDE.md (T044 layout/module table), .github/workflows/test.yml and claude.yml (T045), and docs/trials/runner-renames.json (T018, carried from Q88). Needs a separately ratified execution route (e.g. Camden-supervised single branch with Phase 4 gates run on that branch before Camden merges, plus companion governance PRs for CLAUDE.md and .github) or a valid spec decomposition that the spec currently forbids. Phase 4 (Q90) must run on the same branch before merge. Earlier note: Over 300 lines and touches many shared files: Rule 9a cannot merge it. T045 (.github) is a separate governance PR."
     },
     {
       "id": "Q90",
       "kind": "fix",
-      "status": "ready",
+      "status": "blocked",
       "spec_task": "040 T050+T051+T052+T053+T054+T055+T056+T057",
       "summary": "Phase 4 gates and hand-off evidence.",
       "allowed_paths": [
-        "tools/compare_junit.py",
-        ".specify/specs/040-installable-package/",
-        "docs/implementation/spec-040/",
-        "tests/mutation/run_040_"
+        ".specify/specs/040-installable-package/tools/compare_junit.py",
+        ".specify/specs/040-installable-package/artifacts/",
+        ".specify/specs/040-installable-package/tasks.md",
+        "docs/implementation/spec-040/"
       ],
       "file_cap_lines": 300,
       "depends_on": [
         "Q89 PR merged"
-      ]
+      ],
+      "note": "Blocked with Q89, and it MUST depend on it: Phase 4 gates verify the Phase 3 working tree 'then run Phase 4' before anything lands, and failure means discarding to PRE ('no partial landing'), so T050-T057 belong to Q89's ratified route on the same branch, not to a separate post-merge unit. T050 needs the PRE export (T002); T053 reads docs/trials/ hashes (read-only); T057 is a hand-off to Camden. tools path corrected to .specify/specs/040-installable-package/tools/compare_junit.py; outputs artifacts/post.xml, artifacts/ac3*.txt, artifacts/ac5-red.txt. The broad '.specify/specs/040-installable-package/' prefix was narrowed to artifacts/ + tasks.md + the tool."
     }
   ]
 }
