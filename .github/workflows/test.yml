@@ -53,14 +53,11 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
-      # Spec 047 T005, Rule 12: the planted failing case must turn the runner red;
-      # the real suite (render control and mutation-helper tests) is the green control.
-      - name: Red proof (planted failing web test)
-        run: |
-          if npx vitest run --config mutation/planted/vitest.config.ts; then
-            echo "::error::planted failing web test passed"
-            exit 1
-          fi
+      # Spec 047 T005, Rule 12: the planted failing case must turn the runner red on its
+      # named assertion, with no runner, import, collection or unhandled error; any other
+      # nonzero exit is refused (mutation/redproof.test.ts). The real suite is the control.
+      - name: Red proof (planted failing web test, strict)
+        run: npx vitest run mutation/redproof.test.ts
       - run: npm test
 
   actionlint:
