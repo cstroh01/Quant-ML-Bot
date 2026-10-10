@@ -204,3 +204,54 @@ def test_t040_hac_gate_boundary_oracle():
     shifted = hac([v + daily for v in exact], horizon=1, lags=0, annual_risk_free=.1, days_per_year=252)
     assert shifted["value"] == pytest.approx(3.0, abs=1e-9), f"T040 RISKFREE: {shifted['value']!r}"
     assert shifted["mean_excess_log_return"] == pytest.approx(.75, abs=1e-12), f"T040 RISKFREE: {shifted}"
+
+
+# --- T037: every named DSR input and convention, against a hand oracle. Moments are exact rational
+# arithmetic on dyadic inputs; the normal CDF/quantile come from the standard library's NormalDist,
+# never from SciPy or NumPy, so the oracle shares no code with selection_bias.
+T037_COLUMNS = {"a": [.5, -.5, .5, -.5], "b": [-.75, .25, -.25, .25], "c": [.25, .25, .25, -.25]}  # select "b": not column 0,
+T037_SKEW, T037_SHARPE = -math.sqrt(324 / 1331), -math.sqrt(3 / 44)  # and negative mean and skew, so a sign drop shows
+T037_N, T037_EULER = 69, 0.5772156649015329  # N_current is not the 3 matrix columns
+
+
+def t037_matrix(annual_rate=0., shift=0., days=252):
+    columns = list(T037_COLUMNS)
+    values = [[T037_COLUMNS[k][i] + shift for k in columns] for i in range(4)]
+    rf = {"annual_rate": annual_rate, "days_per_year": days, "source": "EXAMPLE — NOT A RESULT"}
+    return {"columns": columns, "values": values, "reason": None, "matrix_hash": "EXAMPLE", "family": {**FAMILY, "risk_free": rf}}
+
+
+def t037_moments(values):
+    """Exact (mean, ddof=1 variance, population m2, m3, m4) of one column."""
+    x = [Fraction(v) for v in values]; n = len(x); mean = sum(x) / n; c = [v - mean for v in x]
+    return mean, sum(v * v for v in c) / (n - 1), *(sum(v ** k for v in c) / n for k in (2, 3, 4))
+
+
+def test_t037_named_dsr_inputs_and_conventions():
+    """EXAMPLE — NOT A RESULT. Daily Sharpe, T, skew, Pearson kurtosis, dispersion, benchmark, CDF, N."""
+    from statistics import NormalDist
+    phi = NormalDist()
+    mean, var1, m2, m3, m4 = t037_moments(T037_COLUMNS["b"])
+    assert (mean, mean * mean / var1, m3 < 0, m3 * m3 / m2 ** 3, m4 / m2 ** 2) == (Fraction(-1, 8), Fraction(3, 44), True, Fraction(324, 1331), Fraction(197, 121)), "T037 DECLARED"
+    sharpes = [float(mu) / math.sqrt(v) for mu, v, *_ in map(t037_moments, T037_COLUMNS.values())]
+    assert sharpes[0] == 0. and sharpes[1] == pytest.approx(T037_SHARPE) and sharpes[2] == .5, "T037 DECLARED: trial Sharpes"
+    base = api("selection_bias", "matrix_dsr")(t037_matrix(), selected_trial="b", n_current=T037_N)
+    inputs, near = base["inputs"], (lambda v: pytest.approx(v, rel=1e-12, abs=1e-15))
+    assert inputs["observations"] == 4, f"T037 OBSERVATIONS: {inputs}"
+    assert inputs["observed_sharpe"] == near(T037_SHARPE), f"T037 SHARPE: daily ddof=1, not annualized {inputs}"
+    assert base["trial_sharpes"] == [near(s) for s in sharpes], f"T037 SHARPE: {base['trial_sharpes']}"
+    assert inputs["skewness"] == near(T037_SKEW), f"T037 SKEW: signed, population central moments {inputs}"
+    assert inputs["pearson_kurtosis"] == near(197 / 121), f"T037 KURTOSIS: Pearson, not excess {inputs}"
+    dispersion = math.sqrt(sum((s - sum(sharpes) / 3) ** 2 for s in sharpes) / 2)
+    assert inputs["trial_sharpe_std"] == near(dispersion), f"T037 DISPERSION: ddof=1 {inputs}"
+    assert inputs["n_current"] == T037_N, f"T037 NCURRENT: {inputs}"
+    benchmark = dispersion * ((1 - T037_EULER) * phi.inv_cdf(1 - 1 / T037_N) + T037_EULER * phi.inv_cdf(1 - 1 / (T037_N * math.e)))
+    assert base["benchmark_sharpe"] == near(benchmark), f"T037 BENCHMARK: {base}"
+    denominator = 1 - T037_SKEW * T037_SHARPE + (197 / 121 - 1) / 4 * (3 / 44)
+    z = (T037_SHARPE - benchmark) * math.sqrt(4 - 1) / math.sqrt(denominator)
+    assert base["psr_denominator"] == near(denominator) and base["z"] == near(z), f"T037 Z: sqrt(T-1) {base}"
+    assert base["value"] == pytest.approx(phi.cdf(z), rel=1e-9, abs=1e-12), f"T037 CDF: {base['value']!r} vs {phi.cdf(z)!r}"
+    single = api("selection_bias", "deflated_sharpe")(**{k: v for k, v in inputs.items() if k != "n_current"}, n_current=1)
+    assert single["benchmark_sharpe"] == 0. and single["value"] == pytest.approx(phi.cdf(T037_SHARPE * math.sqrt(3) / math.sqrt(denominator)), rel=1e-9, abs=1e-12), f"T037 BENCHMARK: N=1 {single}"
+    shifted = api("selection_bias", "matrix_dsr")(t037_matrix(.1, math.log1p(.1) / 250, 250), selected_trial="b", n_current=T037_N)
+    assert shifted["inputs"] == {k: near(v) if isinstance(v, float) else v for k, v in inputs.items()}, f"T037 RISKFREE: log1p(annual)/days {shifted['inputs']}"
