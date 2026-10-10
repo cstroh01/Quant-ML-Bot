@@ -467,3 +467,71 @@ class FrenchFactors(_Fetcher):
                              columns=[c.strip() for c in lines[header].split(",")[1:]])
         frame = frame.mask(frame.isin([-99.99, -999.0])) / 100
         return frame, self._manifest(endpoint, fetched_at, index[-1].strftime("%Y-%m-%d"), len(frame), digest, "calendar_date")
+
+
+# --- Spec 058 T007 (FR-002, D-3): the sealed holdout, opened once by a token bound to one configuration ---
+
+from pathlib import Path
+
+RESEARCH_END = date(2023, 9, 29)  # last research session (058 D-3)
+HOLDOUT_START = date(2023, 10, 2)  # first sealed session; every label after RESEARCH_END is sealed
+
+
+class HoldoutSealError(PermissionError):
+    """A request for sealed holdout sessions that must be refused."""
+
+
+@dataclass(frozen=True)
+class HoldoutToken:
+    """Permission to open the holdout once, for the configuration whose SHA-256 is `config_hash`."""
+
+    config_hash: str
+
+    def __post_init__(self) -> None:
+        if not (isinstance(self.config_hash, str) and _DIGEST.fullmatch(self.config_hash)):
+            raise HoldoutSealError("holdout token must carry a SHA-256 configuration hash")
+
+
+def sealed_sessions(index: pd.DatetimeIndex) -> pd.Series:
+    """True for each session label after RESEARCH_END (058 D-3), in index order.
+
+    Labels are naive midnight session dates (CLAUDE.md); an aware index is refused, never
+    converted, and a NaT label is refused. Non-session labels between RESEARCH_END and
+    HOLDOUT_START are sealed too. Apply it to raw prices before any feature or label is derived:
+    it sees only index labels, not the horizon of a column built from later rows.
+    """
+    if not isinstance(index, pd.DatetimeIndex):
+        raise ValueError("sealed_sessions needs a DatetimeIndex of session labels")
+    if index.tz is not None:
+        raise ValueError("session labels must be timezone-naive")
+    if index.hasnans:
+        raise ValueError("session labels must not be NaT")
+    return pd.Series(index.normalize() > pd.Timestamp(RESEARCH_END), index=index)
+
+
+def require_holdout_token(frame: pd.DataFrame, *, config_hash: str, token: HoldoutToken | None = None,
+                          spent_path: Path | None = None) -> pd.DataFrame:
+    """Return `frame` unchanged only if serving it respects the holdout seal.
+
+    Guarantees: a frame with no sealed session is returned without reading or spending a token.
+    A frame with any sealed session is refused unless `token` is bound to `config_hash` and
+    `spent_path` did not already exist; the spend record is created exclusively before the frame
+    is returned, so a second opening, by any token or process sharing `spent_path`, is refused.
+    """
+    sealed = sealed_sessions(frame.index)
+    if not sealed.any():
+        return frame
+    if token is None:
+        raise HoldoutSealError(f"sessions after {RESEARCH_END} are sealed; a holdout token is required")
+    if token.config_hash != config_hash:
+        raise HoldoutSealError("holdout token is bound to a different configuration hash")
+    if spent_path is None:
+        raise HoldoutSealError("opening the holdout needs a spend record path")
+    record = {"config_hash": config_hash, "first_session": frame.index[sealed.to_numpy()].min().strftime("%Y-%m-%d"),
+              "last_session": frame.index[sealed.to_numpy()].max().strftime("%Y-%m-%d")}
+    try:
+        with open(spent_path, "x", encoding="utf-8") as handle:
+            handle.write(json.dumps(record, sort_keys=True) + "\n")
+    except FileExistsError as error:
+        raise HoldoutSealError("the holdout has already been opened; a second use is refused") from error
+    return frame
