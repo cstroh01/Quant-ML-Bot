@@ -44,7 +44,7 @@ code, test, network call, bundle or Git operation by itself.
   NVDA window omitted, must be refused by the T002 checklist; the complete record is the control.
   **Depends on:** none.
 
-- [ ] T002 Compile `research.md` from T001's saved records only. Files:
+- [x] T002 Compile `research.md` from T001's saved records only. Files:
   `.specify/specs/035-free-unadjusted-bundle/research.md`. **Acceptance:** one row per spec §3 row
   with claim, observation, date and the T001 file that observed it; the yfinance row cites 044's
   evidence (`044 spec.md` §1), and the SEC EDGAR row cites a recorded split spot-check or stays
@@ -244,3 +244,24 @@ T014, T017 → T018 → T019 → T020 → T021 → T022 → T023 → T024.
 
 Lane-takeable once their dependencies hold: T002, T004 to T021, T024. HUMAN GATE: T001, T003,
 T022, T023.
+
+## Note 2026-10-10 — retarget to the spec 058 ETF universe (queue Q36)
+
+Spec §8 records the retarget (G3-R, 2026-10-09): 035 builds the accepted unadjusted cache for the
+spec 058 ETF universe (`058 spec.md` §4), over D-4's window from each instrument's listing date to the
+latest completed session. No acceptance text above is changed by this note. The tasks whose text
+still names the old scope:
+
+- **T018, T019**: "the five tickers" becomes the 058 universe.
+- **T022**: FR-008's five manifests (AAPL, MSFT, GOOGL, NVDA, AMZN) become one per 058 instrument.
+- **T023**: the AAPL smoke run needs an instrument from the 058 universe.
+- **T024**: inherits the change through SC-003 and SC-004, which name five bundles and AAPL.
+- **T009**: writes `"universe_policy": "static_survivor_basket"`. Whether that value still describes
+  the 058 universe, whose membership is by listing date, is for review; this note does not change it.
+
+T002 is ticked on the T001 records merged in PR #127, as queue Q36 directs. T001 itself is a HUMAN
+GATE and stays unticked; the header's "every task is unchecked" no longer holds for T002.
+
+T002 evidence: `research.md`; checklist red proof in
+`docs/implementation/spec-035/t002-checklist-20261010.md`. Every T001 observation is for AAPL and
+NVDA only; none covers a 058 ETF. Alpaca rows 3 and 4 are not verified, which T013 requires.
