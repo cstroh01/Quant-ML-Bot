@@ -61,14 +61,14 @@ code, test, network call, bundle or Git operation by itself.
   encodes a tolerance absent from spec §8 must be rejected at review; a diff citing the recorded
   D-2 line is the control. **Depends on:** T002.
 
-- [ ] T004 U0 baseline. Files: `docs/implementation/spec-035/u0-baseline-<YYYYMMDD>.md`.
+- [x] T004 U0 baseline. Files: `docs/implementation/spec-035/u0-baseline-<YYYYMMDD>.md`.
   **Acceptance:** `python -m pytest tests` on clean `main` with exit code and
   passed/failed/xfailed/errors, Python version, commit, and the ledger check. This is SC-002's
   baseline. **Rule 12:** not a gate; no planted defect. **Depends on:** none.
 
 ## U1 — pure dividend reconciler (≤300 lines; plan U1)
 
-- [ ] T005 Write contracts first. Files: `tests/test_035_reconcile.py`. **Acceptance:** red, for
+- [x] T005 Write contracts first. Files: `tests/test_035_reconcile.py`. **Acceptance:** red, for
   the missing function, on: union sweep (one row per ex-date in either source); coverage first and
   last session `reconciled`, one session before start and one session after end `unreconciled`
   with reason `outside second-source coverage`; empty coverage makes every dividend `unreconciled`; ex-dates one
@@ -79,7 +79,7 @@ code, test, network call, bundle or Git operation by itself.
   M3, M4, M5; record each exact failing assertion before implementing. **Depends on:** T003, T004,
   and 044 merged if D-3 places the reconciler in `scripts/data.py` (plan, D-3).
 
-- [ ] T006 Implement `reconcile_dividends` and `assert_no_mismatch`. Files: the D-3 module
+- [x] T006 Implement `reconcile_dividends` and `assert_no_mismatch`. Files: the D-3 module
   (`scripts/corporate_action_reconciliation.py` if chosen; no I/O, network, credentials or file
   reads), `tests/test_035_reconcile.py`. **Acceptance:** T005 passes; M3 killed on status assignment, and M4 and M5 killed at
   this level through `assert_no_mismatch` raising `dividend reconciliation failed`, each through
