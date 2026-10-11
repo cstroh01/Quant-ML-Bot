@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden. 2026-10-09 correction (Codex B1 #139): report units without output converted to fix; allowed_paths rebuilt from full task text as repo paths; Q89/Q90 blocked (atomic, over 300 lines); Q91-Q94 added. Conventions: (1) a tests-first unit whose tests are red lands them as pytest.mark.xfail(strict=True, reason='<spec> T0nn red until Qnn') or vitest test.fails, and the implementing unit removes the marker, so main and the required checks stay green; (2) TypeScript mutation drivers live under reports/web/mutation/drivers/ with their own vitest config, outside the default include, so they never mutate a view while the default suite runs. 2026-10-11 (Claude, governance PR, Camden merges): marked Q8, Q23, Q26-Q29, Q31, Q36, Q37, Q45, Q46 done from merged PRs; added Q95 (046 U1b, the part of Q8 that #142 deferred) and moved Q82 (058 T003 baseline) ahead of Q32 because Q24/Q25 depend on it; added Q96 (038 T022 driver that #153 deferred). 2026-10-11 decisions PR: Q58/Q61 may edit scripts/tearsheet_payload.py (038 plan.md ownership); added Q97 (033 count helper move) ahead of Q33. Added Q98 (058 D-7 ledger-backed holdout spend check, after Q83); Q33 now also waits for Q97. 2026-10-11: added Q99 (033 T058-T061, the part of Q32 that #157 deferred); Q33 waits for it. 2026-10-11: added Q100 (paper loop -> 035 cache; exec/, blocked for the lane). Q82 done (#160, merged while [WIP]); Q101 completes 058 T003.",
+  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden. 2026-10-09 correction (Codex B1 #139): report units without output converted to fix; allowed_paths rebuilt from full task text as repo paths; Q89/Q90 blocked (atomic, over 300 lines); Q91-Q94 added. Conventions: (1) a tests-first unit whose tests are red lands them as pytest.mark.xfail(strict=True, reason='<spec> T0nn red until Qnn') or vitest test.fails, and the implementing unit removes the marker, so main and the required checks stay green; (2) TypeScript mutation drivers live under reports/web/mutation/drivers/ with their own vitest config, outside the default include, so they never mutate a view while the default suite runs. 2026-10-11 (Claude, governance PR, Camden merges): marked Q8, Q23, Q26-Q29, Q31, Q36, Q37, Q45, Q46 done from merged PRs; added Q95 (046 U1b, the part of Q8 that #142 deferred) and moved Q82 (058 T003 baseline) ahead of Q32 because Q24/Q25 depend on it; added Q96 (038 T022 driver that #153 deferred). 2026-10-11 decisions PR: Q58/Q61 may edit scripts/tearsheet_payload.py (038 plan.md ownership); added Q97 (033 count helper move) ahead of Q33. Added Q98 (058 D-7 ledger-backed holdout spend check, after Q83); Q33 now also waits for Q97. 2026-10-11: added Q99 (033 T058-T061, the part of Q32 that #157 deferred); Q33 waits for it. 2026-10-11: added Q100 (paper loop -> 035 cache; exec/, blocked for the lane). Q82 done (#160, merged while [WIP]); Q101 completes 058 T003. Added Q102 (055 drill support in ops_runner, from Codex's PAPER preflight), placed early.",
   "items": [
     {
       "id": "Q1",
@@ -448,6 +448,23 @@
         ".specify/specs/046-rule13-cost-model/tasks.md"
       ],
       "file_cap_lines": 300
+    },
+    {
+      "id": "Q102",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "055 T007 drill support (Codex preflight 2026-10-11)",
+      "summary": "Drill support in scripts/ops_runner.py so spec 055's supervised drills can run without editing exec/ or faking outcomes (Codex PAPER preflight, codex-handoff-20261011/paper-deployment/PREFLIGHT-20261011.md): (1) an explicit injected-clock option accepted only together with a drill flag and refused with --submit, for missed-run and non-session drills; (2) a drill-only lease fixture that writes a held lease so lease_held can be exercised; (3) a per-profile kill and an explicit reviewed reset path (today the workflow's kill input hits both profiles and has no reset). Tests first; Rule 12 mutants: injected clock accepted on a submit run, reset clears a kill without the explicit flag, kill applied to the other profile.",
+      "depends_on": [],
+      "allowed_paths": [
+        "scripts/ops_runner.py",
+        "scripts/ops_runtime.py",
+        "tests/test_055_drill_support.py",
+        "tests/mutation/run_055_drill_mutants.py",
+        "docs/implementation/spec-055/"
+      ],
+      "file_cap_lines": 300,
+      "note": "No exec/ edits. The private paper-drill.yml that calls these options is installed by Codex in Quant-ML-Bot-private after this merges; Camden merges that PR."
     },
     {
       "id": "Q32",
