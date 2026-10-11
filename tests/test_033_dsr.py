@@ -295,3 +295,104 @@ def test_t035_session_alignment_boundaries_and_perturbation():
         bad = copy.deepcopy(b_rows); edit(bad, k)
         result = build([trial("a", a_rows), trial("b", bad)], family=FAMILY)
         assert result["columns"] == ["a"] and result["excluded_trials"] == [{"trial_id": "b", "reason": "invalid_return_evidence"}], f"T035 REJECT {name}: {result['excluded_trials']}"
+
+
+# --- T039/T044: N_current = immutable N_backfill + every post-ledger candidate start (FR-026), never a
+# count of unique hashes, completions, baselines or matrix columns; family N only beside lifetime N (058 D-1).
+T039_FAMILY, T039_SOURCE = "058-edge", ".specify/specs/058-edge-research-program/declaration.json"
+
+
+def t039_backfill(root):
+    """EXAMPLE — NOT A RESULT. One approved campaign bounded at 5 -> round to 8 -> double: N_backfill 16."""
+    grid = dict(campaign_id="grid", description="EXAMPLE — NOT A RESULT", evidence=["tests/test_033_dsr.py"], dimensions={"models": 3},
+                cartesian_upper_bound=3, rerun_upper_bound=1, remembered_range=None, chosen_upper_bound=5, unresolved_reason=None)
+    path = api("trial_backfill", "write_backfill")(root, {"campaigns": [grid], "approval": {"author": "synthetic", "approved_at_utc": "2026-10-01T00:00:00+00:00"}})
+    return json.loads(path.read_bytes())
+
+
+def t039_rehash(artifact, **changes):
+    body = {k: v for k, v in artifact.items() if k != "sha256"}; body.update(changes)
+    return {**body, "sha256": api("trial_registry", "digest")(body)}
+
+
+def test_t039_lifetime_n_counts_every_candidate_start(tmp_path):
+    """EXAMPLE — NOT A RESULT. 5 candidate starts: 3 duplicates of one config, 2 completed, 1 never terminated."""
+    count, art = api("selection_bias", "lifetime_count"), t039_backfill(tmp_path)
+    assert art["n_backfill"] == 16, f"T039 FIXTURE: {art['n_backfill']}"
+    log = ledger(tmp_path)
+    log.finish(start(log), "completed", returns=rows(), metadata=META)
+    log.finish(start(log), "abandoned", reason="EXAMPLE")
+    open_trial = start(log)
+    log.finish(start(log, seed=7), "errored", reason="EXAMPLE")
+    log.finish(start(log, seed=8), "completed", returns=rows(), metadata=META)
+    log.finish(start(log, role="buy_and_hold_baseline"), "completed", returns=rows(), metadata=META)
+    result = count(art, log)
+    events = log.verify()["events"]
+    candidates = [e for e in events if e["event_type"] == "started" and e["role"] == "candidate"]
+    assert len({e["config_hash"] for e in candidates}) == 3, "T039 FIXTURE: three distinct candidate configs"
+    assert result["n_post_ledger"] != 3, f"T039 DUPLICATES: duplicate starts must each count {result}"
+    assert result["n_post_ledger"] != 2, f"T039 INCOMPLETE: failed and unterminated starts must count {result}"
+    assert result["n_post_ledger"] != 6, f"T039 ROLES: baselines are not candidate starts {result}"
+    assert (result["n_backfill"], result["n_post_ledger"], result["n_current"]) == (16, 5, 21), f"T039 NCURRENT: {result}"
+    assert (result["reason"], result["backfill_hash"], result["ledger_head_hash"], result["family"]) == (None, art["sha256"], log.verify()["head"], None), f"T039 PROVENANCE: {result}"
+    log.finish(open_trial, "errored", reason="EXAMPLE")
+    assert count(art, log)["n_current"] == 21, "T039 INCOMPLETE: a terminal event is not a new start"
+    start(log)
+    assert count(art, log)["n_current"] == 22, "T039 NCURRENT: every later start raises N"
+    tampered = {**art, "n_backfill": 1}
+    assert count(tampered, log) == {"value": None, "reason": "evidence_corrupt"}, "T039 CORRUPT: edited backfill body"
+    assert count({k: v for k, v in art.items() if k != "sha256"}, log)["reason"] == "evidence_corrupt", "T039 CORRUPT: unsigned backfill"
+    assert count(t039_rehash(art, status="incomplete"), log)["reason"] == "backfill_incomplete", "T039 DRAFT: draft counted"
+    assert count(t039_rehash(art, n_backfill=None), log)["reason"] == "backfill_incomplete", "T039 DRAFT: no N"
+    for bad in (True, -1, 1.5):
+        assert count(t039_rehash(art, n_backfill=bad), log)["reason"] == "backfill_incomplete", f"T039 DRAFT: n_backfill={bad!r}"
+    assert count(t039_rehash(art, n_backfill=0), log)["reason"] == "evidence_missing", "T039 ANCHOR: self-hashed dict not stored"
+    newer = json.loads(api("trial_backfill", "write_backfill")(tmp_path, {**art["manifest"]}, previous_counts=[32]).read_bytes())
+    assert count(newer, log)["n_current"] == 38 and count(art, log)["reason"] == "backfill_changed", "T039 SUPERSEDED: older, lower backfill counted"
+    raw = log.path.read_bytes(); log.path.write_bytes(raw.replace(b'"seed":8', b'"seed":9', 1))
+    assert count(newer, log)["reason"] == "ledger_invalid", "T039 LEDGER: tampered chain counted"
+
+
+def t044_rewrite(record_path, **changes):
+    """Rewrite the family record self-consistently: only the anchor/cap checks can then reject it."""
+    from trial_registry import canonical_json as cj, digest
+    record = json.loads(record_path.read_bytes()); record.pop("record_hash")
+    if "cap" in changes: record["declaration"]["n_family_cap"] = changes.pop("cap"); record["declaration_hash"] = digest(record["declaration"])
+    record.update(changes); record["record_hash"] = digest(record); record_path.write_bytes(cj(record))
+
+
+def test_t044_lifetime_dsr_always_family_dsr_beside_it(tmp_path):
+    """EXAMPLE — NOT A RESULT. Family N=3 within a cap of 4 sits beside lifetime N=22; a breach reverts it."""
+    import trial_registry
+    source = SCRIPTS_DIR.parent / T039_SOURCE
+    target = tmp_path / T039_SOURCE; target.parent.mkdir(parents=True)
+    target.write_text(json.dumps({**json.loads(source.read_text(encoding="utf-8")), "n_family_cap": 4}), encoding="utf-8")
+    trial_registry.declare_family(T039_FAMILY, root=tmp_path, synthetic=True)
+    count, dsr, art, log, other = api("selection_bias", "lifetime_count"), api("selection_bias", "counted_dsr"), t039_backfill(tmp_path), ledger(tmp_path), matrix()
+    edge_rows = [{**r, "log_return": r["log_return"]*.8-.002} for r in rows()]
+    m = api("selection_bias", "build_matrix")([trial("a", family=T039_FAMILY), trial("b", edge_rows, family=T039_FAMILY)], family={**FAMILY, "id": T039_FAMILY})
+    edge = lambda: log.start(config(), role="candidate", family=T039_FAMILY, runner="fixture", source=SOURCE)
+    for _ in range(3): start(log)
+    for _ in range(3): edge()
+    plain = dsr(m, selected_trial="b", counts=count(art, log))
+    assert plain["family"] is None and plain["lifetime"]["inputs"]["n_current"] == 22 != len(m["columns"]), f"T044 NCURRENT: {plain['lifetime']['inputs']}"
+    counts = count(art, log, family=T039_FAMILY)
+    fam = counts["family"]
+    assert (fam["n_family"], fam["cap"], fam["n_dsr"], fam["reverted_to_lifetime"]) == (3, 4, 3, False), f"T044 FAMILY: {fam}"
+    both = dsr(m, selected_trial="b", counts=counts)
+    assert both["lifetime"]["inputs"]["n_current"] == 22 and both["lifetime"] == plain["lifetime"], f"T044 LIFETIME: {both['lifetime']['inputs']}"
+    assert both["family"]["inputs"]["n_current"] == 3 and both["family"]["value"] > both["lifetime"]["value"], f"T044 FAMILY: {both['family']}"
+    assert dsr(other, selected_trial="b", counts=counts)["family"] == {"value": None, "reason": "matrix_family_mismatch"}, "T044 MISMATCH: another family's matrix deflated at N_family"
+    record = tmp_path / trial_registry.FAMILY_DIR / f"{T039_FAMILY}.json"; original = record.read_bytes()
+    for name, edit in (("DECLARATION", lambda: record.write_bytes(original.replace(b'"n_family_cap":4', b'"n_family_cap":40', 1))),
+                       ("ANCHOR", lambda: t044_rewrite(record, ledger_head_at_declaration=log.verify()["head"])),
+                       ("CAPLIMIT", lambda: t044_rewrite(record, cap=51)),
+                       ("MALFORMED", lambda: t044_rewrite(record, cap=None))):
+        edit(); assert record.read_bytes() != original, f"T044 {name}: tamper did not apply"
+        fam = count(art, log, family=T039_FAMILY)["family"]
+        assert (fam["within_cap"], fam["n_dsr"], fam["reverted_to_lifetime"]) == (False, 22, True), f"T044 {name}: must revert to lifetime N {fam}"
+        record.write_bytes(original)
+    for _ in range(2): edge()
+    fam = count(art, log, family=T039_FAMILY)["family"]
+    assert (fam["n_family"], fam["within_cap"], fam["n_dsr"], fam["reverted_to_lifetime"]) == (5, False, 24, True), f"T044 CAP: breach must revert to lifetime N {fam}"
+    assert dsr(m, selected_trial="b", counts=count({}, log)) == {"value": None, "reason": "evidence_corrupt"}, "T044 UNDEFINED: no backfill, no DSR"
