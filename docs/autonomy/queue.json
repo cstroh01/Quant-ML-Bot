@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden. 2026-10-09 correction (Codex B1 #139): report units without output converted to fix; allowed_paths rebuilt from full task text as repo paths; Q89/Q90 blocked (atomic, over 300 lines); Q91-Q94 added. Conventions: (1) a tests-first unit whose tests are red lands them as pytest.mark.xfail(strict=True, reason='<spec> T0nn red until Qnn') or vitest test.fails, and the implementing unit removes the marker, so main and the required checks stay green; (2) TypeScript mutation drivers live under reports/web/mutation/drivers/ with their own vitest config, outside the default include, so they never mutate a view while the default suite runs. 2026-10-11 (Claude, governance PR, Camden merges): marked Q8, Q23, Q26-Q29, Q31, Q36, Q37, Q45, Q46 done from merged PRs; added Q95 (046 U1b, the part of Q8 that #142 deferred) and moved Q82 (058 T003 baseline) ahead of Q32 because Q24/Q25 depend on it; added Q96 (038 T022 driver that #153 deferred). 2026-10-11 decisions PR: Q58/Q61 may edit scripts/tearsheet_payload.py (038 plan.md ownership); added Q97 (033 count helper move) ahead of Q33. Added Q98 (058 D-7 ledger-backed holdout spend check, after Q83); Q33 now also waits for Q97. 2026-10-11: added Q99 (033 T058-T061, the part of Q32 that #157 deferred); Q33 waits for it.",
+  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden. 2026-10-09 correction (Codex B1 #139): report units without output converted to fix; allowed_paths rebuilt from full task text as repo paths; Q89/Q90 blocked (atomic, over 300 lines); Q91-Q94 added. Conventions: (1) a tests-first unit whose tests are red lands them as pytest.mark.xfail(strict=True, reason='<spec> T0nn red until Qnn') or vitest test.fails, and the implementing unit removes the marker, so main and the required checks stay green; (2) TypeScript mutation drivers live under reports/web/mutation/drivers/ with their own vitest config, outside the default include, so they never mutate a view while the default suite runs. 2026-10-11 (Claude, governance PR, Camden merges): marked Q8, Q23, Q26-Q29, Q31, Q36, Q37, Q45, Q46 done from merged PRs; added Q95 (046 U1b, the part of Q8 that #142 deferred) and moved Q82 (058 T003 baseline) ahead of Q32 because Q24/Q25 depend on it; added Q96 (038 T022 driver that #153 deferred). 2026-10-11 decisions PR: Q58/Q61 may edit scripts/tearsheet_payload.py (038 plan.md ownership); added Q97 (033 count helper move) ahead of Q33. Added Q98 (058 D-7 ledger-backed holdout spend check, after Q83); Q33 now also waits for Q97. 2026-10-11: added Q99 (033 T058-T061, the part of Q32 that #157 deferred); Q33 waits for it. 2026-10-11: added Q100 (paper loop -> 035 cache; exec/, blocked for the lane). Q82 done (#160, merged while [WIP]); Q101 completes 058 T003. Added Q102 (055 drill support in ops_runner, from Codex's PAPER preflight), placed early.",
   "items": [
     {
       "id": "Q1",
@@ -405,7 +405,7 @@
     {
       "id": "Q82",
       "kind": "fix",
-      "status": "ready",
+      "status": "done",
       "spec_task": "058 T003",
       "summary": "Baseline evidence.",
       "allowed_paths": [
@@ -414,7 +414,22 @@
       ],
       "file_cap_lines": 300,
       "depends_on": [],
-      "note": "Converted report->fix: the output name is date-stamped (baseline-<YYYYMMDD>.md, unknown until run day) and T003 also needs its tasks.md tick. scripts/ and reports/ REMOVED from allowed_paths: T003 only searches them (and docs/trials/, read-only) for \u00a74 tickers; write access there was far too broad. Record suite counts, the two ledger hashes, and the no-\u00a74-ticker proof. Ordering: as a baseline it should precede the 058 code units (Q23-Q25, Q30); see concerns. Ordered 2026-10-09 ahead of Q23-Q25 so the Phase 0 baseline precedes 058 code. 2026-10-11: moved ahead of the 033 Phase 8 items; Q24/Q25 (058 T010/T011) depend on it and the lane takes the first ready item."
+      "note": "Converted report->fix: the output name is date-stamped (baseline-<YYYYMMDD>.md, unknown until run day) and T003 also needs its tasks.md tick. scripts/ and reports/ REMOVED from allowed_paths: T003 only searches them (and docs/trials/, read-only) for \u00a74 tickers; write access there was far too broad. Record suite counts, the two ledger hashes, and the no-\u00a74-ticker proof. Ordering: as a baseline it should precede the 058 code units (Q23-Q25, Q30); see concerns. Ordered 2026-10-09 ahead of Q23-Q25 so the Phase 0 baseline precedes 058 code. 2026-10-11: moved ahead of the 033 Phase 8 items; Q24/Q25 (058 T010/T011) depend on it and the lane takes the first ready item.",
+      "pr": 160
+    },
+    {
+      "id": "Q101",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "058 T003 (completion)",
+      "summary": "PR #160 (queue Q82) merged while [WIP]: docs/implementation/spec-058/baseline-20261011.md records the suite as pending and T003 is not ticked. Run the full suite once on the current origin/main, record exit code, counts, Python version and commit in a new dated baseline file (do not rewrite the merged one), verify the ledger hashes, and tick 058 T003.",
+      "depends_on": [],
+      "allowed_paths": [
+        "docs/implementation/spec-058/baseline-",
+        ".specify/specs/058-edge-research-program/tasks.md"
+      ],
+      "file_cap_lines": 300,
+      "note": "Placed ahead of Q24/Q25, which build on the 058 baseline."
     },
     {
       "id": "Q95",
@@ -433,6 +448,23 @@
         ".specify/specs/046-rule13-cost-model/tasks.md"
       ],
       "file_cap_lines": 300
+    },
+    {
+      "id": "Q102",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "055 T007 drill support (Codex preflight 2026-10-11)",
+      "summary": "Drill support in scripts/ops_runner.py so spec 055's supervised drills can run without editing exec/ or faking outcomes (Codex PAPER preflight, codex-handoff-20261011/paper-deployment/PREFLIGHT-20261011.md): (1) an explicit injected-clock option accepted only together with a drill flag and refused with --submit, for missed-run and non-session drills; (2) a drill-only lease fixture that writes a held lease so lease_held can be exercised; (3) a per-profile kill and an explicit reviewed reset path (today the workflow's kill input hits both profiles and has no reset). Tests first; Rule 12 mutants: injected clock accepted on a submit run, reset clears a kill without the explicit flag, kill applied to the other profile.",
+      "depends_on": [],
+      "allowed_paths": [
+        "scripts/ops_runner.py",
+        "scripts/ops_runtime.py",
+        "tests/test_055_drill_support.py",
+        "tests/mutation/run_055_drill_mutants.py",
+        "docs/implementation/spec-055/"
+      ],
+      "file_cap_lines": 300,
+      "note": "No exec/ edits. The private paper-drill.yml that calls these options is installed by Codex in Quant-ML-Bot-private after this merges; Camden merges that PR."
     },
     {
       "id": "Q32",
@@ -1776,6 +1808,23 @@
         "Q89 PR merged"
       ],
       "note": "Blocked with Q89, and it MUST depend on it: Phase 4 gates verify the Phase 3 working tree 'then run Phase 4' before anything lands, and failure means discarding to PRE ('no partial landing'), so T050-T057 belong to Q89's ratified route on the same branch, not to a separate post-merge unit. T050 needs the PRE export (T002); T053 reads docs/trials/ hashes (read-only); T057 is a hand-off to Camden. tools path corrected to .specify/specs/040-installable-package/tools/compare_junit.py; outputs artifacts/post.xml, artifacts/ac3*.txt, artifacts/ac5-red.txt. The broad '.specify/specs/040-installable-package/' prefix was narrowed to artifacts/ + tasks.md + the tool."
+    },
+    {
+      "id": "Q100",
+      "kind": "fix",
+      "status": "blocked",
+      "spec_task": "049/051 paper loop data source (Rule 7)",
+      "summary": "Paper loop reads the spec 035 validated unadjusted cache instead of yfinance (exec/paper_loop.py:401 download_market_data). Required before any promoted model trades PAPER, so paper decisions use the same data the research used. Tests first; a stale or missing cache refuses the run.",
+      "depends_on": [
+        "Q44 PR merged"
+      ],
+      "allowed_paths": [
+        "exec/paper_loop.py",
+        "tests/test_049_paper_loop.py",
+        "tests/test_100_paper_loop_data.py"
+      ],
+      "file_cap_lines": 300,
+      "note": "Blocked for the cloud lane permanently: exec/ is a lane hard gate (Rule 7). Built in a Camden-instructed session; Camden reviews every line and merges. Found in Camden's Rule 7 review 2026-10-11 (codex-lane RULE7-RECORD-20261011.md, finding 3)."
     }
   ]
 }
