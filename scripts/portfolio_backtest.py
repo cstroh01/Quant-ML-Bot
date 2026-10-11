@@ -8,8 +8,8 @@ tradable: its order is skipped and recorded and its holding is unchanged.
 Costs come from an injected `fill_cost(ticker, as_of, quantity)` giving the adverse fraction as
 of the decision session t (spec 046's `estimate_fill_cost(...).total` plugs in); a
 `CostUnavailable` skips the order, never fills it free. Commission per fill is required (Rule 3).
-Long-only, no borrowing: buys the cash after sells cannot fund are scaled down together, costed
-at the unscaled quantity (conservative). Panels share one share basis; splits and dividends are
+Long-only, no borrowing: buys the cash after sells cannot fund are scaled down together (costed
+at the unscaled quantity), all skipped if commissions alone exceed it; equity < 0 sizes as 0. Panels share one share basis; splits and dividends are
 not applied here. Nothing here knows how weights or signals were produced (Rule 8).
 """
 from __future__ import annotations
@@ -129,7 +129,7 @@ def run_portfolio_backtest(opens: pd.DataFrame, closes: pd.DataFrame, weights: p
             if row[ticker] > 0 and np.isnan(close[ticker]):
                 skipped.append((session, sessions[i + 1], ticker, "no_close_at_decision"))
             else:
-                target[ticker] = row[ticker] * value / close[ticker] if row[ticker] > 0 else 0.0
+                target[ticker] = row[ticker] * max(value, 0.0) / close[ticker] if row[ticker] > 0 else 0.0
         pending = (session, target)
     return PortfolioResult(pd.Series(equity, index=sessions, name="Equity"),
                            pd.DataFrame(held, index=sessions),

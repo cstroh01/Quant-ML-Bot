@@ -36,7 +36,7 @@ def test_hand_two_asset_oracle():
     cash += 50 * 12 * 0.99 - 1 - ((b - 12.5) * 22 * 1.01 + 1)  # sells first, then the buy, at d2's open
     expected = [1000.0, e1, cash + b * 21, cash + b * 22]
     assert np.allclose(result.equity, expected, rtol=0, atol=1e-9), f"T010 ORACLE {list(result.equity)}"
-    assert np.allclose(result.holdings.loc[S[3]], [0, b]), "T010 ORACLE holdings"
+    assert np.allclose(result.holdings.loc[[S[1], S[3]]], [[50, 12.5], [0, b]]), "T010 ORACLE holdings"
     price = result.fills.set_index(["Session", "Ticker"]).Price
     assert price[(S[1], "A")] == pytest.approx(10.1) and price[(S[2], "A")] == pytest.approx(11.88), "T010 ORACLE"
     assert result.fills.Commission.sum() == 4 and result.skipped.empty, "T010 ORACLE commission"
@@ -47,14 +47,15 @@ def test_fill_quote_is_the_next_sessions_open():
     for row in fills.itertuples():
         assert row.Session == S[S.get_loc(row.Decision) + 1], "T010 NEXT_OPEN session"
         assert row.Quote == OPENS.loc[row.Session, row.Ticker], f"T010 NEXT_OPEN quote {row}"
+    result = run(weights=pd.DataFrame({"A": [1.0]}, index=S[3:]))
+    assert result.fills.empty and list(result.skipped.Reason) == ["no_next_session"]
 
 
 def test_future_rows_do_not_move_decisions_fills_or_marks():
     base = run()
     for k in range(len(S)):
-        later = S > S[k]
         opens, closes = OPENS.copy(), CLOSES.copy()
-        closes.loc[later] *= 3.0  # sizing must read the decision close, never a later one
+        closes.loc[S > S[k]] *= 3.0  # sizing must read the decision close, never a later one
         opens.loc[S > S[min(k + 1, 3)]] *= 0.5
         moved = run(opens, closes)
         assert np.allclose(moved.equity[:k + 1], base.equity[:k + 1]), f"T010 LOOKAHEAD equity through {k}"
@@ -78,9 +79,11 @@ def test_a_ticker_without_a_row_is_not_tradable_and_marks_use_the_last_close():
     assert list(result.skipped.Reason) == ["no_row"] and result.holdings.B.eq(0).all(), "T010 NO_ROW skip"
     cash = 1000 - (50 * 10 * 1.01 + 1)
     assert result.equity[S[2]] == pytest.approx(cash + 50 * 11), "T010 MARK last observed close"
-    closes.loc[S[0], "B"] = np.nan
-    skipped = run(OPENS, closes, WEIGHTS.iloc[:1]).skipped
-    assert list(skipped.Reason) == ["no_close_at_decision"], "T010 NO_ROW decision close"
+    opens, closes = OPENS.copy(), CLOSES.copy()
+    opens.loc[S[2], "A"], closes.loc[S[1], "B"] = np.nan, np.nan  # A's sell has no bar; held B unpriced at d1
+    result = run(opens, closes, WEIGHTS)
+    assert list(result.holdings.loc[S[3]]) == [50, 12.5], "T010 NO_ROW held positions must not trade"
+    assert list(result.skipped.Reason) == ["no_close_at_decision", "no_row"], "T010 NO_ROW reasons"
 
 
 def test_cost_unavailable_skips_the_order_instead_of_filling_free():
@@ -96,25 +99,19 @@ def test_cost_unavailable_skips_the_order_instead_of_filling_free():
 def test_buys_are_scaled_to_cash_and_never_borrow():
     opens = OPENS.copy()
     opens.loc[S[1]] = [15, 30]  # gap up after a gross-1 decision
-    weights = pd.DataFrame({"A": [0.5], "B": [0.5]}, index=S[:1])
-    result = run(opens, CLOSES, weights)
+    result = run(opens, CLOSES, pd.DataFrame({"A": [0.5], "B": [0.5]}, index=S[:1]))
     held = result.holdings.loc[S[1]]
     cash = result.equity[S[1]] - float((held * CLOSES.loc[S[1]]).sum())
     assert cash == pytest.approx(0, abs=1e-9) and (held < [50, 25]).all(), f"T010 CASH {cash} {list(held)}"
-
-
-def test_decision_on_the_last_session_has_no_fill():
-    result = run(weights=pd.DataFrame({"A": [1.0]}, index=S[3:]))
-    assert result.fills.empty and list(result.skipped.Reason) == ["no_next_session"]
+    assert list(run(weights=WEIGHTS.iloc[:1, :1], capital=0.5).skipped.Reason) == ["insufficient_cash"], "T010 CASH skip"
+    broke = run(weights=pd.DataFrame({"A": [1.0, 0.0, 1.0]}, index=S[:3]), capital=1.2)  # a sell's commission > proceeds
+    assert (broke.holdings >= 0).all().all() and broke.equity.iloc[-1] < 0, f"T010 CASH long-only {list(broke.holdings.A)}"
 
 
 @pytest.mark.parametrize("weights", [
-    pd.DataFrame({"A": [0.7], "B": [0.4]}, index=S[:1]),
-    pd.DataFrame({"A": [-0.1]}, index=S[:1]),
-    pd.DataFrame({"A": [np.nan]}, index=S[:1]),
-    pd.DataFrame({"C": [0.1]}, index=S[:1]),
-    pd.DataFrame({"A": [0.1]}, index=S[:1].tz_localize("UTC")),
-])
+    pd.DataFrame({"A": [0.7], "B": [0.4]}, index=S[:1]), pd.DataFrame({"A": [-0.1]}, index=S[:1]),
+    pd.DataFrame({"A": [np.nan]}, index=S[:1]), pd.DataFrame({"C": [0.1]}, index=S[:1]),
+    pd.DataFrame({"A": [0.1]}, index=S[:1].tz_localize("UTC"))])
 def test_invalid_weights_are_refused(weights):
     with pytest.raises(ValueError):
         run(weights=weights)

@@ -15,18 +15,20 @@ TEST = "tests/test_058_portfolio.py"
 MUTANTS = (
     ("fill at the decision close", "quotes = opens.iloc[i]", "quotes = closes.iloc[i - 1]", "T010 NEXT_OPEN"),
     ("missing row forward-filled", "quotes = opens.iloc[i]", "quotes = opens.ffill().iloc[i]", "T010 NO_ROW"),
-    ("sized off the fill-session close", "value / close[ticker]", "value / closes.iloc[i + 1][ticker]",
+    ("sized off the fill-session close", "max(value, 0.0) / close[ticker]", "max(value, 0.0) / closes.iloc[i + 1][ticker]",
      "T010 LOOKAHEAD"),
     ("cost read as of the fill session", "fill_cost(ticker, decision, abs(delta))",
      "fill_cost(ticker, session, abs(delta))", "T010 COST_ASOF"),
     ("marks back-filled", "marks = closes.ffill()", "marks = closes.bfill()", "T010 MARK"),
     ("buys never scaled to cash", "scale = min(1.0, ", "scale = max(1.0, ", "T010 CASH"),
+    ("unfundable buys booked at zero", "if scale == 0:", "if False:", "T010 CASH"),
+    ("negative equity sizes a short", "max(value, 0.0) / close", "value / close", "T010 CASH"),
 )
 
 
 def main() -> int:
     base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, TEST
-    base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 14, MUTANTS
+    base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 13, MUTANTS
     return base.main()
 
 
