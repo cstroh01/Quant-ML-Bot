@@ -235,12 +235,14 @@ deterministic PBO evidence.
 **Goal**: Make the permission gate evidence-backed and explicitly non-permissive
 when evidence is absent or stale.
 
-- [ ] T056 [US4] Write artifact-schema and reason-code tests in
+- [x] T056 [US4] Write artifact-schema and reason-code tests in
   `tests/test_033_gate3.py` covering every FR-040 field, ordered reasons,
   repository-relative evidence path, and test-fixture labelling.
-- [ ] T057 [US4] Write decision-table tests: both thresholds plus valid PBO pass;
+- [x] T057 [US4] Write decision-table tests: both thresholds plus valid PBO pass;
   either threshold below fails; missing/corrupt/undefined/incomplete is unknown;
   ledger/matrix/backfill/source mismatch is stale; exact DSR/t equality passes.
+  _T056/T057: strict xfail until T062; contract, red run and mutants in
+  `docs/implementation/spec-033/T056-T057-gate3-tests.md`._
 - [ ] T058 [US4] Write immutable artifact/index tests: each evaluation creates a
   new file and append-only index row, prior bytes do not change, digest matches,
   and a new candidate start makes the prior artifact stale.
