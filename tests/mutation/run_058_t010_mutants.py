@@ -1,0 +1,36 @@
+"""Rule 12 driver for spec 058 T010: portfolio accounting (D-6, Rule 1).
+
+Run: python tests/mutation/run_058_t010_mutants.py. Reuses run_058_t007_mutants.py's isolated copy,
+control, witness-carrying-failure and byte-identity checks against `scripts/portfolio_backtest.py`.
+"""
+from __future__ import annotations
+
+import sys
+
+import run_058_t007_mutants as base
+
+GUARD = "scripts/portfolio_backtest.py"
+TEST = "tests/test_058_portfolio.py"
+# (name, exact old fragment, mutant fragment, witness in the assertion message)
+MUTANTS = (
+    ("fill at the decision close", "quotes = opens.iloc[i]", "quotes = closes.iloc[i - 1]", "T010 NEXT_OPEN"),
+    ("missing row forward-filled", "quotes = opens.iloc[i]", "quotes = opens.ffill().iloc[i]", "T010 NO_ROW"),
+    ("sized off the fill-session close", "max(value, 0.0) / close[ticker]", "max(value, 0.0) / closes.iloc[i + 1][ticker]",
+     "T010 LOOKAHEAD"),
+    ("cost read as of the fill session", "fill_cost(ticker, decision, abs(delta))",
+     "fill_cost(ticker, session, abs(delta))", "T010 COST_ASOF"),
+    ("marks back-filled", "marks = closes.ffill()", "marks = closes.bfill()", "T010 MARK"),
+    ("buys never scaled to cash", "scale = min(1.0, ", "scale = max(1.0, ", "T010 CASH"),
+    ("unfundable buys booked at zero", "if scale == 0:", "if False:", "T010 CASH"),
+    ("negative equity sizes a short", "max(value, 0.0) / close", "value / close", "T010 CASH"),
+)
+
+
+def main() -> int:
+    base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, TEST
+    base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 13, MUTANTS
+    return base.main()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
