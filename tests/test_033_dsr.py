@@ -396,3 +396,50 @@ def test_t044_lifetime_dsr_always_family_dsr_beside_it(tmp_path):
     fam = count(art, log, family=T039_FAMILY)["family"]
     assert (fam["n_family"], fam["within_cap"], fam["n_dsr"], fam["reverted_to_lifetime"]) == (5, False, 24, True), f"T044 CAP: breach must revert to lifetime N {fam}"
     assert dsr(m, selected_trial="b", counts=count({}, log)) == {"value": None, "reason": "evidence_corrupt"}, "T044 UNDEFINED: no backfill, no DSR"
+
+
+# --- T046: the reported DSR and HAC t-stat inputs for one selected column, each re-derived from the declared
+# column literals with no read of the output object: exact Fractions plus stdlib NormalDist, never SciPy.
+# No production entry point joins the two statistics yet (Gate 3, T056+); the test hands the column over itself.
+T046_COLUMNS = {"a": [.25, -.25, .5, -.5, .25, -.25, .5, -.5], "b": [.5, .25, -.25, .75, .5, -.125, .25, .125],
+                "c": [.125, .125, -.125, .25, 0., .125, -.25, .125]}  # select "c": not column 0 and not the best Sharpe
+T046_N, T046_HORIZON, T046_LAGS = 37, 2, 3  # lags above the horizon-1 floor, so the recorded lag is the used one
+
+
+def t046_oracle():
+    """Every DSR and HAC t-stat input for column c, from the declared excess returns alone."""
+    from statistics import NormalDist
+    phi, moments = NormalDist(), {k: t037_moments(v) for k, v in T046_COLUMNS.items()}
+    sharpes = [float(mu) / math.sqrt(v) for mu, v, *_ in moments.values()]
+    mean, var1, m2, m3, m4 = moments["c"]
+    sr, skew, kurt = sharpes[2], float(m3) / float(m2) ** 1.5, float(m4 / m2 ** 2)
+    sd = math.sqrt(sum((s - sum(sharpes) / 3) ** 2 for s in sharpes) / 2)
+    bench = sd * ((1 - T037_EULER) * phi.inv_cdf(1 - 1 / T046_N) + T037_EULER * phi.inv_cdf(1 - 1 / (T046_N * math.e)))
+    denominator = 1 - skew * sr + (kurt - 1) / 4 * sr * sr
+    z = (sr - bench) * math.sqrt(8 - 1) / math.sqrt(denominator)
+    t_squared = t040_exact_t_squared(T046_COLUMNS["c"], T046_LAGS)
+    return dict(observed_sharpe=sr, observations=8, skewness=skew, pearson_kurtosis=kurt, trial_sharpe_std=sd, n_current=T046_N), \
+        dict(sharpes=sharpes, denominator=denominator, benchmark=bench, z=z, dsr=phi.cdf(z), mean=float(mean), t=math.copysign(math.sqrt(t_squared), mean))
+
+
+def test_t046_reported_dsr_and_t_stat_inputs_verified_independently():
+    """EXAMPLE — NOT A RESULT. DSR from the matrix and HAC t-stat from its selected column, checked against literals."""
+    rf = {"annual_rate": .1, "days_per_year": 250, "source": "EXAMPLE — NOT A RESULT"}
+    daily = math.log1p(rf["annual_rate"]) / rf["days_per_year"]  # stored = declared excess + rf; subtracting rf recovers it to ~1e-17
+    m = {"columns": list(T046_COLUMNS), "values": [[T046_COLUMNS[k][i] + daily for k in T046_COLUMNS] for i in range(8)],
+         "reason": None, "matrix_hash": "EXAMPLE", "family": {**FAMILY, "risk_free": rf}}
+    inputs, expect = t046_oracle()
+    near = lambda v: pytest.approx(v, rel=1e-9, abs=1e-12)
+    column = [row[m["columns"].index("c")] for row in m["values"]]
+    dsr = api("selection_bias", "matrix_dsr")(m, selected_trial="c", n_current=T046_N)
+    hac = api("selection_bias", "hac_t_stat")(column, horizon=T046_HORIZON, lags=T046_LAGS, annual_risk_free=rf["annual_rate"], days_per_year=rf["days_per_year"])
+    assert dsr["reason"] is None and hac["reason"] is None, f"T046 DEFINED: {dsr['reason']} {hac['reason']}"
+    assert dsr["inputs"] == {k: near(v) if isinstance(v, float) else v for k, v in inputs.items()}, f"T046 INPUTS: {dsr['inputs']}"
+    assert dsr["trial_sharpes"] == [near(s) for s in expect["sharpes"]], f"T046 SHARPES: column order {dsr['trial_sharpes']}"
+    assert (dsr["psr_denominator"], dsr["benchmark_sharpe"], dsr["z"], dsr["value"]) == tuple(near(expect[k]) for k in ("denominator", "benchmark", "z", "dsr")), f"T046 DSR: {dsr}"
+    assert (dsr["matrix_hash"], dsr["conventions"]["risk_free"]) == (m["matrix_hash"], rf), f"T046 PROVENANCE: {dsr['matrix_hash']} {dsr['conventions']}"
+    replay = api("selection_bias", "deflated_sharpe")(**inputs)  # consistency: the oracle inputs, never dsr["inputs"], give the same value
+    assert replay["value"] == near(dsr["value"]), f"T046 REPLAY: {replay['value']!r} vs {dsr['value']!r}"
+    assert (hac["mean_excess_log_return"], hac["value"]) == (near(expect["mean"]), near(expect["t"])), f"T046 TSTAT: {hac}"
+    assert (hac["hac_lags"], hac["annual_risk_free"], hac["days_per_year"]) == (T046_LAGS, .1, 250), f"T046 TSTAT: recorded convention {hac}"
+    assert hac["standard_error"] == near(expect["mean"] / expect["t"]), f"T046 TSTAT: standard error {hac}"
