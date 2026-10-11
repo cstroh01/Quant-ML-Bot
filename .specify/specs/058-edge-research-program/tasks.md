@@ -24,7 +24,7 @@ Order matters: D-1(a) requires T006 to land before T007.
   - Content:
     - Gate 3 may evaluate a preregistered family at `N_family` while D-1's four conditions hold.
     - The lifetime-`N` DSR is always computed and published beside it.
-- [ ] T003 Baseline.
+- [x] T003 Baseline.
   - Files: `docs/implementation/spec-058/baseline-<YYYYMMDD>.md`.
   - Record:
     - the suite counts
