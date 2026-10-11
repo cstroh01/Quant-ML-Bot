@@ -155,16 +155,16 @@ incomplete; there is no optimistic fallback.
 
 **Goal**: Pin statistical conventions before implementation.
 
-- [ ] T034 [US3] Write matrix tests in `tests/test_033_dsr.py` for funded daily
+- [x] T034 [US3] Write matrix tests in `tests/test_033_dsr.py` for funded daily
   OOS eligibility, exact shared dates, deterministic columns, digest checks,
   exclusion reasons, no fill methods, and one committed matrix hash.
-- [ ] T035 [US3] Add Rule 1/5 tests for first/last row, unequal boundaries,
+- [x] T035 [US3] Add Rule 1/5 tests for first/last row, unequal boundaries,
   missing/holiday session, duplicate/reordered/aware/non-midnight dates, fold
   joins, and future-row perturbation plus a current-row control.
 - [x] T036 [US3] Transcribe the DSR paper's worked-example inputs into the
   labelled fixture and write the direct formula test: `N = 88` gives
   `pytest.approx(0.910153014744707, abs=0.001)` and fails `0.95`; `N = 46` passes `0.95`.
-- [ ] T037 [US3] Write unit tests for every named DSR input and convention:
+- [x] T037 [US3] Write unit tests for every named DSR input and convention:
   daily non-annualized Sharpe, observation count, skewness, Pearson kurtosis,
   trial-Sharpe dispersion, extreme-value benchmark, normal CDF, and
   `N_current`.
@@ -172,10 +172,10 @@ incomplete; there is no optimistic fallback.
   zero dispersion/variance where undefined, non-finite moments, invalid square
   root denominator, `N < 1`, and missing selected candidate; assert structured
   undefined reasons.
-- [ ] T039 [US3] Write integration tests proving `N_current` equals immutable
+- [x] T039 [US3] Write integration tests proving `N_current` equals immutable
   backfill plus every candidate start, including duplicates and incomplete
   terminal runs, and is not unique-hash/completion/matrix-column count.
-- [ ] T040 [US3] Write a hand-calculated HAC t-stat oracle using the existing
+- [x] T040 [US3] Write a hand-calculated HAC t-stat oracle using the existing
   `metrics.mean_log_return_se`, require lag `>= horizon - 1`, and cover exact
   `3.0`, one representable value below, non-positive/undefined SE, and risk-free
   log-return convention.
@@ -189,12 +189,12 @@ incomplete; there is no optimistic fallback.
 - [x] T043 [US3] Implement direct PSR/DSR equations in `scripts/selection_bias.py`
   using SciPy only for normal distribution primitives; expose named inputs and
   structured undefined results.
-- [ ] T044 [US3] Integrate lifetime `N_current` without substituting surviving
+- [x] T044 [US3] Integrate lifetime `N_current` without substituting surviving
   matrix columns or an effective correlated-trial count.
 - [x] T045 [US3] Reuse/extract the existing HAC mean standard-error primitive
   without duplicating its formula; calculate the selected candidate's daily OOS
   excess-return t-stat and record actual lag.
-- [ ] T046 [US3] Make T034-T040 green, including the paper fixture, then verify
+- [x] T046 [US3] Make T034-T040 green, including the paper fixture, then verify
   the reported DSR and t-stat inputs independently from the output object.
 
 **Checkpoint**: DSR and HAC t-stat are pure, source-checked, and tied to the
@@ -343,3 +343,11 @@ retroactively certified; their partial acceptance and remaining gaps are
 documented there. Camden explicitly limited this continuation to Phase 7.
 T031/T032 remain untouched. Phases 8–10 are not started by this continuation.
 The full-suite merge gate remains subject to the recorded canonical results.
+
+## Implementation checkpoint — 2026-10-11 (queue Q31)
+
+T034, T035, T037, T039, T040, T044 and T046 are ticked with cited evidence in
+`docs/implementation/spec-033/T046-independent-verification.md`: one test per
+gap the 2026-10-04 checkbox audit named, and the T046 independent re-derivation
+of the reported DSR and HAC t-stat inputs with 12/12 Rule 12 mutants killed.
+Phases 8–10 are unchanged by this checkpoint.
