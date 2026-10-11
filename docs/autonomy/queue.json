@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden. 2026-10-09 correction (Codex B1 #139): report units without output converted to fix; allowed_paths rebuilt from full task text as repo paths; Q89/Q90 blocked (atomic, over 300 lines); Q91-Q94 added. Conventions: (1) a tests-first unit whose tests are red lands them as pytest.mark.xfail(strict=True, reason='<spec> T0nn red until Qnn') or vitest test.fails, and the implementing unit removes the marker, so main and the required checks stay green; (2) TypeScript mutation drivers live under reports/web/mutation/drivers/ with their own vitest config, outside the default include, so they never mutate a view while the default suite runs. 2026-10-11 (Claude, governance PR, Camden merges): marked Q8, Q23, Q26-Q29, Q31, Q36, Q37, Q45, Q46 done from merged PRs; added Q95 (046 U1b, the part of Q8 that #142 deferred) and moved Q82 (058 T003 baseline) ahead of Q32 because Q24/Q25 depend on it; added Q96 (038 T022 driver that #153 deferred). 2026-10-11 decisions PR: Q58/Q61 may edit scripts/tearsheet_payload.py (038 plan.md ownership); added Q97 (033 count helper move) ahead of Q33. Added Q98 (058 D-7 ledger-backed holdout spend check, after Q83); Q33 now also waits for Q97.",
+  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden. 2026-10-09 correction (Codex B1 #139): report units without output converted to fix; allowed_paths rebuilt from full task text as repo paths; Q89/Q90 blocked (atomic, over 300 lines); Q91-Q94 added. Conventions: (1) a tests-first unit whose tests are red lands them as pytest.mark.xfail(strict=True, reason='<spec> T0nn red until Qnn') or vitest test.fails, and the implementing unit removes the marker, so main and the required checks stay green; (2) TypeScript mutation drivers live under reports/web/mutation/drivers/ with their own vitest config, outside the default include, so they never mutate a view while the default suite runs. 2026-10-11 (Claude, governance PR, Camden merges): marked Q8, Q23, Q26-Q29, Q31, Q36, Q37, Q45, Q46 done from merged PRs; added Q95 (046 U1b, the part of Q8 that #142 deferred) and moved Q82 (058 T003 baseline) ahead of Q32 because Q24/Q25 depend on it; added Q96 (038 T022 driver that #153 deferred). 2026-10-11 decisions PR: Q58/Q61 may edit scripts/tearsheet_payload.py (038 plan.md ownership); added Q97 (033 count helper move) ahead of Q33. Added Q98 (058 D-7 ledger-backed holdout spend check, after Q83); Q33 now also waits for Q97. 2026-10-11: added Q99 (033 T058-T061, the part of Q32 that #157 deferred); Q33 waits for it.",
   "items": [
     {
       "id": "Q1",
@@ -455,6 +455,25 @@
       "note": "tests/spec033_support.py:12 freezes GATE_FIELDS (T006) without n_family/family fields, so the 2026-10-09 family-N + lifetime-N amendment requires editing it. Test-only labelled Gate 3 fixtures go in tests/fixtures/spec_033/ (plan.md:58). T061 red evidence goes in docs/implementation/spec-033/. Red tests must not reach main alone: land them as strict xfail (removed in Q33/Q34) or stack Q33 on this branch, or the required 'test' check fails (Rule 9a cond. 5)."
     },
     {
+      "id": "Q99",
+      "kind": "fix",
+      "status": "ready",
+      "spec_task": "033 T058+T059+T060+T061",
+      "summary": "Rest of Q32 that PR #157 deferred (it shipped T056+T057 only): Phase 8 tests for T058-T061 per Q32's summary, including staleness when a return file or the selected config changes (the #157 reviewer gap left for T058). Same tests-first convention: strict xfail until Q33 (T062) builds the generator.",
+      "depends_on": [
+        "#157 merged"
+      ],
+      "allowed_paths": [
+        "tests/test_033_gate3.py",
+        "tests/spec033_support.py",
+        "tests/fixtures/spec_033/",
+        ".specify/specs/033-trial-ledger-dsr-pbo-gate/tasks.md",
+        "docs/implementation/spec-033/",
+        "tests/mutation/run_033_"
+      ],
+      "file_cap_lines": 300
+    },
+    {
       "id": "Q97",
       "kind": "fix",
       "status": "ready",
@@ -490,7 +509,8 @@
       "file_cap_lines": 300,
       "depends_on": [
         "Q32 PR merged",
-        "Q97 PR merged"
+        "Q97 PR merged",
+        "Q99 PR merged"
       ],
       "note": "reports/api/routes/capital_gate.py is a forbidden path for queue agents (capital_gate API route; also Rule 9a cond. 2, constitution.md:187). T063 (route reads/validates artifact) and T064 (replace 'remains positive' text at capital_gate.py:41) are removed from this unit and need a separate Camden-authorized unit (proposed Q33b) that only Camden merges. tests/test_033_gate3.py added so the agent can drop strict-xfail markers for T062-covered cases; route tests (T059) stay red/xfail until Q33b. Artifacts written only to tmp dirs in tests; reports/artifacts/capital_gate/gate3/ (plan.md:51) is not committed. Earlier note: Touches a Rule 9a-excluded path or records a decision: build and open the PR, but only Camden merges."
     },
