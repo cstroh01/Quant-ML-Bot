@@ -57,10 +57,10 @@ D-1–D-5 stay open, and a task that consumes one waits for the human decision r
 
 ## Phase 1 — B: baseline and exact inventory (evidence only; no source edit)
 
-- [ ] T010 Record the baseline: source revision, Python version, full-suite counts and exit, all
+- [x] T010 Record the baseline: source revision, Python version, full-suite counts and exit, all
   `docs/trials/` hashes, `returns/` absent, and hashes of the three pinned files and every `save_figure`
   caller. Files: `docs/implementation/spec-038/baseline-<YYYYMMDD>.md` only. SC-003's "no worse than" uses it.
-- [ ] T011 Re-verify the register below at the unit's revision. A surface found in the tree but absent
+- [x] T011 Re-verify the register below at the unit's revision. A surface found in the tree but absent
   here fails admission until plan.md assigns it. Confirm `docs/cleanup-audit-2026-09-18/AUDIT.md` holds
   no outcome figure (none matched at `f49bd8b`; its numbers are evidence citations). Files: T010's
   baseline file only.
