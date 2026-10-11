@@ -84,7 +84,7 @@ since the plan's `2942240`, so the plan's line numbers still hold.
   that changes `/api/data/stats` must be rejected at review; one that only drops markers is the
   control. **Depends on:** none.
 
-- [ ] T004 Baseline. Files: `docs/implementation/spec-047/baseline-<YYYYMMDD>.md`. **Acceptance:**
+- [x] T004 Baseline. Files: `docs/implementation/spec-047/baseline-<YYYYMMDD>.md`. **Acceptance:**
   `python -m pytest tests` on clean `main` with exit code, passed/failed/xfailed/errors, Python
   version, commit, and the ledger check; `npm run lint` and `npm run build` results for
   `reports/web`. This is SC-002's baseline. **Rule 12:** not a gate; no planted defect.
