@@ -11,3 +11,5 @@ httpx==0.28.1
 pytest==9.1.1
 # Rule 6: spec 046 T001 names the authors' EDGE reference implementation as the test oracle; no existing dependency computes the Ardia-Guidotti-Kroencke spread. Test-only.
 bidask==2.1.0
+# Rule 6: the cloud lane runs the full suite once per unit with pytest -n auto (routine prompt v10); a serial run no longer fits the session's command time limit. Test-only; CI keeps the serial runner.
+pytest-xdist==3.8.0
