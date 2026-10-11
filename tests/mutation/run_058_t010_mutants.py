@@ -1,8 +1,7 @@
 """Rule 12 driver for spec 058 T010: portfolio accounting (D-6, Rule 1).
 
-Run: python tests/mutation/run_058_t010_mutants.py. One-site mutants of `scripts/portfolio_backtest.py`
-in an isolated copy; a kill is a FAILURE (never an error) whose assertion carries the witness. Same
-control and byte-identity checks as run_058_t007_mutants.py.
+Run: python tests/mutation/run_058_t010_mutants.py. Reuses run_058_t007_mutants.py's isolated copy,
+control, witness-carrying-failure and byte-identity checks against `scripts/portfolio_backtest.py`.
 """
 from __future__ import annotations
 

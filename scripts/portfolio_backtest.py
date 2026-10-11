@@ -1,19 +1,16 @@
 """Multi-asset weights -> next-open fills -> portfolio P&L (spec 058 T010, D-6).
 
-A `weights` row labelled session t is a decision made at the close of t. Its
-share targets are fixed at that close, from equity and closes through t only,
-and fill at the open of the next panel session t+1 (Rule 1). A ticker with no
-row on a session (NaN open, or NaN close at the decision) is not tradable
-then: its order is skipped and recorded, and its holding is left unchanged.
+A `weights` row labelled session t is a decision at the close of t. Its share targets are fixed
+then, from equity and closes through t only, and fill at the open of the next panel session t+1
+(Rule 1). A ticker with no row (NaN open at the fill, or NaN close at the decision) is not
+tradable: its order is skipped and recorded and its holding is unchanged.
 
-Costs come from an injected `fill_cost(ticker, as_of, quantity)` returning the
-adverse fraction, read as of the decision session t (spec 046's
-`estimate_fill_cost(...).total` plugs in). A `CostUnavailable` skips that order;
-it never fills free. Commission per fill is required (Rule 3). Long-only with
-no borrowing: buys the cash after sells cannot fund are scaled down together,
-priced at the unscaled quantity's cost (conservative). Panels must share one
-share basis; splits and dividends are not applied here. This module knows
-nothing of how weights or signals were produced (Rule 8).
+Costs come from an injected `fill_cost(ticker, as_of, quantity)` giving the adverse fraction as
+of the decision session t (spec 046's `estimate_fill_cost(...).total` plugs in); a
+`CostUnavailable` skips the order, never fills it free. Commission per fill is required (Rule 3).
+Long-only, no borrowing: buys the cash after sells cannot fund are scaled down together, costed
+at the unscaled quantity (conservative). Panels share one share basis; splits and dividends are
+not applied here. Nothing here knows how weights or signals were produced (Rule 8).
 """
 from __future__ import annotations
 
@@ -27,8 +24,7 @@ from cost_model import CostUnavailable
 
 FillCost = Callable[[str, pd.Timestamp, float], float]
 GROSS_TOLERANCE = 1e-9
-FILL_COLUMNS = ["Decision", "Session", "Ticker", "Quantity", "Quote", "Price",
-                "Cost_Fraction", "Slippage", "Commission"]
+FILL_COLUMNS = ["Decision", "Session", "Ticker", "Quantity", "Quote", "Price", "Cost_Fraction", "Slippage", "Commission"]
 SKIP_COLUMNS = ["Decision", "Session", "Ticker", "Reason"]
 
 
@@ -90,9 +86,7 @@ def run_portfolio_backtest(opens: pd.DataFrame, closes: pd.DataFrame, weights: p
             decision, target = pending
             quotes = opens.iloc[i]
             orders = []
-            for ticker, delta in (target - shares).items():
-                if delta == 0:
-                    continue
+            for ticker, delta in (target - shares)[lambda d: d != 0].items():
                 if np.isnan(quotes[ticker]):
                     skipped.append((decision, session, ticker, "no_row"))
                     continue

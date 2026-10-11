@@ -5,7 +5,6 @@ EXAMPLE — NOT A RESULT. Synthetic panels and a constant stand-in cost; no figu
 import numpy as np
 import pandas as pd
 import pytest
-import context  # noqa: F401
 from cost_model import CostUnavailable
 from portfolio_backtest import run_portfolio_backtest
 
@@ -20,8 +19,7 @@ OPENS, CLOSES = panel([10, 10, 12, 11], [20, 20, 22, 21]), panel([10, 11, 12, 12
 WEIGHTS = pd.DataFrame({"A": [0.5, 0.0], "B": [0.25, 0.5]}, index=S[:2])
 
 
-def flat(ticker, as_of, quantity):
-    return 0.01
+flat = lambda ticker, as_of, quantity: 0.01  # noqa: E731 - constant stand-in cost
 
 
 def run(opens=OPENS, closes=CLOSES, weights=WEIGHTS, cost=flat, capital=1000.0):
@@ -39,10 +37,9 @@ def test_hand_two_asset_oracle():
     expected = [1000.0, e1, cash + b * 21, cash + b * 22]
     assert np.allclose(result.equity, expected, rtol=0, atol=1e-9), f"T010 ORACLE {list(result.equity)}"
     assert np.allclose(result.holdings.loc[S[3]], [0, b]), "T010 ORACLE holdings"
-    fills = result.fills.set_index(["Session", "Ticker"])
-    assert fills.loc[(S[1], "A"), "Price"] == pytest.approx(10.1), "T010 ORACLE A buy"
-    assert fills.loc[(S[2], "A"), "Price"] == pytest.approx(11.88), "T010 ORACLE A sell"
-    assert fills.Commission.sum() == 4 and result.skipped.empty, "T010 ORACLE commission"
+    price = result.fills.set_index(["Session", "Ticker"]).Price
+    assert price[(S[1], "A")] == pytest.approx(10.1) and price[(S[2], "A")] == pytest.approx(11.88), "T010 ORACLE"
+    assert result.fills.Commission.sum() == 4 and result.skipped.empty, "T010 ORACLE commission"
 
 
 def test_fill_quote_is_the_next_sessions_open():
@@ -125,9 +122,7 @@ def test_invalid_weights_are_refused(weights):
 
 def test_costs_and_capital_must_be_explicit_and_valid():
     with pytest.raises(TypeError):
-        run_portfolio_backtest(OPENS, CLOSES, WEIGHTS, starting_capital=1000.0,
-                               commission_per_fill=None, fill_cost=flat)
-    with pytest.raises(ValueError):
-        run(capital=0.0)
-    with pytest.raises(ValueError):
-        run(cost=lambda *args: 1.0)
+        run_portfolio_backtest(OPENS, CLOSES, WEIGHTS, starting_capital=1000.0, commission_per_fill=None, fill_cost=flat)
+    for bad in ({"capital": 0.0}, {"cost": lambda *args: 1.0}):
+        with pytest.raises(ValueError):
+            run(**bad)
