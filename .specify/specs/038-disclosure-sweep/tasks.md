@@ -154,7 +154,8 @@ D-1–D-5 stay open, and a task that consumes one waits for the human decision r
 
 ## Phase 5 — A: API (each waits on the 047 release of shared files)
 
-- [ ] T050 A1 tearsheet. Files: `reports/api/routes/backtest.py`, `reports/api/schemas.py`,
+- [ ] T050 A1 tearsheet. Files: `scripts/tearsheet_payload.py` (builds the recorded payload; plan.md
+  ownership 2026-10-11), `reports/api/routes/backtest.py`, `reports/api/schemas.py`,
   `tests/test_038_api_tearsheet.py`. Adds `provenance` (commit, workspace state, trial id, UTC run time,
   036 source fields), `limitations`, `sharpe_status`, `risk_free_rate_annual`, `interpretation`, `oos`,
   `ineligible_reason`. Keeps 047 friction/bar fields and 035's label. Red: fields absent. Mutant M6
@@ -166,8 +167,9 @@ D-1–D-5 stay open, and a task that consumes one waits for the human decision r
 - [ ] T052 A3 ml_rundown. Files: `reports/api/routes/ml_rundown.py`, `reports/api/schemas.py`,
   `tests/test_038_api_ml_rundown.py`. Run time UTC separate from `as_of_date` (`:217`, last bar). Clock pinned
   either side of UTC midnight. Mutant: run time = last bar. Control: injected clock.
-- [ ] T053 A4 holding bars and drawdown anchor. Files: `reports/api/routes/backtest.py` (`holding_bars=1`
-  `:170`; running-max drawdown `:145-146`), `tests/test_038_api_bars_drawdown.py`. Adopt 047 U1a's
+- [ ] T053 A4 holding bars and drawdown anchor. Files: `scripts/tearsheet_payload.py` (`holding_bars=1`
+  `:97`; running-max drawdown `:72-73`; moved from `routes/backtest.py`, re-cited 2026-10-11),
+  `tests/test_038_api_bars_drawdown.py`. Adopt 047 U1a's
   `mean_holding_bars` helper (`scripts/ma_crossover_backtest.py:72`) rather than add one; method chosen in the unit
   PR before code. Rule 5 tests: first/last trade, fold edge, calendar gap. Mutant: off-by-one session count.
   Control: curve minimum equals `metrics.max_drawdown`. Depends 047 release.

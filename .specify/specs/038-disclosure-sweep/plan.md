@@ -10,6 +10,14 @@ Spec.md is authoritative over recommendations here. All its default dispositions
 
 Every implementation unit is at most 300 added-plus-removed lines including tests/evidence/status. Measure against pre-unit copies without Git. Stop for a plan subdivision/revision if the complete unit exceeds the cap; do not compress or drop tests. Implement one admitted unit at a time. Full-suite command is `python -m pytest tests`; Windows venv is the acceptance gate, Python 3.12 CI is separate evidence.
 
+## Ownership recorded 2026-10-11 (Camden, 2026-10-11 (decision list `claude/decisions-pending-20261011.md`, all recommendations accepted in chat))
+
+- `scripts/tearsheet_payload.py` builds the tearsheet payload that is recorded in the ledger sidecar and that
+  `reports/api/routes/backtest.py` now only serves and verifies (`:50-64`). T050 owns the payload fields it adds
+  (provenance, limitations, Sharpe status, interpretation) in this file and in `schemas.py`; T053 owns
+  `holding_bars=1` (`tearsheet_payload.py:97`) and the running-max drawdown (`:72-73`). T050 lands first.
+  Payloads already recorded keep their old shape; the route must refuse or label them, never invent fields (PR #150 finding 1).
+
 ## Decisions required before consuming them
 
 - D-1: propose `scripts/disclosure.py`, a pure text/provenance helper. Its CLAUDE module-table row is a human governance edit; no unit guesses placement.

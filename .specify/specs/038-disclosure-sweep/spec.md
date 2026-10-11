@@ -100,8 +100,8 @@ figures each time, so FR-001 to FR-005 stamp them as they render.
 | Labelling-only lines (audit `:128-133`) | label | `EXAMPLE — NOT A RESULT` on the same line. No figure changes. |
 | `FeatureDiagnosticsView.tsx:45`, `:56`, `:117`, `:125`, `:155` | S | Historical literals and unconditional threshold claims beside live values. A live value replaces a literal only where the API already returns it. `:178` (missing cell as `0`) renders unavailable. |
 | `BacktestTearsheetView.tsx:171` Sharpe bands | S | They invite reading an undeflated Sharpe as evidence (audit `:80`). |
-| `routes/backtest.py:170` `holding_bars=1` | S | A constant sent as data (audit `:71`). 047 hands it to 038. Removed, or computed from the trade's own entry and exit sessions. |
-| Equity-curve drawdown anchor (`routes/backtest.py:145-146` vs `metrics.max_drawdown`) | runtime | 047 hands it to 038. The served curve and the card must use one stated anchor. A test asserts they agree. |
+| `scripts/tearsheet_payload.py:97` `holding_bars=1` (was `routes/backtest.py:170`) | S | A constant sent as data (audit `:71`). 047 hands it to 038. Removed, or computed from the trade's own entry and exit sessions. |
+| Equity-curve drawdown anchor (`scripts/tearsheet_payload.py:72-73`, was `routes/backtest.py:145-146`, vs `metrics.max_drawdown`) | runtime | 047 hands it to 038. The served curve and the card must use one stated anchor. A test asserts they agree. |
 | `routes/data.py:82-84` fallback ticker list | S | Hard-coded when the cache is empty. An empty cache returns an empty list with a reason. |
 | `routes/ml_rundown.py:37-222`, `MLRundownPane.tsx:86-184` | runtime | Stamped by FR-005. `as_of_date` keeps its meaning (last bar) and is labelled so. |
 | `MarketDataView.tsx:56` | S | `MarketDataView.tsx:98` gains the partial-reconciliation limitation. |

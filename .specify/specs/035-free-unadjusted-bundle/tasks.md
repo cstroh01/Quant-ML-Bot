@@ -53,7 +53,7 @@ code, test, network call, bundle or Git operation by itself.
   the fields T001 requires. **Rule 12 planted defect:** a draft row marked verified that cites no
   T001 file must fail the checklist; a fully cited row passes. **Depends on:** T001.
 
-- [ ] T003 **HUMAN GATE — decisions D-1 to D-4, Camden.** Files: spec §8 (decision lines only).
+- [x] T003 **HUMAN GATE — decisions D-1 to D-4, Camden.** Files: spec §8 (decision lines only).
   **Task:** record D-1 (second source, from T002's evidence), D-2 (dividend-amount tolerance and
   common basis, `Close` tolerance, each with its basis), D-3 (module placement; if the new module is
   chosen, the `CLAUDE.md` table row is part of this gate), D-4 (build window). **Acceptance:** every
