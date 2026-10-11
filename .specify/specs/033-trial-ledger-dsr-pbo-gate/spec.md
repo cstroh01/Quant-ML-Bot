@@ -576,3 +576,9 @@ This approval does not approve the historical backfill.
   starts. The lifetime-`N` DSR is always computed and published beside it. A breach reverts the family
   to lifetime `N`.
 
+## Amendments — 2026-10-11 (Camden, 2026-10-11 (decision list `claude/decisions-pending-20261011.md`, all recommendations accepted in chat))
+- **Module boundary for trial counts (PR #151 ask).** `scripts/selection_bias.py` stays pure, as its
+  `CLAUDE.md` row says. Counting (ledger verification, backfill composition, family status) moves into a
+  helper in `scripts/trial_registry.py` that returns a verified count bound to one ledger head;
+  `selection_bias` receives the numbers and reads no files. Queue item Q97 does the move, tests first.
+

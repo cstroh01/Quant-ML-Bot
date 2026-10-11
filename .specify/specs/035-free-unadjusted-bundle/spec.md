@@ -221,6 +221,14 @@ Drivers live under `tests/mutation/` and invoke pytest (`CLAUDE.md`, Tests).
 - **D-4.** The window runs from each instrument's listing date to the latest completed session. Spec
   058's seal still governs research use.
 
+### Decisions recorded (Camden, 2026-10-11 (decision list `claude/decisions-pending-20261011.md`, all recommendations accepted in chat))
+- **D-5 Same-date dividends (PR #152 ask).** Duplicate ex-dates within one source stay refused (fail
+  closed) for v1.0. Free feeds do not tag regular versus special dividends reliably, so summing could
+  hide a real mismatch. An instrument that hits this is excluded or disclosed by name, never averaged.
+  Adding this to the SCOPE §6 register is a later governance edit that must change
+  `scripts/disclosure.py`'s verbatim register in the same PR (038 parity test).
+- **T003.** D-1 to D-4 above are Camden's decisions; T003 is ticked by this record.
+
 ## 9. Sequencing
 
 035 edits `scripts/data.py` (unless D-3 says otherwise), and so do 043 and 044. It does not run

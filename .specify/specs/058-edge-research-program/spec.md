@@ -140,6 +140,13 @@ Approximate net annualized Sharpe needed for DSR ≥ 0.95 (HAC t ≥ 3 binds les
 - **D-6 Module placement (T004).** A new `scripts/portfolio_backtest.py` owns weights → fills → P&L
   for a panel. Its `CLAUDE.md` row is a separate governance PR (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`)).
 
+### Recorded decisions (Camden, 2026-10-11 (decision list `claude/decisions-pending-20261011.md`, all recommendations accepted in chat))
+- **D-7 Holdout spend record (PR #145 ask).** The holdout spend is a ledger-backed event: T016 appends
+  one holdout-spend record to the hash-chained trial ledger, bound to the T014 selection record's config
+  hash, before the sealed frame is read. A spend event already present for this family refuses any
+  second opening, whatever `spent_path` a caller passes. A loose file is not the authority, because it
+  can be deleted and the holdout silently reused. The ledger write stays Camden's (T016 HUMAN GATE).
+
 ## 9. Out of scope
 Intraday data, single stocks, futures, leverage above 1.0, ML models in this family. ML stays a later
 challenger under 053.
