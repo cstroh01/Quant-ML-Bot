@@ -255,3 +255,43 @@ def test_t037_named_dsr_inputs_and_conventions():
     assert single["benchmark_sharpe"] == 0. and single["value"] == pytest.approx(phi.cdf(T037_SHARPE * math.sqrt(3) / math.sqrt(denominator)), rel=1e-9, abs=1e-12), f"T037 BENCHMARK: N=1 {single}"
     shifted = api("selection_bias", "matrix_dsr")(t037_matrix(.1, math.log1p(.1) / 250, 250), selected_trial="b", n_current=T037_N)
     assert shifted["inputs"] == {k: near(v) if isinstance(v, float) else v for k, v in inputs.items()}, f"T037 RISKFREE: log1p(annual)/days {shifted['inputs']}"
+
+
+# --- T035: Rule 1/5 matrix alignment. Each cell is its own trial's return on that row's own session:
+# no fill, no positional join, no read of another row. Sessions are declared literals, never pd.bdate_range.
+T035_JAN = [f"2020-01-{d:02d}" for d in (2, 3, 6, 7, 8, 9, 10, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 27, 28, 29, 30, 31)]
+T035_A = [s for s in T035_JAN[:-1] if s != "2020-01-09"]  # weekdays 01-02..01-30: missing 01-09, MLK holiday 01-20 kept
+T035_B = [s for s in T035_JAN[1:] if s not in {"2020-01-13", "2020-01-14", "2020-01-20"}]  # NYSE days 01-03..01-31;
+# fold 1 ends 01-10, embargo 01-13/14, fold 2 starts 01-15. Crossing edges: b sets the first row, a the last.
+T035_DATES = [f"2020-01-{d:02d}" for d in (3, 6, 7, 8, 10, 15, 16, 17, 21, 22, 23, 24, 27, 28, 29, 30)]
+
+
+def t035_rows(sessions, scale):  # distinct dyadic returns, so any shifted or positional read changes a cell
+    return [{"session": s, "log_return": scale * (i + 1) / 64} for i, s in enumerate(sessions)]
+
+
+def test_t035_session_alignment_boundaries_and_perturbation():
+    """EXAMPLE — NOT A RESULT. First/last row, unequal boundaries, holiday, gap, fold join, bad labels."""
+    build = api("selection_bias", "build_matrix")
+    a_rows, b_rows = t035_rows(T035_A, 1.), t035_rows(T035_B, -.5)
+    cell = {"a": {r["session"]: r["log_return"] for r in a_rows}, "b": {r["session"]: r["log_return"] for r in b_rows}}
+    base = build([trial("b", b_rows), trial("a", a_rows)], family=FAMILY)
+    assert base["reason"] is None and base["columns"] == ["a", "b"], f"T035 DATES: {base['reason']}"
+    assert base["dates"] == T035_DATES, f"T035 DATES: {base['dates']}"
+    moves = {}  # perturb every a row; only that session's own matrix row may move
+    for k, row in enumerate(a_rows):
+        bumped = copy.deepcopy(a_rows); bumped[k]["log_return"] += 1
+        values = build([trial("a", bumped), trial("b", b_rows)], family=FAMILY)["values"]
+        moves[row["session"]] = [d for d, old, new in zip(base["dates"], base["values"], values) if old != new]
+    assert all(d >= s for s, moved in moves.items() for d in moved), f"T035 FUTURE: a later bump moved an earlier row {moves}"
+    assert all((s in moved) == (s in T035_DATES) for s, moved in moves.items()), f"T035 CURRENT: {moves}"
+    assert all(set(moved) <= {s} for s, moved in moves.items()), f"T035 LATER: {moves}"
+    assert base["values"] == [[cell["a"][d], cell["b"][d]] for d in T035_DATES], f"T035 CELLS: {base['values']}"
+    for name, k, edit in (("duplicate", 5, lambda r, k: r[k].update(session=r[k - 1]["session"])),  # fold 2 restates 01-10
+                          ("swapped", 4, lambda r, k: r.__setitem__(slice(k, k + 2), [r[k + 1], r[k]])),  # folds out of order
+                          ("compact last", -1, lambda r, k: r[k].update(session=r[k]["session"].replace("-", ""))),  # ISO, not a label
+                          ("aware midnight last", -1, lambda r, k: r[k].update(session=r[k]["session"] + "T00:00:00+00:00")),
+                          ("non-midnight first", 0, lambda r, k: r[k].update(session=r[k]["session"] + "T16:00:00"))):
+        bad = copy.deepcopy(b_rows); edit(bad, k)
+        result = build([trial("a", a_rows), trial("b", bad)], family=FAMILY)
+        assert result["columns"] == ["a"] and result["excluded_trials"] == [{"trial_id": "b", "reason": "invalid_return_evidence"}], f"T035 REJECT {name}: {result['excluded_trials']}"
