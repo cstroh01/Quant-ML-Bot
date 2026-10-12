@@ -312,60 +312,74 @@ def _validate_decision_panel(closes: pd.DataFrame, decision_mask) -> np.ndarray:
     return mask
 
 
-def random_selection(
-    closes: pd.DataFrame, *, decision_mask, hold_probability: float, seed: int
-) -> pd.DataFrame:
-    """B-RND hold selection for one seed: long/flat per ticker, redrawn on decision rows only.
+def _probability(name: str, value) -> float:
+    if isinstance(value, bool) or not 0.0 <= float(value) <= 1.0:
+        raise ValueError(f"{name} must be in [0, 1]; got {value!r}")
+    return float(value)
 
-    Guarantees: a boolean frame shaped like `closes`. On each decision row every ticker with a
-    close at t is held with probability `hold_probability`; between decisions the holding
-    carries, and a ticker with no close at t is never held. Nothing is held before the first
-    decision row. Row t reads only the closes' presence at rows <= t and the seeded draws, never
-    a price, so it cannot see the future. Each ticker draws from its own stream, seeded by
-    `seed` and the ticker name, so adding or reordering columns leaves a ticker's draws
-    unchanged. Sizing and costs are applied by the same portfolio layer as the candidates.
+
+def random_selection(
+    closes: pd.DataFrame, *, decision_mask, enter_probability: float, exit_probability: float,
+    initial_probability: float, seed: int
+) -> pd.DataFrame:
+    """B-RND hold selection for one seed: a seeded long/flat chain per ticker on decision rows.
+
+    Guarantees: a boolean frame shaped like `closes`. Each ticker's state changes only on
+    decision rows: on the first it is long with `initial_probability`; afterwards a flat ticker
+    enters with `enter_probability` and a long one exits with `exit_probability`, so the
+    baseline matches a candidate's entries and exits (`matched_activity`), not only its
+    exposure. Between decisions the state carries; a ticker with no close at t is never held,
+    and nothing is held before the first decision row. Row t reads only the closes' presence at
+    rows <= t and the seeded draws, never a price. Each ticker draws one uniform per decision row
+    from its own stream, seeded by `seed` and the ticker name, so adding or reordering columns
+    leaves its draws unchanged. Sizing and costs come from the candidates' portfolio layer.
     """
     mask = _validate_decision_panel(closes, decision_mask)
-    if isinstance(hold_probability, bool) or not 0.0 <= float(hold_probability) <= 1.0:
-        raise ValueError(f"hold_probability must be in [0, 1]; got {hold_probability!r}")
+    enter_probability = _probability("enter_probability", enter_probability)
+    exit_probability = _probability("exit_probability", exit_probability)
+    initial_probability = _probability("initial_probability", initial_probability)
     if isinstance(seed, bool) or not isinstance(seed, (int, np.integer)):
         raise ValueError(f"seed must be an integer; got {seed!r}")
     present = closes.notna().to_numpy()
     held = np.zeros(present.shape, dtype=bool)
     for col, ticker in enumerate(closes.columns):
-        stream = np.random.default_rng([int(seed), zlib.crc32(str(ticker).encode())])
-        draws = stream.random(int(mask.sum()))  # one draw per decision row, eligible or not
-        long_now = draws < hold_probability
-        state, k = False, 0
+        draws = np.random.default_rng([int(seed), zlib.crc32(str(ticker).encode())]).random(int(mask.sum()))
+        state, k = False, -1
         for row in range(len(mask)):
             if mask[row]:
-                state, k = bool(long_now[k]), k + 1
+                k += 1
+                if k == 0:
+                    state = draws[k] < initial_probability
+                elif state:
+                    state = draws[k] >= exit_probability
+                else:
+                    state = draws[k] < enter_probability
             held[row, col] = state and present[row, col]
     return pd.DataFrame(held, index=closes.index, columns=closes.columns)
 
 
-def random_selections(
-    closes: pd.DataFrame, *, decision_mask, hold_probability: float, seeds
-) -> dict[int, pd.DataFrame]:
+def random_selections(closes: pd.DataFrame, *, decision_mask, seeds, **activity) -> dict[int, pd.DataFrame]:
     """`random_selection` for each of at least two distinct integer `seeds`, keyed by seed.
 
-    Rule 4 reports the random baseline's dispersion across seeds, not one draw, so a single
-    seed is refused.
+    `activity` is `matched_activity`'s result. Rule 4 reports the random baseline's dispersion
+    across seeds, not one draw, so a single seed is refused.
     """
     seeds = list(seeds)
     if len(seeds) < 2 or len(set(seeds)) != len(seeds) or any(
             isinstance(s, bool) or not isinstance(s, (int, np.integer)) for s in seeds):
         raise ValueError("seeds must be at least two distinct integers")
-    return {s: random_selection(closes, decision_mask=decision_mask,
-                                hold_probability=hold_probability, seed=s) for s in seeds}
+    return {s: random_selection(closes, decision_mask=decision_mask, seed=s, **activity) for s in seeds}
 
 
-def matched_hold_probability(candidate: pd.DataFrame, closes: pd.DataFrame, *, decision_mask) -> float:
-    """The candidate's hold rate on decision rows: names held / names with a close, over all of them.
+def matched_activity(candidate: pd.DataFrame, closes: pd.DataFrame, *, decision_mask) -> dict[str, float]:
+    """The candidate's decision-row activity, as B-RND's chain parameters (Rule 4 match).
 
-    This is the trade-frequency match for B-RND: the random baseline holds an eligible name
-    on a decision row as often as the candidate does. A candidate holding a name with no close
-    is refused rather than counted.
+    `initial_probability` is its exposure: names held / names with a close, over decision rows.
+    Between consecutive decision rows where a name has a close at both, `exit_probability` is
+    exits / names held before and `enter_probability` is entries / names flat before; with no
+    such opportunity the rate is 0. Rows between decisions are not decisions and are ignored.
+    The rates are calibration constants of the whole `candidate` passed in, so a caller fits
+    them on the research window only. A candidate holding a name with no close is refused.
     """
     mask = _validate_decision_panel(closes, decision_mask)
     if not candidate.index.equals(closes.index) or not candidate.columns.equals(closes.columns) \
@@ -375,7 +389,11 @@ def matched_hold_probability(candidate: pd.DataFrame, closes: pd.DataFrame, *, d
     eligible = closes.notna().to_numpy()[mask]
     if (held & ~eligible).any():
         raise ValueError("candidate holds a ticker with no close on a decision row")
-    total = eligible.sum()
-    if total == 0:
+    if eligible.sum() == 0:
         raise ValueError("no eligible ticker on any decision row")
-    return float(held.sum() / total)
+    both = eligible[1:] & eligible[:-1]
+    was_long, was_flat = both & held[:-1], both & ~held[:-1]
+    rate = lambda moved, base: float(moved.sum() / base.sum()) if base.sum() else 0.0
+    return {"enter_probability": rate(was_flat & held[1:], was_flat),
+            "exit_probability": rate(was_long & ~held[1:], was_long),
+            "initial_probability": float(held.sum() / eligible.sum())}

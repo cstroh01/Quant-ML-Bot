@@ -2,7 +2,8 @@
 
 EXAMPLE — NOT A RESULT. Seeded synthetic panels; no figure here is a result.
 Declaration rule (B-RND): "seeded random long/flat per asset, monthly, same sizing and costs".
-Rule 4: matched trade frequency, several seeds; Rule 1: row t reads nothing after t.
+Rule 4: matched trade frequency (entries and exits, not only exposure), several seeds;
+Rule 1: row t reads nothing after t.
 """
 
 import numpy as np
@@ -30,8 +31,19 @@ def monthly(closes):
     return signals.decision_sessions(closes.index, cadence="monthly")
 
 
-def draw(closes, p=0.5, seed=7):
-    return signals.random_selection(closes, decision_mask=monthly(closes), hold_probability=p, seed=seed)
+def coin(p):
+    """Enter p, exit 1 - p, start p: the Markov chain that is an independent p-coin each decision."""
+    return {"enter_probability": p, "exit_probability": 1 - p, "initial_probability": p}
+
+
+def draw(closes, p=0.5, seed=7, **activity):
+    return signals.random_selection(closes, decision_mask=monthly(closes), seed=seed, **(activity or coin(p)))
+
+
+def changes(selection, mask):
+    """Position changes between consecutive decision rows, over all tickers."""
+    rows = selection.to_numpy()[mask]
+    return int((rows[1:] != rows[:-1]).sum())
 
 
 def test_same_seed_same_selection_and_different_seeds_differ():
@@ -94,44 +106,68 @@ def test_hold_rate_matches_the_requested_probability():
     assert realized == pytest.approx(0.3, abs=0.03)
 
 
-def test_matched_hold_probability_is_the_candidates_decision_row_hold_rate():
+def test_matched_activity_fits_exposure_entries_and_exits_on_decision_rows():
     closes = panel(late={"XLE": 100})
     mask = monthly(closes)
+    rows = np.flatnonzero(mask)
     candidate = pd.DataFrame(False, index=closes.index, columns=closes.columns)
-    candidate.loc[:, ["SPY", "IEF"]] = True  # two of the eligible names on every decision row
-    eligible = closes.loc[mask].notna().to_numpy().sum()
-    expected = 2 * mask.sum() / eligible
-    assert signals.matched_hold_probability(candidate, closes, decision_mask=mask) == pytest.approx(expected)
-    candidate.loc[~mask] = True  # holdings between decisions are not decisions
-    assert signals.matched_hold_probability(candidate, closes, decision_mask=mask) == pytest.approx(expected)
+    candidate.loc[:, ["SPY", "IEF"]] = True            # held throughout: no exits
+    candidate.iloc[rows[4]:, candidate.columns.get_loc("GLD")] = True  # one entry, never left
+    fit = signals.matched_activity(candidate, closes, decision_mask=mask)
+    eligible = closes.notna().to_numpy()[mask]
+    held = candidate.to_numpy()[mask]
+    both = eligible[1:] & eligible[:-1]
+    assert fit["initial_probability"] == pytest.approx(held.sum() / eligible.sum())
+    assert fit["exit_probability"] == 0.0
+    assert fit["enter_probability"] == pytest.approx(1 / (both & ~held[:-1]).sum())
+    candidate.loc[~mask] = ~candidate.loc[~mask]  # rows between decisions are not decisions
+    assert signals.matched_activity(candidate, closes, decision_mask=mask) == fit
 
 
-def test_matched_probability_refuses_a_selection_without_a_close():
+def test_baseline_matches_the_candidates_turnover_not_just_its_exposure():
+    """Review P1 (#192): a persistent candidate must not face a churning baseline."""
+    closes = panel(n=2600)
+    mask = monthly(closes)
+    persistent = pd.DataFrame(False, index=closes.index, columns=closes.columns)
+    persistent.loc[:, ["SPY", "IEF"]] = True
+    fit = signals.matched_activity(persistent, closes, decision_mask=mask)
+    books = signals.random_selections(closes, decision_mask=mask, seeds=range(1, 21), **fit)
+    assert all(changes(book, mask) == 0 for book in books.values())  # candidate makes 0 changes
+    assert len({tuple(book.iloc[-1]) for book in books.values()}) > 1  # seeds still disperse
+    active = draw(closes, seed=99, enter_probability=0.2, exit_probability=0.3, initial_probability=0.4)
+    fit = signals.matched_activity(active, closes, decision_mask=mask)
+    books = signals.random_selections(closes, decision_mask=mask, seeds=range(1, 21), **fit)
+    mean = np.mean([changes(book, mask) for book in books.values()])
+    assert mean == pytest.approx(changes(active, mask), rel=0.1)
+
+
+def test_matched_activity_refuses_a_selection_without_a_close():
     closes = panel(late={"XLE": 100})
     candidate = pd.DataFrame(True, index=closes.index, columns=closes.columns)
     with pytest.raises(ValueError, match="no close"):
-        signals.matched_hold_probability(candidate, closes, decision_mask=monthly(closes))
+        signals.matched_activity(candidate, closes, decision_mask=monthly(closes))
 
 
 def test_several_seeds_are_required_and_each_is_its_own_draw():
     closes = panel()
     mask = monthly(closes)
-    books = signals.random_selections(closes, decision_mask=mask, hold_probability=0.4, seeds=[1, 2, 3])
+    books = signals.random_selections(closes, decision_mask=mask, seeds=[1, 2, 3], **coin(0.4))
     assert list(books) == [1, 2, 3]
     pd.testing.assert_frame_equal(books[2], signals.random_selection(
-        closes, decision_mask=mask, hold_probability=0.4, seed=2))
+        closes, decision_mask=mask, seed=2, **coin(0.4)))
     for seeds in ([1], [1, 1], [1, 2.5], [True, 2]):
         with pytest.raises(ValueError, match="seeds"):
-            signals.random_selections(closes, decision_mask=mask, hold_probability=0.4, seeds=seeds)
+            signals.random_selections(closes, decision_mask=mask, seeds=seeds, **coin(0.4))
 
 
 @pytest.mark.parametrize("p", [-0.1, 1.1, float("nan")])
 def test_invalid_probability_and_mask_are_refused(p):
     closes = panel()
-    with pytest.raises(ValueError, match="hold_probability"):
-        draw(closes, p=p)
+    for name in ("enter_probability", "exit_probability", "initial_probability"):
+        with pytest.raises(ValueError, match=name):
+            draw(closes, **{**coin(0.5), name: p})
     with pytest.raises(ValueError, match="decision_mask"):
-        signals.random_selection(closes, decision_mask=monthly(closes)[1:], hold_probability=0.5, seed=1)
+        signals.random_selection(closes, decision_mask=monthly(closes)[1:], seed=1, **coin(0.5))
 
 
 # --- Rule 12: planted defects, each killed by its own contract with a passing control ---
@@ -141,12 +177,16 @@ def test_invalid_probability_and_mask_are_refused(p):
     ("present = closes.notna().to_numpy()",
      "present = closes.notna().shift(-1, fill_value=True).to_numpy()",
      test_row_t_reads_nothing_after_t),
-    # The requested hold probability ignored (a coin flip regardless of the candidate).
-    ("draws < hold_probability", "draws < 0.5", test_hold_rate_matches_the_requested_probability),
+    # Exits drawn as a fair coin regardless of the candidate (the churn the review found).
+    ("state = draws[k] >= exit_probability", "state = draws[k] >= 0.5",
+     test_baseline_matches_the_candidates_turnover_not_just_its_exposure),
+    # Entries ignore the fitted probability.
+    ("state = draws[k] < enter_probability", "state = draws[k] < 0.5",
+     test_hold_rate_matches_the_requested_probability),
     # The monthly holding not carried between decisions (flat between rebalances).
     ("held[row, col] = state and present[row, col]",
      "held[row, col] = state and present[row, col] and mask[row]",
      test_selection_changes_only_on_decision_rows_and_nothing_before_the_first),
-], ids=["future-eligibility", "probability-ignored", "carry-dropped"])
+], ids=["future-eligibility", "exit-ignored", "enter-ignored", "carry-dropped"])
 def test_planted_defects_are_killed(old, new, oracle):
     killed(signals, old, new, oracle)
