@@ -273,7 +273,7 @@ def test_a_new_candidate_start_or_changed_config_makes_the_prior_artifact_stale(
 def gate_route(monkeypatch, root, now=None, *, discover=False):
     """Gate items from the real route over `root`; any statistic computed during the GET fails the test.
 
-    `discover=True` leaves the generator's real `current_inputs` in place."""
+    `discover=True` leaves the generator's `current_inputs` as the caller set it."""
     api("generate_gate3_evidence", "current_inputs")
     gates, generator = importlib.import_module(GATE_ROUTE), importlib.import_module("generate_gate3_evidence")
     for name in (*STATISTICS, "gather"):
@@ -312,24 +312,22 @@ def test_route_stays_unknown_without_a_valid_indexed_artifact(tmp_path, monkeypa
 
 
 def test_real_current_inputs_see_an_advanced_ledger_and_the_route_turns_stale(tmp_path, monkeypatch):
-    current_inputs, assess = (api("generate_gate3_evidence", name) for name in ("current_inputs", "assess"))
+    """Only the ledger head is discovered for real: a synthetic root has no backfill or emitted matrix."""
+    discover, assess = (api("generate_gate3_evidence", name) for name in ("current_inputs", "assess"))
     log = ledger(tmp_path)
     start(log)
     value = real()
     value["counts"]["ledger_head_hash"] = log.verify()["head"]
-    found = current_inputs(compose(value), tmp_path)  # today's identity, discovered from the root
-    value["counts"]["backfill_hash"], value["source_identity"] = found["backfill_hash"], copy.deepcopy(found["source_identity"])
-    for holder in (value["matrix"], value["dsr"]["lifetime"], value["pbo"]):
-        holder["matrix_hash"] = found["matrix_hash"]
     art = compose(value)
-    assert found["ledger_head_hash"] == art["ledger_head_hash"] == log.verify()["head"]
-    assert assess(art, current_inputs(art, tmp_path))["status"] == "passed"
+    assert discover(art, tmp_path)["ledger_head_hash"] == art["ledger_head_hash"]
     path = write(art, tmp_path)
-    assert (gate_route(monkeypatch, tmp_path, discover=True)[3].status) == "passed"
+    head_only = lambda a, root: current(a) | {"ledger_head_hash": discover(a, root)["ledger_head_hash"]}  # noqa: E731
+    monkeypatch.setattr(importlib.import_module("generate_gate3_evidence"), "current_inputs", head_only)
+    assert gate_route(monkeypatch, tmp_path, discover=True)[3].status == "passed"
     start(log)  # the ledger advances after the artifact was generated
-    now = current_inputs(art, tmp_path)
-    assert now["ledger_head_hash"] == log.verify()["head"] != art["ledger_head_hash"], "current_inputs echoed the artifact"
-    assert assess(art, now) == {"status": "stale", "reason_codes": ["ledger_changed"]}
+    assert discover(art, tmp_path)["ledger_head_hash"] == log.verify()["head"] != art["ledger_head_hash"], \
+        "current_inputs echoed the artifact"
+    assert assess(art, head_only(art, tmp_path)) == {"status": "stale", "reason_codes": ["ledger_changed"]}
     gate = gate_route(monkeypatch, tmp_path, discover=True)[3]
     assert (gate.status, gate.evidence) == ("stale", path)
 
