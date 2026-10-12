@@ -5,8 +5,9 @@ EXAMPLE — NOT A RESULT. Seeded synthetic random walks; no figure here is a res
 import numpy as np
 import pandas as pd
 import pytest
-from portfolio_risk import blend_books, equal_weight_book, ewma_volatility, fixed_allocation_book, \
-    volatility_target_book
+from portfolio_backtest import run_portfolio_backtest
+from portfolio_risk import apply_gross_cap, blend_books, decision_rows, equal_weight_book, ewma_covariance, \
+    ewma_volatility, fixed_allocation_book, volatility_target_book, volatility_target_weights
 from signals import hypothesis_selection
 
 S = pd.bdate_range("2004-01-02", periods=300)
@@ -26,16 +27,19 @@ def only(*tickers):
 
 
 def vol_book(selection, closes):
-    return volatility_target_book(selection, ewma_volatility(closes, span=60), target_volatility=0.10,
-                                  max_gross=1.0)
+    return volatility_target_book(selection, closes, span=60, target_volatility=0.10, max_gross=1.0)
+
+
+def ewma_cov_oracle(x, y, span):
+    """Bias-corrected exponentially weighted covariance (adjust=True), by hand rather than pandas ewm."""
+    w = (1 - 2 / (span + 1)) ** np.arange(len(x))[::-1]
+    mx, my = (w * x).sum() / w.sum(), (w * y).sum() / w.sum()
+    biased = (w * (x - mx) * (y - my)).sum() / w.sum()
+    return biased * w.sum() ** 2 / (w.sum() ** 2 - (w ** 2).sum())
 
 
 def ewma_std_oracle(returns, span):
-    """Bias-corrected exponentially weighted std (adjust=True), by hand rather than pandas ewm."""
-    w = (1 - 2 / (span + 1)) ** np.arange(len(returns))[::-1]
-    mean = (w * returns).sum() / w.sum()
-    biased = (w * (returns - mean) ** 2).sum() / w.sum()
-    return np.sqrt(biased * w.sum() ** 2 / (w.sum() ** 2 - (w ** 2).sum()))
+    return np.sqrt(ewma_cov_oracle(returns, returns, span))
 
 
 def test_ewma_volatility_is_span_60_annualized_after_a_full_window():
@@ -54,22 +58,63 @@ def test_a_selected_name_alone_carries_ten_percent_annualized_risk():
     risk = book["SPY"] * ewma_volatility(closes, span=60)["SPY"]
     assert book.iloc[:60].eq(0).all().all() and book.drop(columns="SPY").eq(0).all().all(), "T012 TARGET flat"
     assert np.allclose(risk.iloc[60:], 0.10, rtol=1e-12, atol=0), "T012 TARGET"
+    per_leg = [apply_gross_cap(volatility_target_weights(only("SPY").loc[s].astype(float),
+                                                         ewma_volatility(closes, span=60).loc[s],
+                                                         target_volatility=0.10), max_gross=1.0) for s in S]
+    assert np.allclose(book, pd.DataFrame(per_leg, index=S), rtol=1e-12, atol=0), "T012 TARGET one leg"
+
+
+def correlated(seed, n=len(S)):
+    rng = np.random.default_rng(seed)
+    common = rng.normal(0, 1, (n, 1))
+    steps = (0.6 * common + 0.8 * rng.normal(0, 1, (n, len(T)))) * np.array([0.02, 0.012, 0.015, 0.01])
+    return pd.DataFrame(100 * np.exp(np.cumsum(steps, axis=0)), index=S[:n], columns=T)
+
+
+def test_the_portfolio_not_each_leg_carries_ten_percent_annualized_risk():
+    closes = correlated(7)
+    legs = ["SPY", "GLD", "TLT"]
+    book = vol_book(only(*legs), closes)
+    returns = np.log(closes[legs]).diff().to_numpy()
+    for row in (60, 150, 299):
+        x = returns[1:row + 1]
+        cov = np.array([[ewma_cov_oracle(x[:, i], x[:, j], 60) for j in range(3)] for i in range(3)]) * 252
+        w, vol = book.iloc[row][legs].to_numpy(), np.sqrt(np.diag(cov))
+        assert w.sum() < 1, "precondition: gross cap not binding"
+        assert np.sqrt(w @ cov @ w) == pytest.approx(0.10, rel=1e-9), f"T012 PORTFOLIO row {row}"
+        assert np.allclose(w * vol, w[0] * vol[0], rtol=1e-9), f"T012 PORTFOLIO inverse vol row {row}"
+        per_leg = 0.10 / vol
+        assert np.sqrt(per_leg @ cov @ per_leg) > 0.12, "precondition: per-leg sizing misses the target"
+
+
+def test_legs_without_a_joint_covariance_window_stay_flat():
+    closes = walk(8)
+    closes.iloc[:100, T.index("GLD")] = np.nan
+    closes.iloc[150, T.index("IEF")] = np.nan
+    book, cov = vol_book(only("IEF", "GLD"), closes), ewma_covariance(closes, span=60)
+    gap = S[161]  # each leg has 60 returns; the pair does not
+    assert ewma_volatility(closes, span=60).loc[gap, ["IEF", "GLD"]].notna().all(), "precondition: both legs have vol"
+    assert np.isnan(cov.loc[gap].loc["IEF", "GLD"]), "precondition: no joint covariance"
+    assert book.loc[gap].eq(0).all(), "T012 PAIR GAP"
+    assert vol_book(only("IEF"), closes).loc[gap, "IEF"] > 0 and book.iloc[-1].gt(0).sum() == 2, "T012 PAIR GAP live"
 
 
 def test_the_book_is_capped_at_gross_one_keeping_inverse_vol_ratios():
     closes = walk(3)
     vol = ewma_volatility(closes, span=60).iloc[60:]
-    assert (0.10 / vol["IEF"] + 0.10 / vol["TLT"] > 1.05).all(), "precondition: uncapped book above 1"
+    cov = ewma_covariance(closes, span=60)
+    inverse = 1 / vol[["IEF", "TLT"]]
+    scale = [0.10 / np.sqrt(w @ cov.loc[s].loc[["IEF", "TLT"], ["IEF", "TLT"]].to_numpy() @ w)
+             for s, w in zip(inverse.index, inverse.to_numpy())]
+    assert (inverse.sum(axis=1) * scale > 1.05).all(), "precondition: uncapped book above 1"
     book = vol_book(only("IEF", "TLT"), closes).iloc[60:]
     assert np.allclose(book.sum(axis=1), 1.0, rtol=1e-12, atol=0), "T012 GROSS"
     assert np.allclose(book["IEF"] / book["TLT"], vol["TLT"] / vol["IEF"]), "T012 GROSS ratio"
 
 
 def books(closes):
-    vol = ewma_volatility(closes, span=60)
-    size = lambda selection: volatility_target_book(selection, vol, target_volatility=0.10, max_gross=1.0)  # noqa: E731
-    h4, h2 = size(hypothesis_selection("H4", closes)), size(hypothesis_selection("H2-100", closes))
-    return {"vol": vol, "H4": h4, "H9": blend_books(h4, h2), "H10": fixed_allocation_book(closes, H10),
+    h4, h2 = (vol_book(hypothesis_selection(config, closes), closes) for config in ("H4", "H2-100"))
+    return {"vol": ewma_volatility(closes, span=60), "cov": ewma_covariance(closes, span=60), "H4": h4, "H9": blend_books(h4, h2), "H10": fixed_allocation_book(closes, H10),
             "B-BH": equal_weight_book(closes.notna(), max_gross=1.0)}
 
 
@@ -82,7 +127,7 @@ def test_future_rows_never_change_volatility_or_any_book():
         future.iloc[cut + 1, T.index("IEF")] = np.nan
         moved = books(future)
         for name, frame in full.items():
-            assert moved[name].iloc[:cut + 1].equals(frame.iloc[:cut + 1]), f"T012 LOOKAHEAD {name} cut {cut}"
+            assert moved[name].loc[:S[cut]].equals(frame.loc[:S[cut]]), f"T012 LOOKAHEAD {name} cut {cut}"
         assert not moved["H4"].iloc[cut + 1:].equals(full["H4"].iloc[cut + 1:]), "T012 LOOKAHEAD vacuous"
 
 
@@ -123,3 +168,29 @@ def test_buy_and_hold_baseline_is_equal_weight_of_names_with_a_close():
     with pytest.raises(ValueError, match="boolean"):
         equal_weight_book(closes, max_gross=1.0)
 
+
+
+def test_decision_rows_are_the_first_session_of_each_month_or_iso_week():
+    book = equal_weight_book(only("SPY", "IEF"), max_gross=1.0).drop(index=pd.Timestamp("2004-03-01"))
+    monthly = decision_rows(book, cadence="monthly").index
+    assert list(monthly[:3]) == [pd.Timestamp(d) for d in ("2004-02-02", "2004-03-02", "2004-04-01")], \
+        "T012 CADENCE monthly"
+    assert len(monthly) == book.index.to_period("M").nunique() - 1, "T012 CADENCE monthly count"
+    weekly = decision_rows(book, cadence="weekly").index
+    firsts = book.index.to_series().groupby(book.index.to_period("W")).first().iloc[1:]
+    assert list(weekly) == list(firsts) and pd.Timestamp("2004-03-02") in weekly, "T012 CADENCE weekly"
+    assert decision_rows(book.iloc[:150], cadence="monthly").equals(decision_rows(book, cadence="monthly")
+                                                                    .loc[:book.index[149]]), "T012 CADENCE prefix"
+    with pytest.raises(ValueError, match="cadence"):
+        decision_rows(book, cadence="daily")
+
+
+def test_a_monthly_book_trades_only_after_its_decision_rows():
+    closes = walk(9)
+    book = fixed_allocation_book(closes, H10)
+    run = lambda weights: run_portfolio_backtest(closes, closes, weights, starting_capital=1e6,  # noqa: E731
+                                                 commission_per_fill=1.0, fill_cost=lambda *_: 5e-4).fills
+    fills = run(decision_rows(book, cadence="monthly"))
+    firsts = book.index.to_series().groupby(book.index.to_period("M")).first().iloc[1:]
+    assert set(fills["Decision"]) == set(firsts), "T012 CADENCE trades"
+    assert run(book)["Decision"].nunique() > 2 * len(firsts), "precondition: a daily book re-trades daily"
