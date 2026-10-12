@@ -263,37 +263,46 @@ def test_a_new_candidate_start_or_changed_config_makes_the_prior_artifact_stale(
 def gate_route(monkeypatch, root, now=None):
     """Gate items from the real route over `root`; any statistic computed during the GET fails the test."""
     api("generate_gate3_evidence", "current_inputs")
-    gates, stats = importlib.import_module(GATE_ROUTE), importlib.import_module("selection_bias")
-    for name in STATISTICS:
-        for module in (stats, gates):
+    gates, generator = importlib.import_module(GATE_ROUTE), importlib.import_module("generate_gate3_evidence")
+    for name in (*STATISTICS, "gather"):
+        for module in (importlib.import_module("selection_bias"), gates, generator):
             monkeypatch.setattr(module, name, lambda *a, _n=name, **k: pytest.fail(f"GET computed {_n}"), raising=False)
     monkeypatch.setattr(gates, "ARTIFACT_ROOT", root, raising=False)
-    monkeypatch.setattr(importlib.import_module("generate_gate3_evidence"), "current_inputs",
-                        lambda art, root: copy.deepcopy(now) if now else current(art))
+    monkeypatch.setattr(generator, "current_inputs", lambda art, root: copy.deepcopy(now) if now else current(art))
     return {gate.gate_number: gate for gate in gates.get_capital_gate_status().gates}
 
 
 @pytest.mark.parametrize("dsr, now, status", [(.97, None, "passed"), (.50, None, "failed"), (.97, MOVED, "stale")])
 def test_route_serves_indexed_evidence_without_computing(tmp_path, monkeypatch, dsr, now, status):
-    path = write(compose(real(dsr=dsr)), tmp_path)
+    write(compose(real(dsr=.50 if dsr > .5 else .97) | {"generated_at_utc": "2026-10-10T00:00:00Z"}), tmp_path)
+    path = write(compose(real(dsr=dsr)), tmp_path)  # the latest index row is the one served
     gates = gate_route(monkeypatch, tmp_path, now)
     assert (gates[3].status, gates[3].evidence) == (status, path)
     assert all((gates[n].status, gates[n].evidence) == ("unknown", None) for n in (1, 2, 4, 5))
 
 
 def test_route_stays_unknown_without_a_valid_indexed_artifact(tmp_path, monkeypatch):
-    assert (gate_route(monkeypatch, tmp_path)[3].status, gate_route(monkeypatch, tmp_path)[3].evidence) == ("unknown", None)
+    empty = gate_route(monkeypatch, tmp_path)[3]
+    assert (empty.status, empty.evidence, empty.details) == ("unknown", None, importlib.import_module(GATE_ROUTE).NO_EVIDENCE)
     path = write(compose(real(dsr=.50)), tmp_path)
     tampered = json.loads((tmp_path / path).read_bytes()) | {"status": "passed", "reason_codes": []}
     (tmp_path / path).write_text(json.dumps(tampered))  # well-formed, but no longer the indexed digest
     gate = gate_route(monkeypatch, tmp_path)[3]
     assert (gate.status, gate.evidence) == ("unknown", None)
+    for planted, art in (("outside.json", compose(real())), (PRODUCTION + "fixture.json", compose(evidence()))):
+        raw = json.dumps(art).encode()  # digest matches, but outside the gate3 directory or fixture-labelled
+        (tmp_path / planted).write_bytes(raw)
+        with (tmp_path / PRODUCTION / "index.jsonl").open("ab") as index:
+            index.write(json.dumps({"artifact_id": art["artifact_id"], "path": planted,
+                                    "sha256": hashlib.sha256(raw).hexdigest()}).encode() + b"\n")
+        assert gate_route(monkeypatch, tmp_path)[3].evidence is None, planted
 
 
 def test_gate3_text_names_the_real_thresholds_and_diagnostic_pbo():
     text = {g.gate_number: g for g in importlib.import_module(GATE_ROUTE).get_capital_gate_status().gates}[3].description
     assert "remains positive" not in text, "T064: a positive probability is not the gate"
-    assert re.search(r"(≥|>=)\s*0\.95", text) and re.search(r"(≥|>=)\s*3(\.0)?\b", text), "T064 thresholds"
+    assert re.search(r"DSR[^;,]{0,20}(≥|>=)\s*0\.95", text), "T064 DSR threshold"
+    assert re.search(r"t[- ]stat\w*[^;,]{0,20}(≥|>=)\s*3(\.0)?\b", text), "T064 t-statistic threshold"
     assert "PBO" in text and "diagnostic" in text.lower(), "T064 PBO wording"
 
 
@@ -325,8 +334,9 @@ def test_command_prints_the_new_path_exits_nonzero_unless_current_and_claims_no_
     value = real() | {"selected_trial": "b"}
     if plant: plant(value)
     code, asked = command(tmp_path, monkeypatch, value, now=now)
-    out = capsys.readouterr().out
+    out = "".join(capsys.readouterr())
     rows = [json.loads(line) for line in (tmp_path / PRODUCTION / "index.jsonl").read_text().splitlines()]
     assert len(rows) == 1 and rows[0]["path"] in out
     assert (code == 0) is ok and [(kw["candidate"], kw["family"]) for kw in asked] == [("b", "example")]
-    assert not re.search(r"gate\s*[1245]\b|capital[- ]read|overall", out, re.I), "FR-050: Gate 3 only"
+    claim = r"gates?\s*[1245][^\n]*\b(pass|ready|clear)|capital[- ]ready|cleared for|overall[^\n]*readi"
+    assert not re.search(claim, out, re.I), "FR-050: no claim beyond Gate 3"

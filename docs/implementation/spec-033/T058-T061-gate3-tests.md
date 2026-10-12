@@ -14,26 +14,35 @@ This builds on the T056/T057 contract in `T056-T057-gate3-tests.md`.
   `{"artifact_id", "path", "sha256"}` row to `index.jsonl`, and `sha256` is the digest of the bytes
   written. Distinct evaluations get distinct ids.
 - `current_inputs(artifact, root)` returns today's `ledger_head_hash`, `backfill_hash`, `matrix_hash`
-  and `source_identity`, which `assess` uses.
+  and `source_identity`, which `assess` uses. It is called positionally. The tests always replace it, so
+  its real behaviour is not yet pinned (see Left open).
 - `main(argv) -> int` is the offline command (FR-049). It requires `--candidate` and `--family`, and takes
-  `--root`. Its evidence comes from `gather(candidate=, family=, root=)`. It always writes a new
+  `--root`. A missing argument raises argparse's nonzero `SystemExit`. Its evidence comes from `gather(candidate=, family=, root=)`. It always writes a new
   artifact and prints its path. The exit code is 0 for passed evidence and nonzero for unknown or stale
   evidence. The output names no other gate and makes no overall-readiness claim (FR-050).
-- **T063 (route).** The route reads the last `index.jsonl` row under the module attribute
+- **T063 (route).** The route reads the **last** `index.jsonl` row under the module attribute
   `capital_gate.ARTIFACT_ROOT`, checks the artifact's bytes against the row digest, and maps
   `assess(artifact, current_inputs(artifact, root))`. Passed, failed and stale results carry the
-  row's path as `evidence`. A missing index, a digest mismatch or unknown evidence gives `unknown` with no
-  evidence. The GET computes no statistic. The test replaces every `selection_bias` statistic with a
-  failing stub.
-- **T064 (text).** Gate 3's description drops "remains positive" and names `>= 0.95`, `>= 3.0`, and PBO
-  as diagnostic evidence.
+  row's path as `evidence`. All of these give `unknown` with no evidence:
+  - a missing index (with the `NO_EVIDENCE` text, FR-047);
+  - a digest mismatch;
+  - a row path outside the gate3 directory;
+  - a fixture-labelled artifact (FR-048);
+  - unknown evidence.
+
+  The GET computes no statistic. The test replaces every `selection_bias` statistic, and `gather`, with
+  a failing stub on `selection_bias`, the route module and the generator.
+- **T064 (text).** Gate 3's description drops "remains positive". It ties `>= 0.95` to DSR and `>= 3.0`
+  to the t-statistic, and names PBO as diagnostic evidence.
 
 Tests per task:
 
 - T058: `test_each_evaluation_writes_a_new_file_and_an_append_only_index_row` and
   `test_a_new_candidate_start_or_changed_config_makes_the_prior_artifact_stale`. The second test uses a
-  real synthetic `TrialLedger`. Re-running a candidate, or running it with a changed config, is a new
-  start that moves the ledger head. That closes the #157 reviewer gap on "selected config changes".
+  real synthetic `TrialLedger`. It shows that re-running a candidate, or running it with a changed config,
+  is a new start that moves the ledger head, and that `assess` reports that head as stale. The test
+  passes the head in by hand, not through `current_inputs`, so the #157 gap is closed only as far as
+  `assess`.
 - T059: `test_route_serves_indexed_evidence_without_computing` (passed, failed and stale),
   `test_route_stays_unknown_without_a_valid_indexed_artifact`, and
   `test_gate3_text_names_the_real_thresholds_and_diagnostic_pbo`. The existing
@@ -76,6 +85,9 @@ below was applied to the copy, then reverted, and `cmp` showed the reference cle
 | Index digest of a different serialization than the bytes written | `test_each_evaluation_…`, `test_route_serves_…` |
 | `assess` ignores the ledger head | `test_a_new_candidate_start_…`, `test_route_serves_…`, `test_command_prints_…` |
 | Route recomputes `counted_dsr` on GET | `test_route_serves_…` |
+| Route reads the first index row, not the latest | `test_route_serves_…` |
+| Route accepts an index path outside the gate3 directory | `test_route_stays_unknown_…` |
+| Route serves a fixture-labelled artifact | `test_route_stays_unknown_…` |
 | Route skips the index digest check | `test_route_stays_unknown_…` |
 | Route trusts the stored status (no `assess`) | `test_route_serves_…` (stale) |
 | Route drops evidence on stale | `test_route_serves_…` |
@@ -83,19 +95,34 @@ below was applied to the copy, then reverted, and `cmp` showed the reference cle
 | Command defaults `--family` | `test_command_requires_…` |
 | Command exits 0 on stale | `test_command_prints_…` |
 | Command omits the artifact path | `test_command_prints_…` |
-| Command prints an overall-readiness line | `test_command_prints_…` |
+| Command prints "Gates 1, 2, 4 and 5 passed" | `test_command_prints_…` |
 | Command ignores `--candidate` | `test_command_prints_…` |
 
-All 14 mutants were killed. Two tests were strengthened during this run, because a first draft let two
+All 17 mutants were killed. Tests were strengthened twice during this run. First, a draft let two
 mutants survive:
 
 - The route-unknown test used to corrupt the artifact to `{}`, which is caught by parsing alone. It now
   plants a well-formed failed artifact edited to read `passed`.
 - The command test used to pass candidate `a`, which a hard-coded `"a"` also satisfied. It now passes `b`.
 
+Second, a fresh-context review added these checks: the route serves the latest row, path and label
+refusal, `NO_EVIDENCE` details, the wider stubs, thresholds tied to their statistic, and an FR-050 check
+that forbids claims but still allows the "remain independent blockers" disclaimer. Stdout and stderr are
+both checked.
+
 The run was on Linux with Python 3.12.3. Camden's Windows venv is authoritative.
 
-## Left open
+## Left open (for T062's spec, not decided here)
+
+- **How the route can know the current matrix without computing it.** `current_inputs` must report
+  today's `matrix_hash` while the GET computes nothing, but rebuilding the matrix is `build_matrix`. Either
+  currentness is defined from hashed inputs (ledger head, sidecar digests, backfill), or the
+  no-computation rule must allow it. Until then `current_inputs` is always replaced in these tests.
+- **Artifact id.** If the id is a content hash, re-running identical evidence with the same
+  `generated_at_utc` cannot write a new artifact (FR-039). The tests only require distinct ids for
+  distinct evaluations.
+- **Valid `failed` evidence.** Its exit code is not decided, and neither is whether `main` must refuse
+  evidence whose `selected_trial` differs from `--candidate`.
 
 FR-043 says an edited sidecar makes an artifact `stale`. In practice `TrialLedger.verify` rejects an
 edited return file, so the evidence becomes unverifiable (`ledger_invalid`), not stale. These tests
