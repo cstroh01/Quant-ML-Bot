@@ -1,9 +1,9 @@
 // Spec 047 T008 (FR-002, FR-008): the friction card shows the response's charged totals and does no
 // friction arithmetic. EXAMPLE — NOT A RESULT. Synthetic fixture; charts are stubbed (no canvas in jsdom).
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, expect, test, vi } from 'vitest'
 import { tearsheet047 } from '../../test/fixtures/tearsheet047'
-import { BacktestTearsheetView } from './BacktestTearsheetView'
+import { BacktestTearsheetView, formatPercentOrNA } from './BacktestTearsheetView'
 
 vi.mock('../charts/CandlestickChart', () => ({ CandlestickChart: () => null }))
 vi.mock('../charts/DrawdownChart', () => ({ DrawdownChart: () => null }))
@@ -56,4 +56,28 @@ test('FR-008: 038-owned text in the card and header row is unchanged', () => {
   expect(card, '047 U1B FR-008 params').toContain('$1.00 / 5.0 bps')
   expect(card, '047 U1B FR-008 badge').toContain('✓ 1e-9')
   expect(screen.getByText('Rf = 3.78% (3m T-Bill)'), '047 U1B FR-008 Rf').toBeTruthy()
+})
+
+// Spec 047 T014 (FR-007): a drawdown that was not computed reads N/A, never a fabricated 0.00%.
+test('formatPercentOrNA renders null as N/A and a numeric zero as 0.00%', () => {
+  expect(formatPercentOrNA(null), '047 U3 null').toBe('N/A')
+  expect(formatPercentOrNA(0), '047 U3 zero').toBe('0.00%')
+  expect(formatPercentOrNA(2.5), '047 U3 value').toBe('2.50%')
+})
+
+test('the drawdown card reads max_drawdown through the formatter', () => {
+  // Perturbs max_drawdown only: the one field the card reads.
+  view({ ...tearsheet047, max_drawdown: null })
+  expect(text('drawdown-value'), '047 U3 card null').toBe('N/A')
+  cleanup()
+  view({ ...tearsheet047, max_drawdown: 0 })
+  expect(text('drawdown-value'), '047 U3 card zero').toBe('0.00%')
+})
+
+test('baseline rows keep rendering null fields as an em dash', () => {
+  view({ ...tearsheet047, comparison_table: [{ strategy_name: 'EXAMPLE baseline', total_trades: 0, net_pnl: 0,
+    win_rate: null, sharpe_ratio: null, max_drawdown: null, std_pnl: null }] })
+  const row = screen.getByText('EXAMPLE baseline').closest('tr') as HTMLElement
+  expect(within(row).getAllByText('—').length, '047 U3 baseline dash').toBe(3)
+  expect(row.textContent, '047 U3 baseline dash').not.toContain('±')
 })
