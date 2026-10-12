@@ -233,7 +233,7 @@ _LEVERAGED_NAME = re.compile(
     r"\b(ultra(?![- ]short)\w*|[1-9]x|bull|bear(?:ish)?|inverse|leveraged|vix|(?<!low )volatility)\b"
     rf"|(?<!ultra[- ])\bshort\b(?![- ]{_DURATION})", re.IGNORECASE)
 EXCLUSION_REASONS = frozenset({
-    "not_etf", "test_issue", "leveraged_inverse_or_volatility", "unknown_asset_class",
+    "not_etf", "test_issue", "name_missing", "leveraged_inverse_or_volatility", "unknown_asset_class",
     "insufficient_history", "illiquid", "class_cap", "below_cutoff",
 })
 _LEVERAGED_CATEGORY = re.compile(r"leverag|inverse|volatil", re.IGNORECASE)
@@ -254,6 +254,8 @@ def _reason(etf_flag, test_issue, category, name, asset_class, first, median,
         return "not_etf"
     if not _no(test_issue):  # unknown counts as a test issue
         return "test_issue"
+    if pd.isna(name) or not str(name).strip():  # fail closed: the name screen cannot run
+        return "name_missing"
     if _LEVERAGED_CATEGORY.search(str(category or "")):
         return "leveraged_inverse_or_volatility"
     if _LEVERAGED_NAME.search(str(name)):

@@ -66,15 +66,16 @@ def test_taxonomy_is_spec_060_section_3():
 
 def test_every_candidate_gets_one_row_and_every_exclusion_a_reason():
     cands = [cand("AAA"), cand("BBB", etf=False), cand("CCC", test_issue=True),
-             cand("DDD", "not_a_class"), cand("EEE"), cand("FFF", test_issue=None)]
-    bars = panel({s: ("2022-01-03", LIQUID) for s in "AAA BBB CCC DDD FFF".split()})
+             cand("DDD", "not_a_class"), cand("EEE"), cand("FFF", test_issue=None), cand("GGG", name=" ")]
+    bars = panel({s: ("2022-01-03", LIQUID) for s in "AAA BBB CCC DDD FFF GGG".split()})
     result = build(cands, bars)
     assert list(result.columns) == list(ar.UNIVERSE_COLUMNS)
-    assert sorted(result["symbol"]) == ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF"]
+    assert sorted(result["symbol"]) == ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF", "GGG"]
     assert row(result, "AAA")["selected"] and row(result, "AAA")["exclusion_reason"] == ""
     assert row(result, "BBB")["exclusion_reason"] == "not_etf"
     assert row(result, "CCC")["exclusion_reason"] == row(result, "FFF")["exclusion_reason"] == "test_issue"
     assert row(result, "DDD")["exclusion_reason"] == "unknown_asset_class"
+    assert row(result, "GGG")["exclusion_reason"] == "name_missing"  # the screen cannot run
     assert row(result, "EEE")["exclusion_reason"] == "insufficient_history"  # no bars at all
     assert (result.loc[~result["selected"], "exclusion_reason"] != "").all()
     ar.validate_universe(result, require_all_classes=False)
