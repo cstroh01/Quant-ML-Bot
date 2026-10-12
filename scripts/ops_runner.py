@@ -8,6 +8,12 @@ invocation, due or not; every executed run appends one record, carrying
 (profile, session, strategy_version), to ``<state>/ops/runs.jsonl``.
 The wrapped command is the existing paper loop; this module never imports
 broker code or reads credentials.
+
+Drill support (055 T007): a kill stops only the profile it names until a reset that names the
+same profile again; an injected clock and a held-lease fixture exist only under ``--drill``. A drill
+needs a state dir marked by a ``DRILL`` file (and a real run refuses one), takes no persist command,
+and refuses a command that mentions ``submit`` or abbreviates ``--submit``. That is a tripwire
+against an operator slip, not a sandbox: a wrapper script that submits internally is not detected.
 """
 from __future__ import annotations
 
@@ -65,6 +71,38 @@ def _deliver(ops: Path, incidents: list[Incident]) -> int:
     return len(fresh)
 
 
+def _kill_path(state_dir, profile: str) -> Path:
+    return Path(state_dir) / "ops" / f"kill-{require_storage_identifier(profile)}.json"
+
+
+def set_kill(state_dir, profile: str, *, reason: str, reset: bool = False) -> dict:
+    """Kill, or with ``reset`` clear the kill on, ONE profile; other profiles are untouched.
+
+    Both need a non-empty reason (for a reset, the review note). A reset of a profile that is not
+    killed, or a kill of one that already is, raises. Every kill and reset is appended to
+    ``<state>/ops/kills.jsonl``.
+    """
+    if not str(reason or "").strip():
+        raise ValueError("a kill or reset needs a reason")
+    path = _kill_path(state_dir, profile)
+    record = {"profile": profile, "action": "reset" if reset else "kill", "reason": reason,
+              "at_utc": datetime.now(timezone.utc).isoformat()}
+    if reset != path.exists():
+        raise ValueError(f"{profile} is {'not' if reset else 'already'} killed")
+    if reset:
+        path.unlink()
+    else:
+        atomic_write(path, json.dumps(record, sort_keys=True))
+    _append(Path(state_dir) / "ops" / "kills.jsonl", record)
+    return record
+
+
+def _may_submit(command: str) -> bool:
+    """True if ``command`` mentions submit or carries an argparse abbreviation of ``--submit``."""
+    return "submit" in command.lower() or any(
+        len(token) > 2 and "--submit".startswith(token) for token in shlex.split(command))
+
+
 def _log_size(run_log) -> int:
     return Path(run_log).stat().st_size if run_log is not None and Path(run_log).exists() else 0
 
@@ -104,6 +142,8 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
     if not str(strategy_version).strip():
         raise ValueError("strategy_version is required for the run identity")
     require_storage_identifier(profile)  # names lease and outbox files: one portable component only
+    if _kill_path(state_dir, profile).exists():
+        return {"status": "killed", "new_incidents": 0}  # nothing runs until an explicit reset
     ops = Path(state_dir) / "ops"
     runs = [r for r in _jsonl(ops / "runs.jsonl") if r["profile"] == profile]
     completed = {(profile, date.fromisoformat(r["session"])) for r in runs}
@@ -159,12 +199,48 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--state-dir", type=Path, required=True)
     parser.add_argument("--profile", required=True)
     parser.add_argument("--strategy-version", required=True, help="pinned code/strategy identity, e.g. the deploy SHA")
-    parser.add_argument("--command", required=True, help="the wrapped run, e.g. 'python exec/paper_loop.py --submit'")
+    parser.add_argument("--command", help="the wrapped run, e.g. 'python exec/paper_loop.py --submit'")
     parser.add_argument("--persist-command", help="run after the lease is claimed and before --command; non-zero aborts")
     parser.add_argument("--run-log", type=Path, help="the wrapped loop's runs.jsonl, for the daily summary")
+    parser.add_argument("--drill", action="store_true", help="supervised drill; refused with a --submit command")
+    parser.add_argument("--now", type=datetime.fromisoformat, help="drill only: injected timezone-aware clock")
+    action = parser.add_mutually_exclusive_group()
+    action.add_argument("--hold-lease", type=date.fromisoformat, metavar="SESSION",
+                        help="drill only: write a held lease for SESSION and run nothing")
+    action.add_argument("--kill", metavar="REASON", help="halt this profile only; runs nothing")
+    action.add_argument("--reset-kill", metavar="REVIEW_NOTE", help="clear this profile's kill; needs --confirm-reset")
+    parser.add_argument("--confirm-reset", metavar="PROFILE", help="must name --profile for --reset-kill")
     args = parser.parse_args(argv)
+    if (args.now is not None or args.hold_lease is not None) and not args.drill:
+        parser.error("--now and --hold-lease are drill-only; add --drill")
+    if args.drill and _may_submit(args.command or ""):
+        parser.error("--drill is refused for a command that may submit")
+    if args.drill and args.persist_command:
+        parser.error("--drill takes no --persist-command")
+    if args.drill != (args.state_dir / "DRILL").exists():
+        parser.error("--drill needs a state dir marked DRILL, and only a drill may use one")
+    if args.confirm_reset is not None and args.reset_kill is None:
+        parser.error("--confirm-reset is only for --reset-kill")
+    if args.now is not None and args.now.tzinfo is None:
+        parser.error("--now must be timezone-aware")
+    if args.kill is not None or args.reset_kill is not None:
+        if args.reset_kill is not None and args.confirm_reset != args.profile:
+            parser.error("--reset-kill needs --confirm-reset naming this profile")
+        try:
+            record = set_kill(args.state_dir, args.profile, reason=args.kill or args.reset_kill,
+                              reset=args.reset_kill is not None)
+        except ValueError as error:
+            parser.error(str(error))
+        print(json.dumps(record, sort_keys=True))
+        return 0
+    if args.hold_lease is not None:
+        acquire_lease(args.state_dir, args.profile, args.hold_lease, run_id="drill-held-lease")
+        print(json.dumps({"status": "lease_fixture", "session": args.hold_lease.isoformat()}))
+        return 0
+    if not args.command:
+        parser.error("--command is required for a run")
     result = run_once(args.state_dir, profile=args.profile, command=shlex.split(args.command),
-                      now=_now(), strategy_version=args.strategy_version,
+                      now=args.now or _now(), strategy_version=args.strategy_version,
                       persist_command=shlex.split(args.persist_command) if args.persist_command else None,
                       run_log=args.run_log)
     print(json.dumps(result, sort_keys=True, default=str))
