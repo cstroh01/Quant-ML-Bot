@@ -26,6 +26,8 @@ MUTANTS = (
     ("B-BH counts every ticker", "count = selection.sum(axis=1)", "count = selection.count(axis=1)",
      "T013 B-BH listing"),
     ("H10 with one leg listed", "notna().all(axis=1)", "notna().any(axis=1)", "T013 H10 LISTING"),
+    ("H9 blends a levered book", "if (book.sum(axis=1) > 1.0 + CORRELATION_TOLERANCE).any():", "if False:",
+     "T013 H9 GROSS"),
     ("H9 summed, not averaged", "for book in books) / len(books)", "for book in books)", "T013 H9"),
 )
 

@@ -845,11 +845,13 @@ def fixed_allocation_book(closes: pd.DataFrame, allocation: dict[str, float]) ->
 def blend_books(*books: pd.DataFrame) -> pd.DataFrame:
     """Spec 058 H9: the equal-weight average of target-weight books on one panel.
 
-    Each input is gross <= 1, so the average is too.
+    Each input must be gross <= 1, so the average is too; a levered book raises.
     """
     if not books:
         raise ValueError("blend_books needs at least one book.")
     for book in books:
         _require_book_frame(book, books[0], name="book")
         _require_weights(book.to_numpy(dtype=float), name="book")
+        if (book.sum(axis=1) > 1.0 + CORRELATION_TOLERANCE).any():
+            raise ValueError("each book must be gross <= 1.0 (no leverage).")
     return sum(book.astype(float) for book in books) / len(books)

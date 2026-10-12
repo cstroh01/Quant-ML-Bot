@@ -92,6 +92,12 @@ def test_h9_is_the_equal_weight_average_of_its_three_books():
     assert np.allclose(blend_books(*parts).to_numpy(), [0.3, 0.4, 0.1, 0]), "T013 H9"
     with pytest.raises(ValueError, match="share sessions"):
         blend_books(parts[0], parts[1].iloc[1:])
+    refusal = ""
+    try:
+        blend_books(parts[0], parts[0] * 2)  # gross 1.2: a levered input
+    except ValueError as error:
+        refusal = str(error)
+    assert "gross" in refusal, "T013 H9 GROSS"
 
 
 def test_h10_is_sixty_forty_only_once_both_legs_have_a_close():
