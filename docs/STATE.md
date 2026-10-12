@@ -107,9 +107,11 @@ The loop never crosses these. Reaching one means: write the blocker above, stop.
   external network use outside pytest's fakes. Exception: bounded fetches in the Codex lane per G13.
 - **Capital gate.** `docs/SCOPE-V1.md` §11.3 (and §5 when §11 lapses), any `SafetyConfig` value,
   the LIVE money path in `exec/` (Rule 7a), LIVE arming and budget.
-- **Governance text.** The constitution, `docs/SCOPE-V1.md` §5 and §11.3,
-  `docs/autonomy/routine-prompt.md`, `docs/autonomy/review-prompt.md`, `.github/workflows/`,
-  `.github/scripts/merge_gate.py`, `.claude/`.
+- **Governance text.** The constitution, `docs/SCOPE-V1.md` §5 and §11.3, `docs/autonomy/`
+  other than `queue.json` (a lane D sync PR may edit it), `.github/`
+  and `.claude/`: changed only on Camden's explicit instruction in chat (Rule 10). Rule 9b
+  condition 2 additionally bars agent merges of `docs/autonomy/routine-prompt.md`,
+  `docs/autonomy/review-prompt.md`, `.github/workflows/`, `.github/scripts/merge_gate.py`.
 - **The ledger.** Any write to `docs/trials/`.
 - **Pinned 019 files.** `scripts/feature_set_comparison.py`,
   `scripts/multi_ticker_comparison.py`, `scripts/logistic_baseline.py`.

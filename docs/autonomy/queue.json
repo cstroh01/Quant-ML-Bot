@@ -1379,6 +1379,7 @@
       "id": "Q65",
       "kind": "fix",
       "status": "done",
+      "pr": 158,
       "spec_task": "047 T004",
       "summary": "Fresh clean-main baseline (pytest + npm lint/build).",
       "allowed_paths": [
