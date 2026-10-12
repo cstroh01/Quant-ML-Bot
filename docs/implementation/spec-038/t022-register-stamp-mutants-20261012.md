@@ -26,14 +26,17 @@ KILLED   review: data_end after run accepted -> DID NOT RAISE
 KILLED   review: register entries reordered -> 038 REGISTER drift
 KILLED   review: naive clock accepted -> DID NOT RAISE
 KILLED   review: Sharpe status reworded -> 038 REGISTER sharpe_status
-11/11 killed (0 skipped); sources and docs/trials (6 files) byte-identical
+11/11 killed; sources and docs/trials (6 files) byte-identical
 ```
 
 M2 is planted with `GITHUB_SHA` cleared by the stamp tests' autouse fixture, so the commit comes from the
-synthetic `.git` whose HEAD moves between calls. M3b needs `time.tzset`; on Windows the driver prints it as
-`SKIPPED` and the summary counts it (`(1 skipped)`). The M3b class (local-zone `astimezone()`) is then
-**uncovered on Windows**: "zone east of UTC" is a different mutant, and on a host whose local zone is UTC
-(GitHub's Windows runners) the local-zone mutant changes no output. The two `DID NOT RAISE` mutants are pinned
+synthetic `.git` whose HEAD moves between calls. M3b is never skipped (SC-003). Where `time.tzset` is missing (Windows), the
+test's own `TZ=America/New_York` case skips, so the driver runs the M3b child with `TZ=EST5EDT` in its
+environment (a POSIX-format zone the C runtime's `localtime` reads on both platforms) and counts any
+`038 STAMP M3b` failure as the kill, for example the UTC−5 evening clock. If the zone is not honoured, M3b
+survives and the driver exits 1. That path was simulated on Linux (forced `HAS_TZSET = False`, and the TZ
+test forced to skip): with `EST5EDT` M3b was killed (11/11, exit 0); with a zone that changes nothing
+(`UTC0`) it printed `SURVIVED`, 10/11, exit 1. It has **not** run on real Windows. The two `DID NOT RAISE` mutants are pinned
 to their own refusal case (`test_refusals[change4-ValueError]`, `[change0-ValueError]`), so a failure in
 another refusal case cannot be counted as their kill.
 
@@ -41,7 +44,7 @@ another refusal case cannot be counted as their kill.
 
 In a scratch copy of the tree, the M2 assertion in `tests/test_038_stamp.py` was weakened to
 `line(second, "commit:").startswith("commit: ")` (a plausible "just check the line exists" edit). The driver
-then printed `SURVIVED M2 commit cached across calls`, `10/11 killed` (first driver revision, before the skip count), and exited 1. The scratch copy was deleted; the committed test is unchanged.
+then printed `SURVIVED M2 commit cached across calls`, `10/11 killed` (first driver revision), and exited 1. The scratch copy was deleted; the committed test is unchanged.
 
 The case pin was proven the same way: with the two pinned case names swapped in a scratch copy of the
-driver, both `DID NOT RAISE` mutants printed `SURVIVED`, `9/11 killed (0 skipped)`, exit 1.
+driver, both `DID NOT RAISE` mutants printed `SURVIVED`, `9/11 killed`, exit 1.

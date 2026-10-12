@@ -6,7 +6,9 @@ error) whose message carries the witness. Same control and byte-identity checks 
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
 import hashlib
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -31,7 +33,12 @@ SCOPE_DAILY = "- **Daily bars only.** No intraday, no microstructure, no order-b
 UTC = "run = run.astimezone(timezone.utc)"
 RUN_LINE = "f\"run (UTC): {run.date().isoformat()} {run.strftime('%H:%M:%S')}Z\","
 IDENTITY = "identity = source_identity(root, workspace_state=workspace_state)"
-# (name, file, exact old fragment, mutant fragment, witness, needs time.tzset[, failing case name])
+# Without time.tzset (Windows) the TZ-fixture test skips, so an M3b child instead inherits a POSIX-format zone,
+# read by the C runtime's localtime on both platforms, and any "038 STAMP M3b" failure is its kill. If the
+# zone is not honoured the mutant survives and the driver fails: M3b is never skipped (SC-003).
+HAS_TZSET = hasattr(time, "tzset")
+FALLBACK_TZ = "EST5EDT"
+# (name, file, exact old fragment, mutant fragment, witness, needs a local zone[, failing case name])
 MUTANTS = (
     ("M1 dividend-bound item dropped", GUARD, DIVIDEND, "", "038 REGISTER drift", False),
     ("M1-scope SCOPE copy gains a bullet", SCOPE, SCOPE_DAILY,
@@ -85,32 +92,45 @@ def run_copy(mutant) -> list[tuple[str, str, str]]:
                 for case in cases for kind in ("failure", "error") for el in case.findall(kind)]
 
 
+@contextmanager
+def local_zone(value: str | None):
+    """Set TZ for children while active (None: leave the environment alone), then restore it."""
+    saved = os.environ.get("TZ")
+    if value is not None:
+        os.environ["TZ"] = value
+    try:
+        yield
+    finally:
+        if value is not None:
+            if saved is None:
+                os.environ.pop("TZ", None)
+            else:
+                os.environ["TZ"] = saved
+
+
 def main() -> int:
     watched = [GUARD, SCOPE, *TESTS]
     sources = tree_digest(watched)
     ledger = tree_digest(["docs/trials"])
-    runnable = [m for m in MUTANTS if not m[5] or hasattr(time, "tzset")]
     with guarded():
         control = run_copy(None)
         assert not control, f"unchanged copy is not green: {control}"
         print(f"CONTROL green (unchanged copy, {COLLECTED} collected)")
         killed = 0
         for mutant in MUTANTS:
-            if mutant not in runnable:
-                print("SKIPPED ", f"{mutant[0]} (time.tzset unavailable; 'zone east of UTC' covers conversion)")
-                continue
-            results = run_copy(mutant)
+            witness = mutant[4] if HAS_TZSET or not mutant[5] else "038 STAMP M3b"
+            with local_zone(FALLBACK_TZ if mutant[5] and not HAS_TZSET else None):
+                results = run_copy(mutant)
             ok = not any(k == "error" for k, _, _ in results) and any(
                 k == "failure" and (name == mutant[6] if len(mutant) > 6 else name.startswith("test_"))
-                and msg.startswith(FAILURE) and mutant[4] in msg
+                and msg.startswith(FAILURE) and witness in msg
                 for k, name, msg in results)
             killed += ok
-            print("KILLED  " if ok else "SURVIVED", f"{mutant[0]} -> {mutant[4]}")
+            print("KILLED  " if ok else "SURVIVED", f"{mutant[0]} -> {witness}")
     assert tree_digest(watched) == sources, "sources changed"
     assert tree_digest(["docs/trials"]) == ledger, "docs/trials changed"
-    skipped = len(MUTANTS) - len(runnable)
-    print(f"{killed}/{len(runnable)} killed ({skipped} skipped); sources and docs/trials ({len(ledger)} files) byte-identical")
-    return 0 if killed == len(runnable) else 1
+    print(f"{killed}/{len(MUTANTS)} killed; sources and docs/trials ({len(ledger)} files) byte-identical")
+    return 0 if killed == len(MUTANTS) else 1
 
 
 if __name__ == "__main__":
