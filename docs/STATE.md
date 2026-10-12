@@ -51,7 +51,7 @@ were adopted in #174, and §11.3 replaces §5 as the capital gate while §11 is 
 
 | Lane | Items |
 |---|---|
-| A | Q103, Q104 (Codex P1s merged in #169/#173), Q97, Q83 |
+| A | Q103, Q104 (Codex P1s merged in #169/#173), Q97 |
 | B | Q38, Q73, Q113, Q114, Q115 |
 | C | Q96, Q47, Q57, Q66, Q67 (after its path revision), Q71 |
 | D | Q106, Q107, Q112 |
