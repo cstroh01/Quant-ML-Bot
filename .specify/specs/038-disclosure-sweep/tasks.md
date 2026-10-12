@@ -114,14 +114,14 @@ D-1–D-5 stay open, and a task that consumes one waits for the human decision r
 
 ## Phase 2 — R: shared register and provenance (depends T001, T002, T010)
 
-- [ ] T020 R contract red. Files: `tests/test_038_register.py`, `tests/test_038_stamp.py`. Register parity
+- [x] T020 R contract red. Files: `tests/test_038_register.py`, `tests/test_038_stamp.py`. Register parity
   parses SCOPE-V1 §6 bullets by actual section boundaries and compares both directions. Stamp contracts:
   injected aware UTC clock, `root`, `commit: unknown` when `git_sha` is None, `trial: none (descriptive, not
   a trial)`, no Git or network, model and descriptive stamps distinct. Red before T021 (missing module).
-- [ ] T021 R implementation. Files: `scripts/<D1>` only; the `CLAUDE.md` row is T001's separate human edit. Register
+- [x] T021 R implementation. Files: `scripts/<D1>` only; the `CLAUDE.md` row is T001's separate human edit. Register
   constant copied verbatim from `docs/SCOPE-V1.md:120-135`; `sharpe_status` string; stamp as plain `list[str]`.
   Unmutated green: T020. Cap: T020–T022 ship as one unit, ≤300 lines.
-- [ ] T022 Mutants M1 (drop dividend-bound item), M1-scope (temp SCOPE copy edit), M2 (cached commit after
+- [x] T022 Mutants M1 (drop dividend-bound item), M1-scope (temp SCOPE copy edit), M2 (cached commit after
   synthetic HEAD change, `GITHUB_SHA` cleared), M3 (last-bar date), M3b (`TZ=America/New_York`, clock 02:00Z;
   control 12:00Z). Driver: `tests/mutation/run_038_register_stamp_mutants.py`. Control: unmutated T020 green.
 
