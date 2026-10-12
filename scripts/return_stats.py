@@ -110,10 +110,10 @@ def main(*, clock=lambda: datetime.now(timezone.utc), root: Path = REPO_ROOT):
         )
     )
 
-    print(
-        f"\nAnnualized return and Sharpe ratio "
-        f"(risk-free rate: {RISK_FREE_RATE_ANNUAL:.2%}):"
-    )
+    # The rate sits on its own line: a number beside "Sharpe" in one sentence
+    # is a Sharpe figure to spec 038 FR-008's pattern, and this header has no flag.
+    print("\nAnnualized return and Sharpe ratio:")
+    print(f"risk-free rate: {RISK_FREE_RATE_ANNUAL:.2%} (annual, applied as a log hurdle)")
     for ticker, returns in return_series.items():
         annualized_return, annualized_volatility = annualize(returns)
         # Express the effective annual hurdle in log units before subtracting

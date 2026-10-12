@@ -1,6 +1,7 @@
 """Offline regression coverage for the Sharpe reported by return_stats.main."""
 
 import math
+from datetime import datetime, timezone
 from unittest.mock import Mock
 
 import numpy as np
@@ -29,7 +30,7 @@ def test_reported_sharpe_matches_log_hurdle_and_metrics(monkeypatch, capsys, tmp
     source.write_text("synthetic\n")
     monkeypatch.setattr(return_stats, "cache_path", Mock(return_value=source))
 
-    return_stats.main(root=tmp_path)
+    return_stats.main(root=tmp_path, clock=lambda: datetime(2026, 1, 2, tzinfo=timezone.utc))
     output = capsys.readouterr().out
     line = next(line for line in output.splitlines() if line.startswith("SYNTHETIC:"))
     reported = float(line.split("Sharpe ratio = ")[1].split()[0])  # the Rule 15 flag follows

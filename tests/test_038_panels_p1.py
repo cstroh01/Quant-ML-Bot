@@ -20,8 +20,11 @@ import return_stats
 from mutation_support_019 import killed
 
 CLOCK = lambda: datetime(2026, 10, 12, 0, 30, tzinfo=timezone.utc)  # just after midnight UTC
+BEFORE_MIDNIGHT = lambda: datetime(2026, 10, 11, 23, 30, tzinfo=timezone.utc)
 LAST = pd.Timestamp("2026-10-09")
-SHARPE_LINE = re.compile(r"sharpe", re.IGNORECASE)
+# Spec 038 FR-008's Sharpe pattern: case-insensitive, a number on either side of the word,
+# within the same sentence (e.g. "0.17 Sharpe" and "Sharpe ratio = 0.5").
+SHARPE_LINE = re.compile(r"\d[^!?;\n]*?\bsharpe\b|\bsharpe\b[^!?;\n]*?\d", re.IGNORECASE)
 
 
 @pytest.fixture(autouse=True)
@@ -49,46 +52,49 @@ def cache_file(tmp_path, name):
     return path
 
 
-def run_return_stats(monkeypatch, capsys, tmp_path):
+def run_return_stats(monkeypatch, capsys, tmp_path, clock=CLOCK):
     source = cache_file(tmp_path, "SYNTHETIC_2y.csv")
     monkeypatch.setattr(return_stats, "TICKERS", ["SYNTHETIC"])
     monkeypatch.setattr(return_stats, "download_market_data", Mock(return_value=prices("SYNTHETIC")))
     monkeypatch.setattr(return_stats.plt, "subplots", Mock(return_value=(Mock(), [[Mock()]])))
     monkeypatch.setattr(return_stats, "save_figure", Mock())
     monkeypatch.setattr(return_stats, "cache_path", lambda name: tmp_path / "data" / "cache" / name)
-    return_stats.main(clock=CLOCK, root=tmp_path)
+    return_stats.main(clock=clock, root=tmp_path)
     return capsys.readouterr().out.splitlines(), source
 
 
-def run_feature_diagnostics(monkeypatch, capsys, tmp_path):
+def run_feature_diagnostics(monkeypatch, capsys, tmp_path, clock=CLOCK):
     name = "AAPL-AMZN-GOOGL-MSFT-NVDA_10y.csv"
     source = cache_file(tmp_path, name)
     monkeypatch.setattr(feature_diagnostics, "download_market_data",
                         Mock(return_value=prices("AAPL", n=300)))
     monkeypatch.setattr(feature_diagnostics, "cache_path",
                         lambda key: tmp_path / "data" / "cache" / key)
-    feature_diagnostics.main(clock=CLOCK, root=tmp_path)
+    feature_diagnostics.main(clock=clock, root=tmp_path)
     return capsys.readouterr().out.splitlines(), source
 
 
-def expected_stamp(source, tmp_path):
-    return disclosure.provenance_stamp(source, root=tmp_path, clock=CLOCK, data_end=LAST)
+def expected_stamp(source, tmp_path, clock):
+    return disclosure.provenance_stamp(source, root=tmp_path, clock=clock, data_end=LAST)
 
 
+@pytest.mark.parametrize("clock, run_line", [
+    (CLOCK, "run (UTC): 2026-10-12 00:30:00Z"), (BEFORE_MIDNIGHT, "run (UTC): 2026-10-11 23:30:00Z"),
+], ids=["after-midnight", "before-midnight"])
 @pytest.mark.parametrize("runner, first_figure", [
     (run_return_stats, "Daily log-return summary:"),
     (run_feature_diagnostics, "AAPL feature diagnostics over 10y"),
 ], ids=["return_stats", "feature_diagnostics"])
 def test_stamp_and_register_reference_precede_the_first_figure(monkeypatch, capsys, tmp_path,
-                                                              runner, first_figure):
-    lines, source = runner(monkeypatch, capsys, tmp_path)
-    stamp = expected_stamp(source, tmp_path)
+                                                              runner, first_figure, clock, run_line):
+    lines, source = runner(monkeypatch, capsys, tmp_path, clock)
+    stamp = expected_stamp(source, tmp_path, clock)
     assert lines[:len(stamp)] == stamp
     assert lines[len(stamp)] == return_stats.LIMITATIONS_REFERENCE
     assert lines.index(first_figure) > len(stamp)
     assert f"source: data/cache/{source.name} sha256=" in stamp[0]
     assert "trial: none (descriptive, not a trial)" in stamp
-    assert "run (UTC): 2026-10-12 00:30:00Z" in stamp
+    assert run_line in stamp
     assert "data through (last session): 2026-10-09" in stamp  # run date and last bar both shown
 
 
@@ -98,9 +104,15 @@ def test_register_reference_names_the_register_and_its_size():
     assert feature_diagnostics.LIMITATIONS_REFERENCE == ref
 
 
+def test_sharpe_pattern_is_fr008():
+    for line in ("0.17 Sharpe", "Sharpe ratio = 0.5", "Sharpe ratio (risk-free rate: 3.78%):"):
+        assert SHARPE_LINE.search(line), line
+    assert not SHARPE_LINE.search("Annualized return and Sharpe ratio:")
+
+
 def test_every_sharpe_line_carries_the_rule_15_flag(monkeypatch, capsys, tmp_path):
     lines, _ = run_return_stats(monkeypatch, capsys, tmp_path)
-    sharpe = [line for line in lines if SHARPE_LINE.search(line) and re.search(r"=\s*-?\d", line)]
+    sharpe = [line for line in lines if SHARPE_LINE.search(line)]
     assert sharpe, "control: at least one printed Sharpe line"
     for line in sharpe:
         assert disclosure.SHARPE_STATUS in line, line
