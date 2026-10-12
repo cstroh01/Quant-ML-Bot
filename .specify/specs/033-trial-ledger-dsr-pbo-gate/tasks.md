@@ -243,17 +243,20 @@ when evidence is absent or stale.
   ledger/matrix/backfill/source mismatch is stale; exact DSR/t equality passes.
   _T056/T057: strict xfail until T062; contract, red run and mutants in
   `docs/implementation/spec-033/T056-T057-gate3-tests.md`._
-- [ ] T058 [US4] Write immutable artifact/index tests: each evaluation creates a
+- [x] T058 [US4] Write immutable artifact/index tests: each evaluation creates a
   new file and append-only index row, prior bytes do not change, digest matches,
   and a new candidate start makes the prior artifact stale.
-- [ ] T059 [US4] Write route tests proving the current no-artifact case remains
+- [x] T059 [US4] Write route tests proving the current no-artifact case remains
   `unknown`, non-unknown states carry evidence, Gate 3 text names real
   thresholds, and the GET handler never calls DSR/PBO computation.
-- [ ] T060 [US4] Write offline-command tests requiring explicit candidate and
+- [x] T060 [US4] Write offline-command tests requiring explicit candidate and
   family, nonzero exit for unknown/stale evidence, printed artifact path, and no
   claim about Gates 1/2/4/5 or overall capital readiness.
-- [ ] T061 [US4] Confirm T056-T060 fail against the current hard-coded unknown
+- [x] T061 [US4] Confirm T056-T060 fail against the current hard-coded unknown
   route for the intended missing artifact behavior.
+  _T058-T061: strict xfail until T062 (route and text cases until T063/T064);
+  contract, red run and mutants in
+  `docs/implementation/spec-033/T058-T061-gate3-tests.md`._
 
 ## Phase 9 — US4 implementation and Rule 12 proof
 
