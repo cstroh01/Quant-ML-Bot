@@ -10,7 +10,10 @@ The wrapped command is the existing paper loop; this module never imports
 broker code or reads credentials.
 
 Drill support (055 T007): a kill stops only the profile it names until a reset that names the
-same profile again; an injected clock and a held-lease fixture exist only under ``--drill``. A drill
+same profile again; an injected clock and a held-lease fixture exist only under ``--drill``.
+While killed, every invocation queues a ``halt`` incident naming the sessions not run so far; a reset
+records each session whose cutoff passed during the kill in ``<state>/ops/skipped.jsonl``, and only
+a session recorded there (or completed) is exempt from missed-run detection. A drill
 needs a state dir marked by a ``DRILL`` file (and a real run refuses one), takes no persist command,
 and refuses a command that mentions ``submit`` or abbreviates ``--submit``. That is a tripwire
 against an operator slip, not a sandbox: a wrapper script that submits internally is not detected.
@@ -27,9 +30,9 @@ import subprocess
 import sys
 import uuid
 
-from ops_runtime import (SUMMARY_TITLE, Incident, LeaseHeld, _lease_path, acquire_lease, atomic_write,
-                         complete_lease, due_run, incidents_to_send, missed_sessions, queue_outbox,
-                         require_storage_identifier, summary_from_loop_record)
+from ops_runtime import (CUTOFF, NY, SUMMARY_TITLE, Incident, LeaseHeld, _lease_path, acquire_lease,
+                         atomic_write, complete_lease, due_run, incidents_to_send, missed_sessions,
+                         queue_outbox, require_storage_identifier, summary_from_loop_record)
 
 
 def _jsonl(path: Path) -> list[dict]:
@@ -75,21 +78,58 @@ def _kill_path(state_dir, profile: str) -> Path:
     return Path(state_dir) / "ops" / f"kill-{require_storage_identifier(profile)}.json"
 
 
-def set_kill(state_dir, profile: str, *, reason: str, reset: bool = False) -> dict:
+def _skipped_while_killed(state_dir, profile: str, kill_at: datetime, now: datetime) -> list[date]:
+    """Sessions with no completed run whose 09:28 New York cutoff fell after ``kill_at`` and by ``now``.
+
+    A session whose cutoff had already passed when the kill landed was missed before the kill, so it
+    stays a missed run and is never attributed to the kill.
+    """
+    runs = _jsonl(Path(state_dir) / "ops" / "runs.jsonl")
+    completed = {date.fromisoformat(r["session"]) for r in runs if r["profile"] == profile}
+    since = kill_at.astimezone(NY).date()
+    return [s for s in missed_sessions(now, completed_sessions=completed, since=since)
+            if datetime.combine(s, CUTOFF, tzinfo=NY) > kill_at]
+
+
+def _killed(state_dir, profile: str, now: datetime) -> dict:
+    """A killed profile runs nothing; each invocation re-raises one ``halt`` incident (deduplicated by
+    content, so it is re-sent when another session goes unrun)."""
+    kill = json.loads(_kill_path(state_dir, profile).read_text(encoding="utf-8"))
+    skipped = _skipped_while_killed(state_dir, profile, datetime.fromisoformat(kill["at_utc"]), now)
+    detail = (f"killed at {kill['at_utc']}: {kill['reason']}; nothing runs until a reset naming this profile; "
+              f"sessions not run: {', '.join(map(str, skipped)) or 'none yet'}")
+    return {"status": "killed", "new_incidents": _deliver(Path(state_dir) / "ops", [Incident("halt", profile, detail)])}
+
+
+def set_kill(state_dir, profile: str, *, reason: str, reset: bool = False, now: datetime | None = None) -> dict:
     """Kill, or with ``reset`` clear the kill on, ONE profile; other profiles are untouched.
 
     Both need a non-empty reason (for a reset, the review note). A reset of a profile that is not
     killed, or a kill of one that already is, raises. Every kill and reset is appended to
-    ``<state>/ops/kills.jsonl``.
+    ``<state>/ops/kills.jsonl``. A reset lists the sessions skipped while killed in its record, appends
+    one ``<state>/ops/skipped.jsonl`` line per session, and queues one ``halt_reset`` incident.
     """
     if not str(reason or "").strip():
         raise ValueError("a kill or reset needs a reason")
+    now = _now() if now is None else now
+    if now.tzinfo is None:
+        raise ValueError("now must be timezone-aware")
     path = _kill_path(state_dir, profile)
     record = {"profile": profile, "action": "reset" if reset else "kill", "reason": reason,
-              "at_utc": datetime.now(timezone.utc).isoformat()}
+              "at_utc": now.astimezone(timezone.utc).isoformat()}
     if reset != path.exists():
         raise ValueError(f"{profile} is {'not' if reset else 'already'} killed")
     if reset:
+        kill = json.loads(path.read_text(encoding="utf-8"))
+        skipped = _skipped_while_killed(state_dir, profile, datetime.fromisoformat(kill["at_utc"]), now)
+        record["skipped_sessions"] = [s.isoformat() for s in skipped]
+        ops = Path(state_dir) / "ops"
+        for session in skipped:
+            _append(ops / "skipped.jsonl", {"profile": profile, "session": session.isoformat(), "cause": "killed",
+                                            "kill_at_utc": kill["at_utc"], "reset_at_utc": record["at_utc"],
+                                            "review_note": reason})
+        _deliver(ops, [Incident("halt_reset", profile, f"reset at {record['at_utc']}: {reason}; sessions skipped "
+                                f"while killed: {', '.join(record['skipped_sessions']) or 'none'}")])
         path.unlink()
     else:
         atomic_write(path, json.dumps(record, sort_keys=True))
@@ -143,15 +183,16 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
         raise ValueError("strategy_version is required for the run identity")
     require_storage_identifier(profile)  # names lease and outbox files: one portable component only
     if _kill_path(state_dir, profile).exists():
-        return {"status": "killed", "new_incidents": 0}  # nothing runs until an explicit reset
+        return _killed(state_dir, profile, now)  # nothing runs until an explicit reset
     ops = Path(state_dir) / "ops"
     runs = [r for r in _jsonl(ops / "runs.jsonl") if r["profile"] == profile]
+    skipped = {date.fromisoformat(r["session"]) for r in _jsonl(ops / "skipped.jsonl") if r["profile"] == profile}
     completed = {(profile, date.fromisoformat(r["session"])) for r in runs}
     decision = due_run(now, profile=profile, completed=completed)
     anchor = _first_seen(ops, profile, decision.session)
     since = max([anchor] + [s for _, s in completed])
     incidents = []
-    missed = missed_sessions(now, completed_sessions={s for _, s in completed}, since=since)
+    missed = missed_sessions(now, completed_sessions={s for _, s in completed} | skipped, since=since)
     if missed:
         incidents.append(Incident("missed_run", profile, "missed sessions: " + ", ".join(map(str, missed))))
     if decision.status != "due":
@@ -228,7 +269,7 @@ def main(argv: list[str] | None = None) -> int:
             parser.error("--reset-kill needs --confirm-reset naming this profile")
         try:
             record = set_kill(args.state_dir, args.profile, reason=args.kill or args.reset_kill,
-                              reset=args.reset_kill is not None)
+                              reset=args.reset_kill is not None, now=_now() if args.now is None else args.now)
         except ValueError as error:
             parser.error(str(error))
         print(json.dumps(record, sort_keys=True))
