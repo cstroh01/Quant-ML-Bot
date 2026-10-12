@@ -89,7 +89,7 @@ Pass condition:
 | 48 | P1 | D | Compute real holding bars (probe: 93/33/43/36/27, all reported as 1). Break friction into commission, spread and slippage. Export unrounded values. | `reports/api/routes/backtest.py:154`, `BacktestTearsheetView.tsx:92` | 018 |
 | 49 | P1 | D | Make the gate decoder match the API's gates. Fix p-value explanations, "conditioning = proof" and volume-flow narratives. Remove Kelly teaching. Show unknown correlation as unknown, never zero. | `CapitalGateView.tsx:64`, `FeatureDiagnosticsView.tsx`, `MarketDataView.tsx` | 018 |
 | 36 | P1 | R | State in UI and docs that good conditioning is a numerical property, not an alpha certificate. | `features.py`, spec 014, `FeatureDiagnosticsView.tsx` | 018 |
-| 54 | P1 | G | Mark the 6-fold CV timeline as an illustration (the saved run has 113 folds). Label the tearsheet as SMA, not ML. ↪ Add run selectors after 028. | `CrossValidationView.tsx`, backtest and ML rundown routes | 018 |
+| 54 | P1 | G | Mark the 6-fold CV timeline as an illustration (the saved run's fold count is [struck]). Label the tearsheet as SMA, not ML. ↪ Add run selectors after 028. | `CrossValidationView.tsx`, backtest and ML rundown routes | 018 |
 | 03 | P0 | D | Reject NaN or non-positive fills, nonfinite costs and non-boolean signals before simulating. A NaN-skipping sum must never count as reconciliation. | `scripts/backtest_harness.py:13,108` | 019 Boundary validation |
 | 04 | P0 | D | One cost-domain validator — finite commission ≥ 0, finite slippage in [0, 10000) — enforced in both library and HTTP. | `scripts/ml_signal.py:47`, `backtest_harness.py`, backtest route | 019 |
 | 50 | P1 | D | Constrained request models with cross-field checks (short < long, window > 0, finite values, known ticker, bounded workload). Return a documented 4xx, never 500. | `reports/api/routes/backtest.py` | 019 |
@@ -142,7 +142,7 @@ Pass condition:
 | 60 | P2 | G | Verify the OS start method and use runtime thread-pool controls. Timeouts, cancellation, memory limits, per-run checkpoints. Fix repeated sklearn/joblib warnings (51.6 MB log, 83,464 warnings). Promise statistical, not bitwise, reproducibility. | `feature_set_comparison.py:229` | 028 |
 | 33 | P1 | D+G | Persist per-ticker success/failure, exception type, config, per-seed records and aggregation rules. Nonzero exit on an unusable run (currently an all-failed run writes an empty CSV and exits 0). Expose estimator choice (ridge is currently fixed). | `multi_ticker_comparison.py:112,357` | 029 Fair comparison protocol |
 | 31 | P1 | G | Precompute features with prior history. Start every funded strategy and baseline on the same session with the same cash, tradability and costs. Save the covered-session mask. | `multi_ticker_comparison.py:212` | 029 |
-| 32 | P1 | G | Add baselines: always-up (53.54% — above logistic's 52.99%), rolling-prior, zero-return and training-mean regression, cash, momentum, vol-managed exposure. Keep every random path. Compare turnover and exposure. Never average Sharpe or drawdown into a fictional strategy. | `ma_crossover_backtest.py:59`, `multi_ticker_comparison.py:112` | 029 |
+| 32 | P1 | G | Add baselines: always-up (53.54% — above logistic's [struck]), rolling-prior, zero-return and training-mean regression, cash, momentum, vol-managed exposure. Keep every random path. Compare turnover and exposure. Never average Sharpe or drawdown into a fictional strategy. | `ma_crossover_backtest.py:59`, `multi_ticker_comparison.py:112` | 029 |
 | 34 | P1 | R | Predeclared 2×2 ablation — levels/ratios × raw/scaled — with folds and policy held fixed and date-based fold layout shared. | `estimators.py:203`, `feature_set_comparison.py:129`, `logistic_baseline.py` | 029 |
 | 37 | P2 | R | Model event information intervals explicitly. Purge labels not yet available at fit time. Keep extra embargo only for a stated dependence concern. Validate calendar boundaries and horizon domains. Don't delete safeguards without proving the replacement. | `scripts/walk_forward_cv.py:21` | 030 CV/model contract |
 | 39 | P2 | G | Specify HGB early-stopping behaviour before the pooled panel crosses its threshold. Handle single-class folds per estimator. Freeze or copy registry dictionaries. | `scripts/estimators.py:96` | 030 |
@@ -288,9 +288,10 @@ Also:
 - The target is a process that rejects bad strategies cheaply.
 
 **What the saved results establish:**
-- `feature_set_comparison.json` is a prediction-quality comparison (113 folds, 2,359 pairs, purge 1, embargo 1, seed 42), not a costed experiment.
-- Logistic scale-free accuracy is 52.99%, **below** always-up at 53.54%.
-- Ridge's MSE gain is 0.0844% relative, with no established economic value.
+- `feature_set_comparison.json` is a prediction-quality comparison ([struck] folds, [struck] pairs, purge 1, embargo 1, seed 42), not a costed experiment.
+- Logistic scale-free accuracy is [struck], **below** always-up at 53.54%.
+- Ridge's MSE gain is [struck] relative, with no established economic value.
+- [struck] marks figures removed under Rule 11 (spec 038 D-5 (b)): their only source, `data/cache/feature_set_comparison.json`, is absent from the repository. 53.54% stays (committed `direction-baseline.json`).
 - The SMA tearsheet's 233.64% return / 0.17 Sharpe / −72.36% drawdown use a $24.63 one-share denominator. They are not funded-account results and not ML results.
 
 **Clean at audit time (keep running):**

@@ -124,17 +124,18 @@ was never edited, and its SHA-256 matched before and after.
 
 ### Real data (cached 10y, 2016-09-06 → 2026-09-04) — no P&L
 
-Full conviction on all five, `RECOMMENDED_CONFIG`, 2,451 sized sessions:
+Full conviction on all five, `RECOMMENDED_CONFIG`, [struck] sized sessions:
 
 | Measure | p10 | median | p90 |
 |---|---|---|---|
-| Overlap per held name | 2.20 | **3.24** | 4.02 |
-| Gross after overlap step | 0.27 | **0.38** | 0.57 |
-| Exposure removed by overlap step | — | **69%** | 75% |
+| Overlap per held name | [struck] | [struck] | [struck] |
+| Gross after overlap step | [struck] | [struck] | [struck] |
+| Exposure removed by overlap step | — | [struck] | [struck] |
 
-- Peak overlap 4.48 (2020-05-20); 4.44 around the March 2020 crash; 3.71 around 2025-04-08.
+- Peak overlap [struck] (2020-05-20); [struck] around the March 2020 crash; [struck] around 2025-04-08.
 - Gross cap never bound.
-- Speed: 3.5 ms per `target_weights` call on the full panel.
+- Speed: [struck] per `target_weights` call on the full panel.
+- [struck] marks figures removed under Rule 11 (spec 038 D-5 (b)): this diagnostic ran in a scratchpad outside the repository (see "Scratchpad only" below), so no committed source holds them.
 
 _This diagnostic was not re-run on resumption; it computes no metric that
 anything downstream depends on._
@@ -145,7 +146,7 @@ anything downstream depends on._
 
 | Q | Decision | One-line why |
 |---|---|---|
-| 1 | Vol targeting, **no Kelly** | Half Kelly on 52.99% accuracy = 1.65× leverage from an unproven edge |
+| 1 | Vol targeting, **no Kelly** | Half Kelly on a [struck] accuracy (source `data/cache/feature_set_comparison.json`, absent) gives [struck] leverage from an unproven edge |
 | 2 | ISO calendar week; weekly halt latches to week end | A rolling window never resets, so "when do we resume" has no answer |
 | 3 | Halt blocks **adding**, not just opening; exits allowed | Otherwise scale a 0.1% stub to the cap mid-halt |
 | 4 | Confidence ∈ [0,1]; realized vol, 63 sessions | Estimator-agnostic; a quarter balances noise against turnover |
@@ -186,7 +187,7 @@ anything downstream depends on._
 
 - **T003 (TDD red) was invalid as run.** I invoked `python -m unittest tests.test_portfolio_risk`. It failed on `import context`, before reaching the missing module. The mutation check is the real evidence the tests bite. The same wrong command was in `quickstart.md` and is fixed.
 - **One vacuous assertion was caught before the first run and corrected.** It compared a sum against 3× its own mean.
-- **Two claims in the plan were checked and corrected.** The size estimate was wrong (fixed in `plan.md`). The speed goal held (3.5 ms against a 50 ms goal).
+- **Two claims in the plan were checked and corrected.** The size estimate was wrong (fixed in `plan.md`). The speed goal held ([struck] against a 50 ms goal; scratchpad measurement).
 - **The night run ended before its own bookkeeping.** T033/T034 were done but unticked; closed on resumption, with both headline claims re-verified rather than trusted.
 - **No transcript of the night run exists locally.** The resumption account above is reconstructed from files and timestamps.
 - **Rule 10:** no `git` command of any kind, in either session. File-unchanged checks used SHA-256 hashes.

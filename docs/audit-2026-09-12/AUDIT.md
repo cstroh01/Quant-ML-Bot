@@ -27,14 +27,16 @@ Local Python was 3.13.14; CI specifies 3.12. The frontend was built with Node 24
 
 **What the actual results establish**
 
-The saved `data/cache/feature_set_comparison.json` is a prediction-quality comparison, not a costed investment experiment. It contains 113 outer folds and 2,359 paired observations per entry, with six-month initial training, one-month tests, one-bar horizon/purge and one-bar embargo; seed 42. Costs are not applicable to these prediction scores.
+The saved `data/cache/feature_set_comparison.json` is a prediction-quality comparison, not a costed investment experiment. It contains [struck] outer folds and [struck] paired observations per entry, with six-month initial training, one-month tests, one-bar horizon/purge and one-bar embargo; seed 42. Costs are not applicable to these prediction scores.
 
 | Estimator | Levels → scale-free | Saved one-sided p-value | Interpretation |
 |---|---|---:|---|
-| Logistic classification | 50.784% → 52.989% accuracy | 0.01219 | Better than that control; below always-up accuracy of 53.540% on the same default test rows |
-| HGB classification | 51.547% → 51.802% accuracy | 0.43293 | No persuasive improvement in this comparison |
-| Ridge regression | MSE 0.0003560020 → 0.0003557017 | 0.03135 | About 0.0844% relative MSE reduction; economic value unestablished |
-| HGB regression | MSE 0.0003628177 → 0.0003611051 | 0.26327 | No persuasive improvement in this comparison |
+| Logistic classification | [struck] accuracy | [struck] | Better than that control; below always-up accuracy of 53.540% on the same default test rows |
+| HGB classification | [struck] accuracy | [struck] | No persuasive improvement in this comparison |
+| Ridge regression | MSE [struck] | [struck] | Relative MSE reduction [struck]; economic value unestablished |
+| HGB regression | MSE [struck] | [struck] | No persuasive improvement in this comparison |
+
+[struck] marks figures removed under Rule 11 (spec 038 D-5 (b)): their only source, `data/cache/feature_set_comparison.json`, is absent from the repository, so they cannot be regenerated or checked. The always-up 53.540% stays; its source is the committed `docs/audit-2026-09-12/direction-baseline.json`.
 
 These p-values are unadjusted screening outputs with dependence concerns below. The always-up result is a descriptive classification baseline, not a return claim. Neither low accuracy nor a low p-value alone determines profitability: magnitudes, exposure, costs, and the execution horizon matter.
 
