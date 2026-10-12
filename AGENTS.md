@@ -15,13 +15,15 @@ It points into the repo's system of record. It overrides nothing in it.
 
 - **Work comes from a numbered spec task, never from a chat prompt.** A task that cannot be written as a spec is not ready.
 - **Version control is human-owned (Rule 10).** Agents may not merge, rebase, reset, force-push, tag, or push to `main`. Only the lanes the constitution names may commit: the GitHub Actions lane to its invoked branch, and the cloud scheduled-session lane to the branch it created in that session.
-- **Only Camden merges (Rule 9).** Never approve, merge, or mark a PR ready for review.
+- **Merges (Rules 9, 9a, 9b).** Never approve. Merge or mark ready only as constitution Rule 9b (in force from 2026-10-12) or Rule 9a permits; everything else is Camden's.
 - **Tests are contracts.** Never weaken an assertion to make code pass. If a spec and a test disagree, stop and report the conflict.
-- **Never write to these paths:** `docs/trials/` (the trial ledger), `exec/`, `.env*`, or `data/cache/`.
+- **Never write to these paths:** `docs/trials/` (the trial ledger), the LIVE money path in `exec/` (Rule 7a: `fidelity_live.py`, `fidelity_reconcile.py`, anything that can place a LIVE order), `.env*`, or `data/cache/`. PAPER `exec/` files may change under Rule 7a.
 - **Network:** pip and GitHub only. Market-data or vendor fetches are a human gate. Free data only.
 - **Run the tests:** `python -m pytest tests` from the repo root. Python 3.12 matches CI.
 
 ## Review guidelines
+
+Codex: these are this repository's code review rules. Flag only P0 and P1. Where a task's text and its spec disagree, the spec wins.
 
 Report only problems that would make a result wrong, a gate vacuous, or a boundary leak. Skip style.
 

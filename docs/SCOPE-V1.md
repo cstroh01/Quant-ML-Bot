@@ -228,3 +228,74 @@ daily approvals (spec 055). Spare Actions minutes run research, data refresh and
 **Milestones.** M0 v1.0 → M1 reconciled PAPER on the cloud runner → M2 mode/budget isolation +
 small-account PAPER → M3 registry/universe → M4 ML challenger in shadow → M5 capital-gated,
 capped LIVE at Fidelity.
+
+## 11. Amendment 2026-10-12 — v1.2 acceleration (Camden, explicit)
+
+Camden, in chat on 2026-10-12: the whole project, through LIVE trading at Fidelity, is to be
+finished as soon as possible, accepting higher risk. This section records his choices. Where it
+conflicts with §3–§5, §8 or §10, this section governs.
+
+### 11.1 v1.2 — definition of done
+
+v1.2 ships when all hold:
+
+1. v1.0 items §3.1–§3.5 and §3.7 hold. §3.6 (repo split) is satisfied by the existing private
+   companion repo; spec 040's package split is no longer blocking.
+2. PAPER runs unattended on the cloud runner for both profiles, every order reconciled (specs
+   049, 051, 055), on spec 035/056 validated data (queue Q100).
+3. The spec 059 allocation is preregistered, backtested with both baselines, and trading in PAPER.
+4. Spec 058's research and holdout runs are complete and published, whatever the result.
+5. The universe registry (spec 052) covers the expanded ETF list (spec 060).
+6. The §11.3 gate has passed and LIVE is armed at Fidelity with the capped budget.
+7. README and limitations register updated; tagged `v1.2`.
+
+`v1.0` and `v1.1` tags are cut on the way when their items hold; neither blocks work on the next.
+
+### 11.2 Universe and data
+
+- **Universe.** Expand to about 100 liquid US-listed ETFs across asset classes (spec 060), through
+  the dated registry (spec 052). Spec 058's preregistered 25-ETF family is unchanged; the larger
+  list feeds spec 059 and later families only.
+- **Free data stack.** Free only, as §2. Adopted roles (verification records in spec 056/060):
+  Alpaca raw SIP (primary daily bars), Tiingo EOD (independent check), SEC EDGAR (filings,
+  corporate-action evidence), FRED/ALFRED (macro with vintages), EODHD free (last-year corporate
+  actions), Massive Stocks Basic (2-year corporate actions and reference data, including delisted
+  tickers; free individual-use terms, 5 calls/minute). Candidates under evaluation in spec 060:
+  Nasdaq Trader symbol directory (ETF flag), US Treasury yields (cash rate), Cboe VIX history
+  (stress-window labels), Kenneth French library (attribution only).
+
+### 11.3 Capital gate for v1.2 (supersedes §5 while this section is in force)
+
+LIVE arms only when every item holds, in order:
+
+1. Full suite and mutation suites green on `main` (specs 012, 017, 019, 032, 033).
+2. **Allocation, not edge.** LIVE trades only spec 059's preregistered allocation: inverse-volatility
+   risk parity across the asset-class sleeves, scaled to a 10% annualized portfolio volatility
+   target, gross ≤ 1.0, long-only, monthly rebalance. Its weights rule is hashed into the ledger
+   before spec 058 T015 runs. Its costed walk-forward backtest with both Rule 4 baselines is
+   published with `ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED`. Gate 3 still runs on spec 058 and
+   is published; it does not block LIVE. A Gate-3-passing strategy replaces the allocation only by
+   Camden's promotion (spec 053).
+3. The safety layer (specs 032/034/051) sits in the PAPER and LIVE order paths, and the kill-switch
+   and reset drills have passed (spec 055).
+4. **PAPER evidence.** At least 10 completed trading sessions on both PAPER profiles running the
+   spec 059 allocation, every order reconciled against broker truth, and realized fill cost compared
+   with spec 046's modeled cost, per order, published.
+5. **Historical replay.** The live pipeline, with a simulated broker, replays 2020-02-03 to
+   2020-04-30 and calendar 2022 without an unhandled error or a safety-gate breach that the
+   backtest does not also show.
+6. **Fidelity.** Spec 057's adapter completes 5 clean preview-only sessions, and holdings
+   reconcile with spec 054's import.
+7. LIVE budget $100 of settled cash (unchanged from 2026-10-09); deposits never raise it. Camden
+   arms LIVE himself.
+
+The 1–2 month paper clock and the volatile-regime requirement of §5 are replaced by items 4–5,
+because the calendar cannot be compressed and a volatile regime cannot be scheduled. What is given
+up: live evidence of execution through real stress. Item 5 substitutes a replay, which tests the
+code path, not real fills.
+
+### 11.4 Process
+
+§8 is replaced while constitution Rule 9b is in force: parallel lanes split by module ownership,
+any number of open PRs with no shared file, PRs up to 600 lines, agent merges under Rule 9b, and a
+daily merge digest for Camden.
