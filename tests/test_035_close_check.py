@@ -86,7 +86,7 @@ def test_session_only_in_second_source_refuses():
     (BASE * (1 + 0.9e-3), True), (BASE * (1 - 0.9e-3), True),
     (BASE * (1 + 1.1e-3), False), (BASE * (1 - 1.1e-3), False),
     (BASE + 0.1, True),  # exactly 1e-3 relative is inside (inclusive)
-    (float("nan"), False),
+    (float("nan"), False), (float("inf"), False), (-float("inf"), False),
 ])
 def test_relative_close_tolerance_is_d2(second_close, ok):
     second = bars(close={S[2]: second_close})

@@ -6,6 +6,8 @@ not re-matched here; their status comes from spec 044 FR-006 unchanged.
 """
 from __future__ import annotations
 
+import math
+
 import pandas as pd
 
 # Spec 035 §8 D-2 (Camden, 2026-10-09): absolute $0.0001 per share at the
@@ -164,7 +166,8 @@ def cross_check_close(
             where = "primary" if date not in theirs else "second source"
             raise ValueError(f"{CLOSE_FAILED}: {label} has a bar in the {where} only")
         a, b = mine[date], theirs[date]
-        if not abs(a - b) <= close_tolerance * abs(b) + _FLOAT_SLACK:  # NaN fails
+        finite = math.isfinite(a) and math.isfinite(b)
+        if not (finite and abs(a - b) <= close_tolerance * abs(b) + _FLOAT_SLACK):
             raise ValueError(
                 f"{CLOSE_FAILED}: {label} Close {a!r} vs {b!r} differs by more than "
                 f"relative {close_tolerance!r}")

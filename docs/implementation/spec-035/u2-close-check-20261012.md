@@ -22,3 +22,9 @@ Cloud lane B, queue Q38, 2026-10-12. Linux evidence only; CI's test-windows is t
   `1bb5dbfe90c9df370c65910650ade15dd9d0e0366d011e09baf303975275f30f`; `trials.head.json` SHA-256
   `f83b1b9be5a608d444d61496899d25139eb56184fd924acd030e61347d22d764`; `docs/trials/returns/` absent.
   Unchanged before and after.
+- **Review fix (fresh-context reviewer, P2):** a `+inf` second-source `Close` passed
+  (`inf <= 1e-3 * inf`). Rows `inf` and `-inf` were added to the tolerance parametrization and ran
+  red (2 failed), then an explicit `math.isfinite` guard made them green (49 passed across
+  `test_035_close_check.py` and `test_035_reconcile.py`).
+- **Full suite** (before the review fix, Python 3.12.3, `-n auto`): 1923 passed, 47 xfailed,
+  0 failed, 0 errors, 1386 subtests passed.
