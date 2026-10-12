@@ -1,6 +1,7 @@
 // Spec 047 U1b fixture. EXAMPLE — NOT A RESULT. Synthetic response; no market data.
-// Two closed trades plus an open entry: the old view formula, 2 * $1.00 * 2 trades = $4.00,
-// disagrees with the charged commission_total ($3.00), and slippage_total is non-zero.
+// Two closed trades (4 fills) plus a position still open at the end (1 entry fill), $1.00 per fill:
+// the harness charges commission_total = $5.00 (FR-001), while the old view formula,
+// 2 * $1.00 * 2 closed trades, gives $4.00. slippage_total is non-zero.
 import type { BacktestTearsheetResponse } from '../../types/api'
 
 export const tearsheet047: BacktestTearsheetResponse = {
@@ -8,7 +9,7 @@ export const tearsheet047: BacktestTearsheetResponse = {
   strategy_name: 'EXAMPLE — NOT A RESULT',
   commission_per_trade: 1.0,
   slippage_bps: 5.0,
-  commission_total: 3.0,
+  commission_total: 5.0,
   slippage_total: 0.47,
   capital_base: 1000,
   total_return: 1.5,

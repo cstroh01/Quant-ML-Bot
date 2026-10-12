@@ -20,16 +20,19 @@ const text = (id: string) => screen.getByTestId(id).textContent ?? ''
 test('commission and slippage are the response totals, as given', () => {
   view()
   // The perturbed fields are commission_total and slippage_total; trade count and commission_per_trade
-  // are chosen so the old formula (2 * $1.00 * 2 trades = $4.00) cannot coincide with $3.00.
-  expect(text('friction-commission'), '047 U1B commission').toContain('$3.00')
+  // are chosen so the old formula (2 * $1.00 * 2 trades = $4.00) cannot coincide with $5.00.
+  expect(text('friction-commission'), '047 U1B commission').toContain('$5.00')
   expect(text('friction-slippage'), '047 U1B slippage').toContain('$0.47')
 })
 
-test('the card does no friction arithmetic: no sum and no per-trade product', () => {
-  view()
-  const card = text('friction-card')
-  expect(card, '047 U1B no sum').not.toContain('3.47')
-  expect(card, '047 U1B no product').not.toContain('4.00')
+test('the view does no friction arithmetic anywhere: no sum and no per-trade product', () => {
+  // Whole render, not just the card (FR-002). The sum 12.90 and product 4.00 appear in no fixture field,
+  // and the sum is checked at one and two decimals so a reformatted sum is still caught.
+  view({ ...tearsheet047, commission_total: 12.34, slippage_total: 0.56 })
+  const page = document.body.textContent ?? ''
+  expect(page, '047 U1B no sum').not.toMatch(/12\.90?(?!\d)/)
+  expect(page, '047 U1B no product').not.toContain('4.00')
+  expect(text('friction-commission'), '047 U1B commission').toContain('$12.34')
 })
 
 test('the figures follow the response, not the trade count', () => {

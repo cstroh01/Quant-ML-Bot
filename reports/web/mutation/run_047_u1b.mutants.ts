@@ -19,6 +19,8 @@ test.each([
   ['V1 per-trade product', COMMISSION, '${(tearsheet.trade_log.length * (2 * tearsheet.commission_per_trade)).toFixed(2)}', '047 U1B commission'],
   // V1b: the view sums friction into the commission line (FR-002 forbids view arithmetic).
   ['V1b view-side sum', COMMISSION, '${(tearsheet.commission_total + tearsheet.slippage_total).toFixed(2)}', '047 U1B commission'],
+  // V1c: a friction sum shown outside the card, at one decimal (FR-002 covers the whole view).
+  ['V1c sum outside the card', 'Net of slippage & comm.', 'Net of slippage & comm. ${(tearsheet.commission_total + tearsheet.slippage_total).toFixed(1)}', '047 U1B no sum'],
   // V2: slippage shown from the configured bps instead of the charged dollars.
   ['V2 slippage from bps', SLIPPAGE, '${tearsheet.slippage_bps.toFixed(2)}', '047 U1B slippage'],
   // V3: the label stops saying the slippage is modeled.
