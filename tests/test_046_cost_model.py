@@ -1,6 +1,7 @@
 """Spec 046 U1 contracts: EDGE half-spread plus square-root impact, point in time.
 Synthetic frames only (EXAMPLE — NOT A RESULT). The spread oracle is `bidask==2.1.0` (T001)."""
 from datetime import date
+from types import SimpleNamespace
 
 import bidask
 import numpy as np
@@ -8,8 +9,9 @@ import pandas as pd
 import pytest
 
 import context  # noqa: F401
-from cost_model import CostConfig, CostUnavailable, estimate_fill_cost
+from cost_model import CostConfig, CostUnavailable, estimate_fill_cost, robustness_configs
 from data import trading_days
+from trial_registry import canonical_json, digest
 
 SESSIONS = pd.DatetimeIndex(trading_days(date(2024, 1, 2), date(2024, 4, 30)))  # spans MLK, Presidents' Day, Good Friday
 
@@ -141,3 +143,47 @@ def test_unusable_inputs_refuse_rather_than_trade_free():
     refusal("malformed_history", aware)
     with pytest.raises(CostUnavailable, match="as_of_missing"):
         estimate_fill_cost(bars(), as_of="2024-01-15", quantity=1.0, config=CostConfig(), split_sessions=())
+
+
+# Plan §3's slippage fields, written out here rather than read from the module under test.
+CONVENTION_FIELDS = {"estimator_version", "sigma_convention", "volume_convention", "window_policy",
+                     "spread_handling", "warmup_policy", "liquidation_cost_policy"}
+# Phrases each recorded convention must state, from spec 046's approved T001 text (not from cost_model).
+PINNED = {"estimator_version": ["bidask 2.1.0"], "sigma_convention": ["22 closes t-21..t", "ddof=1", "not annualized"],
+          "volume_convention": ["t-20..t", "split in t-20..t refuses"], "window_policy": ["21 NYSE sessions", "missing session refuses"],
+          "spread_handling": ["S/2 per fill", "sqrt(|S^2|)", "undefined S refuses"], "warmup_policy": ["22 sessions"],
+          "liquidation_cost_policy": ["preceding-session estimate"]}
+CANONICAL_FIELDS = {"model", "role", "impact_coef", "spread_window", "sigma_window", "adv_window", "source",
+                    *CONVENTION_FIELDS}
+
+
+def test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary():
+    primary, rows = CostConfig(), robustness_configs()
+    assert (primary.role, primary.impact_coef) == ("primary", 1.0), "M10: primary must stay Y=1.0"
+    assert [(r.role, r.impact_coef) for r in rows] == [("robustness", 0.5), ("robustness", 2.0)], "M10: rows"
+    for bad in ({"role": "robustness", "impact_coef": 1.0}, {"role": "robustness", "impact_coef": 0.7},
+                {"role": "primary", "impact_coef": 2.0}, {"role": "best"}, {"role": "best", "impact_coef": 0.5}, {"impact_coef": True}, {"adv_window": 21.0},
+                {"source": "invented locator"}):
+        with pytest.raises(ValueError):
+            CostConfig(**bad)
+    base = cost(bars())
+    for row in rows:
+        est = estimate_fill_cost(bars(), as_of=bars().index[30], quantity=1_000.0, config=row, split_sessions=())
+        assert est.half_spread == base.half_spread, "robustness Y must leave the spread alone"
+        assert est.impact == pytest.approx(row.impact_coef * base.impact, rel=1e-12), "M10: row Y not applied"
+    with pytest.raises(TypeError):  # an unvalidated stand-in would bypass D-1
+        estimate_fill_cost(bars(), as_of=bars().index[30], quantity=1.0, config=SimpleNamespace(impact_coef=0.7),
+                           split_sessions=())
+
+
+def test_canonical_config_records_every_convention_and_refuses_altered_ones():
+    mapping = CostConfig().as_mapping()
+    assert set(mapping) == CANONICAL_FIELDS, f"M10: canonical config fields {sorted(set(mapping) ^ CANONICAL_FIELDS)}"
+    canonical_json(mapping)  # finite JSON values only, as trial_registry requires
+    assert CostConfig(**mapping) == CostConfig(), "the serialized config must rebuild the same config"
+    identities = {digest(c.as_mapping()) for c in (CostConfig(), *robustness_configs())}
+    assert len(identities) == 3, "M10: each labelled row needs its own config identity"
+    for field in CONVENTION_FIELDS:
+        assert all(phrase in mapping[field] for phrase in PINNED[field]), f"M10: {field} no longer states {PINNED[field]}"
+        with pytest.raises(ValueError, match=field):  # M10: a label may not describe other arithmetic
+            CostConfig(**{**mapping, field: mapping[field] + " (altered)"})

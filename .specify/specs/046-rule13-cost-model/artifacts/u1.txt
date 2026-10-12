@@ -1,0 +1,47 @@
+Spec 046 U1 evidence (T003-T006), closed by U1b (queue Q95). EXAMPLE — NOT A RESULT: synthetic fixtures only.
+Python 3.12.3, Linux, 2026-10-12. This Linux run is evidence; Camden's Windows venv is authoritative.
+
+Collected: tests/test_046_cost_model.py -> 32 tests (30 from U1a #142, 2 new in U1b).
+Unmutated control: 32 passed.
+Initial contract red: recorded for U1a in #142 (contracts written before cost_model.py existed);
+against #142's merged module the U1b file fails at collection (ImportError: robustness_configs),
+so U1b's red evidence is the M10 kills below, each a named assertion failure.
+
+Mutation driver: python tests/mutation/run_046_u1_mutants.py  (exit 0)
+CONTROL green (unchanged copy, 32 collected)
+KILLED   M1 sigma reads t+1 -> test_future_bars_cannot_move_the_estimate
+KILLED   M1 ADV reads t+1 -> test_future_bars_cannot_move_the_estimate
+KILLED   M1 centered spread window -> test_future_bars_cannot_move_the_estimate
+KILLED   M2 linear impact -> test_impact_is_square_root_in_quantity_with_spread_unchanged
+KILLED   M3 unverified volume accepted -> test_only_verified_volume_bases_are_accepted
+KILLED   M4 warm-up shortened -> test_warmup_refuses_until_the_first_complete_window
+KILLED   M4 missing session accepted -> test_holidays_pass_but_a_missing_session_refuses
+KILLED   M7 full spread as half -> test_half_spread_matches_bidask_oracle
+KILLED   M7 negative S^2 to zero -> test_half_spread_matches_bidask_oracle
+KILLED   M7 undefined S to zero -> test_unusable_inputs_refuse_rather_than_trade_free
+KILLED   M10 best robustness Y as primary -> test_primary_config_is_fixed
+KILLED   M10 robustness Y unchecked -> test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary
+KILLED   M10 robustness Y not applied -> test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary
+KILLED   M10 convention dropped from config -> test_canonical_config_records_every_convention_and_refuses_altered_ones
+KILLED   M10 altered convention accepted -> test_canonical_config_records_every_convention_and_refuses_altered_ones
+KILLED   M10 convention text drifts -> test_canonical_config_records_every_convention_and_refuses_altered_ones
+KILLED   M10 unknown role accepted -> test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary
+KILLED   invented source accepted -> test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary
+KILLED   unvalidated config accepted -> test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary
+KILLED   split check removed -> test_split_inside_the_window_refuses_and_before_it_does_not
+KILLED   split check from t-19 -> test_split_inside_the_window_refuses_and_before_it_does_not
+KILLED   zero ADV accepted -> test_unusable_inputs_refuse_rather_than_trade_free
+KILLED   as_of check removed -> test_unusable_inputs_refuse_rather_than_trade_free
+KILLED   fill-price check removed -> test_unusable_inputs_refuse_rather_than_trade_free
+24/24 killed; sources and docs/trials (6 files) byte-identical
+
+Evidence-check red proof (T006 Rule 12): with the future-bars assertion in
+test_future_bars_cannot_move_the_estimate replaced by a bare call (copy restored, cmp clean), the
+20-mutant driver reported the centered-window M1 and both other M1 mutants SURVIVED and exited 1
+(run before the 4 review mutants were added; the M1 rows are unchanged):
+SURVIVED M1 sigma reads t+1 -> test_future_bars_cannot_move_the_estimate
+SURVIVED M1 ADV reads t+1 -> test_future_bars_cannot_move_the_estimate
+SURVIVED M1 centered spread window -> test_future_bars_cannot_move_the_estimate
+17/20 killed; sources and docs/trials (6 files) byte-identical
+
+Size: U1a (#142) 299 changed lines; U1b counted separately in its PR body (<= 300).
