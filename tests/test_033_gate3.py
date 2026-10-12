@@ -332,6 +332,40 @@ def test_real_current_inputs_see_an_advanced_ledger_and_the_route_turns_stale(tm
     assert (gate.status, gate.evidence) == ("stale", path)
 
 
+def plant_backfill(root, n_backfill):
+    body = {"schema_version": 1, "campaign_id": f"example-{n_backfill}", "status": "complete", "n_backfill": n_backfill}
+    stored = body | {"sha256": api("trial_registry", "digest")(body)}
+    folder = root / "docs/trials/backfill"
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / f"example-{n_backfill}.json").write_text(json.dumps(stored))
+    return stored
+
+
+@pytest.mark.parametrize("moved, field, reason", [("backfill", "backfill_hash", "backfill_changed"),
+                                                  ("source", "source_identity", "source_changed")])
+def test_real_current_inputs_see_a_superseding_backfill_or_changed_source(tmp_path, moved, field, reason):
+    """Backfill (self-hashed files under docs/trials/backfill) and source (trial_registry.source_identity)
+    are discovered for real; the emitted matrix has no specified storage yet (FR-022), so it is not."""
+    discover, assess = (api("generate_gate3_evidence", name) for name in ("current_inputs", "assess"))
+    log = ledger(tmp_path)
+    start(log)
+    (tmp_path / "scripts").mkdir()
+    (tmp_path / "scripts" / "strategy.py").write_text("WINDOW = 20\n")
+    value = real()
+    value["counts"].update(ledger_head_hash=log.verify()["head"], backfill_hash=plant_backfill(tmp_path, 40)["sha256"])
+    value["source_identity"] = api("trial_registry", "source_identity")(tmp_path)
+    art = compose(value)
+    found = discover(art, tmp_path)
+    assert (found["backfill_hash"], found["source_identity"]) == (art["backfill_hash"], art["source_identity"])
+    if moved == "backfill":
+        plant_backfill(tmp_path, 41)  # a superseding, larger count
+    else:
+        (tmp_path / "scripts" / "strategy.py").write_text("WINDOW = 21\n")
+    now = discover(art, tmp_path)
+    assert now[field] != art[field], "current_inputs echoed the artifact"
+    assert assess(art, current(art) | {field: now[field]}) == {"status": "stale", "reason_codes": [reason]}
+
+
 def plant_row(root, raw_row):
     with (root / PRODUCTION / "index.jsonl").open("ab") as index:
         index.write(raw_row + b"\n")
