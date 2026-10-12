@@ -128,13 +128,13 @@ def run_configuration(config_id: str, opens: pd.DataFrame, closes: pd.DataFrame,
     if sealed_sessions(closes.index).any() or sealed_sessions(opens.index).any():
         raise HoldoutSealError(f"the walk-forward panel must end by {RESEARCH_END}; the holdout is sealed")
     require_buildable(config_id)
+    _, cv = oos_sessions(closes.index)  # the started config carries the exact CV record the sidecar will (033)
     config = {"runner": RUNNER, "data": data, "universe": list(closes.columns),
               "date_range": [closes.index[0].strftime("%Y-%m-%d"), closes.index[-1].strftime("%Y-%m-%d")],
               "features": [], "transforms": [], "target": {"label": "next_open_fill_daily_log_return", "horizon": 1},
               "model": {"name": config_id, "params": {"vol_span": VOL_SPAN, "target_volatility": TARGET_VOLATILITY,
                                                       "max_gross": MAX_GROSS}},
-              "cv": {"scheme": "purged_embargoed_walk_forward", "purge": LABEL_HORIZON, "embargo": EMBARGO,
-                     "initial_train_months": INITIAL_TRAIN_MONTHS, "test_months": TEST_MONTHS},
+              "cv": cv,
               "seed": None, "initial_capital": starting_capital, "commission": costs["commission"],
               "slippage": slippage, "liquidation": False, "risk_free": {"annual_rate": 0.0, "days_per_year": 252}}
     role = "buy_and_hold_baseline" if config_id == "B-BH" else "candidate"

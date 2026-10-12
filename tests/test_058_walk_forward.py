@@ -16,6 +16,7 @@ import edge_walk_forward as wf
 from data_sources import HoldoutSealError, RESEARCH_END
 from portfolio_backtest import run_portfolio_backtest
 from portfolio_risk import fixed_allocation_book, volatility_target_book
+from selection_bias import _eligible
 from signals import decision_sessions, hypothesis_selection
 from trial_registry import DECLARED_FAMILIES, TrialLedger, declare_family
 from trial_runner import injected_ledger
@@ -24,7 +25,7 @@ ROOT = SCRIPTS_DIR.parent
 S = pd.bdate_range("2019-01-02", str(RESEARCH_END))
 T = ["SPY", "IEF", "GLD", "TLT"]
 COSTS = {"commission": 1.0, "slippage": {"model": "spread_plus_sqrt_impact", "source": "synthetic fixture"}}
-DATA = {"sha256": "d" * 64, "price_basis": "unadjusted_dollars", "source": "synthetic fixture"}
+DATA = {"sha256": "d" * 64, "price_basis": "unadjusted_dollars", "corporate_actions_verified": True}
 FILL = lambda ticker, as_of, quantity: 5e-4  # noqa: E731
 
 
@@ -70,6 +71,9 @@ def test_one_configuration_is_one_completed_trial_with_oos_returns_and_cv(ledger
     rows = [json.loads(line) for line in (ledger.root / receipt["sidecar"]["path"]).read_text().splitlines()]
     assert rows[0]["session"] >= "2020-02-03" and rows[-1]["session"] == str(RESEARCH_END), "T014 TRAIN"
     assert real_ledger_digest() == before, "T014 REAL LEDGER"
+    # Spec 033's matrix must accept it: roles are synthetic here and the copy has no git metadata.
+    trial = receipt | {"role": "candidate", "returns": rows, "source": {"git_sha": "a" * 40, "workspace_state": "clean"}}
+    assert _eligible(trial) is None, f"T014 ELIGIBLE {_eligible(trial)}"
 
 
 def test_oos_rows_are_costed_equity_returns_on_test_sessions_only():
@@ -112,6 +116,16 @@ def test_future_rows_never_change_earlier_oos_returns():
         assert moved[len(upto):] != base[len(upto):], "precondition: the perturbation reaches later rows"
 
 
+def test_future_closes_never_change_earlier_book_rows():
+    _, closes = panel(8)
+    base = wf.target_book("H9", closes)
+    for cut in ("2021-06-15", "2022-11-30"):
+        moved = closes.copy()
+        later = closes.index > cut
+        moved.loc[later] *= np.linspace(0.5, 3.0, later.sum())[:, None]
+        assert wf.target_book("H9", moved).loc[:cut].equals(base.loc[:cut]), f"T014 LOOKAHEAD book {cut}"
+
+
 def test_embargo_covers_the_longest_signal_lookback():
     _, closes = panel(5)
     first = hypothesis_selection("H1-12", closes).any(axis=1).to_numpy().argmax()
@@ -132,9 +146,12 @@ def test_refusals_happen_before_any_ledger_event(ledger, case):
         config = case.split()[1]
     else:
         costs = {"commission": 1.0, "slippage": {"model": "flat_bps", "bps": 5}}
-    with pytest.raises(error):
+    try:
         run(config, opens, closes, costs=costs)
-    assert ledger.verify()["events"] == [], f"T014 REFUSE {case}"
+        refused = False
+    except error:
+        refused = True
+    assert refused and ledger.verify()["events"] == [], f"T014 REFUSE {case}"
 
 
 def test_holdout_is_refused_by_the_returns_function_too():

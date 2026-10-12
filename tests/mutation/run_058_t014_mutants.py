@@ -26,8 +26,8 @@ MUTANTS = (
      "        raise HoldoutSealError(f\"the walk-forward panel must end by {RESEARCH_END}; the holdout is sealed\")\n"
      "    require_buildable(config_id)",
      "        pass\n    require_buildable(config_id)", "T014 REFUSE holdout session"),
-    ("undecided sizing refused only after start", "    require_buildable(config_id)\n    config = {",
-     "    config = {", "T014 REFUSE undecided"),
+    ("undecided sizing refused only after start", "    require_buildable(config_id)\n    _, cv = oos_sessions(",
+     "    _, cv = oos_sessions(", "T014 REFUSE undecided"),
     ("flat-bps costs accepted",
      "if not isinstance(slippage, dict) or slippage.get(\"model\") != COST_MODEL or \"commission\" not in costs:",
      "if not isinstance(slippage, dict) or \"commission\" not in costs:", "T014 REFUSE flat bps costs"),
@@ -42,15 +42,17 @@ MUTANTS = (
      "commission_per_fill=0.0, fill_cost=lambda *_: 0.0)", "T014 OOS"),
     ("simple returns recorded as log", "daily = np.log(equity / equity.shift(1))",
      "daily = equity / equity.shift(1) - 1", "T014 OOS"),
-    ("book reads the next close", "target_book(config_id, closes), starting_capital",
-     "target_book(config_id, closes.shift(-1).ffill()), starting_capital", "T014 LOOKAHEAD"),
+    ("book reads the next close", "hypothesis_selection(part, closes), closes",
+     "hypothesis_selection(part, closes.shift(-1).ffill()), closes", "T014 LOOKAHEAD book"),
+    ("started config without the fold count", "    _, cv = oos_sessions(closes.index)", "    _, cv = oos_sessions(closes.index)\n    cv = {k: v for k, v in cv.items() if k != \"folds\"}",
+     "T014 ELIGIBLE"),
 )
 
 
 def main() -> int:
     base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, DECLARATION
     base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", "tests/conftest.py", DECLARATION,
-                                                  TEST), 11, MUTANTS
+                                                  TEST), 12, MUTANTS
     return base.main()
 
 
