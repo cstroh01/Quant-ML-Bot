@@ -24,16 +24,21 @@ KILLED   M10 robustness Y unchecked -> test_robustness_rows_are_labelled_and_can
 KILLED   M10 robustness Y not applied -> test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary
 KILLED   M10 convention dropped from config -> test_canonical_config_records_every_convention_and_refuses_altered_ones
 KILLED   M10 altered convention accepted -> test_canonical_config_records_every_convention_and_refuses_altered_ones
+KILLED   M10 convention text drifts -> test_canonical_config_records_every_convention_and_refuses_altered_ones
+KILLED   M10 unknown role accepted -> test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary
+KILLED   invented source accepted -> test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary
+KILLED   unvalidated config accepted -> test_robustness_rows_are_labelled_and_cannot_stand_in_for_primary
 KILLED   split check removed -> test_split_inside_the_window_refuses_and_before_it_does_not
 KILLED   split check from t-19 -> test_split_inside_the_window_refuses_and_before_it_does_not
 KILLED   zero ADV accepted -> test_unusable_inputs_refuse_rather_than_trade_free
 KILLED   as_of check removed -> test_unusable_inputs_refuse_rather_than_trade_free
 KILLED   fill-price check removed -> test_unusable_inputs_refuse_rather_than_trade_free
-20/20 killed; sources and docs/trials (6 files) byte-identical
+24/24 killed; sources and docs/trials (6 files) byte-identical
 
 Evidence-check red proof (T006 Rule 12): with the future-bars assertion in
 test_future_bars_cannot_move_the_estimate replaced by a bare call (copy restored, cmp clean), the
-driver reported the centered-window M1 and both other M1 mutants SURVIVED and exited 1:
+20-mutant driver reported the centered-window M1 and both other M1 mutants SURVIVED and exited 1
+(run before the 4 review mutants were added; the M1 rows are unchanged):
 SURVIVED M1 sigma reads t+1 -> test_future_bars_cannot_move_the_estimate
 SURVIVED M1 ADV reads t+1 -> test_future_bars_cannot_move_the_estimate
 SURVIVED M1 centered spread window -> test_future_bars_cannot_move_the_estimate

@@ -30,7 +30,10 @@ MODEL = "spread_plus_sqrt_impact"
 WINDOW = 21
 PERMITTED_VOLUME_BASES = frozenset({"nominal_reconstructed", "provider_nominal"})
 ROBUSTNESS_COEFS = (0.5, 2.0)
-# What estimate_fill_cost implements (plan §3). A config may only record these, never describe other arithmetic.
+SOURCE = ("EDGE: Ardia, Guidotti & Kroencke (2024) JFE 161 103916, Eqs. (23)-(25) p. 6; "
+          "impact: Toth et al. (2011) Phys. Rev. X 1 021006")
+# What estimate_fill_cost implements (plan §3); liquidation_cost_policy is the rule U2's harness must apply.
+# A config may only record these, never describe other arithmetic.
 CONVENTIONS = {
     "estimator_version": "EDGE per bidask 2.1.0 reference algorithm (return de-meaning included)",
     "sigma_convention": "daily close-to-close log returns, 21 returns from the 22 closes t-21..t, "
@@ -68,8 +71,7 @@ class CostConfig:
     spread_window: int = WINDOW
     sigma_window: int = WINDOW
     adv_window: int = WINDOW
-    source: str = ("EDGE: Ardia, Guidotti & Kroencke (2024) JFE 161 103916, Eqs. (23)-(25) p. 6; "
-                   "impact: Toth et al. (2011) Phys. Rev. X 1 021006")
+    source: str = SOURCE
     estimator_version: str = CONVENTIONS["estimator_version"]
     sigma_convention: str = CONVENTIONS["sigma_convention"]
     volume_convention: str = CONVENTIONS["volume_convention"]
@@ -94,6 +96,8 @@ class CostConfig:
                 raise ValueError(f"robustness rows are Y in {ROBUSTNESS_COEFS} only (spec 046 D-1)")
         else:
             raise ValueError(f"role must be 'primary' or 'robustness'; got {self.role!r}")
+        if self.source != SOURCE:
+            raise ValueError(f"source must be the T001-verified citation {SOURCE!r}")
         for name, value in CONVENTIONS.items():
             if getattr(self, name) != value:
                 raise ValueError(f"{name} must record the implemented convention {value!r}")
@@ -177,6 +181,8 @@ def estimate_fill_cost(history: pd.DataFrame, *, as_of, quantity: float, config:
     `split_sessions` is required: a split in the window would mix share bases, so it refuses.
     Raises `CostUnavailable` with a specific `reason` instead of returning a zero or stale estimate.
     """
+    if not isinstance(config, CostConfig):
+        raise TypeError(f"config must be a validated CostConfig; got {type(config).__name__}")
     basis = history.attrs.get("volume_basis")
     if basis not in PERMITTED_VOLUME_BASES:
         raise CostUnavailable("volume_basis", f"{basis!r} is not one of {sorted(PERMITTED_VOLUME_BASES)}")
