@@ -80,8 +80,8 @@ def test_the_portfolio_not_each_leg_carries_ten_percent_annualized_risk():
         x = returns[1:row + 1]
         cov = np.array([[ewma_cov_oracle(x[:, i], x[:, j], 60) for j in range(3)] for i in range(3)]) * 252
         w, vol = book.iloc[row][legs].to_numpy(), np.sqrt(np.diag(cov))
-        assert w.sum() < 1, "precondition: gross cap not binding"
         assert np.sqrt(w @ cov @ w) == pytest.approx(0.10, rel=1e-9), f"T012 PORTFOLIO row {row}"
+        assert w.sum() < 1, "precondition: gross cap not binding"
         assert np.allclose(w * vol, w[0] * vol[0], rtol=1e-9), f"T012 PORTFOLIO inverse vol row {row}"
         per_leg = 0.10 / vol
         assert np.sqrt(per_leg @ cov @ per_leg) > 0.12, "precondition: per-leg sizing misses the target"
@@ -91,10 +91,11 @@ def test_legs_without_a_joint_covariance_window_stay_flat():
     closes = walk(8)
     closes.iloc[:100, T.index("GLD")] = np.nan
     closes.iloc[150, T.index("IEF")] = np.nan
-    book, cov = vol_book(only("IEF", "GLD"), closes), ewma_covariance(closes, span=60)
+    book = vol_book(only("IEF", "GLD"), closes)
     gap = S[161]  # each leg has 60 returns; the pair does not
     assert ewma_volatility(closes, span=60).loc[gap, ["IEF", "GLD"]].notna().all(), "precondition: both legs have vol"
-    assert np.isnan(cov.loc[gap].loc["IEF", "GLD"]), "precondition: no joint covariance"
+    joint = np.log(closes[["IEF", "GLD"]]).diff().loc[:gap].notna().all(axis=1).sum()
+    assert joint < 60, "precondition: fewer than 60 joint returns"
     assert book.loc[gap].eq(0).all(), "T012 PAIR GAP"
     assert vol_book(only("IEF"), closes).loc[gap, "IEF"] > 0 and book.iloc[-1].gt(0).sum() == 2, "T012 PAIR GAP live"
 
