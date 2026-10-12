@@ -127,7 +127,7 @@ D-1–D-5 stay open, and a task that consumes one waits for the human decision r
 
 ## Phase 3 — P: terminal panels (each separately admitted; depends T021)
 
-- [ ] T030 P1. Files: `scripts/return_stats.py`, `scripts/feature_diagnostics.py`,
+- [x] T030 P1. Files: `scripts/return_stats.py`, `scripts/feature_diagnostics.py`,
   `tests/test_return_stats.py`, `tests/test_038_panels_p1.py`. Stamp before first figure, register line,
   printed Rule 15 flag on the Sharpe line (`scripts/return_stats.py:99-112`); `:106` comment becomes printed text.
   Red: captured-stdout contract. Mutant M4 (flag removed; control asserts ≥1 Sharpe line matched).

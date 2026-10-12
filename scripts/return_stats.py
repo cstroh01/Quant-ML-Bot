@@ -1,15 +1,25 @@
 """Phase 0 return statistics and distribution plots for cached market data."""
 
+from datetime import datetime, timezone
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 from scipy.stats import kurtosis, norm, skew
 
 from constants import RISK_FREE_RATE_ANNUAL, TRADING_DAYS_PER_YEAR
 from cost_utils import risk_free_log_return
-from data import cache_path, download_market_data
+from data import _cache_key, cache_path, download_market_data
+from disclosure import LIMITATIONS, SHARPE_STATUS, provenance_stamp
 from plotting import plt, save_figure
 
 TICKERS = ["AAPL", "MSFT", "GOOGL"]
+PERIOD = "2y"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+# Spec 038 D-4: script panels carry a one-line, same-surface reference to the register.
+LIMITATIONS_REFERENCE = (
+    f"Limitations (Rule 16): docs/SCOPE-V1.md §6 lists {len(LIMITATIONS)} limitations that "
+    "bound every figure below.")
 
 
 def daily_log_returns(prices: pd.DataFrame) -> pd.Series:
@@ -42,8 +52,13 @@ def annualize(returns: pd.Series) -> tuple[float, float]:
     return annualized_return, annualized_volatility
 
 
-def main():
-    market_data = download_market_data(TICKERS)
+def main(*, clock=lambda: datetime.now(timezone.utc), root: Path = REPO_ROOT):
+    """Print the panel; the Rule 11 stamp and the register reference come before any figure."""
+    market_data = download_market_data(TICKERS, period=PERIOD)
+    for line in provenance_stamp(cache_path(_cache_key(TICKERS, PERIOD)), root=root, clock=clock,
+                                 data_end=market_data["Date"].max()):
+        print(line)
+    print(LIMITATIONS_REFERENCE)
 
     return_series = {}
     summary_rows = []
@@ -103,13 +118,13 @@ def main():
         annualized_return, annualized_volatility = annualize(returns)
         # Express the effective annual hurdle in log units before subtracting
         # it from the annualized log return, matching metrics.sharpe_ratio.
-        # This descriptive ratio alone is not evidence of skill.
         sharpe_ratio = (
             annualized_return - risk_free_log_return(RISK_FREE_RATE_ANNUAL)
         ) / annualized_volatility
         print(
             f"{ticker}: annualized return = {annualized_return:.6f}, "
-            f"Sharpe ratio = {sharpe_ratio:.6f}"
+            f"Sharpe ratio = {sharpe_ratio:.6f} [{SHARPE_STATUS}; "
+            "descriptive, not evidence of skill]"
         )
 
     figure, axes = plt.subplots(1, len(TICKERS), figsize=(15, 5), squeeze=False)

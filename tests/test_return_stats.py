@@ -13,7 +13,7 @@ import return_stats
 
 
 @pytest.mark.parametrize("rate", [0.0, 0.0378, -0.05, 0.5])
-def test_reported_sharpe_matches_log_hurdle_and_metrics(monkeypatch, capsys, rate):
+def test_reported_sharpe_matches_log_hurdle_and_metrics(monkeypatch, capsys, tmp_path, rate):
     prices = pd.DataFrame({
         "Ticker": "SYNTHETIC",
         "Date": pd.bdate_range("2020-01-01", periods=7),
@@ -24,12 +24,15 @@ def test_reported_sharpe_matches_log_hurdle_and_metrics(monkeypatch, capsys, rat
     monkeypatch.setattr(return_stats, "download_market_data", Mock(return_value=prices))
     monkeypatch.setattr(return_stats.plt, "subplots", Mock(return_value=(Mock(), [[Mock()]])))
     monkeypatch.setattr(return_stats, "save_figure", Mock())
-    monkeypatch.setattr(return_stats, "cache_path", Mock(return_value="unused.png"))
+    # Spec 038 T030: main stamps the cache file it read, so the fixture provides one under root.
+    source = tmp_path / "SYNTHETIC_2y.csv"
+    source.write_text("synthetic\n")
+    monkeypatch.setattr(return_stats, "cache_path", Mock(return_value=source))
 
-    return_stats.main()
+    return_stats.main(root=tmp_path)
     output = capsys.readouterr().out
     line = next(line for line in output.splitlines() if line.startswith("SYNTHETIC:"))
-    reported = float(line.split("Sharpe ratio = ")[1])
+    reported = float(line.split("Sharpe ratio = ")[1].split()[0])  # the Rule 15 flag follows
 
     returns = np.log(prices.Close / prices.Close.shift(1)).dropna()
     expected = (returns.mean() * 252 - math.log1p(rate)) / (returns.std() * math.sqrt(252))
