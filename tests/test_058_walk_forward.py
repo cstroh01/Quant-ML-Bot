@@ -119,11 +119,12 @@ def test_future_rows_never_change_earlier_oos_returns():
 def test_future_closes_never_change_earlier_book_rows():
     _, closes = panel(8)
     base = wf.target_book("H9", closes)
-    for cut in ("2021-06-15", "2022-11-30"):
+    for cut in ("2021-06-01", "2022-11-01"):  # decision rows: the only book rows a one-bar shift could reach
         moved = closes.copy()
         later = closes.index > cut
         moved.loc[later] *= np.linspace(0.5, 3.0, later.sum())[:, None]
-        assert wf.target_book("H9", moved).loc[:cut].equals(base.loc[:cut]), f"T014 LOOKAHEAD book {cut}"
+        assert cut in base.index and wf.target_book("H9", moved).loc[:cut].equals(base.loc[:cut]), \
+            f"T014 LOOKAHEAD book {cut}"
 
 
 def test_embargo_covers_the_longest_signal_lookback():
