@@ -776,31 +776,56 @@ def ewma_volatility(
     return daily * np.sqrt(periods)
 
 
+def ewma_covariance(
+    closes: pd.DataFrame, *, span: int, periods_per_year: int = TRADING_DAYS_PER_YEAR
+) -> pd.DataFrame:
+    """Annualized pairwise EWMA covariance of daily log returns, keyed (session, ticker) x ticker.
+
+    The same estimator as `ewma_volatility`, so its diagonal at `t` is that function's row `t`
+    squared. A pair is missing until `span` returns of both names coincide; a missing return is
+    skipped, never filled. Block `t` is bit-identical under any change to rows after `t`.
+    """
+    span = _require_window("span", span, minimum=2)
+    periods = _require_window("periods_per_year", periods_per_year, minimum=1)
+    return log_returns(closes).ewm(span=span, min_periods=span).cov() * periods
+
+
 def volatility_target_book(
     selection: pd.DataFrame,
-    volatility: pd.DataFrame,
+    closes: pd.DataFrame,
     *,
+    span: int,
     target_volatility: float,
     max_gross: float,
 ) -> pd.DataFrame:
-    """Spec 058 inverse-vol sizing: per session, `volatility_target_weights` then `apply_gross_cap`.
+    """Spec 058 §5 sizing: inverse-vol legs, the PORTFOLIO scaled to `target_volatility`, then the gross cap.
 
-    A selected name (confidence 1) gets `target_volatility / volatility`, so
-    each position alone carries the target's annualized risk; the book is
-    then scaled down proportionally to at most `max_gross`. This is the spec
-    017 per-name target, not a covariance-based portfolio target. A name with
-    no volatility at `t` gets 0. Row `t` reads row `t` of both frames only.
+    Per session `t`: each selected name with an EWMA volatility (`ewma_volatility`, `span`) gets
+    `1 / volatility`; the legs are scaled together so `sqrt(w' Cov w)` equals `target_volatility`
+    under the `ewma_covariance` of the selected legs at `t`; then `apply_gross_cap`. One leg alone
+    is `target_volatility / volatility`, the per-name result. A selected name with no volatility
+    gets 0; a row whose legs lack any pairwise covariance is flat, never sized on a guessed
+    correlation. Row `t` reads closes at or before `t` only.
     """
-    _require_book_frame(selection, volatility, name="selection")
+    _require_book_frame(selection, closes, name="selection")
     if not (selection.dtypes == bool).all():
         raise ValueError("selection must be boolean.")
+    target = _require_positive_finite("target_volatility", target_volatility)
+    volatility = ewma_volatility(closes, span=span)
+    covariance = ewma_covariance(closes, span=span)
 
     def size(session: pd.Timestamp) -> pd.Series:
         held = selection.loc[session].astype(float)
-        standalone = volatility_target_weights(
-            held, volatility.loc[session], target_volatility=target_volatility
-        )
-        return apply_gross_cap(standalone, max_gross=max_gross)
+        legs = volatility_target_weights(held, volatility.loc[session], target_volatility=1.0)
+        active = legs.index[legs.to_numpy() > 0]
+        if active.empty:
+            return legs
+        weights = legs[active].to_numpy(dtype=float)
+        matrix = covariance.loc[session].loc[active, active].to_numpy(dtype=float)
+        risk = float(weights @ matrix @ weights) if np.isfinite(matrix).all() else np.nan
+        if not (np.isfinite(risk) and risk > 0):
+            return legs * 0.0
+        return apply_gross_cap(legs * (target / np.sqrt(risk)), max_gross=max_gross)
 
     rows = [size(session) for session in selection.index]
     return pd.DataFrame(rows, index=selection.index, columns=selection.columns).astype(float)
