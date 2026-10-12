@@ -22,31 +22,32 @@ COPIED = ("scripts", "tests/context.py", "tests/spec033_support.py", "tests/test
           ".specify/specs/058-edge-research-program/declaration.json")
 TESTS = ("test_t039_lifetime_n_counts_every_candidate_start", "test_t044_lifetime_dsr_always_family_dsr_beside_it")
 SB = "scripts/selection_bias.py"
+TR = "scripts/trial_registry.py"  # counting moved here (queue Q97, 033 amendment 2026-10-11)
 # (name, file, exact old fragment, mutant fragment, witness in the assertion message)
 MUTANTS = (
-    ("unique config hashes counted as N", SB, 'n_post = state["n_post_ledger"]',
+    ("unique config hashes counted as N", TR, 'n_post = state["n_post_ledger"]',
      'n_post = len({e["config_hash"] for e in state["events"] if e["role"] == "candidate"})', "T039 DUPLICATES"),
-    ("only completed trials counted", SB, 'n_post = state["n_post_ledger"]',
+    ("only completed trials counted", TR, 'n_post = state["n_post_ledger"]',
      'n_post = sum(e["event_type"] == "completed" and e["role"] == "candidate" for e in state["events"])', "T039 INCOMPLETE"),
-    ("baseline starts counted", SB, 'n_post = state["n_post_ledger"]',
+    ("baseline starts counted", TR, 'n_post = state["n_post_ledger"]',
      'n_post = sum(e["event_type"] == "started" for e in state["events"])', "T039 ROLES"),
-    ("backfill dropped from N", SB, '"n_current": n_backfill + n_post', '"n_current": n_post', "T039 NCURRENT"),
-    ("backfill digest unchecked", SB, 'if backfill.get("sha256") != digest(body)', 'if "sha256" not in backfill', "T039 CORRUPT"),
-    ("draft backfill accepted", SB, 'if backfill.get("status") != "complete" or isinstance', "if isinstance",
+    ("backfill dropped from N", TR, '"n_current": n_backfill + n_post', '"n_current": n_post', "T039 NCURRENT"),
+    ("backfill digest unchecked", TR, 'if backfill.get("sha256") != digest(body)', 'if "sha256" not in backfill', "T039 CORRUPT"),
+    ("draft backfill accepted", TR, 'if backfill.get("status") != "complete" or isinstance', "if isinstance",
      "T039 DRAFT"),
-    ("breached family keeps N_family", SB, 'status["n_family"] if status["within_cap"] else counts["n_current"]',
+    ("breached family keeps N_family", TR, 'status["n_family"] if status["within_cap"] else counts["n_current"]',
      'status["n_family"] if status["n_family"] is not None else counts["n_current"]', "T044 CAP"),
     ("family N replaces lifetime N", SB, 'lifetime = matrix_dsr(matrix, selected_trial=selected_trial, n_current=counts["n_current"])',
      'lifetime = matrix_dsr(matrix, selected_trial=selected_trial, n_current=fam["n_dsr"] if fam else counts["n_current"])',
      "T044 LIFETIME"),
     ("matrix columns used as N", SB, 'lifetime = matrix_dsr(matrix, selected_trial=selected_trial, n_current=counts["n_current"])',
      'lifetime = matrix_dsr(matrix, selected_trial=selected_trial, n_current=len(matrix["columns"]))', "T044 NCURRENT"),
-    ("unstored backfill accepted", SB, 'if backfill not in stored:', "if False:", "T039 ANCHOR"),
-    ("superseded backfill accepted", SB, "if any(n_backfill < ", "if False and any(n_backfill < ", "T039 SUPERSEDED"),
-    ("declaration anchored after first start", SB, "if anchor not in heads[:first]:", "if anchor not in heads:", "T044 ANCHOR"),
-    ("family cap unbounded", SB, 'if not 1 <= status["cap"] <= 50:', 'if not 1 <= status["cap"]:', "T044 CAPLIMIT"),
+    ("unstored backfill accepted", TR, 'if backfill not in stored:', "if False:", "T039 ANCHOR"),
+    ("superseded backfill accepted", TR, "if any(n_backfill < ", "if False and any(n_backfill < ", "T039 SUPERSEDED"),
+    ("declaration anchored after first start", TR, "if anchor not in heads[:first]:", "if anchor not in heads:", "T044 ANCHOR"),
+    ("family cap unbounded", TR, 'if not 1 <= status["cap"] <= 50:', 'if not 1 <= status["cap"]:', "T044 CAPLIMIT"),
     ("family id unchecked", SB, 'elif matrix["family"]["id"] != fam["family"]:', "elif False:", "T044 MISMATCH"),
-    ("altered declaration keeps family N", SB, '"cap": None, "within_cap": False,', '"cap": None, "within_cap": True,',
+    ("altered declaration keeps family N", TR, '"cap": None, "within_cap": False,', '"cap": None, "within_cap": True,',
      "T044 DECLARATION"),
 )
 ASSERTION = ("AssertionError", "assert ")
