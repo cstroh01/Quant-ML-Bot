@@ -152,3 +152,110 @@ def random_signal(
     prices["Buy_Next_Open"] = buys
     prices["Sell_Next_Open"] = sells
     return prices
+
+
+# Spec 058 T011: the preregistered hypotheses H1-H8 as hold selections over a wide close panel.
+MONTH_SESSIONS = 21
+VOL_SESSIONS = 60
+SAFE_ASSET = "SHY"
+SECTOR_ETFS = ("XLB", "XLE", "XLF", "XLI", "XLK", "XLP", "XLU", "XLV", "XLY")
+
+
+def _observed(closes: pd.DataFrame, rows: int) -> pd.DataFrame:
+    """True where all `rows` sessions ending at t have a close, so nothing precedes listing."""
+    return closes.notna().astype(float).rolling(rows, min_periods=rows).sum().eq(rows)
+
+
+def _past_return(closes: pd.DataFrame, start_lag: int, end_lag: int = 0) -> pd.DataFrame:
+    return closes.shift(end_lag) / closes.shift(start_lag) - 1.0
+
+
+def _top_k(score: pd.DataFrame, eligible: pd.DataFrame, k: int, *, highest: bool) -> pd.DataFrame:
+    """The k best eligible scores per row (ties to the earlier column); none while fewer than k qualify."""
+    ranked = score.where(eligible).rank(axis=1, ascending=not highest, method="first")
+    enough = eligible.sum(axis=1) >= k
+    return ((ranked <= k) & eligible).mul(enough, axis=0).astype(bool)
+
+
+def _momentum(closes: pd.DataFrame, months: int) -> pd.DataFrame:
+    lag = MONTH_SESSIONS * months
+    return _observed(closes, lag + 1) & (_past_return(closes, lag, MONTH_SESSIONS) > 0)
+
+
+def _trend(closes: pd.DataFrame, sessions: int) -> pd.DataFrame:
+    sma = closes.rolling(sessions, min_periods=sessions).mean()
+    return _observed(closes, sessions) & (closes > sma)
+
+
+def _cross_momentum(closes: pd.DataFrame, k: int) -> pd.DataFrame:
+    lag = 12 * MONTH_SESSIONS
+    return _top_k(_past_return(closes, lag, MONTH_SESSIONS), _observed(closes, lag + 1), k, highest=True)
+
+
+def _risk_parity(closes: pd.DataFrame) -> pd.DataFrame:
+    return _observed(closes, VOL_SESSIONS + 1)
+
+
+def _dual_momentum(closes: pd.DataFrame, months: int) -> pd.DataFrame:
+    if SAFE_ASSET not in closes.columns:
+        raise ValueError(f"dual momentum needs {SAFE_ASSET} in the panel")
+    lag = MONTH_SESSIONS * months
+    eligible, total = _observed(closes, lag + 1), _past_return(closes, lag)
+    risky = [ticker for ticker in closes.columns if ticker != SAFE_ASSET]
+    winner = _top_k(total[risky], eligible[risky], 1, highest=True)
+    beats = eligible[SAFE_ASSET] & (total[risky].where(winner).max(axis=1) > total[SAFE_ASSET])
+    held = pd.DataFrame(False, index=closes.index, columns=closes.columns)
+    held[risky] = winner.mul(beats, axis=0).astype(bool)
+    held[SAFE_ASSET] = eligible[SAFE_ASSET] & ~beats
+    return held
+
+
+def _sector_pick(closes: pd.DataFrame, score_of, rows: int, k: int = 3) -> pd.DataFrame:
+    missing = [ticker for ticker in SECTOR_ETFS if ticker not in closes.columns]
+    if missing:
+        raise ValueError(f"sector hypotheses need every sector ETF; missing {missing}")
+    sectors = closes[list(SECTOR_ETFS)]
+    picked = _top_k(score_of(sectors), _observed(sectors, rows), k, highest=False)
+    return picked.reindex(columns=closes.columns, fill_value=False)
+
+
+def _low_volatility(closes: pd.DataFrame) -> pd.DataFrame:
+    realized = lambda s: np.log(s).diff().rolling(VOL_SESSIONS, min_periods=VOL_SESSIONS).std()  # noqa: E731
+    return _sector_pick(closes, realized, VOL_SESSIONS + 1)
+
+
+def _reversal(closes: pd.DataFrame) -> pd.DataFrame:
+    return _sector_pick(closes, lambda s: _past_return(s, 5), 6)
+
+
+HYPOTHESES = {
+    "H1-3": lambda c: _momentum(c, 3), "H1-6": lambda c: _momentum(c, 6),
+    "H1-12": lambda c: _momentum(c, 12), "H2-100": lambda c: _trend(c, 100),
+    "H2-200": lambda c: _trend(c, 200), "H3-3": lambda c: _cross_momentum(c, 3),
+    "H3-5": lambda c: _cross_momentum(c, 5), "H4": _risk_parity,
+    "H5": lambda c: _risk_parity(c) & _momentum(c, 12),
+    "H6-6": lambda c: _dual_momentum(c, 6), "H6-12": lambda c: _dual_momentum(c, 12),
+    "H7": _low_volatility, "H8": _reversal,
+}
+
+
+def hypothesis_selection(config_id: str, closes: pd.DataFrame) -> pd.DataFrame:
+    """Which tickers configuration `config_id` (spec 058 declaration) holds at each session's close.
+
+    Guarantees: a boolean frame shaped like `closes`; the row for session t reads closes at or
+    before t only, and is a decision to be filled at the open of t+1 by the portfolio layer. A
+    ticker is never selected until every close its lookback needs exists (no backfill before
+    listing, and a missing row inside the window deselects it). Ranked picks need k eligible
+    tickers or select none; ties go to the earlier column. Weights, volatility targeting and the
+    monthly or weekly rebalance cadence are sizing decisions and are not made here (Rule 8).
+    """
+    if config_id not in HYPOTHESES:
+        raise ValueError(f"unknown 058 configuration {config_id!r}; H9 and H10 combine these")
+    index = closes.index
+    if not isinstance(index, pd.DatetimeIndex) or index.tz is not None or index.has_duplicates \
+            or not index.is_monotonic_increasing or closes.columns.has_duplicates:
+        raise ValueError("closes needs naive, unique, ascending sessions and unique tickers")
+    values = closes.to_numpy(float)
+    if (values[~np.isnan(values)] <= 0).any() or np.isinf(values).any():
+        raise ValueError("closes must be positive and finite where a row exists")
+    return HYPOTHESES[config_id](closes.astype(float))
