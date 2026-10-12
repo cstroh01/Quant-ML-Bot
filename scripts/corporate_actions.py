@@ -1,7 +1,7 @@
-"""Cross-source dividend reconciliation for the unadjusted cache (spec 035 U1).
+"""Cross-source dividend reconciliation and `Close` cross-check (spec 035 U1, U2).
 
-Pure: no I/O, no network, no credentials, no file reads. It labels dividends
-and never changes a price, date or amount (plan, Rules 1/5 table). Splits are
+Pure: no I/O, no network, no credentials, no file reads. It labels dividends,
+compares closes, and never changes a price, date or amount (plan, Rules 1/5 table). Splits are
 not re-matched here; their status comes from spec 044 FR-006 unchanged.
 """
 from __future__ import annotations
@@ -110,3 +110,62 @@ def assert_no_mismatch(statuses: pd.DataFrame) -> None:
     if len(bad):
         named = ", ".join(pd.Timestamp(d).strftime("%Y-%m-%d") for d in bad)
         raise ValueError(f"dividend reconciliation failed: mismatch on {named}")
+
+
+# Spec 035 §8 D-2 (Camden, 2026-10-09): `Close` tolerance relative 1e-3, because
+# vendors differ between the official closing auction price and the last trade.
+CLOSE_RELATIVE_TOLERANCE = 1e-3
+CLOSE_FAILED = "close cross-check failed"
+
+
+def _closes(frame: pd.DataFrame, source: str, coverage: tuple) -> dict:
+    """Map each covered session label (naive, normalized) to its `Close`."""
+    dates = pd.to_datetime(frame["Date"])
+    if dates.dt.tz is not None:
+        raise ValueError(f"{source} bar dates must be naive session labels")
+    dates = dates.dt.normalize()
+    if dates.duplicated().any():
+        raise ValueError(f"{source} has duplicate bar sessions")
+    inside = dates.between(coverage[0], coverage[1]).to_numpy()
+    return dict(zip(dates[inside], frame["Close"].to_numpy(dtype=float)[inside]))
+
+
+def cross_check_close(
+    primary: pd.DataFrame,
+    second: pd.DataFrame,
+    coverage: tuple | None,
+    *,
+    close_tolerance: float,
+) -> int:
+    """Refuse unless both sources agree on every covered session's nominal `Close`.
+
+    ``coverage`` is an inclusive ``(start, end)`` pair of session labels, or
+    ``None`` when the second source covers nothing (nothing is checked). Inside
+    it the two sources' session sets must be equal: a bar in one source only
+    refuses, while a holiday absent from both is not a gap. Each session's
+    ``|primary - second| / |second|`` must be at most ``close_tolerance``
+    (inclusive; a missing or non-finite `Close` refuses). The check reads
+    `Close` because that is the column a dividend-adjusted basis moves (FR-005,
+    M1). Sessions outside coverage are ignored. Sessions are walked in date
+    order and the first offending one is named in ``ValueError("close
+    cross-check failed: <session> ...")``. Returns the number of sessions
+    compared. Inputs are never mutated.
+    """
+    if coverage is None:
+        return 0
+    coverage = tuple(pd.Timestamp(edge).normalize() for edge in coverage)
+    if any(edge.tz is not None for edge in coverage):
+        raise ValueError("coverage must be naive session labels")
+    mine = _closes(primary, "primary", coverage)
+    theirs = _closes(second, "second source", coverage)
+    for date in sorted(mine.keys() | theirs.keys()):
+        label = date.strftime("%Y-%m-%d")
+        if date not in theirs or date not in mine:
+            where = "primary" if date not in theirs else "second source"
+            raise ValueError(f"{CLOSE_FAILED}: {label} has a bar in the {where} only")
+        a, b = mine[date], theirs[date]
+        if not abs(a - b) <= close_tolerance * abs(b) + _FLOAT_SLACK:  # NaN fails
+            raise ValueError(
+                f"{CLOSE_FAILED}: {label} Close {a!r} vs {b!r} differs by more than "
+                f"relative {close_tolerance!r}")
+    return len(mine)

@@ -87,7 +87,7 @@ code, test, network call, bundle or Git operation by itself.
 
 ## U2 — `Close` cross-check (≤300 lines; plan U2)
 
-- [ ] T007 Write contracts first. Files: `tests/test_035_close_check.py`. **Acceptance:** red on:
+- [x] T007 Write contracts first. Files: `tests/test_035_close_check.py`. **Acceptance:** red on:
   a session present only in the primary refuses, and a session present only in the second source
   refuses; a relative `Close` difference just outside the
   D-2 tolerance refuses with `close cross-check failed` naming the first offending session, just
@@ -97,7 +97,7 @@ code, test, network call, bundle or Git operation by itself.
   planted defect:** the comparison reads `Open` instead of `Close`; a fixture perturbing only
   `Close` must go red. Control: identical bars pass. **Depends on:** T006.
 
-- [ ] T008 Implement `cross_check_close`. Files: the D-3 module, `tests/test_035_close_check.py`.
+- [x] T008 Implement `cross_check_close`. Files: the D-3 module, `tests/test_035_close_check.py`.
   **Acceptance:** T007 passes; the `Open`-for-`Close` mutant is killed with its control green.
   **Depends on:** T007.
 
