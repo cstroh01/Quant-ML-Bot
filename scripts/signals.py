@@ -397,3 +397,21 @@ def matched_activity(candidate: pd.DataFrame, closes: pd.DataFrame, *, decision_
     return {"enter_probability": rate(was_flat & held[1:], was_flat),
             "exit_probability": rate(was_long & ~held[1:], was_long),
             "initial_probability": float(held.sum() / eligible.sum())}
+
+
+# Spec 059 §3: the preregistered LIVE allocation's sleeves, fixed at 2026-10-12. No edge is claimed.
+ALLOCATION_SLEEVES = ("SPY", "EFA", "EEM", "IEF", "TLT", "TIP", "GLD", "DBC")
+
+
+def allocation_selection(closes: pd.DataFrame) -> pd.DataFrame:
+    """Which spec 059 sleeves the allocation holds at each session's close.
+
+    Guarantees: a boolean frame shaped like `closes`; a sleeve is held at t once it has
+    `VOL_SESSIONS + 1` observed closes at or before t (its listing close plus 60 sessions, so its
+    60-session volatility exists) and has a close at t; every non-sleeve column is False. Row t
+    reads closes at or before t only. Sizing and the monthly cadence are not decided here (Rule 8).
+    """
+    observed = closes.notna()
+    held = observed & observed.cumsum().ge(VOL_SESSIONS + 1)
+    sleeves = closes.columns.isin(ALLOCATION_SLEEVES)
+    return held & pd.DataFrame(np.broadcast_to(sleeves, closes.shape), index=closes.index, columns=closes.columns)

@@ -880,3 +880,28 @@ def blend_books(*books: pd.DataFrame) -> pd.DataFrame:
         if (book.sum(axis=1) > 1.0 + CORRELATION_TOLERANCE).any():
             raise ValueError("each book must be gross <= 1.0 (no leverage).")
     return sum(book.astype(float) for book in books) / len(books)
+
+
+# ---------------------------------------------------------------------------
+# Spec 059: the preregistered LIVE allocation (no edge claimed)
+# ---------------------------------------------------------------------------
+
+ALLOCATION_TARGET_VOLATILITY = 0.10
+ALLOCATION_SPAN = 60
+
+
+def allocation_weights(selection: pd.DataFrame, closes: pd.DataFrame, decisions: np.ndarray) -> pd.DataFrame:
+    """Spec 059 §3 target weights on the decision rows `decisions` marks; other rows are dropped.
+
+    Per decision row: inverse 60-session EWMA volatility over the selected sleeves, scaled by
+    `min(1, 0.10 / portfolio_vol)` under the 60-session EWMA covariance, long-only, gross <= 1.0,
+    remainder cash. This is `volatility_target_book`: legs scaled to the target then capped at gross 1
+    equal normalized legs scaled by `min(1, target / portfolio_vol)`. Row t reads closes at or before t.
+    `decisions` is the boolean row mask from `signals.decision_sessions` (monthly).
+    """
+    mask = np.asarray(decisions, dtype=bool)
+    if mask.shape != (len(closes.index),):
+        raise ValueError("decisions must mark each session of the panel once")
+    book = volatility_target_book(selection, closes, span=ALLOCATION_SPAN,
+                                  target_volatility=ALLOCATION_TARGET_VOLATILITY, max_gross=1.0)
+    return book.loc[mask]
