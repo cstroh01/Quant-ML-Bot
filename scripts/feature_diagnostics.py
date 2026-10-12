@@ -30,10 +30,14 @@ Rule 8: this is a diagnostic entry point over the signal layer. It imports
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 
-from data import download_market_data
+from data import _cache_key, cache_path, download_market_data
+from disclosure import LIMITATIONS, provenance_stamp
 from features import FEATURE_SETS, build_features, feature_columns
 
 TICKER = "AAPL"
@@ -44,6 +48,11 @@ PERIOD = "10y"
 # of it. Asking for `[TICKER]` alone would miss that cache file — the key is
 # the sorted ticker list — and trigger a network call this lane cannot make.
 CACHE_TICKERS = ["AAPL", "AMZN", "GOOGL", "MSFT", "NVDA"]
+REPO_ROOT = Path(__file__).resolve().parents[1]
+# Spec 038 D-4: script panels carry a one-line, same-surface reference to the register.
+LIMITATIONS_REFERENCE = (
+    f"Limitations (Rule 16): docs/SCOPE-V1.md §6 lists {len(LIMITATIONS)} limitations that "
+    "bound every figure below.")
 
 # Conventional reading thresholds, printed beside the numbers so a reader
 # does not have to remember them. VIF above 10 is the usual "serious
@@ -222,15 +231,21 @@ def format_report(results: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def main():
+def main(*, clock=lambda: datetime.now(timezone.utc), root: Path = REPO_ROOT):
     """Print the levels-vs-scale_free diagnostic for `TICKER`.
 
     Runs outside the agent lane: it reads `data/cache/`, and downloads if the
-    cache is cold, which the GitHub Actions lane cannot reach.
+    cache is cold, which the GitHub Actions lane cannot reach. The Rule 11
+    stamp (the cache file read, with its SHA-256) and the register reference
+    print before any figure.
     """
     market_data = download_market_data(CACHE_TICKERS, period=PERIOD)
     prices = market_data[market_data["Ticker"] == TICKER].copy()
     prices = prices.sort_values("Date").reset_index(drop=True)
+    for line in provenance_stamp(cache_path(_cache_key(CACHE_TICKERS, PERIOD)), root=root,
+                                 clock=clock, data_end=prices["Date"].max()):
+        print(line)
+    print(LIMITATIONS_REFERENCE)
 
     # Diagnosed under both sets. `build_features` keeps every session and
     # computes every column whichever set is selected; `diagnose` measures the
