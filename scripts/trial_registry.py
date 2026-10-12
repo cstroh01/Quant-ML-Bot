@@ -176,9 +176,19 @@ def immutable_write(path: Path, content: bytes) -> None:
         temporary.unlink(missing_ok=True)
 
 
+# Windows refuses to create a file whose previous holder has unlinked it while another process
+# still has it open ("delete pending"); os.open then raises PermissionError, not FileExistsError.
+# That is contention, so it is retried until the deadline. On POSIX, EACCES is a real refusal.
+_RETRY_DELETE_PENDING = os.name == "nt"
+
+
 @contextmanager
 def serialized(path: Path, timeout: float = 10.):
-    """An orphan lock is never silently removed; recover explicitly after inspection."""
+    """An orphan lock is never silently removed; recover explicitly after inspection.
+
+    A Windows delete-pending lock is waited out like a held one; past ``timeout`` the
+    PermissionError propagates. Elsewhere a PermissionError propagates at once.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
     lock = path.with_suffix(".lock")
     deadline = time.monotonic() + timeout
@@ -189,6 +199,10 @@ def serialized(path: Path, timeout: float = 10.):
                 handle.write(canonical_json({"pid": os.getpid(), "created_at": datetime.now(timezone.utc).isoformat()}))
                 handle.flush(); os.fsync(handle.fileno())
             break
+        except PermissionError:
+            if not _RETRY_DELETE_PENDING or time.monotonic() >= deadline:
+                raise
+            time.sleep(.02)
         except FileExistsError:
             try: owner = json.loads(lock.read_bytes()).get("pid", -1)
             except (ValueError, OSError): owner = None
