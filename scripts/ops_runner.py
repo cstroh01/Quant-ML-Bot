@@ -81,14 +81,16 @@ def _kill_path(state_dir, profile: str) -> Path:
 def _skipped_while_killed(state_dir, profile: str, kill_at: datetime, now: datetime) -> list[date]:
     """Sessions with no completed run whose 09:28 New York cutoff fell after ``kill_at`` and by ``now``.
 
-    A session whose cutoff had already passed when the kill landed was missed before the kill, so it
-    stays a missed run and is never attributed to the kill.
+    A session whose cutoff had already passed when the kill landed was missed before the kill, and a
+    session with a lease was started by a run that never completed (its orders may exist); both stay
+    missed runs and are never attributed to the kill.
     """
     runs = _jsonl(Path(state_dir) / "ops" / "runs.jsonl")
     completed = {date.fromisoformat(r["session"]) for r in runs if r["profile"] == profile}
     since = kill_at.astimezone(NY).date()
     return [s for s in missed_sessions(now, completed_sessions=completed, since=since)
-            if datetime.combine(s, CUTOFF, tzinfo=NY) > kill_at]
+            if datetime.combine(s, CUTOFF, tzinfo=NY) > kill_at
+            and not _lease_path(state_dir, profile, s).exists()]
 
 
 def _killed(state_dir, profile: str, now: datetime) -> dict:
