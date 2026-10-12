@@ -260,7 +260,7 @@ when evidence is absent or stale.
 
 ## Phase 9 — US4 implementation and Rule 12 proof
 
-- [ ] T062 [US4] Implement `scripts/generate_gate3_evidence.py` to verify all
+- [x] T062 [US4] Implement `scripts/generate_gate3_evidence.py` to verify all
   inputs, calculate once offline, write a new immutable artifact, append its
   index record, and never overwrite prior evidence.
 - [ ] T063 [US4] Update `reports/api/routes/capital_gate.py` to validate/read the
