@@ -230,7 +230,7 @@ CANDIDATE_COLUMNS = ("symbol", "name", "etf_flag", "test_issue", "issuer_categor
 # style) are ordinary names, not leveraged/inverse/vol ETPs. The reviewed list (§3) overrides.
 _DURATION = r"(?:term|treasury|maturity|duration|bond|income|government|corporate|muni)"
 _LEVERAGED_NAME = re.compile(
-    r"\b(ultra(?![- ]short)\w*|[1-9]x|bull|bear|inverse|leveraged|vix|(?<!low )volatility)\b"
+    r"\b(ultra(?![- ]short)\w*|[1-9]x|bull|bear(?:ish)?|inverse|leveraged|vix|(?<!low )volatility)\b"
     rf"|(?<!ultra[- ])\bshort\b(?![- ]{_DURATION})", re.IGNORECASE)
 EXCLUSION_REASONS = frozenset({
     "not_etf", "test_issue", "leveraged_inverse_or_volatility", "unknown_asset_class",
@@ -260,6 +260,15 @@ def _liquidity(frame: pd.DataFrame, cutoff: pd.Timestamp) -> tuple:
     usable = (len(window) == DOLLAR_VOLUME_SESSIONS and bool(dollar.map(_finite).all())
               and bool((window["Volume"] >= 0).all()) and bool((window["Close"] > 0).all()))
     return past["Date"].iloc[0], float(dollar.median()) if usable else float("nan")
+
+
+def _select(pool: pd.DataFrame, size: int) -> tuple[list, list, list]:
+    """(chosen in rank order, class-capped, cut) indices: top ``CLASS_CAP`` per class by median
+    dollar volume, then the top ``size`` overall; ties break by symbol."""
+    ordered = pool.sort_values(["median_dollar_volume_252", "symbol"], ascending=[False, True])
+    in_class = ordered.groupby("asset_class", sort=False).cumcount()
+    kept = list(in_class.index[in_class < CLASS_CAP])
+    return kept[:size], list(in_class.index[in_class >= CLASS_CAP]), kept[size:]
 
 
 def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: date,
@@ -318,13 +327,9 @@ def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: d
             "rank": pd.NA, "selected": False, "exclusion_reason": reason,
         })
     result = pd.DataFrame(rows, columns=list(UNIVERSE_COLUMNS))
-    eligible = result.loc[result["exclusion_reason"].eq("")].sort_values(
-        ["median_dollar_volume_252", "symbol"], ascending=[False, True])
-    in_class = eligible.groupby("asset_class", sort=False).cumcount()
-    result.loc[in_class.index[in_class >= CLASS_CAP], "exclusion_reason"] = "class_cap"
-    kept = eligible.loc[in_class.index[in_class < CLASS_CAP]]
-    result.loc[kept.index[size:], "exclusion_reason"] = "below_cutoff"
-    chosen = kept.index[:size]
+    chosen, capped, cut = _select(result.loc[result["exclusion_reason"].eq("")], size)
+    result.loc[capped, "exclusion_reason"] = "class_cap"
+    result.loc[cut, "exclusion_reason"] = "below_cutoff"
     result.loc[chosen, "selected"] = True
     result["rank"] = pd.Series(pd.NA, index=result.index, dtype="Int64")
     result.loc[chosen, "rank"] = range(1, len(chosen) + 1)
@@ -339,7 +344,8 @@ def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) 
     is a boolean; every selected row's class is in the taxonomy; a selected row has a listing
     date and no exclusion reason, an unselected row has a known reason; at most ``CLASS_CAP``
     selected per class; every selected row meets the dollar-volume floor and the history rule
-    against ``as_of``, and ranks run 1..n; and, unless ``require_all_classes`` is false, every taxonomy class has a selected ETF.
+    against ``as_of``; ranks run 1..n and re-deriving the selection from the eligible rows
+    (selected, ``class_cap``, ``below_cutoff``) reproduces every rank and reason; and, unless ``require_all_classes`` is false, every taxonomy class has a selected ETF.
     Raises ``ValueError`` naming the first broken check; returns ``None`` otherwise.
     """
     missing = set(UNIVERSE_COLUMNS) - set(frame.columns)
@@ -382,6 +388,13 @@ def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) 
     ranks = pd.to_numeric(picked["rank"], errors="coerce").astype("float64").sort_values().tolist()
     if ranks != list(range(1, len(picked) + 1)):
         raise ValueError("universe list rank must run 1..n over the selected rows")
+    pool = frame.loc[selected | reason.isin({"class_cap", "below_cutoff"})].assign(
+        median_dollar_volume_252=lambda f: pd.to_numeric(f["median_dollar_volume_252"], errors="coerce"))
+    chosen, capped, cut = _select(pool, len(picked))
+    by_rank = list(picked.assign(_r=pd.to_numeric(picked["rank"])).sort_values("_r").index)
+    if (by_rank != chosen or set(capped) != set(pool.index[reason[pool.index].eq("class_cap")])
+            or set(cut) != set(pool.index[reason[pool.index].eq("below_cutoff")])):
+        raise ValueError("universe list is not the highest-dollar-volume selection under the class cap")
     if require_all_classes:
         absent = [c for c in ETF_ASSET_CLASSES if c not in counts.index]
         if absent:

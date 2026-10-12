@@ -86,6 +86,7 @@ def test_every_candidate_gets_one_row_and_every_exclusion_a_reason():
     ("Plain Name Fund", "leveraged"), ("Plain Name Fund", "Inverse"),
     ("Plain Name Fund", "volatility"), ("ProShares UltraShort 20+ Year Treasury", ""),
     ("ProShares Short 20+ Year Treasury", ""), ("ProShares Short High Yield", ""),
+    ("Invesco DB US Dollar Index Bearish Fund", ""),
 ])
 def test_leveraged_inverse_and_volatility_products_are_screened(name, category):
     result = build([cand("LEV", name=name, category=category)], panel({"LEV": ("2022-01-03", LIQUID)}))
@@ -138,6 +139,21 @@ def test_window_is_the_trailing_252_sessions():
                               1e9, 1e6)
     result = build([cand("LATE")], panel({"LATE": ("2022-01-03", late)}))
     assert row(result, "LATE")["median_dollar_volume_252"] == pytest.approx((1e6 + 1e9) / 2)
+
+
+def test_missing_sessions_extend_the_window_to_252_bars():
+    """Rule 5 gap case: the window is the last 252 bars on or before as_of; a missing session
+    (halt, holiday, absent bar) is not imputed, so the window reaches one bar further back."""
+    late = lambda d: np.where(np.arange(len(d)) >= len(d) - 126 - (d > pd.Timestamp(AS_OF)).sum(),
+                              1e9, 1e6)
+    bars = panel({"GAP": ("2022-01-03", late), "FULL": ("2022-01-03", late)})
+    halted = pd.Timestamp("2026-09-15")  # inside the 126 high-volume sessions
+    bars = bars.loc[~(bars["Ticker"].eq("GAP") & bars["Date"].eq(halted))]
+    result = build([cand("GAP"), cand("FULL")], bars)
+    assert row(result, "FULL")["median_dollar_volume_252"] == pytest.approx((1e6 + 1e9) / 2)
+    assert row(result, "GAP")["median_dollar_volume_252"] == pytest.approx(1e6)  # 125 high, 127 low
+    assert row(result, "GAP")["exclusion_reason"] == "illiquid"
+    assert row(result, "GAP")["first_bar"] == "2022-01-03"
 
 
 def test_non_finite_volume_fails_closed():
@@ -229,6 +245,34 @@ def test_validator_refuses_a_selected_row_that_breaks_the_rule(field, value, mes
     forged.at[0, field] = value
     with pytest.raises(ValueError, match=message):
         ar.validate_universe(forged)
+
+
+def ranked_universe():
+    cands = [cand(f"E{i:02d}") for i in range(14)] + [cand("BND1", "treasuries"), cand("BND2", "treasuries")]
+    bars = panel({**{f"E{i:02d}": ("2022-01-03", LIQUID + i * 1e6) for i in range(14)},
+                  "BND1": ("2022-01-03", LIQUID + 50e6), "BND2": ("2022-01-03", LIQUID + 0.5e6)})
+    return build(cands, bars, size=12)
+
+
+def swap(frame, a, b):
+    """Exchange two rows' selection outcome (selected, rank, reason): a forged hand edit."""
+    forged = frame.copy()
+    ia, ib = forged.index[forged["symbol"].eq(a)][0], forged.index[forged["symbol"].eq(b)][0]
+    cols = ["selected", "rank", "exclusion_reason"]
+    forged.loc[[ia, ib], cols] = forged.loc[[ib, ia], cols].to_numpy()
+    return forged
+
+
+@pytest.mark.parametrize("a, b", [
+    ("E03", "E02"),   # a lower-volume row selected over a higher one marked below_cutoff
+    ("E03", "E01"),   # a class_cap row swapped into the selection
+    ("E13", "E12"),   # ranks out of dollar-volume order
+])
+def test_validator_refuses_a_selection_that_is_not_the_highest_volume(a, b):
+    result = ranked_universe()
+    ar.validate_universe(result, require_all_classes=False)
+    with pytest.raises(ValueError, match="highest-dollar-volume selection"):
+        ar.validate_universe(swap(result, a, b), require_all_classes=False)
 
 
 def test_validator_refuses_an_unknown_exclusion_reason():
