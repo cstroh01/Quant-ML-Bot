@@ -200,7 +200,7 @@ since the plan's `2942240`, so the plan's line numbers still hold.
 
 ## U3 — null drawdown renders `N/A` (≤300 lines; assumes D-1 (a); plan U3)
 
-- [ ] T014 Write contracts first. Files: a web test at the T005 location. **Acceptance:** red on:
+- [x] T014 Write contracts first. Files: a web test at the T005 location. **Acceptance:** red on:
   a pure `formatPercentOrNA` renders `null` as `N/A` and `0.0` as `0.00%`; the card uses it; the
   baseline table's null fields still render `—` (`BacktestTearsheetView.tsx:456`). The test states
   that it perturbs `max_drawdown`, the only field the card reads (`:143`). **Rule 12 planted
@@ -209,7 +209,7 @@ since the plan's `2942240`, so the plan's line numbers still hold.
   **Depends on:** T005, T009 (shared file; U3 needs D-1 only, so it does not wait on U2b's
   decisions, but never runs concurrently with U2b).
 
-- [ ] T015 Implement U3. Files: `BacktestTearsheetView.tsx` (`:143`), the T014 test.
+- [x] T015 Implement U3. Files: `BacktestTearsheetView.tsx` (`:143`), the T014 test.
   **Acceptance:** T014 passes; M6 killed with its control green; lint and build pass; FR-008 text
   check recorded. **Depends on:** T014.
 

@@ -19,6 +19,11 @@ import { DrawdownChart } from '../charts/DrawdownChart';
 import { EquityCurveChart } from '../charts/EquityCurveChart';
 import { TutorCard } from '../common/TutorCard';
 
+/** Spec 047 FR-007: a percentage that was not computed reads N/A, never a fabricated 0.00%. */
+export function formatPercentOrNA(value: number | null): string {
+  return value === null ? 'N/A' : `${value.toFixed(2)}%`;
+}
+
 interface BacktestTearsheetViewProps {
   tearsheet: BacktestTearsheetResponse | null;
   ohlcv: BarData[];
@@ -136,8 +141,8 @@ export const BacktestTearsheetView: React.FC<BacktestTearsheetViewProps> = ({
             <span>MAX DRAWDOWN</span>
             <TrendingDown className="w-3.5 h-3.5 text-gray-500" />
           </div>
-          <div className={`text-xl font-bold font-mono tabular-nums ${colorblindMode ? 'text-amber-400' : 'text-rose-400'}`}>
-            {tearsheet.max_drawdown !== null ? `${tearsheet.max_drawdown.toFixed(2)}%` : '0.00%'}
+          <div data-testid="drawdown-value" className={`text-xl font-bold font-mono tabular-nums ${colorblindMode ? 'text-amber-400' : 'text-rose-400'}`}>
+            {formatPercentOrNA(tearsheet.max_drawdown)}
           </div>
           <div className="text-[11px] text-gray-500 mt-1 font-mono">Strict peak-to-trough</div>
         </div>
