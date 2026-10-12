@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden. 2026-10-09 correction (Codex B1 #139): report units without output converted to fix; allowed_paths rebuilt from full task text as repo paths; Q89/Q90 blocked (atomic, over 300 lines); Q91-Q94 added. Conventions: (1) a tests-first unit whose tests are red lands them as pytest.mark.xfail(strict=True, reason='<spec> T0nn red until Qnn') or vitest test.fails, and the implementing unit removes the marker, so main and the required checks stay green; (2) TypeScript mutation drivers live under reports/web/mutation/drivers/ with their own vitest config, outside the default include, so they never mutate a view while the default suite runs. 2026-10-11 (Claude, governance PR, Camden merges): marked Q8, Q23, Q26-Q29, Q31, Q36, Q37, Q45, Q46 done from merged PRs; added Q95 (046 U1b, the part of Q8 that #142 deferred) and moved Q82 (058 T003 baseline) ahead of Q32 because Q24/Q25 depend on it; added Q96 (038 T022 driver that #153 deferred). 2026-10-11 decisions PR: Q58/Q61 may edit scripts/tearsheet_payload.py (038 plan.md ownership); added Q97 (033 count helper move) ahead of Q33. Added Q98 (058 D-7 ledger-backed holdout spend check, after Q83); Q33 now also waits for Q97. 2026-10-11: added Q99 (033 T058-T061, the part of Q32 that #157 deferred); Q33 waits for it. 2026-10-11: added Q100 (paper loop -> 035 cache; exec/, blocked for the lane). Q82 done (#160, merged while [WIP]); Q101 completes 058 T003. Added Q102 (055 drill support in ops_runner, from Codex's PAPER preflight), placed early. 2026-10-12 (v1.2 acceleration, Camden): lane field A-D added; file caps raised to 600; Q86-Q90 deferred (SCOPE 11.1.1); Q100 unblocked by Rule 7a; merged items marked done; Q103-Q115 added (Q103/Q104 fix P1s merged in #169/#173 and lead the queue).",
+  "note": "Ordered work queue for the cloud lane. Edited only by Camden-merged PR. Statuses: ready | blocked | done. 'done' items keep the PR that delivered them. 2026-10-09: full remaining v1.0 queue (Q31-Q90) added at Camden's instruction; items marked with a Rule 9a note are built by the lane but merged only by Camden. 2026-10-09 correction (Codex B1 #139): report units without output converted to fix; allowed_paths rebuilt from full task text as repo paths; Q89/Q90 blocked (atomic, over 300 lines); Q91-Q94 added. Conventions: (1) a tests-first unit whose tests are red lands them as pytest.mark.xfail(strict=True, reason='<spec> T0nn red until Qnn') or vitest test.fails, and the implementing unit removes the marker, so main and the required checks stay green; (2) TypeScript mutation drivers live under reports/web/mutation/drivers/ with their own vitest config, outside the default include, so they never mutate a view while the default suite runs. 2026-10-11 (Claude, governance PR, Camden merges): marked Q8, Q23, Q26-Q29, Q31, Q36, Q37, Q45, Q46 done from merged PRs; added Q95 (046 U1b, the part of Q8 that #142 deferred) and moved Q82 (058 T003 baseline) ahead of Q32 because Q24/Q25 depend on it; added Q96 (038 T022 driver that #153 deferred). 2026-10-11 decisions PR: Q58/Q61 may edit scripts/tearsheet_payload.py (038 plan.md ownership); added Q97 (033 count helper move) ahead of Q33. Added Q98 (058 D-7 ledger-backed holdout spend check, after Q83); Q33 now also waits for Q97. 2026-10-11: added Q99 (033 T058-T061, the part of Q32 that #157 deferred); Q33 waits for it. 2026-10-11: added Q100 (paper loop -> 035 cache; exec/, blocked for the lane). Q82 done (#160, merged while [WIP]); Q101 completes 058 T003. Added Q102 (055 drill support in ops_runner, from Codex's PAPER preflight), placed early. 2026-10-12 (v1.2 acceleration, Camden): lane field A-D added; file caps raised to 600; Q86-Q90 deferred (SCOPE 11.1.1); Q100 unblocked by Rule 7a; merged items marked done; Q103-Q115 added (Q103/Q104 fix P1s merged in #169/#173 and lead the queue). 2026-10-12 lane D sync: Q65 done (#158); Q67 and Q33 notes carry the Queue proposals of #158 and #173; Q83 now also waits for Q103, whose summary says it must merge first (Codex P1 on #178); Q67 blocked until its recorded-payload revision lands (Codex P1 on #178).",
   "items": [
     {
       "id": "Q103",
@@ -599,7 +599,7 @@
         "Q97 PR merged",
         "Q99 PR merged"
       ],
-      "note": "reports/api/routes/capital_gate.py is a forbidden path for queue agents (capital_gate API route; also Rule 9a cond. 2, constitution.md:187). T063 (route reads/validates artifact) and T064 (replace 'remains positive' text at capital_gate.py:41) are removed from this unit and need a separate Camden-authorized unit (proposed Q33b) that only Camden merges. tests/test_033_gate3.py added so the agent can drop strict-xfail markers for T062-covered cases; route tests (T059) stay red/xfail until Q33b. Artifacts written only to tmp dirs in tests; reports/artifacts/capital_gate/gate3/ (plan.md:51) is not committed. Earlier note: Touches a Rule 9a-excluded path or records a decision: build and open the PR, but only Camden merges.",
+      "note": "reports/api/routes/capital_gate.py is a forbidden path for queue agents (capital_gate API route; also Rule 9a cond. 2, constitution.md:187). T063 (route reads/validates artifact) and T064 (replace 'remains positive' text at capital_gate.py:41) are removed from this unit and need a separate Camden-authorized unit (proposed Q33b) that only Camden merges. tests/test_033_gate3.py added so the agent can drop strict-xfail markers for T062-covered cases; route tests (T059) stay red/xfail until Q33b. Artifacts written only to tmp dirs in tests; reports/artifacts/capital_gate/gate3/ (plan.md:51) is not committed. Earlier note: Touches a Rule 9a-excluded path or records a decision: build and open the PR, but only Camden merges. 2026-10-12 sync (#173 Queue proposals): at T062 drop strict xfail on the T058, T060 and route-unknown tests; keep it on the route-evidence and text tests until Q33b.",
       "lane": "A"
     },
     {
@@ -1378,7 +1378,8 @@
     {
       "id": "Q65",
       "kind": "fix",
-      "status": "ready",
+      "status": "done",
+      "pr": 158,
       "spec_task": "047 T004",
       "summary": "Fresh clean-main baseline (pytest + npm lint/build).",
       "allowed_paths": [
@@ -1387,7 +1388,7 @@
       ],
       "file_cap_lines": 600,
       "depends_on": [],
-      "note": "Converted report->fix: T004 needs the baseline file AND the T004 tick in tasks.md (two files). Write a NEW docs/implementation/spec-047/baseline-<YYYYMMDD>.md on clean main: pytest exit code + passed/failed/xfailed/errors, Python version, commit SHA, ledger check (trials.jsonl lines+SHA-256, trials.head.json SHA-256, returns/ absent), reports/web npm run lint and npm run build (npm test optional extra). Cite baseline-20261007.md as the earlier pre-U1a working-checkout baseline; do not edit it. Tick T004 only; T006/T007 ticks belong to the docs-reconciliation unit (evidence PR #53). Linux run is evidence; Camden's Windows venv is the gate. Dropped tests/mutation/run_047_ (T004 has no planted defect) and the broad docs/implementation/spec-047/ prefix (would allow editing u1a/baseline-20261007 evidence).",
+      "note": "Converted report->fix: T004 needs the baseline file AND the T004 tick in tasks.md (two files). Write a NEW docs/implementation/spec-047/baseline-<YYYYMMDD>.md on clean main: pytest exit code + passed/failed/xfailed/errors, Python version, commit SHA, ledger check (trials.jsonl lines+SHA-256, trials.head.json SHA-256, returns/ absent), reports/web npm run lint and npm run build (npm test optional extra). Cite baseline-20261007.md as the earlier pre-U1a working-checkout baseline; do not edit it. Tick T004 only; T006/T007 ticks belong to the docs-reconciliation unit (evidence PR #53). Linux run is evidence; Camden's Windows venv is the gate. Dropped tests/mutation/run_047_ (T004 has no planted defect) and the broad docs/implementation/spec-047/ prefix (would allow editing u1a/baseline-20261007 evidence). Done: #158 (baseline-20261011.md, T004 ticked).",
       "lane": "C"
     },
     {
@@ -1415,7 +1416,7 @@
     {
       "id": "Q67",
       "kind": "fix",
-      "status": "ready",
+      "status": "blocked",
       "spec_task": "047 T010+T011",
       "summary": "U2a run bars and causal SMA in the tearsheet response (D-2 a).",
       "allowed_paths": [
@@ -1430,7 +1431,7 @@
       "depends_on": [
         "decisions PR (#137) merged"
       ],
-      "note": "Python mutants M4, M5, M4a (or M4a') via tests/mutation_support_019.py::killed (read-only) run through the route on fixture_client (tests/api_fixtures.py, read-only); dividend-only bundle built inside tests/test_047_chart_bars.py via publish_bundle (tests/unadjusted_fixtures.py read-only). T010 must cite the recorded D-2 option and FR-004a SMA sub-choice from #137. Record 021 SHA-256 fingerprints of routes/backtest.py before/after. tests/test_reports_api.py:107-137 is read-only (FR-008) and is not in scope. Narrowed evidence prefix to u2a- so earlier 047 evidence files cannot be rewritten.",
+      "note": "Python mutants M4, M5, M4a (or M4a') via tests/mutation_support_019.py::killed (read-only) run through the route on fixture_client (tests/api_fixtures.py, read-only); dividend-only bundle built inside tests/test_047_chart_bars.py via publish_bundle (tests/unadjusted_fixtures.py read-only). T010 must cite the recorded D-2 option and FR-004a SMA sub-choice from #137. Record 021 SHA-256 fingerprints of routes/backtest.py before/after. tests/test_reports_api.py:107-137 is read-only (FR-008) and is not in scope. Narrowed evidence prefix to u2a- so earlier 047 evidence files cannot be rewritten. 2026-10-12 sync (#158 Queue proposals; blocked per Codex P1 on #178 because selection reads status, not notes): blocked until a governance change does the following, then set ready: revise 047 U2a/T010/T011 and these allowed_paths for the recorded-payload architecture; define the run's as-of session explicitly and prove no later bar enters the recorded payload; refresh mutation sites and route oracles to match.",
       "lane": "C"
     },
     {
@@ -1757,7 +1758,8 @@
         "Q25 PR merged",
         "Q30 PR merged",
         "Q23 PR merged",
-        "Q8 PR merged"
+        "Q8 PR merged",
+        "Q103 PR merged"
       ],
       "note": "058 names no file for T014 (no 058 plan.md); paths follow the sibling units' convention (Q23/Q24/Q25: tests/test_058_<x>.py, tests/mutation/run_058_t0NN_mutants.py, docs/implementation/spec-058/T0NN-<x>.md). New entry point scripts/edge_walk_forward.py composes walk_forward_cv.walk_forward_splits, signals (Q25), portfolio_risk sizing (Q30), portfolio_backtest (Q24), cost_model (Q8) and the holdout-sealed loader (Q23), all read-only; if any of those modules needs new behavior, stop and report (module boundary). Requirements: purge + embargo >= longest lookback; research window ends 2023-09-29 and the runner never requests later sessions; every run via trial_runner.research_attempt(family='058-edge'); tests use the synthetic ledger root only and assert the real docs/trials/ hashes unchanged; runs before 046 lands are labelled 'EXAMPLE — NOT A RESULT' (FR-004). Never execute T015 (Camden's real run). If >300 lines, split tests-first (red, strict xfail) then implementation. Whether this new entry point needs a CLAUDE.md module-table row is Camden's call (governance PR, not this unit).",
       "lane": "A"
