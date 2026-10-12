@@ -52,7 +52,7 @@ production ledger/cache writes or changes to existing human gates.
 
 ## U1 — cost model and tests (≤300 changed lines)
 
-- [ ] T003 Write source-backed contracts first. Files:
+- [x] T003 Write source-backed contracts first. Files:
   `tests/test_046_cost_model.py`, future `research.md` oracle reference.
   **Acceptance:** independent spread/handling expected values, 4× Q → 2×
   impact with unchanged half-spread, all permitted/refused volume bases, and
@@ -60,7 +60,7 @@ production ledger/cache writes or changes to existing human gates.
   behavior. **Rule 12 planted defects:** M2, M3, M4 and M7; register each exact
   failing assertion before implementation. **Depends on:** T002.
 
-- [ ] T004 Add time and config contracts. Files:
+- [x] T004 Add time and config contracts. Files:
   `tests/test_046_cost_model.py`. **Acceptance:** independently perturb future
   O/H/L/C/Volume at and after t+1 with fixed Q; include first/last/fold boundary,
   holiday versus missing-session, split-basis, malformed data and extra-return-lag
@@ -69,7 +69,7 @@ production ledger/cache writes or changes to existing human gates.
   defects:** M1 and M10, plus treating missing bars as valid warm-up (M4).
   **Depends on:** T003.
 
-- [ ] T005 Implement only the pure estimator and cost-domain types. Files:
+- [x] T005 Implement only the pure estimator and cost-domain types. Files:
   `scripts/cost_model.py`; contracts in `tests/test_046_cost_model.py`.
   **Acceptance:** T003/T004 pass with verified-source arithmetic, explicit
   unavailable reasons and per-fill breakdown/cutoff; no signals, sizing, P&L,
@@ -77,7 +77,7 @@ production ledger/cache writes or changes to existing human gates.
   M7/M10 against isolated implementations and require their named failures.
   **Depends on:** T004 and recorded T001 verification.
 
-- [ ] T006 Close U1 evidence. Files: `tests/test_046_cost_model.py`, future
+- [x] T006 Close U1 evidence. Files: `tests/test_046_cost_model.py`, future
   `artifacts/u1.txt`, `tasks.md`. **Acceptance:** record collected count, named
   reds, green controls, all U1 kills and ≤300 changed lines including evidence.
   **Rule 12 planted defect:** a harness for mutation evidence that accepts a
