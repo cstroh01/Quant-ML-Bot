@@ -203,3 +203,165 @@ def fold_local_cross_section(frame: pd.DataFrame, column: str, train_rows: list)
     train = frame.loc[train_rows, column]
     params = {"mean": float(train.mean()), "std": float(train.std(ddof=0)) or 1.0}
     return (frame[column] - params["mean"]) / params["std"], params
+
+
+# --- Spec 060 T002 (FR-001): offline ETF universe builder and v1 list format ---
+
+import re
+
+# Spec 060 §3 rule 5: the fixed asset-class taxonomy (14 classes).
+ETF_ASSET_CLASSES = (
+    "us_equity_broad", "us_equity_sector", "us_equity_factor_style", "international_developed",
+    "emerging", "treasuries", "tips", "ig_credit", "high_yield", "munis", "real_estate",
+    "commodities_broad", "gold_precious", "currency",
+)
+HISTORY_YEARS = 3                 # §3 rule 3
+DOLLAR_VOLUME_SESSIONS = 252      # §3 rule 4: trailing window
+MIN_MEDIAN_DOLLAR_VOLUME = 20e6   # §3 rule 4: $20 million
+CLASS_CAP = 12                    # §3: at most 12 per class
+UNIVERSE_COLUMNS = (
+    "symbol", "name", "asset_class", "listing_date", "first_bar", "median_dollar_volume_252",
+    "as_of", "rank", "selected", "exclusion_reason",
+)
+CANDIDATE_COLUMNS = ("symbol", "name", "etf_flag", "test_issue", "issuer_category", "asset_class",
+                     "listing_date")
+# §3 rule 2 name screen. Fails toward exclusion; "Short-Term", "Ultra-Short" (cash-like bond
+# funds) and "Low Volatility" (a factor style) are ordinary names, not leveraged/inverse/vol ETPs.
+_LEVERAGED_NAME = re.compile(
+    r"\b(ultra(?!-short)\w*|[1-9]x|bull|bear|inverse|leveraged|vix|(?<!low )volatility)\b"
+    r"|(?<!ultra-)\bshort\b(?![- ]term)", re.IGNORECASE)
+_LEVERAGED_CATEGORY = re.compile(r"leverag|inverse|volatil", re.IGNORECASE)
+
+
+def _flag(value) -> bool:
+    return value is True or (isinstance(value, str) and value.strip().upper() in {"Y", "TRUE"})
+
+
+def _labels(series: pd.Series, what: str) -> pd.Series:
+    dates = pd.to_datetime(series)
+    if dates.dt.tz is not None:
+        raise ValueError(f"{what} must be naive session labels")
+    return dates.dt.normalize()
+
+
+def _liquidity(frame: pd.DataFrame, cutoff: pd.Timestamp) -> tuple:
+    """(first bar, trailing median dollar volume) from sessions at or before ``cutoff`` only."""
+    past = frame.loc[frame["Date"] <= cutoff].sort_values("Date")
+    if past.empty:
+        return None, float("nan")
+    window = past.tail(DOLLAR_VOLUME_SESSIONS)
+    dollar = (window["Close"] * window["Volume"]).astype(float)
+    usable = (len(window) == DOLLAR_VOLUME_SESSIONS and bool(dollar.map(_finite).all())
+              and bool((window["Volume"] >= 0).all()) and bool((window["Close"] > 0).all()))
+    return past["Date"].iloc[0], float(dollar.median()) if usable else float("nan")
+
+
+def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: date,
+                       size: int = 100) -> pd.DataFrame:
+    """Apply spec 060 §3 on ``as_of`` and return one ``UNIVERSE_COLUMNS`` row per candidate.
+
+    Point-in-time (Rule 1): only bars dated on or before ``as_of`` are read. A candidate is
+    eligible when it is an ETF, not a test issue, passes the leveraged/inverse/volatility screen
+    (name or issuer category), carries a taxonomy class, has its first bar on or before
+    ``as_of`` minus ``HISTORY_YEARS`` years, and has a trailing ``DOLLAR_VOLUME_SESSIONS``-session
+    median dollar volume of at least ``MIN_MEDIAN_DOLLAR_VOLUME`` (inclusive; a short, non-finite
+    or negative window fails closed). Eligible ETFs keep the top ``CLASS_CAP`` per class by that
+    median, then the top ``size`` overall; ties break by symbol. Every unselected row names
+    exactly one reason, the first rule it fails. Selected rows come first by rank, then the rest
+    by symbol. Inputs are never mutated; the result is deterministic.
+    """
+    if isinstance(size, bool) or not isinstance(size, int) or size < 1:
+        raise ValueError("size must be a positive integer")
+    missing = set(CANDIDATE_COLUMNS) - set(candidates.columns)
+    if missing:
+        raise ValueError(f"candidates missing columns {sorted(missing)}")
+    if candidates["symbol"].duplicated().any():
+        raise ValueError("duplicate candidate symbol")
+    cutoff = pd.Timestamp(as_of)
+    panel = bars[["Date", "Ticker", "Close", "Volume"]].copy()
+    panel["Date"] = _labels(panel["Date"], "bar dates")
+    if panel.duplicated(["Ticker", "Date"]).any():
+        raise ValueError("duplicate bar (Ticker, Date)")
+    listing = _labels(candidates["listing_date"], "listing dates")
+    history_cutoff = cutoff - pd.DateOffset(years=HISTORY_YEARS)
+    groups = dict(tuple(panel.groupby("Ticker", sort=False)))
+
+    rows = []
+    for (_, cand), listed in zip(candidates.iterrows(), listing):
+        first, median = _liquidity(groups.get(cand["symbol"], panel.iloc[0:0]), cutoff)
+        reason = ""
+        if not _flag(cand["etf_flag"]):
+            reason = "not_etf"
+        elif _flag(cand["test_issue"]):
+            reason = "test_issue"
+        elif _LEVERAGED_CATEGORY.search(str(cand["issuer_category"] or "")):
+            reason = "leveraged_inverse_or_volatility"
+        elif _LEVERAGED_NAME.search(str(cand["name"])):
+            reason = "leveraged_inverse_or_volatility"
+        elif cand["asset_class"] not in ETF_ASSET_CLASSES:
+            reason = "unknown_asset_class"
+        elif first is None or first > history_cutoff:
+            reason = "insufficient_history"
+        elif not (_finite(median) and median >= MIN_MEDIAN_DOLLAR_VOLUME):
+            reason = "illiquid"
+        rows.append({
+            "symbol": cand["symbol"], "name": cand["name"], "asset_class": cand["asset_class"],
+            "listing_date": "" if pd.isna(listed) else listed.strftime("%Y-%m-%d"),
+            "first_bar": "" if first is None else first.strftime("%Y-%m-%d"),
+            "median_dollar_volume_252": median, "as_of": cutoff.strftime("%Y-%m-%d"),
+            "rank": pd.NA, "selected": False, "exclusion_reason": reason,
+        })
+    result = pd.DataFrame(rows, columns=list(UNIVERSE_COLUMNS))
+    eligible = result.loc[result["exclusion_reason"].eq("")].sort_values(
+        ["median_dollar_volume_252", "symbol"], ascending=[False, True])
+    in_class = eligible.groupby("asset_class", sort=False).cumcount()
+    result.loc[in_class.index[in_class >= CLASS_CAP], "exclusion_reason"] = "class_cap"
+    kept = eligible.loc[in_class.index[in_class < CLASS_CAP]]
+    result.loc[kept.index[size:], "exclusion_reason"] = "below_cutoff"
+    chosen = kept.index[:size]
+    result.loc[chosen, "selected"] = True
+    result["rank"] = pd.Series(pd.NA, index=result.index, dtype="Int64")
+    result.loc[chosen, "rank"] = range(1, len(chosen) + 1)
+    order = list(chosen) + sorted(set(result.index) - set(chosen), key=lambda i: result.at[i, "symbol"])
+    return result.loc[order].reset_index(drop=True)
+
+
+def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) -> None:
+    """Refuse a universe list (built, or read back from CSV) that breaks the v1 format.
+
+    Checks: every ``UNIVERSE_COLUMNS`` present; one ``as_of``; no duplicate symbol; ``selected``
+    is a boolean; every selected row's class is in the taxonomy; a selected row has a listing
+    date and no exclusion reason, an unselected row has a reason; at most ``CLASS_CAP`` selected per class;
+    and, unless ``require_all_classes`` is false, every taxonomy class has a selected ETF.
+    Raises ``ValueError`` naming the first broken check; returns ``None`` otherwise.
+    """
+    missing = set(UNIVERSE_COLUMNS) - set(frame.columns)
+    if missing:
+        raise ValueError(f"universe list missing columns {sorted(missing)}")
+    if frame["as_of"].astype(str).nunique() != 1:
+        raise ValueError("universe list must carry exactly one as_of")
+    if frame["symbol"].duplicated().any():
+        raise ValueError("universe list has a duplicate symbol")
+    selected = frame["selected"].map({True: True, False: False, "True": True, "False": False})
+    if selected.isna().any():
+        raise ValueError("universe list selected must be True or False")
+    selected = selected.astype(bool)
+    unknown = sorted(set(frame.loc[selected, "asset_class"]) - set(ETF_ASSET_CLASSES))
+    if unknown:
+        raise ValueError(f"universe list has an unknown asset class: {unknown}")
+    reason = frame["exclusion_reason"].fillna("").astype(str)
+    listed = frame["listing_date"].fillna("").astype(str)
+    if (selected & listed.str.strip().eq("")).any():
+        raise ValueError("universe list has a selected row without a listing date")
+    if (selected & reason.ne("")).any():
+        raise ValueError("universe list has a selected row with an exclusion reason")
+    if (~selected & reason.eq("")).any():
+        raise ValueError("universe list has an excluded row without a reason")
+    counts = frame.loc[selected, "asset_class"].value_counts()
+    over = sorted(counts.index[counts > CLASS_CAP])
+    if over:
+        raise ValueError(f"universe list over the class cap: {', '.join(over)}")
+    if require_all_classes:
+        absent = [c for c in ETF_ASSET_CLASSES if c not in counts.index]
+        if absent:
+            raise ValueError(f"universe list class not covered: {', '.join(absent)}")
