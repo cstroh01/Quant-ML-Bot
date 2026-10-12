@@ -8,13 +8,15 @@ Reads recorded PAPER state only; opens no socket and reads no credential. Inputs
   ``filled_avg_price`` and ``filled_qty``. The loop does not capture these yet (Queue proposal);
 - nominal daily OHLCV per ticker, for the fill session's open and spec 046's modeled cost.
 
-Guarantees: one row per order that reached or may have reached the broker (outcome SUBMITTED or
-UNKNOWN). An order is reconciled only when its snapshot is terminal and, if filled, its fill
-quantity equals the intended quantity and its price is positive. Realized cost is the adverse
+Guarantees: one row per action of a submit run. An order that reached or may have reached the
+broker (outcome SUBMITTED or UNKNOWN) is reconciled only when its snapshot is terminal and either
+filled exactly the intended quantity at a positive price or filled nothing; an action that never
+reached the broker is shown, labelled, and needs no reconciliation. Realized cost is the adverse
 fraction of the fill price against the fill session's open, the basis spec 046 prices; modeled
 cost is ``cost_model.estimate_fill_cost`` from bars through t only (Rule 1), or the model's refusal
 reason, never a zero. PASS is printed only when every required profile has at least
-``MIN_SESSIONS`` completed submit sessions and every row is reconciled.
+``MIN_SESSIONS`` completed submit sessions and at least one fill, every sent order is reconciled,
+and every fill carries both a realized and a modeled cost (SCOPE §11.3 item 4: compared per order).
 """
 from __future__ import annotations
 
@@ -33,6 +35,7 @@ import pandas as pd
 from cost_model import CostConfig, CostUnavailable, estimate_fill_cost
 from data import trading_days
 from disclosure import LIMITATIONS
+from trial_registry import ROOT, source_identity
 
 REQUIRED_PROFILES = ("paper_large", "paper_small")
 MIN_SESSIONS = 10
@@ -73,9 +76,13 @@ def _reconcile(snapshot: Mapping | None, quantity: float) -> tuple[str, bool, fl
     status = str(snapshot.get("status", "")).lower()
     if status not in TERMINAL:
         return status or "unknown", False, None, "broker status is not terminal"
-    if status != "filled":
-        return status, True, None, ""
     price, filled = snapshot.get("filled_avg_price"), snapshot.get("filled_qty")
+    if status != "filled":
+        try:
+            partial = float(filled or 0) != 0
+        except (TypeError, ValueError):
+            partial = True
+        return (status, False, None, f"{status} after a partial fill") if partial else (status, True, None, "")
     try:
         price, filled = float(price), float(filled)
     except (TypeError, ValueError):
@@ -99,7 +106,12 @@ def evidence_rows(runs: Iterable[Mapping], snapshots: Mapping[str, Mapping],
         decided = date.fromisoformat(run["session"])
         filled_on = next_session(decided)
         for action in run.get("actions", []):
-            if action.get("outcome") not in SENT_OUTCOMES:
+            outcome = action.get("outcome")
+            if outcome not in SENT_OUTCOMES:  # never reached the broker: shown, nothing to reconcile
+                rows.append(OrderRow(run["profile"], decided, filled_on, action.get("ticker", "-"), "-",
+                                     abs(float(action.get("delta_quantity") or 0.0)), action.get("client_order_id", "-"),
+                                     math.nan, f"not sent: {outcome}", True, None, None, None, None,
+                                     str(action.get("reason", ""))))
                 continue
             ticker, delta = action["ticker"], float(action["delta_quantity"])
             quantity = abs(delta)
@@ -143,27 +155,31 @@ def verdict(rows: list[OrderRow], sessions: Mapping[str, list[date]],
     """(passed, reasons). Passed only with ``minimum`` sessions per profile and every row reconciled."""
     reasons = [f"{p}: {len(sessions.get(p, []))} of {minimum} completed sessions"
                for p in profiles if len(sessions.get(p, [])) < minimum]
+    reasons += [f"{p}: no filled order" for p in profiles
+                if not any(r.profile == p and r.fill_price is not None and r.reconciled for r in rows)]
     reasons += [f"{r.profile} {r.client_order_id}: not reconciled ({r.status}; {r.note})" for r in rows if not r.reconciled]
+    reasons += [f"{r.profile} {r.client_order_id}: fill without both costs ({r.note})" for r in rows
+                if r.fill_price is not None and (r.realized_cost is None or r.modeled_cost is None)]
     return not reasons, reasons
 
 
 def _fmt(value: float | None, spec: str) -> str:
-    return "n/a" if value is None else format(value, spec)
+    return "n/a" if value is None or (isinstance(value, float) and math.isnan(value)) else format(value, spec)
 
 
 def render(rows: list[OrderRow], sessions: Mapping[str, list[date]], *, inputs: Mapping[str, str],
-           clock: Callable[[], datetime]) -> str:
+           clock: Callable[[], datetime], commit: str = "unknown") -> str:
     """The report text: provenance, per-order table, sessions, verdict, limitations (Rules 11, 16)."""
     run_at = clock()
     if run_at.tzinfo is None:
         raise ValueError("clock must return a timezone-aware datetime")
     passed, reasons = verdict(rows, sessions)
     lines = ["# PAPER evidence (spec 059 FR-005, SCOPE §11.3 item 4)", DISCLOSURE,
-             f"run (UTC): {run_at.astimezone(timezone.utc):%Y-%m-%d %H:%M:%S}Z"]
+             f"run (UTC): {run_at.astimezone(timezone.utc):%Y-%m-%d %H:%M:%S}Z", f"commit: {commit}"]
     lines += [f"input: {name} sha256={digest}" for name, digest in sorted(inputs.items())]
     lines += ["", "profile | decided | filled | ticker | side | qty | intended | fill | open | realized | modeled | status | reconciled | note"]
-    lines += [" | ".join([r.profile, str(r.decision_session), str(r.fill_session), r.ticker, r.side, f"{r.quantity:g}",
-                          f"{r.intended_price:.4f}", _fmt(r.fill_price, ".4f"), _fmt(r.open_price, ".4f"),
+    lines += [" | ".join([str(r.profile), str(r.decision_session), str(r.fill_session), r.ticker, r.side, f"{r.quantity:g}",
+                          _fmt(r.intended_price, ".4f"), _fmt(r.fill_price, ".4f"), _fmt(r.open_price, ".4f"),
                           _fmt(r.realized_cost, ".6f"), _fmt(r.modeled_cost, ".6f"), r.status,
                           "yes" if r.reconciled else "NO", r.note or "-"]) for r in rows]
     lines += ["", "completed submit sessions:"]
@@ -196,13 +212,15 @@ def main(argv: list[str] | None = None) -> int:
     runs = [record for path in args.runs for record in _jsonl(path)]
     snapshots = {row["client_order_id"]: row for row in _jsonl(args.fills)}
     tickers = {a["ticker"] for r in runs for a in r.get("actions", [])}
-    histories = {t: _history(args.history_dir / f"{t}.csv", args.volume_basis)
-                 for t in tickers if (args.history_dir / f"{t}.csv").exists()}
+    csvs = {t: args.history_dir / f"{t}.csv" for t in sorted(tickers) if (args.history_dir / f"{t}.csv").exists()}
+    histories = {t: _history(path, args.volume_basis) for t, path in csvs.items()}
     splits = json.loads(args.splits.read_text(encoding="utf-8")) if args.splits else {}
-    inputs = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in [*args.runs, args.fills]}
+    sources = [*args.runs, args.fills, *csvs.values(), *([args.splits] if args.splits else [])]
+    inputs = {str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources}
     rows = evidence_rows(runs, snapshots, histories, splits)
     sessions = completed_sessions(runs)
-    sys.stdout.write(render(rows, sessions, inputs=inputs, clock=lambda: datetime.now(timezone.utc)))
+    commit = source_identity(ROOT)["git_sha"] or "unknown"
+    sys.stdout.write(render(rows, sessions, inputs=inputs, clock=lambda: datetime.now(timezone.utc), commit=commit))
     return 0 if verdict(rows, sessions)[0] else 1
 
 
