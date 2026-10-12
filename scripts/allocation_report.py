@@ -24,13 +24,13 @@ from constants import RISK_FREE_RATE_ANNUAL, TRADING_DAYS_PER_YEAR
 from cost_utils import risk_free_log_return
 from data_sources import RESEARCH_END, HoldoutSealError, sealed_sessions
 from disclosure import LIMITATIONS
-from portfolio_backtest import FillCost, run_portfolio_backtest
+from cost_model import CostConfig, estimate_fill_cost
+from portfolio_backtest import run_portfolio_backtest
 from portfolio_risk import allocation_weights, equal_weight_book
 from selection_bias import deflated_sharpe
 from signals import ALLOCATION_SLEEVES, allocation_selection, decision_sessions, random_selections
 
 LABEL = "ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED"
-COST_MODEL = "spread_plus_sqrt_impact"
 RANDOM_ACTIVITY = {"enter_probability": 0.5, "exit_probability": 0.5, "initial_probability": 0.5}
 
 
@@ -57,43 +57,54 @@ def series_stats(equity: pd.Series) -> dict:
     return stats
 
 
-def allocation_report(opens: pd.DataFrame, closes: pd.DataFrame, *, fill_cost: FillCost, costs: dict,
-                      seeds: list[int], starting_capital: float = 100_000.0) -> dict:
+def allocation_report(bars: dict[str, pd.DataFrame], *, commission_per_fill: float, cost_config: CostConfig,
+                      split_sessions: dict[str, tuple], seeds: list[int], starting_capital: float = 100_000.0) -> dict:
     """The FR-003 research-window report: allocation, buy-and-hold and seeded random baselines.
 
-    `costs` must state a per-fill `commission` and a `slippage` dict whose `model` is spec 046's
-    (Rule 13); `fill_cost` is that model's per-fill estimate. Raises `HoldoutSealError` for a panel
-    past 2023-09-29 and `ValueError` for other costs or fewer than two seeds.
+    `bars` maps tickers to OHLCV frames on NYSE session labels (with `attrs["volume_basis"]`); only the
+    eight sleeves are read. Every fill's slippage is `cost_model.estimate_fill_cost(...).total` under
+    `cost_config` (spec 046, Rule 13), computed here, so the recorded cost model is the one applied; a
+    fill with no valid estimate is skipped, never filled free. Raises `HoldoutSealError` for bars past
+    2023-09-29 and `ValueError` for a non-finite or negative commission or fewer than two seeds.
     """
-    slippage = costs.get("slippage") if isinstance(costs, dict) else None
-    if not isinstance(slippage, dict) or slippage.get("model") != COST_MODEL or "commission" not in costs:
-        raise ValueError(f"costs must state a commission and the spec 046 {COST_MODEL!r} slippage model (Rule 13)")
-    if sealed_sessions(closes.index).any() or sealed_sessions(opens.index).any():
+    if not isinstance(cost_config, CostConfig):
+        raise ValueError("cost_config must be a validated spec 046 CostConfig (Rule 13)")
+    if isinstance(commission_per_fill, bool) or not (isinstance(commission_per_fill, (int, float))
+                                                     and math.isfinite(commission_per_fill) and commission_per_fill >= 0):
+        raise ValueError("commission_per_fill must be a finite, non-negative number (Rule 3)")
+    sleeves = [ticker for ticker in ALLOCATION_SLEEVES if ticker in bars]
+    if not sleeves:
+        raise ValueError("bars hold none of the allocation's sleeves")
+    opens = pd.DataFrame({t: bars[t]["Open"] for t in sleeves}).sort_index()
+    closes = pd.DataFrame({t: bars[t]["Close"] for t in sleeves}).sort_index()
+    if sealed_sessions(closes.index).any():
         raise HoldoutSealError(f"the allocation report reads the research window only (<= {RESEARCH_END})")
-    columns = [ticker for ticker in closes.columns if ticker in ALLOCATION_SLEEVES]
-    opens, closes = opens[columns], closes[columns]  # only the eight sleeves exist for every series
     decisions = decision_sessions(closes.index, cadence="monthly")
     selection = allocation_selection(closes)
 
+    def fill_cost(ticker: str, as_of: pd.Timestamp, quantity: float) -> float:
+        return estimate_fill_cost(bars[ticker], as_of=as_of, quantity=quantity, config=cost_config,
+                                  split_sessions=split_sessions.get(ticker, ())).total
+
     def run(weights: pd.DataFrame) -> pd.Series:
         return run_portfolio_backtest(opens, closes, weights, starting_capital=starting_capital,
-                                      commission_per_fill=costs["commission"], fill_cost=fill_cost).equity
+                                      commission_per_fill=commission_per_fill, fill_cost=fill_cost).equity
 
     allocation = series_stats(run(allocation_weights(selection, closes, decisions)))
     buy_and_hold = series_stats(run(equal_weight_book(closes.notna(), max_gross=1.0).loc[decisions]))
     # `matched_activity` of an always-invested allocation is degenerate (enter 1, exit 0): the draws
     # would reproduce the allocation and the baseline would show no dispersion. Each sleeve is instead
     # long or flat with probability 1/2 on every decision row: same cadence, sizing and costs.
-    activity = dict(RANDOM_ACTIVITY)
-    draws = random_selections(closes, decision_mask=decisions, seeds=seeds, **activity)
+    draws = random_selections(closes, decision_mask=decisions, seeds=seeds, **RANDOM_ACTIVITY)
     random = {seed: series_stats(run(allocation_weights(draw, closes, decisions))) for seed, draw in draws.items()}
     sharpes = [s["sharpe"] for s in random.values() if s["sharpe"] is not None]
     dispersion = {"seeds": list(draws), "mean_sharpe": float(np.mean(sharpes)) if sharpes else None,
                   "std_sharpe": float(np.std(sharpes, ddof=1)) if len(sharpes) > 1 else None,
                   "min_sharpe": min(sharpes) if sharpes else None, "max_sharpe": max(sharpes) if sharpes else None}
     return {"label": LABEL, "window": [closes.index[0].strftime("%Y-%m-%d"), closes.index[-1].strftime("%Y-%m-%d")],
-            "costs": {"commission": costs["commission"], "slippage": slippage}, "allocation": allocation,
-            "buy_and_hold": buy_and_hold, "random": random, "random_dispersion": dispersion, "activity": activity}
+            "costs": {"commission": commission_per_fill, "slippage": cost_config.as_mapping()},
+            "allocation": allocation, "buy_and_hold": buy_and_hold, "random": random,
+            "random_dispersion": dispersion, "random_activity": dict(RANDOM_ACTIVITY)}
 
 
 def _number(value: float | None, digits: int = 3) -> str:
@@ -104,12 +115,13 @@ def render(report: dict, stamp: list[str]) -> list[str]:
     """Report lines: the Rule 11 `stamp` first, the label on every Sharpe line, the full register last."""
     a, b, d = report["allocation"], report["buy_and_hold"], report["random_dispersion"]
     lines = [*stamp, LABEL,
-             f"window: {report['window'][0]} to {report['window'][1]} (research window; holdout sealed)",
+             f"window: {report['window'][0]} to {report['window'][1]} (research window; holdout sealed); one pass, "
+             "no fitted parameters, so folds, purge and embargo do not apply",
              f"costs: commission {report['costs']['commission']} per fill; slippage model "
              f"{report['costs']['slippage']['model']} (spec 046), identical for every series",
              f"allocation: Sharpe {_number(a['sharpe'])}, PSR(N=1) {_number(a['psr'])} [{LABEL}]",
-             f"buy-and-hold (equal-weight sleeves): Sharpe {_number(b['sharpe'])} [{LABEL}]",
-             f"random baseline ({len(d['seeds'])} seeds): mean Sharpe {_number(d['mean_sharpe'])}, "
+             f"buy-and-hold (equal-weight sleeves, rebalanced monthly): Sharpe {_number(b['sharpe'])} [{LABEL}]",
+             f"random baseline ({len(d['seeds'])} seeds, each sleeve long/flat at 1/2 per decision): mean Sharpe {_number(d['mean_sharpe'])}, "
              f"std {_number(d['std_sharpe'])}, range {_number(d['min_sharpe'])} to {_number(d['max_sharpe'])} [{LABEL}]",
              "Limitations (Rule 16), docs/SCOPE-V1.md §6:"]
     return lines + [f"- {item}" for item in LIMITATIONS]

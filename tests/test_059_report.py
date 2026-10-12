@@ -3,53 +3,75 @@
 EXAMPLE — NOT A RESULT. ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED. Seeded synthetic panels only.
 """
 import math
+from datetime import date
 
 import numpy as np
 import pandas as pd
 from scipy.stats import norm
 
 import allocation_report as ar
+from cost_model import CostConfig, estimate_fill_cost
+from data import trading_days
 from data_sources import HoldoutSealError
 from disclosure import LIMITATIONS
 from portfolio_backtest import run_portfolio_backtest
 from portfolio_risk import allocation_weights, equal_weight_book
 from signals import ALLOCATION_SLEEVES, allocation_selection, decision_sessions, matched_activity, random_selections
 
-S = pd.bdate_range("2019-01-02", "2021-06-30")
-COSTS = {"commission": 1.0, "slippage": {"model": "spread_plus_sqrt_impact", "source": "synthetic fixture"}}
-FILL = lambda ticker, as_of, quantity: 4e-4  # noqa: E731
+S = pd.DatetimeIndex(trading_days(date(2019, 1, 2), date(2021, 6, 30)))
+COMMISSION = 1.0
+PRIMARY = CostConfig()
 SEEDS = [11, 12, 13]
 
 
-def panel(seed=1, index=S, extra=("QQQ",)):
-    tickers = [*ALLOCATION_SLEEVES, *extra]
+def bars(seed=1, index=S, extra=("QQQ",)):
+    """Synthetic OHLCV per ticker on NYSE sessions; DBC lists late."""
     rng = np.random.default_rng(seed)
+    tickers = [*ALLOCATION_SLEEVES, *extra]
     steps = (0.4 * rng.normal(0, 1, (len(index), 1)) + 0.9 * rng.normal(0, 1, (len(index), len(tickers)))) * 0.01
-    closes = pd.DataFrame(100 * np.exp(np.cumsum(steps + 0.0002, axis=0)), index=index, columns=tickers)
-    closes.iloc[:200, tickers.index("DBC")] = np.nan  # a late listing
-    opens = (closes.shift(1) * np.exp(rng.normal(0, 0.002, closes.shape))).fillna(closes)
-    return opens.where(closes.notna()), closes
+    closes = 100 * np.exp(np.cumsum(steps + 0.0002, axis=0))
+    out = {}
+    for k, ticker in enumerate(tickers):
+        c = closes[:, k]
+        o = np.r_[c[0], c[:-1]] * np.exp(rng.normal(0, 0.002, len(c)))
+        frame = pd.DataFrame({"Open": o, "High": np.maximum(o, c) * 1.004, "Low": np.minimum(o, c) * 0.996,
+                              "Close": c, "Volume": rng.uniform(2e6, 4e6, len(c))}, index=index)
+        frame = frame.iloc[200:] if ticker == "DBC" else frame
+        frame.attrs["volume_basis"] = "provider_nominal"
+        out[ticker] = frame
+    return out
 
 
-def equity(opens, closes, weights, fill=FILL):
-    return run_portfolio_backtest(opens, closes, weights, starting_capital=1e5, commission_per_fill=1.0,
-                                  fill_cost=fill).equity
+def panel_of(data):
+    sleeves = [t for t in ALLOCATION_SLEEVES if t in data]
+    return (pd.DataFrame({t: data[t]["Open"] for t in sleeves}), pd.DataFrame({t: data[t]["Close"] for t in sleeves}))
 
 
-def report(opens, closes, **changes):
-    return ar.allocation_report(opens, closes, fill_cost=FILL, costs=changes.get("costs", COSTS),
-                                seeds=changes.get("seeds", SEEDS))
+def fill(data, config=PRIMARY):
+    return lambda ticker, as_of, quantity: estimate_fill_cost(data[ticker], as_of=as_of, quantity=quantity,
+                                                             config=config, split_sessions=()).total
 
 
-def test_every_series_is_the_costed_backtest_of_its_own_weights():
-    opens, closes = panel()
-    result = report(opens, closes)
-    o, c = opens[list(ALLOCATION_SLEEVES)], closes[list(ALLOCATION_SLEEVES)]
+def equity(data, weights, fill_cost=None):
+    o, c = panel_of(data)
+    return run_portfolio_backtest(o, c, weights, starting_capital=1e5, commission_per_fill=COMMISSION,
+                                  fill_cost=fill_cost or fill(data)).equity
+
+
+def report(data, **changes):
+    args = dict(commission_per_fill=COMMISSION, cost_config=PRIMARY, split_sessions={}, seeds=SEEDS) | changes
+    return ar.allocation_report(data, **args)
+
+
+def test_every_series_is_the_spec_046_costed_backtest_of_its_own_weights():
+    data = bars()
+    result = report(data)
+    _, c = panel_of(data)
     rows = decision_sessions(c.index, cadence="monthly")
     selection = allocation_selection(c)
-    alloc = ar.series_stats(equity(o, c, allocation_weights(selection, c, rows)))
+    alloc = ar.series_stats(equity(data, allocation_weights(selection, c, rows)))
     assert result["allocation"] == alloc and alloc["sharpe"] is not None, "Q109 ALLOCATION"
-    assert result["buy_and_hold"] == ar.series_stats(equity(o, c, equal_weight_book(c.notna(), max_gross=1.0).loc[rows])), \
+    assert result["buy_and_hold"] == ar.series_stats(equity(data, equal_weight_book(c.notna(), max_gross=1.0).loc[rows])), \
         "Q109 BH"
     degenerate = matched_activity(selection, c, decision_mask=rows)
     assert degenerate["exit_probability"] == 0 and degenerate["initial_probability"] > 0.85, \
@@ -57,20 +79,28 @@ def test_every_series_is_the_costed_backtest_of_its_own_weights():
     draws = random_selections(c, decision_mask=rows, seeds=SEEDS, enter_probability=0.5, exit_probability=0.5,
                               initial_probability=0.5)
     for seed in SEEDS:
-        expected = ar.series_stats(equity(o, c, allocation_weights(draws[seed], c, rows)))
+        expected = ar.series_stats(equity(data, allocation_weights(draws[seed], c, rows)))
         assert result["random"][seed] == expected, f"Q109 RANDOM {seed}"
     sharpes = [result["random"][s]["sharpe"] for s in SEEDS]
     assert len(set(sharpes)) == len(SEEDS) and alloc["sharpe"] not in sharpes, "Q109 RANDOM distinct"
     assert result["random_dispersion"]["std_sharpe"] == np.std(sharpes, ddof=1), "Q109 DISPERSION"
-    free = ar.series_stats(equity(o, c, allocation_weights(selection, c, rows), fill=lambda *_: 0.0))
+    assert result["costs"] == {"commission": COMMISSION, "slippage": PRIMARY.as_mapping()}, "Q109 COSTS recorded"
+    free = ar.series_stats(equity(data, allocation_weights(selection, c, rows), fill_cost=lambda *_: 0.0))
     assert free != alloc, "precondition: costs move the allocation's statistics"
 
 
+def test_the_cost_config_passed_is_the_one_applied():
+    data = bars(2)
+    heavy = CostConfig(role="robustness", impact_coef=2.0)
+    primary, robust = report(data), report(data, cost_config=heavy)
+    assert robust["allocation"] != primary["allocation"] and robust["costs"]["slippage"] == heavy.as_mapping(), \
+        "Q109 COSTS applied"
+
+
 def test_psr_is_the_probabilistic_sharpe_against_zero_at_n_one():
-    opens, closes = panel(2)
-    eq = equity(opens[list(ALLOCATION_SLEEVES)], closes[list(ALLOCATION_SLEEVES)],
-                allocation_weights(allocation_selection(closes[list(ALLOCATION_SLEEVES)]), closes[list(ALLOCATION_SLEEVES)],
-                                   decision_sessions(closes.index, cadence="monthly")))
+    data = bars(2)
+    _, c = panel_of(data)
+    eq = equity(data, allocation_weights(allocation_selection(c), c, decision_sessions(c.index, cadence="monthly")))
     excess = np.log(eq / eq.shift(1)).iloc[1:].to_numpy() - math.log1p(0.0378) / 252
     sr = excess.mean() / excess.std(ddof=1)
     z = excess - excess.mean()
@@ -81,33 +111,33 @@ def test_psr_is_the_probabilistic_sharpe_against_zero_at_n_one():
     assert math.isclose(stats["sharpe"], sr * math.sqrt(252), rel_tol=1e-12), "Q109 SHARPE"
 
 
-def test_non_sleeve_columns_change_nothing():
-    opens, closes = panel(3)
-    with_extra, without = report(opens, closes), report(opens[list(ALLOCATION_SLEEVES)], closes[list(ALLOCATION_SLEEVES)])
-    assert with_extra == without, "Q109 SLEEVES"
+def test_non_sleeve_tickers_change_nothing():
+    data = bars(3)
+    assert "QQQ" in data and report(data) == report({t: f for t, f in data.items() if t != "QQQ"}), "Q109 SLEEVES"
 
 
 def test_refusals():
-    opens, closes = panel(4, pd.bdate_range("2021-01-04", "2023-10-02"))
+    late = pd.DatetimeIndex(trading_days(date(2021, 1, 4), date(2023, 10, 2)))
     refused = {}
-    for name, call in (("holdout", lambda: report(opens, closes)),
-                       ("flat bps", lambda: report(*panel(4), costs={"commission": 1.0,
-                                                                     "slippage": {"model": "flat_bps", "bps": 5}})),
-                       ("one seed", lambda: report(*panel(4), seeds=[1]))):
+    for name, call in (("holdout", lambda: report(bars(4, late))),
+                       ("label only", lambda: report(bars(4), cost_config={"model": "spread_plus_sqrt_impact"})),
+                       ("negative commission", lambda: report(bars(4), commission_per_fill=-1.0)),
+                       ("one seed", lambda: report(bars(4), seeds=[1]))):
         try:
             call()
             refused[name] = None
         except (HoldoutSealError, ValueError) as error:
             refused[name] = type(error).__name__
-    assert refused == {"holdout": "HoldoutSealError", "flat bps": "ValueError", "one seed": "ValueError"}, \
-        f"Q109 REFUSE {refused}"
+    assert refused == {"holdout": "HoldoutSealError", "label only": "ValueError", "negative commission": "ValueError",
+                       "one seed": "ValueError"}, f"Q109 REFUSE {refused}"
 
 
 def test_render_stamps_first_labels_every_sharpe_and_carries_the_register():
     stamp = ["source: data/cache/EXAMPLE.csv sha256=" + "0" * 64, "commit: unknown"]
-    lines = ar.render(report(*panel(5)), stamp)
+    lines = ar.render(report(bars(5)), stamp)
     assert lines[:2] == stamp and lines[2] == ar.LABEL, "Q109 RENDER stamp"
     sharpe = [line for line in lines if "Sharpe" in line]
     assert len(sharpe) == 3 and all(ar.LABEL in line for line in sharpe), "Q109 RENDER label"
-    assert all(f"- {item}" in lines for item in LIMITATIONS) and "spread_plus_sqrt_impact" in "\n".join(lines), \
-        "Q109 RENDER register"
+    text = "\n".join(lines)
+    assert all(f"- {item}" in lines for item in LIMITATIONS) and "spread_plus_sqrt_impact" in text, "Q109 RENDER register"
+    assert "folds, purge and embargo do not apply" in text and "rebalanced monthly" in text, "Q109 RENDER disclosure"
