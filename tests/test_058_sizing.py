@@ -182,6 +182,9 @@ def test_decision_rows_are_the_first_session_of_each_month_or_iso_week():
     assert list(weekly) == list(firsts) and pd.Timestamp("2004-03-02") in weekly, "T012 CADENCE weekly"
     assert decision_rows(book.iloc[:150], cadence="monthly").equals(decision_rows(book, cadence="monthly")
                                                                     .loc[:book.index[149]]), "T012 CADENCE prefix"
+    turn = pd.DataFrame(0.5, index=pd.bdate_range("2024-12-23", "2025-01-10"), columns=["SPY", "IEF"])
+    assert list(decision_rows(turn, cadence="weekly").index) == [pd.Timestamp("2024-12-30"),
+                                                                pd.Timestamp("2025-01-06")], "T012 CADENCE iso year"
     with pytest.raises(ValueError, match="cadence"):
         decision_rows(book, cadence="daily")
 

@@ -39,6 +39,8 @@ MUTANTS = (
      "opens = np.ones(len(sessions), dtype=bool)", "T012 CADENCE"),
     ("weekly read as monthly", 'period = iso["year"].to_numpy() * 100 + iso["week"].to_numpy()',
      "period = sessions.year * 12 + sessions.month", "T012 CADENCE"),
+    ("calendar year with ISO week", 'iso["year"].to_numpy() * 100', "sessions.year.to_numpy() * 100",
+     "T012 CADENCE iso year"),
     ("B-BH counts every ticker", "count = selection.sum(axis=1)", "count = selection.count(axis=1)",
      "T013 B-BH listing"),
     ("H10 with one leg listed", "notna().all(axis=1)", "notna().any(axis=1)", "T013 H10 LISTING"),
