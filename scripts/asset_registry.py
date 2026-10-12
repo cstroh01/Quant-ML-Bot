@@ -243,12 +243,16 @@ def _flag(value) -> bool:
     return value is True or (isinstance(value, str) and value.strip().upper() in {"Y", "TRUE"})
 
 
+def _no(value) -> bool:  # fail closed: only an explicit N/False clears a flag
+    return value is False or (isinstance(value, str) and value.strip().upper() in {"N", "FALSE"})
+
+
 def _reason(etf_flag, test_issue, category, name, asset_class, first, median,
-            history_cutoff: pd.Timestamp) -> str:
+            history_cutoff: pd.Timestamp, listed=None) -> str:
     """The first §3 rule a row fails, or "" when eligible (shared by builder and validator)."""
     if not _flag(etf_flag):
         return "not_etf"
-    if _flag(test_issue):
+    if not _no(test_issue):  # unknown counts as a test issue
         return "test_issue"
     if _LEVERAGED_CATEGORY.search(str(category or "")):
         return "leveraged_inverse_or_volatility"
@@ -256,7 +260,8 @@ def _reason(etf_flag, test_issue, category, name, asset_class, first, median,
         return "leveraged_inverse_or_volatility"
     if asset_class not in ETF_ASSET_CLASSES:
         return "unknown_asset_class"
-    if first is None or pd.isna(first) or first > history_cutoff:
+    if (first is None or pd.isna(first) or first > history_cutoff
+            or (pd.notna(listed) and first < listed)):  # bars before listing: another instrument
         return "insufficient_history"
     if not (_finite(median) and median >= MIN_MEDIAN_DOLLAR_VOLUME):
         return "illiquid"
@@ -327,10 +332,10 @@ def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: d
         bars_of = groups.get(cand["symbol"], panel.iloc[0:0])  # bound by listing: a reused ticker's
         bars_of = bars_of.loc[bars_of["Date"] >= listed] if pd.notna(listed) else bars_of.iloc[0:0]
         first, median = _liquidity(bars_of, cutoff)  # older bars belong to another instrument
-        etf, test = ("Y" if _flag(cand[c]) else "N" for c in ("etf_flag", "test_issue"))
+        etf, test = "Y" if _flag(cand["etf_flag"]) else "N", "N" if _no(cand["test_issue"]) else "Y"
         category = "" if pd.isna(cand["issuer_category"]) else str(cand["issuer_category"])
         reason = _reason(etf, test, category, cand["name"], cand["asset_class"], first, median,
-                         history_cutoff)
+                         history_cutoff, listed)
         rows.append({
             "symbol": cand["symbol"], "name": cand["name"], "etf_flag": etf, "test_issue": test,
             "issuer_category": category, "asset_class": cand["asset_class"],
@@ -406,10 +411,12 @@ def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True,
         raise ValueError("universe list rank must run 1..n over the selected rows")
     medians = pd.to_numeric(frame["median_dollar_volume_252"], errors="coerce")
     firsts = pd.to_datetime(frame["first_bar"].replace("", None), errors="coerce")
+    listeds = pd.to_datetime(frame["listing_date"].replace("", None), errors="coerce")
     for i in frame.index:
         derived = _reason(frame.at[i, "etf_flag"], frame.at[i, "test_issue"],
                           frame.at[i, "issuer_category"], frame.at[i, "name"],
-                          frame.at[i, "asset_class"], firsts[i], medians[i], history_cutoff)
+                          frame.at[i, "asset_class"], firsts[i], medians[i], history_cutoff,
+                          listeds[i])
         if derived != ("" if reason[i] in {"", "class_cap", "below_cutoff"} else reason[i]):
             raise ValueError(f"universe list exclusion reason does not match its fields: "
                              f"{frame.at[i, 'symbol']} ({reason[i] or 'selected'} vs {derived})")
