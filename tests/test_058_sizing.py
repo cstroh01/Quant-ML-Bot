@@ -193,6 +193,18 @@ def test_decision_rows_are_the_first_session_of_each_month_or_iso_week():
         decision_rows(book, cadence="daily")
 
 
+def test_a_cut_panel_keeps_a_true_period_opener_given_the_previous_session():
+    fold = pd.bdate_range("2004-02-02", "2004-03-31")
+    mask = decision_sessions(fold, cadence="monthly", previous=pd.Timestamp("2004-01-30"))
+    assert list(fold[mask]) == [pd.Timestamp("2004-02-02"), pd.Timestamp("2004-03-01")], "T012 CADENCE opener"
+    mid = decision_sessions(fold[1:], cadence="monthly", previous=fold[0])
+    assert list(fold[1:][mid]) == [pd.Timestamp("2004-03-01")], "T012 CADENCE opener mid-period"
+    weekly = decision_sessions(fold, cadence="weekly", previous=pd.Timestamp("2004-01-30"))
+    assert weekly[0] and weekly.sum() == fold.to_period("W").nunique(), "T012 CADENCE opener weekly"
+    with pytest.raises(ValueError, match="previous"):
+        decision_sessions(fold, cadence="monthly", previous=fold[0])
+
+
 def test_a_monthly_book_trades_only_after_its_decision_rows():
     closes = walk(9)
     book = fixed_allocation_book(closes, H10)

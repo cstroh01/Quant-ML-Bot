@@ -262,19 +262,28 @@ def hypothesis_selection(config_id: str, closes: pd.DataFrame) -> pd.DataFrame:
     return HYPOTHESES[config_id](closes.astype(float))
 
 
-def decision_sessions(sessions: pd.DatetimeIndex, *, cadence: str) -> np.ndarray:
+def decision_sessions(
+    sessions: pd.DatetimeIndex, *, cadence: str, previous: pd.Timestamp | None = None
+) -> np.ndarray:
     """Spec 058 §5 rebalance rows: True on the first session of each month or ISO week.
 
     `monthly` marks the first panel session of each calendar month (H1-H7, H9, H10, B-BH),
     `weekly` the first of each ISO week (H8). Row t is marked when its period differs from row
-    t-1's, so it reads rows t-1 and t only; the first row is never marked, since whether it opens
-    its period is unknowable from the panel. Callers keep `book.loc[mask]`:
+    t-1's, so it reads rows t-1 and t only. The first row is compared with `previous`, the
+    session before it (a past date, so no lookahead); a fold or panel cut passes it so a true
+    period opener is kept. Without `previous` the first row is never marked, since whether it
+    opens its period is unknowable from the panel. Callers keep `book.loc[mask]`:
     `run_portfolio_backtest` trades only on rows its weights carry, so holdings drift between
     decisions instead of being re-targeted every session.
     """
     if not isinstance(sessions, pd.DatetimeIndex) or sessions.tz is not None \
             or sessions.has_duplicates or not sessions.is_monotonic_increasing:
         raise ValueError("sessions must be naive, unique and ascending")
+    if previous is not None:
+        previous = pd.Timestamp(previous)
+        if previous.tz is not None or (len(sessions) and previous >= sessions[0]):
+            raise ValueError("previous must be a naive session before the first row")
+        sessions = pd.DatetimeIndex([previous]).append(sessions)
     if cadence == "monthly":
         period = np.asarray(sessions.year * 12 + sessions.month)
     elif cadence == "weekly":
@@ -284,4 +293,4 @@ def decision_sessions(sessions: pd.DatetimeIndex, *, cadence: str) -> np.ndarray
         raise ValueError(f"cadence must be 'monthly' or 'weekly'; got {cadence!r}")
     opens = np.zeros(len(sessions), dtype=bool)
     opens[1:] = period[1:] != period[:-1]
-    return opens
+    return opens[1:] if previous is not None else opens

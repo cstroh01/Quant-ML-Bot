@@ -53,6 +53,8 @@ CADENCE_MUTANTS = (
      "opens = np.ones(len(sessions), dtype=bool)", "T012 CADENCE"),
     ("weekly read as monthly", 'period = iso["year"].to_numpy() * 100 + iso["week"].to_numpy()',
      "period = np.asarray(sessions.year * 12 + sessions.month)", "T012 CADENCE"),
+    ("previous session ignored", "pd.DatetimeIndex([previous]).append(sessions)",
+     "pd.DatetimeIndex([sessions[0]]).append(sessions)", "T012 CADENCE opener"),
     ("calendar year with ISO week", 'iso["year"].to_numpy() * 100', "sessions.year.to_numpy() * 100",
      "T012 CADENCE iso year"),
 )
@@ -62,7 +64,7 @@ def main() -> int:
     failed = 0
     for guard, mutants in ((GUARD, MUTANTS), (CADENCE_GUARD, CADENCE_MUTANTS)):
         base.GUARD, base.TEST, base.SOURCE = guard, TEST, TEST
-        base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 11, mutants
+        base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 12, mutants
         print(f"== {guard}")
         failed |= base.main()
     return failed
