@@ -28,8 +28,8 @@ import pytest
 
 from spec033_support import CONFIG, GATE_FIELDS, LABEL, META, REASONS, SOURCE, api, ledger, rows, start
 
-pytestmark = pytest.mark.xfail(strict=True, raises=AssertionError,
-                               reason="spec 033 T062 not implemented: generate_gate3_evidence missing (remove in T062)")
+ROUTE = pytest.mark.xfail(strict=True, raises=AssertionError,
+                          reason="spec 033 T063/T064 not implemented: the capital_gate route does not read evidence yet (queue Q33b)")
 PRODUCTION = "reports/artifacts/capital_gate/gate3/"
 UNKNOWN = {"evidence_missing", "evidence_corrupt", "ledger_invalid", "backfill_incomplete", "candidate_ineligible",
            "matrix_undefined", "dsr_undefined", "t_stat_undefined", "pbo_undefined"}
@@ -285,6 +285,7 @@ def gate_route(monkeypatch, root, now=None, *, discover=False):
     return {gate.gate_number: gate for gate in gates.get_capital_gate_status().gates}
 
 
+@ROUTE
 @pytest.mark.parametrize("dsr, now, status", [(.97, None, "passed"), (.50, None, "failed"), (.97, MOVED, "stale")])
 def test_route_serves_indexed_evidence_without_computing(tmp_path, monkeypatch, dsr, now, status):
     write(compose(real(dsr=.50 if dsr > .5 else .97) | {"generated_at_utc": "2026-10-10T00:00:00Z"}), tmp_path)
@@ -311,6 +312,7 @@ def test_route_stays_unknown_without_a_valid_indexed_artifact(tmp_path, monkeypa
         assert gate_route(monkeypatch, tmp_path)[3].evidence is None, planted
 
 
+@ROUTE
 def test_real_current_inputs_see_an_advanced_ledger_and_the_route_turns_stale(tmp_path, monkeypatch):
     """Only the ledger head is discovered for real: a synthetic root has no backfill or emitted matrix."""
     discover, assess = (api("generate_gate3_evidence", name) for name in ("current_inputs", "assess"))
@@ -376,6 +378,7 @@ def plant_artifact(root, name, raw):
     return json.dumps({"artifact_id": name, "path": PRODUCTION + name, "sha256": hashlib.sha256(raw).hexdigest()}).encode()
 
 
+@ROUTE
 @pytest.mark.parametrize("case", ["truncated row", "row not an object", "row without sha256", "artifact not json",
                                   "artifact wrong schema", "indexed file missing", "index not utf-8"])
 def test_route_fails_closed_on_malformed_index_or_artifact(tmp_path, monkeypatch, case):
@@ -399,6 +402,7 @@ def test_route_fails_closed_on_malformed_index_or_artifact(tmp_path, monkeypatch
     assert (gate.status, gate.evidence) == ("unknown", None), case
 
 
+@ROUTE
 def test_gate3_text_names_the_real_thresholds_and_diagnostic_pbo():
     text = {g.gate_number: g for g in importlib.import_module(GATE_ROUTE).get_capital_gate_status().gates}[3].description
     assert "remains positive" not in text, "T064: a positive probability is not the gate"
@@ -441,3 +445,40 @@ def test_command_prints_the_new_path_exits_nonzero_unless_current_and_claims_no_
     assert (code == 0) is ok and [(kw["candidate"], kw["family"]) for kw in asked] == [("b", "example")]
     claim = r"gates?\s*[1245][^\n]*\b(pass|ready|clear)|capital[- ]ready|cleared for|overall[^\n]*readi"
     assert not re.search(claim, out, re.I), "FR-050: no claim beyond Gate 3"
+
+
+# T062 (queue Q33) — the generator's own fail-closed paths.
+
+def test_unknown_evidence_with_complete_hashes_stays_unknown_when_inputs_move():
+    value = real()
+    value["pbo"]["S"] = 8
+    art = compose(value)
+    assert art["status"] == "unknown" and art["ledger_head_hash"], "precondition: unknown with its hashes recorded"
+    verdict = api("generate_gate3_evidence", "assess")(art, current(art) | {"ledger_head_hash": "9" * 64})
+    assert verdict == {"status": "unknown", "reason_codes": ["pbo_undefined"]}, f"Q33 UNKNOWN STAYS {verdict}"
+
+
+def test_an_undeterminable_current_input_is_never_current():
+    assess = api("generate_gate3_evidence", "assess")
+    art = compose(real())
+    for key in ("matrix_hash", "backfill_hash"):
+        assert assess(art, current(art) | {key: None}) == {"status": "unknown", "reason_codes": ["evidence_missing"]}, \
+            f"Q33 MATRIX UNKNOWN {key}"
+
+
+def test_command_refuses_a_family_without_a_preregistered_gate3_policy(tmp_path, capsys):
+    import shutil
+    import trial_registry
+    source = trial_registry.DECLARED_FAMILIES["058-edge"]
+    (tmp_path / source).parent.mkdir(parents=True)
+    shutil.copyfile(trial_registry.ROOT / source, tmp_path / source)
+    trial_registry.declare_family("058-edge", root=tmp_path, synthetic=True)
+    message = ""
+    try:
+        api("generate_gate3_evidence", "gather")(candidate="a", family="058-edge", root=tmp_path)
+    except Exception as error:  # noqa: BLE001 - the message is the contract
+        message = str(error)
+    assert "gate3" in message, f"Q33 POLICY {message!r}"
+    code = api("generate_gate3_evidence", "main")(["--candidate", "a", "--family", "058-edge", "--root", str(tmp_path)])
+    assert code not in (0, None) and not (tmp_path / PRODUCTION).exists(), "Q33 POLICY command"
+    assert "gate3" in capsys.readouterr().err, "Q33 POLICY message"
