@@ -104,3 +104,35 @@ def test_sector_rules_select_only_sectors_and_reject_bad_panels():
         hypothesis_selection("H4", panel("GLD", 0.01).tz_localize("UTC"))
     with pytest.raises(ValueError, match="unknown"):
         hypothesis_selection("H9", panel("GLD", 0.01))
+
+
+def last_pick(config, columns, n):
+    """Picks at the final row of a flat-100 panel overridden by `columns` (paths of length n)."""
+    closes = pd.DataFrame(100.0, index=SESSIONS[:n], columns=TICKERS)
+    for ticker, path in columns.items():
+        closes[ticker] = path
+    held = hypothesis_selection(config, closes).iloc[-1]
+    return set(held[held].index)
+
+
+def test_each_rule_reads_its_declared_window():
+    rise = lambda total, n, flat: np.r_[np.linspace(100, 100 * total, n - flat), np.full(flat, 100 * total)]  # noqa: E731
+    jump = np.r_[np.full(232, 100.0), np.linspace(100, 150, 21)]  # all of QQQ's gain is in the skipped month
+    picks = last_pick("H3-3", {"QQQ": jump, "SPY": rise(1.1, 253, 21), "TLT": rise(1.05, 253, 21),
+                               "GLD": rise(1.03, 253, 21)}, 253)
+    assert picks == {"SPY", "TLT", "GLD"}, f"T011 WINDOW H3 {picks}"
+    crash = np.r_[np.linspace(100, 110, 106), np.linspace(110, 100.5, 21)]  # 12-1 +10%, total +0.5%
+    picks = last_pick("H6-6", {"GLD": crash, "TLT": np.linspace(100, 100.8, 127), "SHY": np.linspace(100, 101, 127)}, 127)
+    assert picks == {"SHY"}, f"T011 WINDOW H6 {picks}"
+    noise = 100 * np.exp(np.cumsum(np.random.default_rng(5).normal(0, 0.005, (61, 9)), axis=0))
+    calm_now = np.r_[np.full(10, 1.0), np.random.default_rng(6).normal(0, 0.05, 41), np.zeros(10)]
+    picks = last_pick("H7", {**dict(zip(SECTOR_ETFS, noise.T)), "XLB": 100 * np.exp(np.cumsum(calm_now))}, 61)
+    assert "XLB" not in picks and len(picks) == 3, f"T011 WINDOW H7 {picks}"
+    drift = {ticker: np.r_[np.full(4, 100.0), 99.0, 98.0] for ticker in SECTOR_ETFS}  # down 2% in 2 sessions
+    picks = last_pick("H8", {**drift, "XLB": np.r_[100.0, 90.0, 80.0, 80.0, 80.0, 80.0]}, 6)
+    assert "XLB" in picks and len(picks) == 3, f"T011 WINDOW H8 {picks}"
+
+
+def test_dual_momentum_holds_nothing_before_shy_is_observed():
+    shy = np.r_[np.full(10, np.nan), np.linspace(100, 101, 117)]
+    assert last_pick("H6-6", {"SHY": shy}, 127) == set(), "T011 SAFE"

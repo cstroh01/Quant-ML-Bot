@@ -25,13 +25,20 @@ MUTANTS = (
     ("dual momentum against zero", "max(axis=1) > total[SAFE_ASSET]", "max(axis=1) > 0", "T011 DUAL"),
     ("ranking direction flipped", "ascending=not highest", "ascending=highest", "T011 LISTING"),
     ("fewer than k still picked", ".mul(enough, axis=0)", ".mul(True, axis=0)", "T011 FEW"),
+    ("H3 skip month dropped", "_top_k(_past_return(closes, lag, MONTH_SESSIONS)", "_top_k(_past_return(closes, lag)",
+     "T011 WINDOW H3"),
+    ("H6 skips a month", "_past_return(closes, lag)\n", "_past_return(closes, lag, MONTH_SESSIONS)\n", "T011 WINDOW H6"),
+    ("H7 vol over 10 sessions", "diff().rolling(VOL_SESSIONS, min_periods=VOL_SESSIONS)", "diff().rolling(10, min_periods=10)",
+     "T011 WINDOW H7"),
+    ("H8 return over 2 sessions", "_past_return(s, 5)", "_past_return(s, 2)", "T011 WINDOW H8"),
+    ("SHY held before observed", "= eligible[SAFE_ASSET] & ~beats", "= ~beats", "T011 SAFE"),
     ("a gap inside the window ignored", ".sum().eq(rows)", ".sum().ge(rows - 1)", "T011 GAP"),
 )
 
 
 def main() -> int:
     base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, TEST
-    base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 32, MUTANTS
+    base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 34, MUTANTS
     return base.main()
 
 
