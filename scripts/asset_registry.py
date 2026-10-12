@@ -220,8 +220,8 @@ DOLLAR_VOLUME_SESSIONS = 252      # §3 rule 4: trailing window
 MIN_MEDIAN_DOLLAR_VOLUME = 20e6   # §3 rule 4: $20 million
 CLASS_CAP = 12                    # §3: at most 12 per class
 UNIVERSE_COLUMNS = (
-    "symbol", "name", "asset_class", "listing_date", "first_bar", "median_dollar_volume_252",
-    "as_of", "rank", "selected", "exclusion_reason",
+    "symbol", "name", "etf_flag", "test_issue", "issuer_category", "asset_class", "listing_date",
+    "first_bar", "median_dollar_volume_252", "as_of", "rank", "selected", "exclusion_reason",
 )
 CANDIDATE_COLUMNS = ("symbol", "name", "etf_flag", "test_issue", "issuer_category", "asset_class",
                      "listing_date")
@@ -241,6 +241,26 @@ _LEVERAGED_CATEGORY = re.compile(r"leverag|inverse|volatil", re.IGNORECASE)
 
 def _flag(value) -> bool:
     return value is True or (isinstance(value, str) and value.strip().upper() in {"Y", "TRUE"})
+
+
+def _reason(etf_flag, test_issue, category, name, asset_class, first, median,
+            history_cutoff: pd.Timestamp) -> str:
+    """The first §3 rule a row fails, or "" when eligible (shared by builder and validator)."""
+    if not _flag(etf_flag):
+        return "not_etf"
+    if _flag(test_issue):
+        return "test_issue"
+    if _LEVERAGED_CATEGORY.search(str(category or "")):
+        return "leveraged_inverse_or_volatility"
+    if _LEVERAGED_NAME.search(str(name)):
+        return "leveraged_inverse_or_volatility"
+    if asset_class not in ETF_ASSET_CLASSES:
+        return "unknown_asset_class"
+    if first is None or pd.isna(first) or first > history_cutoff:
+        return "insufficient_history"
+    if not (_finite(median) and median >= MIN_MEDIAN_DOLLAR_VOLUME):
+        return "illiquid"
+    return ""
 
 
 def _labels(series: pd.Series, what: str) -> pd.Series:
@@ -304,23 +324,13 @@ def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: d
     rows = []
     for (_, cand), listed in zip(candidates.iterrows(), listing):
         first, median = _liquidity(groups.get(cand["symbol"], panel.iloc[0:0]), cutoff)
-        reason = ""
-        if not _flag(cand["etf_flag"]):
-            reason = "not_etf"
-        elif _flag(cand["test_issue"]):
-            reason = "test_issue"
-        elif _LEVERAGED_CATEGORY.search(str(cand["issuer_category"] or "")):
-            reason = "leveraged_inverse_or_volatility"
-        elif _LEVERAGED_NAME.search(str(cand["name"])):
-            reason = "leveraged_inverse_or_volatility"
-        elif cand["asset_class"] not in ETF_ASSET_CLASSES:
-            reason = "unknown_asset_class"
-        elif first is None or first > history_cutoff:
-            reason = "insufficient_history"
-        elif not (_finite(median) and median >= MIN_MEDIAN_DOLLAR_VOLUME):
-            reason = "illiquid"
+        etf, test = ("Y" if _flag(cand[c]) else "N" for c in ("etf_flag", "test_issue"))
+        category = "" if pd.isna(cand["issuer_category"]) else str(cand["issuer_category"])
+        reason = _reason(etf, test, category, cand["name"], cand["asset_class"], first, median,
+                         history_cutoff)
         rows.append({
-            "symbol": cand["symbol"], "name": cand["name"], "asset_class": cand["asset_class"],
+            "symbol": cand["symbol"], "name": cand["name"], "etf_flag": etf, "test_issue": test,
+            "issuer_category": category, "asset_class": cand["asset_class"],
             "listing_date": "" if pd.isna(listed) else listed.strftime("%Y-%m-%d"),
             "first_bar": "" if first is None else first.strftime("%Y-%m-%d"),
             "median_dollar_volume_252": median, "as_of": cutoff.strftime("%Y-%m-%d"),
@@ -345,7 +355,9 @@ def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) 
     date and no exclusion reason, an unselected row has a known reason; at most ``CLASS_CAP``
     selected per class; every selected row meets the dollar-volume floor and the history rule
     against ``as_of``; ranks run 1..n and re-deriving the selection from the eligible rows
-    (selected, ``class_cap``, ``below_cutoff``) reproduces every rank and reason; and, unless ``require_all_classes`` is false, every taxonomy class has a selected ETF.
+    (selected, ``class_cap``, ``below_cutoff``) reproduces every rank and reason; every other
+    row's reason is re-derived from its own fields (flags, category, name, class, first bar,
+    median); and, unless ``require_all_classes`` is false, every taxonomy class has a selected ETF.
     Raises ``ValueError`` naming the first broken check; returns ``None`` otherwise.
     """
     missing = set(UNIVERSE_COLUMNS) - set(frame.columns)
@@ -388,6 +400,15 @@ def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) 
     ranks = pd.to_numeric(picked["rank"], errors="coerce").astype("float64").sort_values().tolist()
     if ranks != list(range(1, len(picked) + 1)):
         raise ValueError("universe list rank must run 1..n over the selected rows")
+    medians = pd.to_numeric(frame["median_dollar_volume_252"], errors="coerce")
+    firsts = pd.to_datetime(frame["first_bar"].replace("", None), errors="coerce")
+    for i in frame.index:
+        derived = _reason(frame.at[i, "etf_flag"], frame.at[i, "test_issue"],
+                          frame.at[i, "issuer_category"], frame.at[i, "name"],
+                          frame.at[i, "asset_class"], firsts[i], medians[i], history_cutoff)
+        if derived != ("" if reason[i] in {"", "class_cap", "below_cutoff"} else reason[i]):
+            raise ValueError(f"universe list exclusion reason does not match its fields: "
+                             f"{frame.at[i, 'symbol']} ({reason[i] or 'selected'} vs {derived})")
     pool = frame.loc[selected | reason.isin({"class_cap", "below_cutoff"})].assign(
         median_dollar_volume_252=lambda f: pd.to_numeric(f["median_dollar_volume_252"], errors="coerce"))
     chosen, capped, cut = _select(pool, len(picked))

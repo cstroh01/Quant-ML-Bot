@@ -275,6 +275,21 @@ def test_validator_refuses_a_selection_that_is_not_the_highest_volume(a, b):
         ar.validate_universe(swap(result, a, b), require_all_classes=False)
 
 
+@pytest.mark.parametrize("forge", ["swap", "relabel"])
+def test_validator_rederives_every_exclusion_reason_from_its_fields(forge):
+    """Codex P1 (#180): a forged eligibility reason must not hide an inverse product."""
+    bars = panel({"OK": ("2022-01-03", LIQUID), "LEV": ("2022-01-03", LIQUID)})
+    result = build([cand("OK"), cand("LEV", name="ProShares Ultra QQQ")], bars)
+    ar.validate_universe(result, require_all_classes=False)
+    if forge == "swap":
+        forged = swap(result, "OK", "LEV")
+    else:
+        forged = result.assign(exclusion_reason=result["exclusion_reason"].replace(
+            "leveraged_inverse_or_volatility", "illiquid"))
+    with pytest.raises(ValueError, match="does not match its fields: (LEV|OK)"):
+        ar.validate_universe(forged, require_all_classes=False)
+
+
 def test_validator_refuses_an_unknown_exclusion_reason():
     result = build([cand("A"), cand("B", etf=False)], panel({"A": ("2022-01-03", LIQUID)}))
     ar.validate_universe(result, require_all_classes=False)
