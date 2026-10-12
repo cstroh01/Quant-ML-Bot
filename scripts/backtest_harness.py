@@ -3,6 +3,7 @@
 import numpy as np
 import pandas as pd
 
+from cost_model import MODEL, PERMITTED_VOLUME_BASES, CostConfig, CostUnavailable, estimate_fill_cost
 from metrics import validate_costs
 
 # The trade log's shape is fixed here so an empty result still has the same
@@ -11,6 +12,9 @@ from metrics import validate_costs
 TRADE_LOG_COLUMNS = ["Entry Date", "Entry Price", "Exit Date", "Exit Price", "P&L"]
 
 REQUIRED_PRICE_COLUMNS = ("Date", "Open", "Close", "Buy_Next_Open", "Sell_Next_Open")
+
+# Spec 046 D-3: flat bps survives only as a labelled unit-test/diagnostic mode, never as a fallback.
+FLAT_LABEL = "not reportable (Rule 13)"
 
 
 def run_backtest(
@@ -21,8 +25,15 @@ def run_backtest(
     starting_capital: float | None = None,
     shares: int = 1,
     liquidate: bool = False,
+    cost_config: CostConfig | None = None,
 ) -> pd.DataFrame:
     """Fund already-shifted orders; return closed trades with an event ledger.
+
+    With `cost_config`, every fill pays the spec 046 Rule 13 fraction for its own quantity
+    (shares bought, or shares held at exit), estimated from bars through the session before
+    the fill; terminal liquidation uses the preceding-session estimate. An order with no valid
+    estimate is a `cost_refused` event, never a flat or zero-cost fill. Without it, flat
+    `slippage_bps` runs as the labelled diagnostic `FLAT_LABEL`.
 
     Long-only, immediate fills, no borrowing or pending orders. Buying power
     equals cash. An unaffordable entry is recorded as rejected, never resized.
@@ -34,6 +45,11 @@ def run_backtest(
     if missing or prices.empty:
         raise ValueError(f"nonempty prices required; missing columns: {missing}")
     validate_costs(commission_per_trade, slippage_bps)
+    if cost_config is not None:
+        if not isinstance(cost_config, CostConfig) or slippage_bps != 0:
+            raise ValueError("one cost model per run: a CostConfig with slippage_bps=0, or flat bps alone")
+        if prices.attrs.get("volume_basis") not in PERMITTED_VOLUME_BASES:
+            raise ValueError(f"volume_basis {prices.attrs.get('volume_basis')!r} is not verified for Rule 13 costs")
     if prices.attrs.get("price_basis") != "unadjusted_dollars":
         raise ValueError("funded ledger requires declared unadjusted dollar prices")
     prices = prices.copy()
@@ -82,8 +98,24 @@ def run_backtest(
     payments = []
     trades, events = [], []
     rate = slippage_bps / 10000.
+    if cost_config is not None:
+        history = prices.set_index(dates)[["Open", "High", "Low", "Close", "Volume"]]
+        split_sessions = list(dates[prices.Split.to_numpy() != 1])
 
-    def record(date, phase, event, price, fee=0., action=0., basis=None, slippage=0.):
+    def cost(i, units):
+        """(fraction, breakdown) for a fill after session i - 1; CostUnavailable when none exists."""
+        if cost_config is None:
+            return rate, None
+        if i < 1:
+            raise CostUnavailable("warmup", "no session before the first fill")
+        past = history.iloc[:i]
+        past.attrs["volume_basis"] = prices.attrs["volume_basis"]
+        est = estimate_fill_cost(past, as_of=dates.iloc[i - 1], quantity=float(units),
+                                 config=cost_config, split_sessions=split_sessions)
+        return est.total, dict(Half_Spread=est.half_spread, Impact=est.impact, Cost_As_Of=est.as_of)
+
+    def record(date, phase, event, price, fee=0., action=0., basis=None, slippage=0.,
+               fraction=0., detail=None, status=None):
         if not np.isfinite(cash + quantity * price + receivable):
             raise ValueError("nonfinite account equity")
         events.append(dict(Event_ID=len(events), Date=date, Phase=phase,
@@ -91,11 +123,17 @@ def run_backtest(
                            Buying_Power=cash, Reserved_Cash=0., Quantity=quantity,
                            Receivable=receivable, Action=action,
                            Equity=cash + quantity * price + receivable,
-                           Pay_Date_Basis=basis))
+                           Pay_Date_Basis=basis, Cost_Fraction=fraction, Cost_Status=status,
+                           **(detail or dict(Half_Spread=np.nan, Impact=np.nan, Cost_As_Of=pd.NaT))))
 
-    def sell(date, phase, quote, event):
+    def sell(i, date, phase, quote, event):
         nonlocal cash, quantity, entry
-        fill = quote * (1 - rate)
+        try:
+            fraction, detail = cost(i, quantity)
+        except CostUnavailable as refusal:
+            record(date, phase, "cost_refused", quote, status=refusal.reason)
+            return
+        fill = quote * (1 - fraction)
         exit_slippage = quantity * (quote - fill)
         proceeds = quantity * fill - commission_per_trade
         if cash + proceeds < 0:
@@ -108,10 +146,11 @@ def run_backtest(
                        "Dividend Income": entry[3]})
         quantity = 0.0
         entry = None
-        record(date, phase, event, quote, commission_per_trade, slippage=exit_slippage)
+        record(date, phase, event, quote, commission_per_trade, slippage=exit_slippage,
+               fraction=fraction, detail=detail)
 
     record(dates.iloc[0], "initial", "initial", values[0, 0])
-    for row in prices.itertuples(index=False):
+    for i, row in enumerate(prices.itertuples(index=False)):
         due = sum(amount for date, amount in payments if date <= row.Date)
         if due:
             cash += due
@@ -134,23 +173,30 @@ def run_backtest(
                 payments.pop()
                 record(row.Date, "open", "payment", row.Open, action=income)
         if quantity and row.Sell_Next_Open:
-            sell(row.Date, "open", row.Open, "sell")
+            sell(i, row.Date, "open", row.Open, "sell")
         if not quantity and row.Buy_Next_Open:
-            fill = row.Open * (1 + rate)
+            try:
+                fraction, detail = cost(i, shares)
+            except CostUnavailable as refusal:
+                fraction = None
+                record(row.Date, "open", "cost_refused", row.Open, status=refusal.reason)
+            fill = row.Open * (1 + (fraction or 0.))
             required = shares * fill + commission_per_trade
             if not np.isfinite(required):
                 raise ValueError("nonfinite order notional")
-            if required > cash:
+            if fraction is None:
+                pass
+            elif required > cash:
                 record(row.Date, "open", "rejected", row.Open)
             else:
                 cash -= required
                 quantity = float(shares)
                 entry = (row.Date, fill, required, 0., shares)
                 record(row.Date, "open", "buy", row.Open, commission_per_trade,
-                       slippage=shares * (fill - row.Open))
+                       slippage=shares * (fill - row.Open), fraction=fraction, detail=detail)
         record(row.Date, "close", "mark", row.Close)
     if quantity and liquidate:
-        sell(row.Date, "close", row.Close, "liquidation")
+        sell(len(prices) - 1, row.Date, "close", row.Close, "liquidation")
     log = pd.DataFrame(trades, columns=TRADE_LOG_COLUMNS + ["Quantity", "Entry Quantity", "Entry Cost", "Dividend Income"])
     log["Trade_ID"] = np.arange(len(log))
     log["P&L"] = log["P&L"].astype(float)
@@ -161,7 +207,10 @@ def run_backtest(
                      commission_total=float(fills["Fee"].sum()),
                      slippage_total=float(fills["Slippage"].sum()),
                      commission_per_trade=float(commission_per_trade),
-                     slippage_bps=float(slippage_bps), liquidate=liquidate)
+                     slippage_bps=float(slippage_bps), liquidate=liquidate,
+                     cost_model=MODEL if cost_config is not None else "flat_bps",
+                     cost_label=MODEL if cost_config is not None else FLAT_LABEL,
+                     cost_config=cost_config.as_mapping() if cost_config is not None else None)
     return log
 
 

@@ -108,6 +108,22 @@ def equity_curve(
     entry_cost, income = 0., 0.
     expected_trades = []
     pending_payments, seen_actions = [], set()
+    modeled = trade_log.attrs.get("cost_model") == "spread_plus_sqrt_impact"
+    if modeled and slippage_bps != 0:
+        raise ValueError("a modeled-cost run carries no flat slippage_bps")
+
+    def fill_fraction(event, units):
+        """The recorded adverse fraction, held to the run's declared cost mode (spec 046 FR-008)."""
+        f = event.Cost_Fraction
+        if modeled:
+            ok = (np.isfinite(f) and 0 <= f < 1 and abs(f - event.Half_Spread - event.Impact) <= RECONCILIATION_TOLERANCE
+                  and pd.notna(event.Cost_As_Of) and event.Cost_As_Of < event.Date)
+        else:
+            ok = f == slippage_bps / 10000
+        if not ok or abs(event.Slippage - units * event.Price * f) > RECONCILIATION_TOLERANCE:
+            raise ValueError("recorded fill cost differs from the declared cost model")
+        return f
+
     for event in ledger.iloc[1:].itertuples(index=False):
         phase = "close" if event.Event in ("mark", "liquidation") else "open"
         if (event.Phase != phase or event.Date not in source.index
@@ -125,14 +141,14 @@ def equity_curve(
                 raise ValueError("overlapping or empty entry")
             entry_quantity = event.Quantity
             entry_date = event.Date
-            entry_price = event.Price * (1 + slippage_bps / 10000)
+            entry_price = event.Price * (1 + fill_fraction(event, event.Quantity))
             entry_cost = event.Quantity * entry_price + commission_per_trade
             income = 0.
             cash -= entry_cost
         elif event.Event in ("sell", "liquidation"):
             if quantity <= 0 or event.Quantity != 0:
                 raise ValueError("invalid exit transition")
-            exit_price = event.Price * (1 - slippage_bps / 10000)
+            exit_price = event.Price * (1 - fill_fraction(event, quantity))
             proceeds = quantity * exit_price - commission_per_trade
             cash += proceeds
             expected_trades.append((entry_date, entry_price, event.Date, exit_price,
@@ -154,7 +170,7 @@ def equity_curve(
             pending_payments = [(date, amount) for date, amount in pending_payments if date > event.Date]
             cash += event.Action
             receivable -= event.Action
-        elif event.Event not in ("mark", "rejected") or event.Quantity != quantity:
+        elif event.Event not in ("mark", "rejected", "cost_refused") or event.Quantity != quantity:
             raise ValueError("invalid position transition")
         fee = commission_per_trade if event.Event in ("buy", "sell", "liquidation") else 0.
         if abs(cash - event.Cash) > RECONCILIATION_TOLERANCE or event.Fee != fee:

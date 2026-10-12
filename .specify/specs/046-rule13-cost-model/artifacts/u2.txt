@@ -1,0 +1,55 @@
+Spec 046 U2 part 1 (T007 + T008) evidence, 2026-10-12. Queue Q71. EXAMPLE -- NOT A RESULT:
+synthetic frames only (tests/test_046_cost_wiring.py); no market data, no metric, no ledger write.
+Revision: origin/main 3b54c5be74fcc000862fb8c1cea4fb63bdcda92e. Python 3.12.3, Linux.
+
+T007 contracts first: with a stub harness (FLAT_LABEL defined, cost_config accepted but ignored,
+so fills still ran flat) `pytest tests/test_046_cost_wiring.py` gave 11 failed, 0 passed. Before
+the stub the module failed collection (FLAT_LABEL missing); that is not counted as red.
+
+T008: scripts/backtest_harness.py run_backtest(cost_config=CostConfig()) charges each fill
+estimate_fill_cost(bars through session i-1 only, Q = shares bought or quantity held at exit);
+terminal liquidation uses the preceding-session estimate (CONVENTIONS liquidation_cost_policy).
+No estimate -> "cost_refused" event with Cost_Status = the CostUnavailable reason; no flat or zero
+fallback. Unverified volume_basis refuses the run. CostConfig with slippage_bps != 0 refuses.
+Flat runs are attrs cost_model="flat_bps", cost_label="not reportable (Rule 13)" (D-3).
+Ledger adds Cost_Fraction, Half_Spread, Impact, Cost_As_Of, Cost_Status.
+scripts/metrics.py equity_curve reconciles each fill from its recorded Cost_Fraction (no flat
+reconstruction), held to the declared mode: flat == slippage_bps/1e4; modeled == Half_Spread +
+Impact, in [0, 1), Cost_As_Of before the fill session, and slippage_bps == 0; Slippage dollars
+== Q * quote * fraction for both. cost_refused is a non-fill event.
+
+Unmutated: tests/test_046_cost_wiring.py 11 passed. Existing accounting and caller tests
+(test_backtest_harness, test_metrics, test_019_*, test_041, test_047_friction,
+test_033_trial_instrumentation, test_signals, test_ma_crossover_backtest, test_reports_api,
+test_046_*, test_020, test_clean_clone_037, test_logistic_baseline, test_ml_signal,
+test_no_fabricated_values): 436 passed, no existing test edited.
+
+Rule 12: python tests/mutation/run_046_u2_mutants.py
+CONTROL green (unchanged copy, 11 collected)
+KILLED   M5 flat 5 bps executed under the model label -> test_buy_and_sell_charge_the_model_on_the_right_cutoff_and_quantity
+KILLED   M8 sell pays the buy sign -> test_buy_and_sell_charge_the_model_on_the_right_cutoff_and_quantity
+KILLED   M8 exit charged on the entry quantity -> test_exit_quantity_is_the_held_post_split_quantity
+KILLED   M8 metrics reconcile via flat bps -> test_metrics_reconcile_recorded_model_costs_and_refuse_a_forged_fraction
+KILLED   metrics accept a forged fraction -> test_metrics_reconcile_recorded_model_costs_and_refuse_a_forged_fraction
+KILLED   metrics accept any flat rate -> test_metrics_hold_flat_runs_to_their_declared_rate
+KILLED   refused order falls back to a zero-cost fill -> test_warmup_and_split_window_refuse_the_order_without_a_flat_fallback
+KILLED   affordability ignores the modeled cost -> test_affordability_includes_the_modeled_cost
+KILLED   estimate sees the fill session (Rule 1) -> test_future_bars_do_not_move_a_fill_fraction
+KILLED   liquidation uses the same-session bar -> test_terminal_liquidation_uses_the_preceding_session_estimate
+KILLED   flat diagnostic stamped with the model label -> test_model_and_flat_runs_are_labelled_and_never_mixed
+11/11 killed; sources and docs/trials (6 files) byte-identical
+Driver red proof (both real, found while building it): the "refused order falls back to a
+zero-cost fill" mutant first SURVIVED (the refusal test did not assert that no fill happened that
+session), and "metrics accept any flat rate" first SURVIVED (its test forged only Cost_Fraction,
+which the slippage-dollar cross-check caught first). Each test was strengthened; both now killed.
+
+021 whole-file SHA-256 (after):
+c51785d0308c905cbbe75e624d31ea435b0643b841e69928ad2c19bcf2ad16aa  scripts/backtest_harness.py
+ea69fc4dcf31e09f56c2acc280fa5731b27b29931cce6ff6681671f2de18cfde  scripts/metrics.py
+021 whole-file SHA-256 (origin/main):
+9483418cedf1945d6ce28baa89aca49b9d8a6f9d9e142cd3b98b77f7d4cb9307  scripts/backtest_harness.py
+45dc9e3d13368864fb20386010574005a3a32053fa164002680248a3562ebe84  scripts/metrics.py
+
+Remaining U2 (not in this PR): T009 caller/recorder binding (scripts/trial_runner.py,
+scripts/ma_crossover_backtest.py; M6, M10) and T010 close-out/inventory. Existing callers still
+run the labelled flat diagnostic until T009 binds CostConfig.
