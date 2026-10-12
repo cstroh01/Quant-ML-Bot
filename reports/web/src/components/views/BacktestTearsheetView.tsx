@@ -89,9 +89,6 @@ export const BacktestTearsheetView: React.FC<BacktestTearsheetViewProps> = ({
     ? colorblindMode ? 'text-cyan-400' : 'text-emerald-400'
     : colorblindMode ? 'text-amber-400' : 'text-rose-400';
 
-  // Compute total friction drag in dollars ($2 * commission * trades + roundtrip slippage)
-  const totalFrictionDrag = tearsheet.trade_log.length * (2 * tearsheet.commission_per_trade);
-
   return (
     <div className="space-y-6">
       {/* Top Metric Summary Cards */}
@@ -146,7 +143,7 @@ export const BacktestTearsheetView: React.FC<BacktestTearsheetViewProps> = ({
         </div>
 
         {/* Cost Model Audit */}
-        <div className="bg-[#0F131A] border border-[#1C2331] rounded-lg p-4 col-span-2 md:col-span-1">
+        <div data-testid="friction-card" className="bg-[#0F131A] border border-[#1C2331] rounded-lg p-4 col-span-2 md:col-span-1">
           <div className="flex items-center justify-between text-xs text-gray-400 font-mono mb-1">
             <span>FRICTION MODEL</span>
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -154,8 +151,12 @@ export const BacktestTearsheetView: React.FC<BacktestTearsheetViewProps> = ({
           <div className="text-sm font-semibold font-mono text-cyan-300">
             ${tearsheet.commission_per_trade.toFixed(2)} / {tearsheet.slippage_bps.toFixed(1)} bps
           </div>
-          <div className="text-[11px] text-gray-400 mt-1 flex items-center justify-between font-mono">
-            <span>Drag: -${totalFrictionDrag.toFixed(2)}</span>
+          {/* Spec 047 FR-002: the run's charged totals, as returned; the view does no friction arithmetic. */}
+          <div className="text-[11px] text-gray-400 mt-1 font-mono">
+            <div data-testid="friction-commission">Commission charged: ${tearsheet.commission_total.toFixed(2)}</div>
+            <div data-testid="friction-slippage">Slippage (flat bps, modeled): ${tearsheet.slippage_total.toFixed(2)}</div>
+          </div>
+          <div className="text-[11px] mt-1 flex items-center justify-end font-mono">
             <span className="text-emerald-400">✓ 1e-9</span>
           </div>
         </div>

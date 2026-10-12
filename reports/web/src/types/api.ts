@@ -87,6 +87,10 @@ export interface BacktestTearsheetResponse {
   strategy_name: string;
   commission_per_trade: number;
   slippage_bps: number;
+  /** Commission dollars charged on every executed fill (spec 047 FR-001). */
+  commission_total: number;
+  /** Fill concessions in dollars under the modeled flat-bps diagnostic; not Rule 13 costs until spec 046. */
+  slippage_total: number;
   capital_base: number;
   total_return: number;
   total_pnl: number;
