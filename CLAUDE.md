@@ -85,6 +85,11 @@ broken pipeline disguises bugs as bad predictions.
   v1.1 adds the paper-trading loop and starts the capital gate's paper clock.
 - **The capital gate is retained and unreached.** No real capital until every
   step of it passes. A deadline never relaxes a gate.
+- **v1.2 acceleration (2026-10-12).** `docs/SCOPE-V1.md` §11 governs where it
+  conflicts: LIVE trades only spec 059's preregistered allocation (no edge
+  claimed), behind §11.3's gate; PAPER `exec/` may be agent-built (Rule 7a);
+  merges run under constitution Rule 9b with a daily digest. The LIVE money
+  path, `SafetyConfig` values and ledger writes stay Camden's.
 - **Limitations are disclosed, not solved.** A static survivor basket, free-tier
   corporate actions, no point-in-time fundamentals, daily bars only, modeled
   rather than calibrated costs. Every surface reporting a result says so.

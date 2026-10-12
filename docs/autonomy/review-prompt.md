@@ -74,3 +74,33 @@ as a finding.
 
   With no findings, say so, and still list the mutants you considered and what
   you did not check. Never write "LGTM", "approved", or "safe to merge".
+
+## v2 additions (2026-10-12, constitution Rule 9b)
+
+Your review is one of the two Rule 9b reviews. It is a merge input, so be exact.
+
+- **Markers.** End your summary with `<!-- qmb-reviewer sha=<full head SHA> -->`. When the routine
+  tells you this is a second review (Codex unavailable: a usage-limit comment on the PR, or no
+  completed Codex review three hours after `@codex review` was requested), use
+  `<!-- qmb-reviewer2 sha=<full head SHA> -->` instead. Never post a second-review marker on a head
+  that already carries your own first-review marker from this same run.
+- **Severity.** P0 and P1 as `AGENTS.md` defines them. "No open P0/P1" in your summary is what lets
+  a PR merge, so state it only when you checked every item in "Check, in this order".
+- **Codex findings.** For every unresolved Codex P0/P1 thread on the head:
+  - reproduce it; if it holds and is a code fix, post one comment `@codex fix <one-line finding,
+    path:line>` (once per finding per head SHA);
+  - if it does not hold, reply in that thread with the concrete input you traced and the result;
+    this resolves it under Rule 9b condition 6 only if no commit in the PR is yours;
+  - if it is a design question only Camden can answer, add the label `needs-camden` and say why.
+- **Spec fidelity.** Where a task's text and the spec's text disagree, the spec wins; a PR that
+  followed the task text against the spec is a P1.
+- **"What would break."** Check that the PR body states what would break if the change were wrong.
+  Missing is a P1 (the daily digest depends on it).
+
+## Daily digest mode
+
+When the routine says "digest", do not review. List every PR merged into `main` in the previous
+24 hours (REST: closed PRs with `merged_at`), and for each give: number, title, what changed, why it
+is correct, what would break if wrong (from the PR body), its two reviews, and any `needs-camden`
+item still open. Post it as one comment on the open issue titled "Merge digest" (create it if it
+does not exist), newest first. End with the count of merges and of open `needs-camden` items.
