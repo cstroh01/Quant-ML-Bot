@@ -743,3 +743,113 @@ def loss_cap_history(
         for session, value in series.items()
     ]
     return pd.DataFrame(rows, columns=_STATUS_FIELDS).set_index("session")
+
+
+# ---------------------------------------------------------------------------
+# Spec 058 T012/T013: weight books over a session panel
+# ---------------------------------------------------------------------------
+
+
+def _require_book_frame(frame: pd.DataFrame, like: pd.DataFrame, *, name: str) -> None:
+    if not isinstance(frame, pd.DataFrame):
+        raise TypeError(f"{name} must be a DataFrame; got {type(frame).__name__}")
+    _validate_sessions(frame.index, what=name)
+    if not (frame.index.equals(like.index) and frame.columns.equals(like.columns)):
+        raise ValueError(f"{name} must share sessions and tickers with the panel it sizes.")
+
+
+def ewma_volatility(
+    closes: pd.DataFrame, *, span: int, periods_per_year: int = TRADING_DAYS_PER_YEAR
+) -> pd.DataFrame:
+    """Annualized EWMA volatility of daily log returns (spec 058: span 60, rows <= t only).
+
+    Row `t` is the bias-corrected exponentially weighted standard deviation
+    (pandas `ewm(span, adjust=True).std()`) of the log returns at or before
+    `t`, times `sqrt(periods_per_year)`. It is missing until `span` returns
+    exist, so a name has no volatility, and no size, before a full window.
+    A missing return is skipped, never filled. Row `t` is bit-identical under
+    any change to rows after `t`.
+    """
+    span = _require_window("span", span, minimum=2)
+    periods = _require_window("periods_per_year", periods_per_year, minimum=1)
+    daily = log_returns(closes).ewm(span=span, min_periods=span).std()
+    return daily * np.sqrt(periods)
+
+
+def volatility_target_book(
+    selection: pd.DataFrame,
+    volatility: pd.DataFrame,
+    *,
+    target_volatility: float,
+    max_gross: float,
+) -> pd.DataFrame:
+    """Spec 058 inverse-vol sizing: per session, `volatility_target_weights` then `apply_gross_cap`.
+
+    A selected name (confidence 1) gets `target_volatility / volatility`, so
+    each position alone carries the target's annualized risk; the book is
+    then scaled down proportionally to at most `max_gross`. This is the spec
+    017 per-name target, not a covariance-based portfolio target. A name with
+    no volatility at `t` gets 0. Row `t` reads row `t` of both frames only.
+    """
+    _require_book_frame(selection, volatility, name="selection")
+    if not (selection.dtypes == bool).all():
+        raise ValueError("selection must be boolean.")
+
+    def size(session: pd.Timestamp) -> pd.Series:
+        held = selection.loc[session].astype(float)
+        standalone = volatility_target_weights(
+            held, volatility.loc[session], target_volatility=target_volatility
+        )
+        return apply_gross_cap(standalone, max_gross=max_gross)
+
+    rows = [size(session) for session in selection.index]
+    return pd.DataFrame(rows, index=selection.index, columns=selection.columns).astype(float)
+
+
+def equal_weight_book(selection: pd.DataFrame, *, max_gross: float) -> pd.DataFrame:
+    """`max_gross / k` on each of the k selected names per session; an empty row stays flat.
+
+    Spec 058 B-BH is `equal_weight_book(closes.notna(), max_gross=1.0)`: equal
+    weight of every name with a close at `t`.
+    """
+    cap = _require_positive_finite("max_gross", max_gross)
+    if cap > 1.0:
+        raise ValueError(f"max_gross must be <= 1.0 (no leverage); got {max_gross}")
+    _require_book_frame(selection, selection, name="selection")
+    if not (selection.dtypes == bool).all():
+        raise ValueError("selection must be boolean.")
+    count = selection.sum(axis=1)
+    weight = (cap / count.where(count > 0)).fillna(0.0)
+    return selection.astype(float).mul(weight, axis=0)
+
+
+def fixed_allocation_book(closes: pd.DataFrame, allocation: dict[str, float]) -> pd.DataFrame:
+    """Spec 058 H10: the fixed `allocation` wherever every allocated name has a close at `t`.
+
+    A session missing any allocated name's close is flat, never re-weighted
+    across the rest: before IEF lists, H10 holds nothing rather than 100% SPY.
+    """
+    _validate_panel(closes)
+    mix = pd.Series(allocation, dtype="float64")
+    if mix.empty or not mix.index.isin(closes.columns).all():
+        raise ValueError("allocation must name tickers in the panel.")
+    _require_weights(mix.to_numpy(dtype=float), name="allocation")
+    if mix.sum() > 1.0 + CORRELATION_TOLERANCE:
+        raise ValueError("allocation must sum to <= 1.0 (no leverage).")
+    complete = closes[mix.index].notna().all(axis=1)
+    book = pd.DataFrame(0.0, index=closes.index, columns=closes.columns)
+    book.loc[complete, mix.index] = mix.to_numpy(dtype=float)
+    return book
+
+
+def blend_books(*books: pd.DataFrame) -> pd.DataFrame:
+    """Spec 058 H9: the equal-weight average of target-weight books on one panel.
+
+    Each input is gross <= 1, so the average is too.
+    """
+    if not books:
+        raise ValueError("blend_books needs at least one book.")
+    for book in books:
+        _require_book_frame(book, books[0], name="book")
+        _require_weights(book.to_numpy(dtype=float), name="book")
+    return sum(book.astype(float) for book in books) / len(books)
