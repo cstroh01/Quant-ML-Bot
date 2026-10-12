@@ -1,7 +1,8 @@
 """Rule 12 driver for spec 058 T012/T013: portfolio sizing, rebalance rows, H9/H10 combos and B-BH.
 
 Run: python tests/mutation/run_058_t012_mutants.py. Reuses run_058_t007_mutants.py's isolated copy,
-control, witness-carrying-failure and byte-identity checks against `scripts/portfolio_risk.py`.
+control, witness-carrying-failure and byte-identity checks against `scripts/portfolio_risk.py`
+and, for rebalance cadence, `scripts/signals.py`.
 """
 from __future__ import annotations
 
@@ -34,13 +35,6 @@ MUTANTS = (
     ("missing pair read as zero", "matrix = covariance.loc[session].loc[active, active].to_numpy(dtype=float)",
      "matrix = np.nan_to_num(covariance.loc[session].loc[active, active].to_numpy(dtype=float))",
      "T012 PAIR GAP"),
-    ("daily re-targeting restored", "return book.loc[opens]", "return book", "T012 CADENCE"),
-    ("first row a decision", "opens = np.zeros(len(sessions), dtype=bool)",
-     "opens = np.ones(len(sessions), dtype=bool)", "T012 CADENCE"),
-    ("weekly read as monthly", 'period = iso["year"].to_numpy() * 100 + iso["week"].to_numpy()',
-     "period = sessions.year * 12 + sessions.month", "T012 CADENCE"),
-    ("calendar year with ISO week", 'iso["year"].to_numpy() * 100', "sessions.year.to_numpy() * 100",
-     "T012 CADENCE iso year"),
     ("B-BH counts every ticker", "count = selection.sum(axis=1)", "count = selection.count(axis=1)",
      "T013 B-BH listing"),
     ("H10 with one leg listed", "notna().all(axis=1)", "notna().any(axis=1)", "T013 H10 LISTING"),
@@ -50,10 +44,28 @@ MUTANTS = (
 )
 
 
+# Cadence lives in the signal layer (Rule 8); its mutants run against scripts/signals.py.
+CADENCE_GUARD = "scripts/signals.py"
+CADENCE_MUTANTS = (
+    ("daily re-targeting restored", "opens[1:] = period[1:] != period[:-1]\n    return opens",
+     "opens[:] = True\n    return opens", "T012 CADENCE"),
+    ("first row a decision", "opens = np.zeros(len(sessions), dtype=bool)",
+     "opens = np.ones(len(sessions), dtype=bool)", "T012 CADENCE"),
+    ("weekly read as monthly", 'period = iso["year"].to_numpy() * 100 + iso["week"].to_numpy()',
+     "period = np.asarray(sessions.year * 12 + sessions.month)", "T012 CADENCE"),
+    ("calendar year with ISO week", 'iso["year"].to_numpy() * 100', "sessions.year.to_numpy() * 100",
+     "T012 CADENCE iso year"),
+)
+
+
 def main() -> int:
-    base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, TEST
-    base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 11, MUTANTS
-    return base.main()
+    failed = 0
+    for guard, mutants in ((GUARD, MUTANTS), (CADENCE_GUARD, CADENCE_MUTANTS)):
+        base.GUARD, base.TEST, base.SOURCE = guard, TEST, TEST
+        base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 11, mutants
+        print(f"== {guard}")
+        failed |= base.main()
+    return failed
 
 
 if __name__ == "__main__":

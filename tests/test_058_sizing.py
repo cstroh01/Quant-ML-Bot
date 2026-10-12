@@ -6,9 +6,9 @@ import numpy as np
 import pandas as pd
 import pytest
 from portfolio_backtest import run_portfolio_backtest
-from portfolio_risk import apply_gross_cap, blend_books, decision_rows, equal_weight_book, ewma_covariance, \
+from portfolio_risk import apply_gross_cap, blend_books, equal_weight_book, ewma_covariance, \
     ewma_volatility, fixed_allocation_book, volatility_target_book, volatility_target_weights
-from signals import hypothesis_selection
+from signals import decision_sessions, hypothesis_selection
 
 S = pd.bdate_range("2004-01-02", periods=300)
 T = ["SPY", "IEF", "GLD", "TLT"]
@@ -111,6 +111,10 @@ def test_the_book_is_capped_at_gross_one_keeping_inverse_vol_ratios():
     book = vol_book(only("IEF", "TLT"), closes).iloc[60:]
     assert np.allclose(book.sum(axis=1), 1.0, rtol=1e-12, atol=0), "T012 GROSS"
     assert np.allclose(book["IEF"] / book["TLT"], vol["TLT"] / vol["IEF"]), "T012 GROSS ratio"
+
+
+def decision_rows(book, *, cadence):
+    return book.loc[decision_sessions(book.index, cadence=cadence)]
 
 
 def books(closes):

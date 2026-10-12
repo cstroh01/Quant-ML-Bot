@@ -831,30 +831,6 @@ def volatility_target_book(
     return pd.DataFrame(rows, index=selection.index, columns=selection.columns).astype(float)
 
 
-def decision_rows(book: pd.DataFrame, *, cadence: str) -> pd.DataFrame:
-    """The rows of `book` that are spec 058 rebalance decisions; every other row is dropped.
-
-    `monthly` keeps the first session of each calendar month (H1-H7, H9, H10, B-BH), `weekly`
-    the first of each ISO week (H8): a row is kept when its month (week) differs from the previous row's, which reads rows
-    `t-1` and `t` only. The panel's first row is never kept, since whether it opens its period
-    is unknowable from the panel. `run_portfolio_backtest` trades only on rows its `weights`
-    carry, so holdings drift between decisions instead of being re-targeted every session.
-    """
-    _require_book_frame(book, book, name="book")
-    sessions = book.index
-    if cadence == "monthly":
-        period = sessions.year * 12 + sessions.month
-    elif cadence == "weekly":
-        iso = sessions.isocalendar()
-        period = iso["year"].to_numpy() * 100 + iso["week"].to_numpy()
-    else:
-        raise ValueError(f"cadence must be 'monthly' or 'weekly'; got {cadence!r}")
-    period = np.asarray(period)
-    opens = np.zeros(len(sessions), dtype=bool)
-    opens[1:] = period[1:] != period[:-1]
-    return book.loc[opens]
-
-
 def equal_weight_book(selection: pd.DataFrame, *, max_gross: float) -> pd.DataFrame:
     """`max_gross / k` on each of the k selected names per session; an empty row stays flat.
 
