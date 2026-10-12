@@ -270,12 +270,61 @@ def verify_family(family: str, *, root: Path = ROOT) -> dict:
     return {**record, "record_hash": claimed}
 
 
-def family_status(family: str, ledger: "TrialLedger") -> dict:
-    """Candidate starts in a declared family against its cap; over the cap voids family N (058 D-1)."""
-    cap = verify_family(family, root=ledger.root)["declaration"]["n_family_cap"]
-    n = sum(1 for e in ledger.verify()["events"] if e["event_type"] == "started" and e["family"] == family
+def _family_count(family: str, events: list[dict], root: Path) -> dict:
+    cap = verify_family(family, root=root)["declaration"]["n_family_cap"]
+    n = sum(1 for e in events if e["event_type"] == "started" and e["family"] == family
             and e["role"] in {"candidate", "synthetic_test"})
     return {"family": family, "n_family": n, "cap": cap, "within_cap": n <= cap}
+
+
+def family_status(family: str, ledger: "TrialLedger") -> dict:
+    """Candidate starts in a declared family against its cap; over the cap voids family N (058 D-1)."""
+    return _family_count(family, ledger.verify()["events"], ledger.root)
+
+
+def _undefined(reason: str, **fields) -> dict:
+    return {"value": None, "reason": reason, **fields}
+
+
+def trial_counts(backfill: dict, ledger: "TrialLedger", *, family: str | None = None) -> dict:
+    """N_current = N_backfill + every post-ledger candidate start (FR-026); family N beside it (058 D-1).
+
+    Guarantees: the backfill counts only as a complete, self-hashed artifact stored under the ledger
+    root's docs/trials/backfill and never below a stored superseding count; the ledger is read only
+    through its verified chain; duplicate, failed and unterminated candidate starts all count, while
+    baselines, unique hashes, completions and matrix columns never stand in for N. A family is
+    evaluated at N_family only while its declaration verifies, is anchored in the chain before the
+    family's first start, and its starts stay within a cap of at most 50; otherwise N reverts to
+    the lifetime N_current. The ledger is verified once: lifetime N, family N and `ledger_head_hash`
+    (also on the family block) all come from that one verified state (spec 033 amendment 2026-10-11).
+    """
+    body = {k: v for k, v in backfill.items() if k != "sha256"}
+    if backfill.get("sha256") != digest(body): return _undefined("evidence_corrupt")
+    n_backfill = backfill.get("n_backfill")
+    if backfill.get("status") != "complete" or isinstance(n_backfill, bool) or not isinstance(n_backfill, int) or n_backfill < 0:
+        return _undefined("backfill_incomplete")
+    stored = [json.loads(p.read_bytes()) for p in sorted((ledger.root / "docs/trials/backfill").glob("*.json")) if p.name != "manifest.json"]
+    if backfill not in stored: return _undefined("evidence_missing")
+    if any(n_backfill < (a.get("n_backfill") or 0) for a in stored): return _undefined("backfill_changed")
+    try: state = ledger.verify()
+    except ValueError as exc: return _undefined("ledger_invalid", detail=str(exc))
+    n_post = state["n_post_ledger"]
+    counts = {"reason": None, "n_backfill": n_backfill, "n_post_ledger": n_post, "n_current": n_backfill + n_post,
+              "backfill_hash": backfill["sha256"], "ledger_head_hash": state["head"], "family": None}
+    if family is not None:
+        try:
+            status = _family_count(family, state["events"], ledger.root)
+            anchor = verify_family(family, root=ledger.root)["ledger_head_at_declaration"]
+            heads = [ZERO, *(e["record_hash"] for e in state["events"])]
+            first = next((i for i, e in enumerate(state["events"], 1) if e["family"] == family), len(heads))
+            if anchor not in heads[:first]: raise ValueError("declaration not anchored before the family's first start")
+            if not 1 <= status["cap"] <= 50: raise ValueError("family cap outside 1..50")
+        except (ValueError, KeyError, TypeError) as exc:
+            status = {"family": family, "n_family": None, "cap": None, "within_cap": False, "detail": str(exc)}
+        n_dsr = status["n_family"] if status["within_cap"] else counts["n_current"]
+        counts["family"] = {**status, "n_dsr": n_dsr, "reverted_to_lifetime": not status["within_cap"],
+                            "ledger_head_hash": state["head"]}
+    return counts
 
 
 class TrialLedger:

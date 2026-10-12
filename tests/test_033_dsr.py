@@ -443,3 +443,49 @@ def test_t046_reported_dsr_and_t_stat_inputs_verified_independently():
     assert (hac["mean_excess_log_return"], hac["value"]) == (near(expect["mean"]), near(expect["t"])), f"T046 TSTAT: {hac}"
     assert (hac["hac_lags"], hac["annual_risk_free"], hac["days_per_year"]) == (T046_LAGS, .1, 250), f"T046 TSTAT: recorded convention {hac}"
     assert hac["standard_error"] == near(expect["mean"] / expect["t"]), f"T046 TSTAT: standard error {hac}"
+
+
+# --- Q97 (033 amendment 2026-10-11): counting lives in trial_registry; selection_bias reads no files.
+
+def test_q97_selection_bias_receives_counts_and_reads_no_files():
+    import ast
+    import selection_bias
+    import trial_registry
+    assert selection_bias.lifetime_count is trial_registry.trial_counts, "Q97 PURE: counting not delegated"
+    tree = ast.parse((SCRIPTS_DIR / "selection_bias.py").read_text(encoding="utf-8"))
+    names = {n.attr if isinstance(n, ast.Attribute) else n.id for n in ast.walk(tree) if isinstance(n, (ast.Attribute, ast.Name))}
+    reads = names & {"open", "read_bytes", "read_text", "glob", "rglob", "verify", "Path", "family_status", "verify_family"}
+    assert not reads, f"Q97 PURE: selection_bias touches files or the ledger: {sorted(reads)}"
+
+
+class _Racing:
+    """A ledger whose first verification is followed by another family start, as a concurrent run would."""
+    def __init__(self, log, after):
+        self.log, self.root, self.after, self.calls = log, log.root, after, 0
+
+    def verify(self):
+        state = self.log.verify()
+        self.calls += 1
+        if self.calls == 1:
+            self.after()
+        return state
+
+
+def test_q97_lifetime_and_family_counts_come_from_one_verified_head(tmp_path):
+    """EXAMPLE — NOT A RESULT. A start landing between two reads must not split the counts across heads."""
+    import trial_registry
+    source = SCRIPTS_DIR.parent / T039_SOURCE
+    target = tmp_path / T039_SOURCE; target.parent.mkdir(parents=True)
+    target.write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
+    trial_registry.declare_family(T039_FAMILY, root=tmp_path, synthetic=True)
+    art, log = t039_backfill(tmp_path), ledger(tmp_path)
+    edge = lambda: log.start(config(), role="candidate", family=T039_FAMILY, runner="fixture", source=SOURCE)  # noqa: E731
+    for _ in range(3): edge()
+    head = log.verify()["head"]
+    racing = _Racing(log, edge)
+    counts = trial_registry.trial_counts(art, racing, family=T039_FAMILY)
+    assert log.verify()["head"] != head, "precondition: the racing start landed"
+    fam = counts["family"]
+    assert (counts["ledger_head_hash"], fam["ledger_head_hash"], counts["n_post_ledger"], fam["n_family"]) == (head, head, 3, 3), \
+        f"Q97 ONE HEAD: {counts}"
+    assert racing.calls == 1, f"Q97 ONE HEAD: ledger verified {racing.calls} times"

@@ -6,7 +6,6 @@ The latter is Pearson kurtosis, not excess kurtosis. No clustering is performed.
 """
 from __future__ import annotations
 import hashlib
-import json
 import math
 import re
 from itertools import combinations
@@ -16,7 +15,7 @@ import pandas as pd
 from scipy.stats import norm
 from constants import TRADING_DAYS_PER_YEAR, RISK_FREE_RATE_ANNUAL
 from metrics import mean_log_return_se
-from trial_registry import ZERO, canonical_json, digest, family_status, validate_rows, verify_family
+from trial_registry import canonical_json, digest, trial_counts, validate_rows
 
 def undefined(reason: str, **fields) -> dict:
     return {"value": None, "reason": reason, **fields}
@@ -104,43 +103,9 @@ def matrix_dsr(matrix: dict, *, selected_trial: str, n_current: int) -> dict:
     result = deflated_sharpe(observed_sharpe=float(sharpes[j]), observations=len(x), skewness=float(np.mean(centered**3)/variance**1.5), pearson_kurtosis=float(np.mean(centered**4)/variance**2), trial_sharpe_std=float(sharpes.std(ddof=1)), n_current=n_current)
     return {**result, "matrix_hash": matrix["matrix_hash"], "trial_sharpes": sharpes.tolist(), "conventions": {"sharpe_ddof": 1, "moments": "central_population_Pearson", "risk_free": matrix["family"]["risk_free"]}}
 
-def lifetime_count(backfill: dict, ledger, *, family: str | None = None) -> dict:
-    """N_current = N_backfill + every post-ledger candidate start (FR-026); family N beside it (058 D-1).
-
-    Guarantees: the backfill counts only as a complete, self-hashed artifact stored under the ledger
-    root's docs/trials/backfill and never below a stored superseding count; the ledger is read only
-    through its verified chain; duplicate, failed and unterminated candidate starts all count, while
-    baselines, unique hashes, completions and matrix columns never stand in for N. A family is
-    evaluated at N_family only while its declaration verifies, is anchored in the chain before the
-    family's first start, and its starts stay within a cap of at most 50; otherwise N reverts to
-    the lifetime N_current.
-    """
-    body = {k: v for k, v in backfill.items() if k != "sha256"}
-    if backfill.get("sha256") != digest(body): return undefined("evidence_corrupt")
-    n_backfill = backfill.get("n_backfill")
-    if backfill.get("status") != "complete" or isinstance(n_backfill, bool) or not isinstance(n_backfill, int) or n_backfill < 0:
-        return undefined("backfill_incomplete")
-    stored = [json.loads(p.read_bytes()) for p in sorted((ledger.root / "docs/trials/backfill").glob("*.json")) if p.name != "manifest.json"]
-    if backfill not in stored: return undefined("evidence_missing")
-    if any(n_backfill < (a.get("n_backfill") or 0) for a in stored): return undefined("backfill_changed")
-    try: state = ledger.verify()
-    except ValueError as exc: return undefined("ledger_invalid", detail=str(exc))
-    n_post = state["n_post_ledger"]
-    counts = {"reason": None, "n_backfill": n_backfill, "n_post_ledger": n_post, "n_current": n_backfill + n_post,
-              "backfill_hash": backfill["sha256"], "ledger_head_hash": state["head"], "family": None}
-    if family is not None:
-        try:
-            status = family_status(family, ledger)
-            anchor = verify_family(family, root=ledger.root)["ledger_head_at_declaration"]
-            heads = [ZERO, *(e["record_hash"] for e in state["events"])]
-            first = next((i for i, e in enumerate(state["events"], 1) if e["family"] == family), len(heads))
-            if anchor not in heads[:first]: raise ValueError("declaration not anchored before the family's first start")
-            if not 1 <= status["cap"] <= 50: raise ValueError("family cap outside 1..50")
-        except (ValueError, KeyError, TypeError) as exc:
-            status = {"family": family, "n_family": None, "cap": None, "within_cap": False, "detail": str(exc)}
-        n_dsr = status["n_family"] if status["within_cap"] else counts["n_current"]
-        counts["family"] = {**status, "n_dsr": n_dsr, "reverted_to_lifetime": not status["within_cap"]}
-    return counts
+# Counting reads the ledger and backfill files, so it lives in trial_registry (033 amendment
+# 2026-10-11); this module receives the numbers. The name is kept for existing callers.
+lifetime_count = trial_counts
 
 def counted_dsr(matrix: dict, *, selected_trial: str, counts: dict) -> dict:
     """Lifetime-N DSR always; a family-N DSR is published beside it, never instead of it (058 D-1d),
