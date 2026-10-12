@@ -1,5 +1,7 @@
 """Reusable trading signal generators."""
 
+import zlib
+
 import numpy as np
 import pandas as pd
 
@@ -294,3 +296,86 @@ def decision_sessions(
     opens = np.zeros(len(sessions), dtype=bool)
     opens[1:] = period[1:] != period[:-1]
     return opens[1:] if previous is not None else opens
+
+
+# Spec 058 T013 B-RND: "seeded random long/flat per asset, monthly, same sizing and costs" (Rule 4).
+
+
+def _validate_decision_panel(closes: pd.DataFrame, decision_mask) -> np.ndarray:
+    index = closes.index
+    if not isinstance(index, pd.DatetimeIndex) or index.tz is not None or index.has_duplicates \
+            or not index.is_monotonic_increasing or closes.columns.has_duplicates:
+        raise ValueError("closes needs naive, unique, ascending sessions and unique tickers")
+    mask = np.asarray(decision_mask)
+    if mask.dtype != bool or mask.shape != (len(index),):
+        raise ValueError("decision_mask must be a boolean array with one entry per session")
+    return mask
+
+
+def random_selection(
+    closes: pd.DataFrame, *, decision_mask, hold_probability: float, seed: int
+) -> pd.DataFrame:
+    """B-RND hold selection for one seed: long/flat per ticker, redrawn on decision rows only.
+
+    Guarantees: a boolean frame shaped like `closes`. On each decision row every ticker with a
+    close at t is held with probability `hold_probability`; between decisions the holding
+    carries, and a ticker with no close at t is never held. Nothing is held before the first
+    decision row. Row t reads only the closes' presence at rows <= t and the seeded draws, never
+    a price, so it cannot see the future. Each ticker draws from its own stream, seeded by
+    `seed` and the ticker name, so adding or reordering columns leaves a ticker's draws
+    unchanged. Sizing and costs are applied by the same portfolio layer as the candidates.
+    """
+    mask = _validate_decision_panel(closes, decision_mask)
+    if isinstance(hold_probability, bool) or not 0.0 <= float(hold_probability) <= 1.0:
+        raise ValueError(f"hold_probability must be in [0, 1]; got {hold_probability!r}")
+    if isinstance(seed, bool) or not isinstance(seed, (int, np.integer)):
+        raise ValueError(f"seed must be an integer; got {seed!r}")
+    present = closes.notna().to_numpy()
+    held = np.zeros(present.shape, dtype=bool)
+    for col, ticker in enumerate(closes.columns):
+        stream = np.random.default_rng([int(seed), zlib.crc32(str(ticker).encode())])
+        draws = stream.random(int(mask.sum()))  # one draw per decision row, eligible or not
+        long_now = draws < hold_probability
+        state, k = False, 0
+        for row in range(len(mask)):
+            if mask[row]:
+                state, k = bool(long_now[k]), k + 1
+            held[row, col] = state and present[row, col]
+    return pd.DataFrame(held, index=closes.index, columns=closes.columns)
+
+
+def random_selections(
+    closes: pd.DataFrame, *, decision_mask, hold_probability: float, seeds
+) -> dict[int, pd.DataFrame]:
+    """`random_selection` for each of at least two distinct integer `seeds`, keyed by seed.
+
+    Rule 4 reports the random baseline's dispersion across seeds, not one draw, so a single
+    seed is refused.
+    """
+    seeds = list(seeds)
+    if len(seeds) < 2 or len(set(seeds)) != len(seeds) or any(
+            isinstance(s, bool) or not isinstance(s, (int, np.integer)) for s in seeds):
+        raise ValueError("seeds must be at least two distinct integers")
+    return {s: random_selection(closes, decision_mask=decision_mask,
+                                hold_probability=hold_probability, seed=s) for s in seeds}
+
+
+def matched_hold_probability(candidate: pd.DataFrame, closes: pd.DataFrame, *, decision_mask) -> float:
+    """The candidate's hold rate on decision rows: names held / names with a close, over all of them.
+
+    This is the trade-frequency match for B-RND: the random baseline holds an eligible name
+    on a decision row as often as the candidate does. A candidate holding a name with no close
+    is refused rather than counted.
+    """
+    mask = _validate_decision_panel(closes, decision_mask)
+    if not candidate.index.equals(closes.index) or not candidate.columns.equals(closes.columns) \
+            or not (candidate.dtypes == bool).all():
+        raise ValueError("candidate must be a boolean selection shaped like closes")
+    held = candidate.to_numpy()[mask]
+    eligible = closes.notna().to_numpy()[mask]
+    if (held & ~eligible).any():
+        raise ValueError("candidate holds a ticker with no close on a decision row")
+    total = eligible.sum()
+    if total == 0:
+        raise ValueError("no eligible ticker on any decision row")
+    return float(held.sum() / total)
