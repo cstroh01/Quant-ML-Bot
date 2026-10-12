@@ -2,7 +2,8 @@
 
 Tests first; T062 implements `scripts/generate_gate3_evidence.py` to this contract:
 
-- ``compose(evidence) -> artifact`` is pure. ``evidence`` carries the existing
+- ``compose(evidence) -> artifact`` is pure apart from ``artifact_id``, which is fresh on
+  every call, so identical evidence evaluated twice is two artifacts (FR-039). ``evidence`` carries the existing
   ``selection_bias`` outputs (``counts`` from ``lifetime_count``, ``matrix`` from
   ``build_matrix``, ``dsr`` from ``counted_dsr``, ``t_stat`` from ``hac_t_stat``,
   ``pbo`` from ``matrix_pbo``) plus selection, CV, cost and source metadata. It
@@ -244,6 +245,15 @@ def test_each_evaluation_writes_a_new_file_and_an_append_only_index_row(tmp_path
     assert (tmp_path / path1).read_bytes() == bytes1 and len(index.read_bytes().splitlines()) == 2
 
 
+def test_identical_evidence_evaluated_twice_is_two_artifacts_and_two_index_rows(tmp_path):
+    first, second = compose(real()), compose(real())  # same evidence, same generated_at_utc
+    assert first["artifact_id"] != second["artifact_id"], "FR-039: every evaluation is a new artifact"
+    assert {k: v for k, v in first.items() if k != "artifact_id"} == {k: v for k, v in second.items() if k != "artifact_id"}
+    paths = [write(first, tmp_path), write(second, tmp_path)]
+    rows = [json.loads(line) for line in (tmp_path / PRODUCTION / "index.jsonl").read_text().splitlines()]
+    assert paths[0] != paths[1] and [row["artifact_id"] for row in rows] == [first["artifact_id"], second["artifact_id"]]
+
+
 def test_a_new_candidate_start_or_changed_config_makes_the_prior_artifact_stale(tmp_path):
     assess = api("generate_gate3_evidence", "assess")
     log = ledger(tmp_path)
@@ -260,15 +270,18 @@ def test_a_new_candidate_start_or_changed_config_makes_the_prior_artifact_stale(
 
 # T059 — the route reads evidence, never computes it, and stays unknown without it.
 
-def gate_route(monkeypatch, root, now=None):
-    """Gate items from the real route over `root`; any statistic computed during the GET fails the test."""
+def gate_route(monkeypatch, root, now=None, *, discover=False):
+    """Gate items from the real route over `root`; any statistic computed during the GET fails the test.
+
+    `discover=True` leaves the generator's real `current_inputs` in place."""
     api("generate_gate3_evidence", "current_inputs")
     gates, generator = importlib.import_module(GATE_ROUTE), importlib.import_module("generate_gate3_evidence")
     for name in (*STATISTICS, "gather"):
         for module in (importlib.import_module("selection_bias"), gates, generator):
             monkeypatch.setattr(module, name, lambda *a, _n=name, **k: pytest.fail(f"GET computed {_n}"), raising=False)
     monkeypatch.setattr(gates, "ARTIFACT_ROOT", root, raising=False)
-    monkeypatch.setattr(generator, "current_inputs", lambda art, root: copy.deepcopy(now) if now else current(art))
+    if not discover:
+        monkeypatch.setattr(generator, "current_inputs", lambda art, root: copy.deepcopy(now) if now else current(art))
     return {gate.gate_number: gate for gate in gates.get_capital_gate_status().gates}
 
 
@@ -296,6 +309,62 @@ def test_route_stays_unknown_without_a_valid_indexed_artifact(tmp_path, monkeypa
             index.write(json.dumps({"artifact_id": art["artifact_id"], "path": planted,
                                     "sha256": hashlib.sha256(raw).hexdigest()}).encode() + b"\n")
         assert gate_route(monkeypatch, tmp_path)[3].evidence is None, planted
+
+
+def test_real_current_inputs_see_an_advanced_ledger_and_the_route_turns_stale(tmp_path, monkeypatch):
+    current_inputs, assess = (api("generate_gate3_evidence", name) for name in ("current_inputs", "assess"))
+    log = ledger(tmp_path)
+    start(log)
+    value = real()
+    value["counts"]["ledger_head_hash"] = log.verify()["head"]
+    found = current_inputs(compose(value), tmp_path)  # today's identity, discovered from the root
+    value["counts"]["backfill_hash"], value["source_identity"] = found["backfill_hash"], copy.deepcopy(found["source_identity"])
+    for holder in (value["matrix"], value["dsr"]["lifetime"], value["pbo"]):
+        holder["matrix_hash"] = found["matrix_hash"]
+    art = compose(value)
+    assert found["ledger_head_hash"] == art["ledger_head_hash"] == log.verify()["head"]
+    assert assess(art, current_inputs(art, tmp_path))["status"] == "passed"
+    path = write(art, tmp_path)
+    assert (gate_route(monkeypatch, tmp_path, discover=True)[3].status) == "passed"
+    start(log)  # the ledger advances after the artifact was generated
+    now = current_inputs(art, tmp_path)
+    assert now["ledger_head_hash"] == log.verify()["head"] != art["ledger_head_hash"], "current_inputs echoed the artifact"
+    assert assess(art, now) == {"status": "stale", "reason_codes": ["ledger_changed"]}
+    gate = gate_route(monkeypatch, tmp_path, discover=True)[3]
+    assert (gate.status, gate.evidence) == ("stale", path)
+
+
+def plant_row(root, raw_row):
+    with (root / PRODUCTION / "index.jsonl").open("ab") as index:
+        index.write(raw_row + b"\n")
+
+
+def plant_artifact(root, name, raw):
+    (root / PRODUCTION / name).write_bytes(raw)
+    return json.dumps({"artifact_id": name, "path": PRODUCTION + name, "sha256": hashlib.sha256(raw).hexdigest()}).encode()
+
+
+@pytest.mark.parametrize("case", ["truncated row", "row not an object", "row without sha256", "artifact not json",
+                                  "artifact wrong schema", "indexed file missing", "index not utf-8"])
+def test_route_fails_closed_on_malformed_index_or_artifact(tmp_path, monkeypatch, case):
+    write(compose(real()), tmp_path)  # a valid passed artifact first: the route must not fall back to it
+    assert gate_route(monkeypatch, tmp_path)[3].status == "passed", "control: the valid artifact is served"
+    if case == "truncated row":
+        plant_row(tmp_path, b'{"artifact_id": "x", "path": "' + PRODUCTION.encode())
+    elif case == "row not an object":
+        plant_row(tmp_path, b'["x", "y"]')
+    elif case == "row without sha256":
+        plant_row(tmp_path, json.dumps({"artifact_id": "x", "path": PRODUCTION + "x.json"}).encode())
+    elif case == "artifact not json":
+        plant_row(tmp_path, plant_artifact(tmp_path, "broken.json", b'{"status": "passed", "reason_co'))
+    elif case == "artifact wrong schema":
+        plant_row(tmp_path, plant_artifact(tmp_path, "thin.json", json.dumps({"status": "passed", "reason_codes": []}).encode()))
+    elif case == "indexed file missing":
+        plant_row(tmp_path, json.dumps({"artifact_id": "gone", "path": PRODUCTION + "gone.json", "sha256": "0" * 64}).encode())
+    else:
+        plant_row(tmp_path, b"\xff\xfe not utf-8")
+    gate = gate_route(monkeypatch, tmp_path)[3]  # must return, never raise a server error
+    assert (gate.status, gate.evidence) == ("unknown", None), case
 
 
 def test_gate3_text_names_the_real_thresholds_and_diagnostic_pbo():
