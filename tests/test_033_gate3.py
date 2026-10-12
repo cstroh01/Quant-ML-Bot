@@ -458,6 +458,19 @@ def test_unknown_evidence_with_complete_hashes_stays_unknown_when_inputs_move():
     assert verdict == {"status": "unknown", "reason_codes": ["pbo_undefined"]}, f"Q33 UNKNOWN STAYS {verdict}"
 
 
+@pytest.mark.parametrize("lifetime", [{"value": None, "reason": "invalid_lifetime_count"}, None])
+def test_a_missing_lifetime_dsr_blocks_even_when_family_n_gates(lifetime):
+    value = real(dsr=.97, family_dsr=.99)
+    if lifetime is None:
+        del value["dsr"]["lifetime"]
+    else:
+        value["dsr"]["lifetime"] = lifetime
+    art = compose(value)
+    assert (art["status"], art["reason_codes"]) == ("unknown", ["dsr_undefined"]), f"Q33 LIFETIME {art['status']}"
+    nan = compose(real(t=float("nan")))
+    assert nan["t_stat"]["value"] is None and "NaN" not in json.dumps(nan), "Q33 STRICT JSON"
+
+
 def test_an_undeterminable_current_input_is_never_current():
     assess = api("generate_gate3_evidence", "assess")
     art = compose(real())

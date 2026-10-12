@@ -76,6 +76,8 @@ def compose(evidence: dict) -> dict:
     gating = lifetime
     if dsr is not None and dsr.get("reason"):
         codes.add(dsr["reason"] if dsr["reason"] in UNKNOWN else "dsr_undefined")
+    if dsr is not None and not (isinstance(lifetime, dict) and _finite(lifetime.get("value"))):
+        codes.add("dsr_undefined")  # the lifetime-N DSR is always published, whichever N gates (058 D-1d)
     if family is not None and family.get("within_cap"):
         gating = (dsr or {}).get("family")
         if not isinstance(gating, dict) or not _finite(gating.get("value")):
@@ -116,7 +118,18 @@ def compose(evidence: dict) -> dict:
     }
     if "label" in e:
         artifact["label"] = e["label"]
-    return artifact
+    return _json_safe(artifact)
+
+
+def _json_safe(value):
+    """Non-finite floats become None, so the artifact is strict JSON (no bare NaN or Infinity tokens)."""
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
 
 
 def assess(artifact: dict, current: dict) -> dict:
@@ -148,7 +161,7 @@ def write_artifact(artifact: dict, root: Path = ROOT) -> str:
     directory = Path(root) / GATE3_DIR
     directory.mkdir(parents=True, exist_ok=True)
     relative = f"{GATE3_DIR}{artifact['artifact_id']}.json"
-    raw = json.dumps(artifact, sort_keys=True).encode("utf-8")
+    raw = json.dumps(artifact, sort_keys=True, allow_nan=False).encode("utf-8")
     with open(Path(root) / relative, "xb") as handle:
         handle.write(raw)
     row = {"artifact_id": artifact["artifact_id"], "path": relative, "sha256": hashlib.sha256(raw).hexdigest()}
@@ -207,7 +220,8 @@ def gather(*, candidate: str, family: str, root: Path = ROOT) -> dict:
             "generated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "counts": counts, "matrix": matrix, "dsr": counted_dsr(matrix, selected_trial=candidate, counts=counts),
             "t_stat": hac_t_stat(returns, horizon=policy["horizon"], lags=policy["hac_lags"],
-                                 annual_risk_free=policy["risk_free"]["annual_rate"]),
+                                 annual_risk_free=policy["risk_free"]["annual_rate"],
+                                 days_per_year=policy["risk_free"]["days_per_year"]),
             "pbo": matrix_pbo(matrix), "cv": selected.get("config", {}).get("cv"),
             "costs": selected.get("sidecar", {}).get("metadata", {}).get("costs"),
             "source_identity": source_identity(root)}

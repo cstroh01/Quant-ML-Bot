@@ -24,6 +24,10 @@ MUTANTS = (
      'if isinstance(stat, dict) and stat.get("matrix_hash") not in (None, matrix_hash):', "if False:", "unknown"),
     ("artifact id derived from content", "uuid.uuid4().hex",
      "hashlib.sha256(json.dumps(e, sort_keys=True, default=str).encode()).hexdigest()[:32]", "FR-039"),
+    ("lifetime DSR unchecked under family N",
+     'if dsr is not None and not (isinstance(lifetime, dict) and _finite(lifetime.get("value"))):', "if False:",
+     "Q33 LIFETIME"),
+    ("non-finite values kept", "    return _json_safe(artifact)", "    return artifact", "Q33 STRICT JSON"),
     ("ledger head not checked", "CURRENT = ((\"ledger_head_hash\", \"ledger_changed\"), ", "CURRENT = (", "stale"),
     ("unknown evidence re-assessed", 'if artifact.get("status") not in ("passed", "failed"):', "if False:",
      "Q33 UNKNOWN STAYS"),
@@ -39,7 +43,7 @@ MUTANTS = (
 def main() -> int:
     base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, DECLARATION
     base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "reports", "tests/context.py", "tests/spec033_support.py",
-                                                  DECLARATION, TEST), 61, MUTANTS
+                                                  DECLARATION, TEST), 63, MUTANTS
     return base.main()
 
 
