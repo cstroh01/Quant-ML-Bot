@@ -33,11 +33,16 @@ SCOPE_DAILY = "- **Daily bars only.** No intraday, no microstructure, no order-b
 UTC = "run = run.astimezone(timezone.utc)"
 RUN_LINE = "f\"run (UTC): {run.date().isoformat()} {run.strftime('%H:%M:%S')}Z\","
 IDENTITY = "identity = source_identity(root, workspace_state=workspace_state)"
-# Without time.tzset (Windows) the TZ-fixture test skips, so an M3b child instead inherits a POSIX-format zone,
-# read by the C runtime's localtime on both platforms, and any "038 STAMP M3b" failure is its kill. If the
-# zone is not honoured the mutant survives and the driver fails: M3b is never skipped (SC-003).
+# M3b (spec 038 §M3b) prints the local date beside the UTC time. With time.tzset the test's New York case is
+# the oracle: 02:00Z must fail and the 12:00Z control must pass. Without it (Windows) that test skips, so the
+# child inherits a POSIX-format zone the C runtime's localtime reads, and the UTC-5 evening clock (02:00Z) must
+# fail while the 23:30Z case passes. A zone not honoured leaves M3b alive and the driver fails (SC-003).
 HAS_TZSET = hasattr(time, "tzset")
 FALLBACK_TZ = "EST5EDT"
+NEW_YORK = ("038 STAMP M3b local zone", "test_run_date_is_utc_under_a_new_york_local_zone[2]",
+            "test_run_date_is_utc_under_a_new_york_local_zone[12]")
+MIDNIGHT = ("038 STAMP M3b midnight", "test_run_date_is_the_utc_date_either_side_of_midnight[<lambda>-2024-03-10 02:00:00Z]",
+            "test_run_date_is_the_utc_date_either_side_of_midnight[<lambda>-2024-03-09 23:30:00Z]")
 # (name, file, exact old fragment, mutant fragment, witness, needs a local zone[, failing case name])
 MUTANTS = (
     ("M1 dividend-bound item dropped", GUARD, DIVIDEND, "", "038 REGISTER drift", False),
@@ -48,7 +53,8 @@ MUTANTS = (
     ("M3 run date from the last bar", GUARD, RUN_LINE, RUN_LINE.replace(
         "{run.date().isoformat()}", "{_session_label(data_end) if data_end is not None else run.date().isoformat()}"),
      "038 STAMP M3 run date", False),
-    ("M3b local zone instead of UTC", GUARD, UTC, "run = run.astimezone()", "038 STAMP M3b local zone", True),
+    ("M3b local date beside the UTC time", GUARD, RUN_LINE,
+     RUN_LINE.replace("{run.date().isoformat()}", "{run.astimezone().date().isoformat()}"), "M3b", True),
     ("review: workspace hard-coded", GUARD, "f\"workspace: {identity['workspace_state']}\",", '"workspace: unknown",',
      "038 STAMP workspace", False),
     ("review: zone east of UTC", GUARD, UTC, "run = datetime.fromtimestamp(run.timestamp() + 3600, timezone.utc)",
@@ -118,11 +124,12 @@ def main() -> int:
         print(f"CONTROL green (unchanged copy, {COLLECTED} collected)")
         killed = 0
         for mutant in MUTANTS:
-            witness = mutant[4] if HAS_TZSET or not mutant[5] else "038 STAMP M3b"
+            witness, case, control = (NEW_YORK if HAS_TZSET else MIDNIGHT) if mutant[5] else (
+                mutant[4], mutant[6] if len(mutant) > 6 else None, None)
             with local_zone(FALLBACK_TZ if mutant[5] and not HAS_TZSET else None):
                 results = run_copy(mutant)
-            ok = not any(k == "error" for k, _, _ in results) and any(
-                k == "failure" and (name == mutant[6] if len(mutant) > 6 else name.startswith("test_"))
+            ok = not any(k == "error" or name == control for k, name, _ in results) and any(
+                k == "failure" and (name == case if case else name.startswith("test_"))
                 and msg.startswith(FAILURE) and witness in msg
                 for k, name, msg in results)
             killed += ok

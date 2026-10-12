@@ -19,7 +19,7 @@ KILLED   M1 dividend-bound item dropped -> 038 REGISTER drift
 KILLED   M1-scope SCOPE copy gains a bullet -> 038 REGISTER drift
 KILLED   M2 commit cached across calls -> 038 STAMP M2 stale commit
 KILLED   M3 run date from the last bar -> 038 STAMP M3 run date
-KILLED   M3b local zone instead of UTC -> 038 STAMP M3b local zone
+KILLED   M3b local date beside the UTC time -> 038 STAMP M3b local zone
 KILLED   review: workspace hard-coded -> 038 STAMP workspace
 KILLED   review: zone east of UTC -> 038 STAMP M3b midnight
 KILLED   review: data_end after run accepted -> DID NOT RAISE
@@ -30,13 +30,24 @@ KILLED   review: Sharpe status reworded -> 038 REGISTER sharpe_status
 ```
 
 M2 is planted with `GITHUB_SHA` cleared by the stamp tests' autouse fixture, so the commit comes from the
-synthetic `.git` whose HEAD moves between calls. M3b is never skipped (SC-003). Where `time.tzset` is missing (Windows), the
-test's own `TZ=America/New_York` case skips, so the driver runs the M3b child with `TZ=EST5EDT` in its
-environment (a POSIX-format zone the C runtime's `localtime` reads on both platforms) and counts any
-`038 STAMP M3b` failure as the kill, for example the UTC−5 evening clock. If the zone is not honoured, M3b
-survives and the driver exits 1. That path was simulated on Linux (forced `HAS_TZSET = False`, and the TZ
-test forced to skip): with `EST5EDT` M3b was killed (11/11, exit 0); with a zone that changes nothing
-(`UTC0`) it printed `SURVIVED`, 10/11, exit 1. It has **not** run on real Windows. The two `DID NOT RAISE` mutants are pinned
+synthetic `.git` whose HEAD moves between calls. M3b follows spec 038's M3b row ("the stamp uses local `date.today()`"): the
+mutant prints the host's local date beside the UTC time. With `time.tzset`, its kill must be the New York
+02:00Z case (`…new_york_local_zone[2]`), and the 12:00Z control case (`[12]`) must **pass** under the mutant;
+a control failure counts as survival. M3b is never skipped (SC-003). Without `time.tzset` (Windows) that
+test skips, so the M3b child runs with `TZ=EST5EDT` (a POSIX-format zone the C runtime's `localtime` reads)
+and the oracle is the UTC−5 evening clock (02:00Z, must fail) with the 23:30Z case as control (must pass).
+The Windows path has **not** run on real Windows; a zone not honoured leaves M3b alive and exits 1.
+
+Proofs, each in a deleted scratch copy (Linux):
+
+| Plant | Result |
+|---|---|
+| Windows path forced (`HAS_TZSET = False`, TZ test forced to skip), `EST5EDT` | M3b killed, 11/11, exit 0 |
+| same, zone `UTC0` (not honoured) | M3b `SURVIVED`, 10/11, exit 1 |
+| New York assertion weakened to compare only the time (`.endswith("02:00:00Z")`) | M3b `SURVIVED`, 10/11, exit 1 |
+| M3b mutant widened to convert the whole datetime (12:00Z control now fails too) | M3b `SURVIVED`, 10/11, exit 1 |
+
+The two `DID NOT RAISE` mutants are pinned
 to their own refusal case (`test_refusals[change4-ValueError]`, `[change0-ValueError]`), so a failure in
 another refusal case cannot be counted as their kill.
 
