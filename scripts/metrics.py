@@ -112,12 +112,14 @@ def equity_curve(
     if modeled and slippage_bps != 0:
         raise ValueError("a modeled-cost run carries no flat slippage_bps")
 
+    previous = dict(zip(source.index[1:], source.index[:-1]))  # the cutoff a fill's estimate must use
+
     def fill_fraction(event, units):
         """The recorded adverse fraction, held to the run's declared cost mode (spec 046 FR-008)."""
         f = event.Cost_Fraction
         if modeled:
             ok = (np.isfinite(f) and 0 <= f < 1 and abs(f - event.Half_Spread - event.Impact) <= RECONCILIATION_TOLERANCE
-                  and pd.notna(event.Cost_As_Of) and event.Cost_As_Of < event.Date)
+                  and event.Cost_As_Of == previous.get(event.Date))
         else:
             ok = f == slippage_bps / 10000
         notional = units * event.Price

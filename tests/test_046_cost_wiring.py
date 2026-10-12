@@ -216,3 +216,40 @@ def test_large_notional_fills_still_reconcile(cost):
 def test_model_mode_needs_full_ohlcv():
     with pytest.raises(ValueError, match="High"):
         run(frame(buys=[30]).drop(columns="High"))
+
+
+def test_each_fill_records_its_cost_evidence():
+    # Review P1 (FR-005): Q, ADV, sigma, window bounds, basis and spread handling travel per fill.
+    prices = frame(buys=[30], sells=[45])
+    buy = fills(run(prices)).iloc[0]
+    est = expected(prices, 30, SHARES)
+    got = (buy.Cost_Quantity, buy.Cost_ADV, buy.Cost_Sigma, buy.Cost_Window_Start, buy.Cost_As_Of,
+           buy.Cost_Volume_Basis, buy.Cost_Spread_Handling)
+    assert got == (est.quantity, est.adv, est.sigma, est.window_start, est.as_of, est.volume_basis,
+                   est.spread_handling), "046 U2 fill evidence"
+
+
+def forge(log, **columns):
+    ledger = log.attrs["ledger"].copy()
+    for column, value in columns.items():
+        ledger.loc[ledger.Event == "buy", column] = value
+    forged = log.copy()
+    forged.attrs.update(log.attrs, ledger=ledger)
+    return forged
+
+
+@pytest.mark.parametrize("session", [30, 10])  # the fill session itself; a stale earlier session
+def test_metrics_refuse_a_cutoff_other_than_the_preceding_session(session):
+    prices = frame(buys=[30], sells=[45])
+    forged = forge(run(prices), Cost_As_Of=prices.Date[session])
+    with pytest.raises(ValueError, match="declared cost model"):
+        equity_curve(prices, forged, commission_per_trade=FEE, slippage_bps=0.0)
+
+
+def test_metrics_refuse_components_that_do_not_sum_to_the_fraction():
+    # Fraction, slippage dollars and cash untouched: only the component-sum clause can refuse.
+    log = run(frame(buys=[30], sells=[45]))
+    buy = fills(log).iloc[0]
+    forged = forge(log, Half_Spread=buy.Half_Spread / 2)
+    with pytest.raises(ValueError, match="declared cost model"):
+        equity_curve(frame(buys=[30], sells=[45]), forged, commission_per_trade=FEE, slippage_bps=0.0)

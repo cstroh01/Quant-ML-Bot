@@ -15,6 +15,9 @@ REQUIRED_PRICE_COLUMNS = ("Date", "Open", "Close", "Buy_Next_Open", "Sell_Next_O
 
 # Spec 046 D-3: flat bps survives only as a labelled unit-test/diagnostic mode, never as a fallback.
 FLAT_LABEL = "not reportable (Rule 13)"
+# Per-fill Rule 13 evidence columns (FR-005); empty on non-fill events and flat fills.
+NO_DETAIL = dict(Half_Spread=np.nan, Impact=np.nan, Cost_As_Of=pd.NaT, Cost_Quantity=np.nan, Cost_ADV=np.nan,
+                 Cost_Sigma=np.nan, Cost_Window_Start=pd.NaT, Cost_Volume_Basis=None, Cost_Spread_Handling=None)
 
 
 def run_backtest(
@@ -116,7 +119,10 @@ def run_backtest(
         past.attrs["volume_basis"] = prices.attrs["volume_basis"]
         est = estimate_fill_cost(past, as_of=dates.iloc[i - 1], quantity=float(units),
                                  config=cost_config, split_sessions=split_sessions)
-        return est.total, dict(Half_Spread=est.half_spread, Impact=est.impact, Cost_As_Of=est.as_of)
+        return est.total, dict(Half_Spread=est.half_spread, Impact=est.impact, Cost_As_Of=est.as_of,
+                               Cost_Quantity=est.quantity, Cost_ADV=est.adv, Cost_Sigma=est.sigma,
+                               Cost_Window_Start=est.window_start, Cost_Volume_Basis=est.volume_basis,
+                               Cost_Spread_Handling=est.spread_handling)
 
     def record(date, phase, event, price, fee=0., action=0., basis=None, slippage=0.,
                fraction=0., detail=None, status=None):
@@ -128,7 +134,7 @@ def run_backtest(
                            Receivable=receivable, Action=action,
                            Equity=cash + quantity * price + receivable,
                            Pay_Date_Basis=basis, Cost_Fraction=fraction, Cost_Status=status,
-                           **(detail or dict(Half_Spread=np.nan, Impact=np.nan, Cost_As_Of=pd.NaT))))
+                           **(detail or NO_DETAIL)))
 
     def sell(i, date, phase, quote, event):
         nonlocal cash, quantity, entry

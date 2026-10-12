@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HARNESS, METRICS = "scripts/backtest_harness.py", "scripts/metrics.py"
 TEST = "tests/test_046_cost_wiring.py"
 COPIED = ("scripts", "tests/context.py", TEST)
-COLLECTED = 16
+COLLECTED = 20
 CUTOFF = "past = history.iloc[:i]\n"
 # (name, file, exact old fragment, mutant fragment, failing test, witness in its message)
 MUTANTS = (
@@ -58,6 +58,16 @@ MUTANTS = (
      "046 U2 refused liquidation"),
     ("slippage dollars checked at a fixed tolerance", METRICS, "> RECONCILIATION_TOLERANCE * max(1., notional)",
      "> RECONCILIATION_TOLERANCE", "test_large_notional_fills_still_reconcile[flat]", "046 U2 large notional"),
+    ("modeled cutoff may be the fill session", METRICS, "event.Cost_As_Of == previous.get(event.Date)",
+     "event.Cost_As_Of <= event.Date",
+     "test_metrics_refuse_a_cutoff_other_than_the_preceding_session[30]", ""),
+    ("modeled cutoff may be stale", METRICS, "event.Cost_As_Of == previous.get(event.Date)",
+     "event.Cost_As_Of < event.Date",
+     "test_metrics_refuse_a_cutoff_other_than_the_preceding_session[10]", ""),
+    ("component sum not checked", METRICS, "abs(f - event.Half_Spread - event.Impact) <= RECONCILIATION_TOLERANCE",
+     "True", "test_metrics_refuse_components_that_do_not_sum_to_the_fraction", ""),
+    ("per-fill sigma dropped", HARNESS, "Cost_Sigma=est.sigma,", "Cost_Sigma=np.nan,",
+     "test_each_fill_records_its_cost_evidence", "046 U2 fill evidence"),
     ("flat diagnostic stamped with the model label", HARNESS,
      "cost_label=MODEL if cost_config is not None else FLAT_LABEL,", "cost_label=MODEL,",
      "test_model_and_flat_runs_are_labelled_and_never_mixed", "046 U2 labels"),
