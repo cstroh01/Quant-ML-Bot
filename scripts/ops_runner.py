@@ -10,8 +10,10 @@ The wrapped command is the existing paper loop; this module never imports
 broker code or reads credentials.
 
 Drill support (055 T007): a kill stops only the profile it names until a reset that names the
-same profile again; an injected clock and a held-lease fixture exist only under ``--drill``, which
-is refused for a ``--submit`` command.
+same profile again; an injected clock and a held-lease fixture exist only under ``--drill``. A drill
+needs a state dir marked by a ``DRILL`` file (and a real run refuses one), takes no persist command,
+and refuses a command that mentions ``submit`` or abbreviates ``--submit``. That is a tripwire
+against an operator slip, not a sandbox: a wrapper script that submits internally is not detected.
 """
 from __future__ import annotations
 
@@ -77,21 +79,28 @@ def set_kill(state_dir, profile: str, *, reason: str, reset: bool = False) -> di
     """Kill, or with ``reset`` clear the kill on, ONE profile; other profiles are untouched.
 
     Both need a non-empty reason (for a reset, the review note). A reset of a profile that is not
-    killed raises. Every kill and reset is appended to ``<state>/ops/kills.jsonl``.
+    killed, or a kill of one that already is, raises. Every kill and reset is appended to
+    ``<state>/ops/kills.jsonl``.
     """
     if not str(reason or "").strip():
         raise ValueError("a kill or reset needs a reason")
     path = _kill_path(state_dir, profile)
     record = {"profile": profile, "action": "reset" if reset else "kill", "reason": reason,
               "at_utc": datetime.now(timezone.utc).isoformat()}
+    if reset != path.exists():
+        raise ValueError(f"{profile} is {'not' if reset else 'already'} killed")
     if reset:
-        if not path.exists():
-            raise ValueError(f"{profile} is not killed")
         path.unlink()
     else:
         atomic_write(path, json.dumps(record, sort_keys=True))
     _append(Path(state_dir) / "ops" / "kills.jsonl", record)
     return record
+
+
+def _may_submit(command: str) -> bool:
+    """True if ``command`` mentions submit or carries an argparse abbreviation of ``--submit``."""
+    return "submit" in command.lower() or any(
+        len(token) > 2 and "--submit".startswith(token) for token in shlex.split(command))
 
 
 def _log_size(run_log) -> int:
@@ -204,15 +213,24 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if (args.now is not None or args.hold_lease is not None) and not args.drill:
         parser.error("--now and --hold-lease are drill-only; add --drill")
-    if args.drill and "--submit" in shlex.split(args.command or ""):
-        parser.error("--drill is refused for a --submit command")
+    if args.drill and _may_submit(args.command or ""):
+        parser.error("--drill is refused for a command that may submit")
+    if args.drill and args.persist_command:
+        parser.error("--drill takes no --persist-command")
+    if args.drill != (args.state_dir / "DRILL").exists():
+        parser.error("--drill needs a state dir marked DRILL, and only a drill may use one")
+    if args.confirm_reset is not None and args.reset_kill is None:
+        parser.error("--confirm-reset is only for --reset-kill")
     if args.now is not None and args.now.tzinfo is None:
         parser.error("--now must be timezone-aware")
     if args.kill is not None or args.reset_kill is not None:
         if args.reset_kill is not None and args.confirm_reset != args.profile:
             parser.error("--reset-kill needs --confirm-reset naming this profile")
-        record = set_kill(args.state_dir, args.profile, reason=args.kill or args.reset_kill,
-                          reset=args.reset_kill is not None)
+        try:
+            record = set_kill(args.state_dir, args.profile, reason=args.kill or args.reset_kill,
+                              reset=args.reset_kill is not None)
+        except ValueError as error:
+            parser.error(str(error))
         print(json.dumps(record, sort_keys=True))
         return 0
     if args.hold_lease is not None:

@@ -14,8 +14,18 @@ TEST = "tests/test_055_drill_support.py"
 NOW_OR_LEASE = "if (args.now is not None or args.hold_lease is not None) and not args.drill:"
 # (name, exact old fragment, mutant fragment, witness in the assertion message)
 MUTANTS = (
-    ("injected clock accepted on a submit run", 'if args.drill and "--submit" in shlex.split(args.command or ""):',
+    ("injected clock accepted on a submit run", 'if args.drill and _may_submit(args.command or ""):',
      "if False:", "055 DRILL SUBMIT"),
+    ("abbreviated --submit missed", 'len(token) > 2 and "--submit".startswith(token)', "False", "055 DRILL SUBMIT"),
+    ("submit inside a shell wrapper missed", '"submit" in command.lower() or', '"--submit" in shlex.split(command) or',
+     "055 DRILL SUBMIT"),
+    ("drill persist command accepted", "if args.drill and args.persist_command:", "if False:", "055 DRILL PERSIST"),
+    ("drill on unmarked state", 'if args.drill != (args.state_dir / "DRILL").exists():',
+     'if not args.drill and (args.state_dir / "DRILL").exists():', "055 DRILL MARKER"),
+    ("every submit refused", 'if args.drill and _may_submit(args.command or ""):', 'if _may_submit(args.command or ""):',
+     "055 REAL SUBMIT"),
+    ("second kill overwrites the first", "if reset != path.exists():", "if reset and not path.exists():",
+     "055 KILL TWICE"),
     ("injected clock without --drill", NOW_OR_LEASE, "if args.hold_lease is not None and not args.drill:",
      "055 DRILL ONLY"),
     ("held lease without --drill", NOW_OR_LEASE, "if args.now is not None and not args.drill:", "055 LEASE DRILL ONLY"),
@@ -29,12 +39,14 @@ MUTANTS = (
     ("reset clears a kill without the explicit flag",
      "if args.reset_kill is not None and args.confirm_reset != args.profile:", "if False:", "055 RESET CONFIRM"),
     ("reset leaves the kill in place", "        path.unlink()\n    else:", "        pass\n    else:", "055 RESET"),
+    ("reset clears every profile", "        path.unlink()\n    else:",
+     "        [k.unlink() for k in path.parent.glob(\"kill-*.json\")]\n    else:", "055 RESET"),
 )
 
 
 def main() -> int:
     base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, TEST
-    base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 5, MUTANTS
+    base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 7, MUTANTS
     return base.main()
 
 
