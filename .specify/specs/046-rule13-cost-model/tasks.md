@@ -86,7 +86,7 @@ production ledger/cache writes or changes to existing human gates.
 
 ## U2 — harness, reconciliation and recorder (≤300 changed lines)
 
-- [ ] T007 Write execution contracts before wiring. Files:
+- [x] T007 Write execution contracts before wiring. Files:
   `tests/test_046_cost_wiring.py`, read-only `scripts/backtest_harness.py` and
   `scripts/metrics.py`. **Acceptance:** hand-enumerated buys/sells, actual exit
   Q after splits, terminal close cutoff, unaffordable entry, no-cost-unavailable
@@ -95,7 +95,7 @@ production ledger/cache writes or changes to existing human gates.
   planted defects:** M5 and M8; a correct label with flat arithmetic must fail.
   **Depends on:** T006.
 
-- [ ] T008 Inject cost estimation and reconcile actual fills. Files:
+- [x] T008 Inject cost estimation and reconcile actual fills. Files:
   `scripts/backtest_harness.py`, `scripts/metrics.py`,
   `tests/test_046_cost_wiring.py`; narrow adaptations in
   `tests/test_backtest_harness.py`, `tests/test_019_ledger.py`,
