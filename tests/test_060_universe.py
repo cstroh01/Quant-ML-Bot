@@ -85,6 +85,7 @@ def test_every_candidate_gets_one_row_and_every_exclusion_a_reason():
     ("ProShares Short S&P500", ""), ("iPath S&P 500 VIX Short-Term Futures ETN", ""),
     ("Plain Name Fund", "leveraged"), ("Plain Name Fund", "Inverse"),
     ("Plain Name Fund", "volatility"), ("ProShares UltraShort 20+ Year Treasury", ""),
+    ("ProShares Short 20+ Year Treasury", ""), ("ProShares Short High Yield", ""),
 ])
 def test_leveraged_inverse_and_volatility_products_are_screened(name, category):
     result = build([cand("LEV", name=name, category=category)], panel({"LEV": ("2022-01-03", LIQUID)}))
@@ -94,7 +95,10 @@ def test_leveraged_inverse_and_volatility_products_are_screened(name, category):
 def test_ordinary_names_pass_the_screen():
     for name in ("Vanguard Short-Term Bond ETF", "iShares 1-3 Year Treasury Bond ETF",
                  "SPDR Gold Shares", "Invesco DB US Dollar Index Bullish Fund",
-                 "Invesco S&P 500 Low Volatility ETF", "JPMorgan Ultra-Short Income ETF"):
+                 "Invesco S&P 500 Low Volatility ETF", "JPMorgan Ultra-Short Income ETF",
+                 "iShares Short Treasury Bond ETF", "iShares Short Maturity Bond ETF",
+                 "PIMCO Enhanced Short Maturity Active ETF", "BlackRock Ultra Short-Term Bond ETF",
+                 "Invesco Ultra Short Duration ETF"):
         result = build([cand("OK", name=name)], panel({"OK": ("2022-01-03", LIQUID)}))
         assert row(result, "OK")["selected"], name
 
@@ -213,6 +217,28 @@ def test_validator_refuses_each_format_defect(break_it, message):
         ar.validate_universe(break_it(full_universe()))
 
 
+@pytest.mark.parametrize("field, value, message", [
+    ("median_dollar_volume_252", 1e6, "below the dollar-volume floor"),
+    ("median_dollar_volume_252", "", "below the dollar-volume floor"),
+    ("first_bar", "2024-01-02", "short of the history rule"),
+    ("first_bar", "", "short of the history rule"),
+    ("rank", 7, "rank must run 1"),
+])
+def test_validator_refuses_a_selected_row_that_breaks_the_rule(field, value, message):
+    forged = full_universe().astype({field: object})
+    forged.at[0, field] = value
+    with pytest.raises(ValueError, match=message):
+        ar.validate_universe(forged)
+
+
+def test_validator_refuses_an_unknown_exclusion_reason():
+    result = build([cand("A"), cand("B", etf=False)], panel({"A": ("2022-01-03", LIQUID)}))
+    ar.validate_universe(result, require_all_classes=False)
+    forged = result.assign(exclusion_reason=result["exclusion_reason"].replace("not_etf", "vibes"))
+    with pytest.raises(ValueError, match="unknown exclusion reason"):
+        ar.validate_universe(forged, require_all_classes=False)
+
+
 def test_validator_refuses_more_than_the_class_cap():
     cands = [cand(f"E{i:02d}") for i in range(13)]
     result = build(cands, panel({c["symbol"]: ("2022-01-03", LIQUID) for c in cands}))
@@ -250,7 +276,8 @@ def oracle_duplicates():
 
 @pytest.mark.parametrize("old, new, oracle", [
     # An ETF admitted before 3 years of history (off by one year).
-    ("DateOffset(years=HISTORY_YEARS)", "DateOffset(years=HISTORY_YEARS - 1)", oracle_history),
+    ("cutoff - pd.DateOffset(years=HISTORY_YEARS)", "cutoff - pd.DateOffset(years=HISTORY_YEARS - 1)",
+     oracle_history),
     # Dollar volume computed with a window that includes sessions after as_of.
     ("frame[\"Date\"] <= cutoff", "frame[\"Date\"] <= frame[\"Date\"].max()", oracle_future_window),
     # A leveraged ETF passing the screen (name screen dropped).

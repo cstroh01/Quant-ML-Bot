@@ -225,11 +225,17 @@ UNIVERSE_COLUMNS = (
 )
 CANDIDATE_COLUMNS = ("symbol", "name", "etf_flag", "test_issue", "issuer_category", "asset_class",
                      "listing_date")
-# §3 rule 2 name screen. Fails toward exclusion; "Short-Term", "Ultra-Short" (cash-like bond
-# funds) and "Low Volatility" (a factor style) are ordinary names, not leveraged/inverse/vol ETPs.
+# §3 rule 2 name screen. Fails toward exclusion, but a short-maturity bond name ("Short
+# Treasury", "Short Maturity", "Ultra Short Duration", "Short-Term") and "Low Volatility" (a factor
+# style) are ordinary names, not leveraged/inverse/vol ETPs. The reviewed list (§3) overrides.
+_DURATION = r"(?:term|treasury|maturity|duration|bond|income|government|corporate|muni)"
 _LEVERAGED_NAME = re.compile(
-    r"\b(ultra(?!-short)\w*|[1-9]x|bull|bear|inverse|leveraged|vix|(?<!low )volatility)\b"
-    r"|(?<!ultra-)\bshort\b(?![- ]term)", re.IGNORECASE)
+    r"\b(ultra(?![- ]short)\w*|[1-9]x|bull|bear|inverse|leveraged|vix|(?<!low )volatility)\b"
+    rf"|(?<!ultra[- ])\bshort\b(?![- ]{_DURATION})", re.IGNORECASE)
+EXCLUSION_REASONS = frozenset({
+    "not_etf", "test_issue", "leveraged_inverse_or_volatility", "unknown_asset_class",
+    "insufficient_history", "illiquid", "class_cap", "below_cutoff",
+})
 _LEVERAGED_CATEGORY = re.compile(r"leverag|inverse|volatil", re.IGNORECASE)
 
 
@@ -331,8 +337,9 @@ def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) 
 
     Checks: every ``UNIVERSE_COLUMNS`` present; one ``as_of``; no duplicate symbol; ``selected``
     is a boolean; every selected row's class is in the taxonomy; a selected row has a listing
-    date and no exclusion reason, an unselected row has a reason; at most ``CLASS_CAP`` selected per class;
-    and, unless ``require_all_classes`` is false, every taxonomy class has a selected ETF.
+    date and no exclusion reason, an unselected row has a known reason; at most ``CLASS_CAP``
+    selected per class; every selected row meets the dollar-volume floor and the history rule
+    against ``as_of``, and ranks run 1..n; and, unless ``require_all_classes`` is false, every taxonomy class has a selected ETF.
     Raises ``ValueError`` naming the first broken check; returns ``None`` otherwise.
     """
     missing = set(UNIVERSE_COLUMNS) - set(frame.columns)
@@ -357,10 +364,24 @@ def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) 
         raise ValueError("universe list has a selected row with an exclusion reason")
     if (~selected & reason.eq("")).any():
         raise ValueError("universe list has an excluded row without a reason")
+    unknown = sorted(set(reason[~selected]) - EXCLUSION_REASONS)
+    if unknown:
+        raise ValueError(f"universe list has an unknown exclusion reason: {unknown}")
     counts = frame.loc[selected, "asset_class"].value_counts()
     over = sorted(counts.index[counts > CLASS_CAP])
     if over:
         raise ValueError(f"universe list over the class cap: {', '.join(over)}")
+    picked = frame.loc[selected]
+    median = pd.to_numeric(picked["median_dollar_volume_252"], errors="coerce")
+    if not (median.map(_finite) & (median >= MIN_MEDIAN_DOLLAR_VOLUME)).all():
+        raise ValueError("universe list has a selected row below the dollar-volume floor")
+    first = pd.to_datetime(picked["first_bar"].replace("", None), errors="coerce")
+    history_cutoff = pd.Timestamp(str(frame["as_of"].iloc[0])) - pd.DateOffset(years=HISTORY_YEARS)
+    if not (first.notna() & (first <= history_cutoff)).all():
+        raise ValueError("universe list has a selected row short of the history rule")
+    ranks = pd.to_numeric(picked["rank"], errors="coerce").astype("float64").sort_values().tolist()
+    if ranks != list(range(1, len(picked) + 1)):
+        raise ValueError("universe list rank must run 1..n over the selected rows")
     if require_all_classes:
         absent = [c for c in ETF_ASSET_CLASSES if c not in counts.index]
         if absent:
