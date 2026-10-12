@@ -165,7 +165,7 @@ anything downstream depends on._
    - I did not edit the constitution.
 2. **Out of declared sequence.** `PROJECT_CONTEXT.md` has spec 013's real multi-ticker run as next. 017 was built ahead of it, the same shape of drift the doc already flags for 016.
 3. **PR size.** 745 module + 1,391 test lines, ~2.6× spec 012's module. CLAUDE.md says split when line-by-line review is impractical. Split seams are in `plan.md` → *Complexity Tracking*. Not split unilaterally.
-4. **Is the overlap step too aggressive?** It removes a median 69% of full-conviction exposure on real data. The rule is doing what it says (five names ≈ 1.5 independent bets). Whether to soften it, e.g. toward portfolio-vol scaling, needs a costed backtest to judge.
+4. **Is the overlap step too aggressive?** It removes a median [struck] of full-conviction exposure on real data (scratchpad diagnostic above). The rule is doing what it says (five names ≈ 1.5 independent bets). Whether to soften it, e.g. toward portfolio-vol scaling, needs a costed backtest to judge.
 5. **Kelly.** If you want a fractional-Kelly path, it needs a calibrated probability or return forecast first. Best as its own spec after 013, with a ceiling ≤ ½.
 6. **No wiring yet.** `run_backtest` is one share, one ticker. The next spec is a weight-based multi-asset execution path. It's an execution-layer change, and it brings Rule 3 costs plus both Rule 4 baselines.
 7. **Where confidence comes from** is undecided. Mapping a classifier's probability, a regression prediction, or 012's entry mask onto [0,1] is a signal-layer choice for the wiring spec.
