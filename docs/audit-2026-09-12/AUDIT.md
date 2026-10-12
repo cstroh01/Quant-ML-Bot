@@ -27,14 +27,16 @@ Local Python was 3.13.14; CI specifies 3.12. The frontend was built with Node 24
 
 **What the actual results establish**
 
-The saved `data/cache/feature_set_comparison.json` is a prediction-quality comparison, not a costed investment experiment. It contains 113 outer folds and 2,359 paired observations per entry, with six-month initial training, one-month tests, one-bar horizon/purge and one-bar embargo; seed 42. Costs are not applicable to these prediction scores.
+The saved `data/cache/feature_set_comparison.json` is a prediction-quality comparison, not a costed investment experiment. It contains [struck] outer folds and [struck] paired observations per entry, with six-month initial training, one-month tests, one-bar horizon/purge and one-bar embargo; seed 42. Costs are not applicable to these prediction scores.
 
 | Estimator | Levels → scale-free | Saved one-sided p-value | Interpretation |
 |---|---|---:|---|
-| Logistic classification | 50.784% → 52.989% accuracy | 0.01219 | Better than that control; below always-up accuracy of 53.540% on the same default test rows |
-| HGB classification | 51.547% → 51.802% accuracy | 0.43293 | No persuasive improvement in this comparison |
-| Ridge regression | MSE 0.0003560020 → 0.0003557017 | 0.03135 | About 0.0844% relative MSE reduction; economic value unestablished |
-| HGB regression | MSE 0.0003628177 → 0.0003611051 | 0.26327 | No persuasive improvement in this comparison |
+| Logistic classification | [struck] accuracy | [struck] | Better than that control; below always-up accuracy of 53.540% on the same default test rows |
+| HGB classification | [struck] accuracy | [struck] | No persuasive improvement in this comparison |
+| Ridge regression | MSE [struck] | [struck] | Relative MSE reduction [struck]; economic value unestablished |
+| HGB regression | MSE [struck] | [struck] | No persuasive improvement in this comparison |
+
+[struck] marks figures removed under Rule 11 (spec 038 D-5 (b)): their only source, `data/cache/feature_set_comparison.json`, is absent from the repository, so they cannot be regenerated or checked. The always-up 53.540% stays; its source is the committed `docs/audit-2026-09-12/direction-baseline.json`.
 
 These p-values are unadjusted screening outputs with dependence concerns below. The always-up result is a descriptive classification baseline, not a return claim. Neither low accuracy nor a low p-value alone determines profitability: magnitudes, exposure, costs, and the execution horizon matter.
 
@@ -128,7 +130,7 @@ The current AAPL SMA API tearsheet separately reports $57.54 net one-share P&L v
 
 **40 — P1 / R: replace binary-active overlap penalties with exposure-sensitive portfolio risk.** [portfolio_risk.py](../../scripts/portfolio_risk.py:360). A weight of `1e-12` in a perfectly correlated second asset halves the first asset's weight from 25% to 12.5%, just as a large position would. The active-name count creates a discontinuity unrelated to dollar risk. Use a regularized covariance matrix, portfolio variance `w'Σw`, marginal risk contributions, and sector/factor limits; or compare a clearly specified weighted-overlap alternative. Acceptance: tiny exposures have tiny effects, limits behave continuously, and realized risk/turnover remain acceptable out of sample.
 
-**41 — P1 / R: distinguish per-asset inverse-vol sizing from portfolio volatility targeting.** [portfolio_risk.py](../../scripts/portfolio_risk.py:306). `confidence × target_vol / asset_vol` does not target total portfolio volatility. The documented full-conviction diagnostic produces median gross exposure around 0.38 after the overlap penalty and removes median 69% of pre-adjustment exposure. That may be conservative by choice, but it is not automatically optimal or “10% portfolio vol.” Compare risk-normalized allocations, cash returns and turnover. Shrinkage is available in the existing dependency stack: [scikit-learn Ledoit-Wolf](https://scikit-learn.org/stable/modules/generated/sklearn.covariance.ledoit_wolf.html).
+**41 — P1 / R: distinguish per-asset inverse-vol sizing from portfolio volatility targeting.** [portfolio_risk.py](../../scripts/portfolio_risk.py:306). `confidence × target_vol / asset_vol` does not target total portfolio volatility. The documented full-conviction diagnostic produces median gross exposure around [struck] after the overlap penalty and removes median [struck] of pre-adjustment exposure ([struck]: Rule 11, the only source is a scratchpad diagnostic recorded in NIGHT_RUN_SUMMARY.md, never committed). That may be conservative by choice, but it is not automatically optimal or “10% portfolio vol.” Compare risk-normalized allocations, cash returns and turnover. Shrinkage is available in the existing dependency stack: [scikit-learn Ledoit-Wolf](https://scikit-learn.org/stable/modules/generated/sklearn.covariance.ledoit_wolf.html).
 
 **42 — P1 / G: define and calibrate conviction before using it as a weight multiplier.** [portfolio_risk.py](../../scripts/portfolio_risk.py:306), [spec 017 research](../../.specify/specs/017-position-sizing-risk/research.md). A `[0,1]` input domain is not a definition of economic confidence. Specify whether it is calibrated win probability, normalized expected utility, uncertainty-adjusted edge or an abstention score. A toy Kelly formula based on accuracy assumes particular payoff magnitudes and is not a general sizing equation. Keeping Kelly out now is sensible; eventually estimate payoff distribution and estimation error before revisiting it.
 
