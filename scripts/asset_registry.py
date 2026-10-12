@@ -298,7 +298,8 @@ def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: d
     Point-in-time (Rule 1): only bars dated on or before ``as_of`` are read. A candidate is
     eligible when it is an ETF, not a test issue, passes the leveraged/inverse/volatility screen
     (name or issuer category), carries a taxonomy class, has its first bar on or before
-    ``as_of`` minus ``HISTORY_YEARS`` years, and has a trailing ``DOLLAR_VOLUME_SESSIONS``-session
+    ``as_of`` minus ``HISTORY_YEARS`` years (bars before its listing date are ignored: a reused
+    ticker's older bars belong to another instrument; no listing date means no history), and has a trailing ``DOLLAR_VOLUME_SESSIONS``-session
     median dollar volume of at least ``MIN_MEDIAN_DOLLAR_VOLUME`` (inclusive; a short, non-finite
     or negative window fails closed). Eligible ETFs keep the top ``CLASS_CAP`` per class by that
     median, then the top ``size`` overall; ties break by symbol. Every unselected row names
@@ -323,7 +324,9 @@ def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: d
 
     rows = []
     for (_, cand), listed in zip(candidates.iterrows(), listing):
-        first, median = _liquidity(groups.get(cand["symbol"], panel.iloc[0:0]), cutoff)
+        bars_of = groups.get(cand["symbol"], panel.iloc[0:0])  # bound by listing: a reused ticker's
+        bars_of = bars_of.loc[bars_of["Date"] >= listed] if pd.notna(listed) else bars_of.iloc[0:0]
+        first, median = _liquidity(bars_of, cutoff)  # older bars belong to another instrument
         etf, test = ("Y" if _flag(cand[c]) else "N" for c in ("etf_flag", "test_issue"))
         category = "" if pd.isna(cand["issuer_category"]) else str(cand["issuer_category"])
         reason = _reason(etf, test, category, cand["name"], cand["asset_class"], first, median,
@@ -347,7 +350,8 @@ def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: d
     return result.loc[order].reset_index(drop=True)
 
 
-def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) -> None:
+def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True,
+                      size: int = 100) -> None:
     """Refuse a universe list (built, or read back from CSV) that breaks the v1 format.
 
     Checks: every ``UNIVERSE_COLUMNS`` present; one ``as_of``; no duplicate symbol; ``selected``
@@ -355,7 +359,7 @@ def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) 
     date and no exclusion reason, an unselected row has a known reason; at most ``CLASS_CAP``
     selected per class; every selected row meets the dollar-volume floor and the history rule
     against ``as_of``; ranks run 1..n and re-deriving the selection from the eligible rows
-    (selected, ``class_cap``, ``below_cutoff``) reproduces every rank and reason; every other
+    (selected, ``class_cap``, ``below_cutoff``) for ``size`` reproduces every rank and reason; every other
     row's reason is re-derived from its own fields (flags, category, name, class, first bar,
     median); and, unless ``require_all_classes`` is false, every taxonomy class has a selected ETF.
     Raises ``ValueError`` naming the first broken check; returns ``None`` otherwise.
@@ -411,7 +415,7 @@ def validate_universe(frame: pd.DataFrame, *, require_all_classes: bool = True) 
                              f"{frame.at[i, 'symbol']} ({reason[i] or 'selected'} vs {derived})")
     pool = frame.loc[selected | reason.isin({"class_cap", "below_cutoff"})].assign(
         median_dollar_volume_252=lambda f: pd.to_numeric(f["median_dollar_volume_252"], errors="coerce"))
-    chosen, capped, cut = _select(pool, len(picked))
+    chosen, capped, cut = _select(pool, size)
     by_rank = list(picked.assign(_r=pd.to_numeric(picked["rank"])).sort_values("_r").index)
     if (by_rank != chosen or set(capped) != set(pool.index[reason[pool.index].eq("class_cap")])
             or set(cut) != set(pool.index[reason[pool.index].eq("below_cutoff")])):

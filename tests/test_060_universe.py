@@ -156,6 +156,13 @@ def test_missing_sessions_extend_the_window_to_252_bars():
     assert row(result, "GAP")["first_bar"] == "2022-01-03"
 
 
+def test_bars_before_the_listing_date_are_not_history():
+    """Codex P1 (#180): a reused ticker must not inherit its predecessor's bars."""
+    result = build([cand("REUSE", listed="2025-01-02")], panel({"REUSE": ("2022-01-03", LIQUID)}))
+    assert row(result, "REUSE")["exclusion_reason"] == "insufficient_history"
+    assert row(result, "REUSE")["first_bar"] == "2025-01-02"
+
+
 def test_non_finite_volume_fails_closed():
     bad = lambda d: np.where(d == pd.Timestamp("2026-09-01"), np.nan, LIQUID)  # inside the window
     result = build([cand("NAN")], panel({"NAN": ("2022-01-03", bad)}))
@@ -270,9 +277,20 @@ def swap(frame, a, b):
 ])
 def test_validator_refuses_a_selection_that_is_not_the_highest_volume(a, b):
     result = ranked_universe()
-    ar.validate_universe(result, require_all_classes=False)
+    ar.validate_universe(result, require_all_classes=False, size=12)
     with pytest.raises(ValueError, match="highest-dollar-volume selection"):
-        ar.validate_universe(swap(result, a, b), require_all_classes=False)
+        ar.validate_universe(swap(result, a, b), require_all_classes=False, size=12)
+
+
+def test_validator_refuses_a_truncated_selection():
+    """Codex P1 (#180): the expected count comes from ``size``, not from the selected rows."""
+    result = ranked_universe()
+    ar.validate_universe(result, require_all_classes=False, size=12)
+    last = result.index[result["rank"].eq(12)][0]
+    forged = result.astype({"rank": object})
+    forged.loc[last, ["selected", "rank", "exclusion_reason"]] = [False, pd.NA, "below_cutoff"]
+    with pytest.raises(ValueError, match="highest-dollar-volume selection"):
+        ar.validate_universe(forged, require_all_classes=False, size=12)
 
 
 @pytest.mark.parametrize("forge", ["swap", "relabel"])
