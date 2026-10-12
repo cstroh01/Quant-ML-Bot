@@ -41,7 +41,7 @@ were adopted in #174, and §11.3 replaces §5 as the capital gate while §11 is 
 | 038 disclosure sweep | 10/39 | Q96, Q47, Q57 ready |
 | 044 nominal price reconstruction | 4/36 | Q73 baseline ready; later units wait on 044 T007/T008 |
 | 046 Rule 13 cost model | 4/15 | U1a/U1b merged (#142, #167); Q71 is next |
-| 047 tearsheet correctness | 4/16 | Q66/Q67 ready; Q67 needs the #158 path revision first |
+| 047 tearsheet correctness | 4/16 | Q66 ready; Q67 blocked until the #158 recorded-payload revision lands |
 | 049 / 051 / 055 PAPER operations | 7/13, 6/9, 5/7 | Q106, Q107, Q112 ready (lane D) |
 | 058 edge research | 1/18 | Boxes lag merged work: T005 (#126), T006 (#134), T007 (#145), T008 (#140), T010 (#165), T011 (#166) and T012 (#169) merged unticked |
 | 059 LIVE allocation | 0/10 | Q108 waits on Q103 |
@@ -53,7 +53,7 @@ were adopted in #174, and §11.3 replaces §5 as the capital gate while §11 is 
 |---|---|
 | A | Q103, Q104 (Codex P1s merged in #169/#173), Q97 |
 | B | Q38, Q73, Q113, Q114, Q115 |
-| C | Q96, Q47, Q57, Q66, Q67 (after its path revision), Q71 |
+| C | Q96, Q47, Q57, Q66, Q71 |
 | D | Q106, Q107, Q112 |
 
 ## Expected red on `main`
@@ -73,6 +73,7 @@ Ledger: `docs/trials/trials.jsonl` 174 lines, SHA-256
 | 058 T015, T016 | Ledger-writing research and holdout runs | Camden runs them (one command each) |
 | 033 Q33b (T063, T064) | `reports/api/routes/capital_gate.py` route reads the Gate 3 artifact | A Camden-authorized unit |
 | 044 T003, T004, T007 | Probe reviews and live probe | G12/G13 delegations (Codex lane) |
+| 047 Q67 (T010, T011) | Spec text and Q67 `allowed_paths` must be revised for the recorded-payload route, with an explicit as-of session (#158) | A spec 047 revision PR; then Q67 back to `ready` |
 | 055 paper-loop `kill` input | Per-profile kill wiring in `ops/workflows/paper-loop.yml` (#168 proposal) | Camden's decision on #168 blocker 1 |
 | §11.3 items 6–7 | Fidelity preview sessions; arming LIVE with the $100 budget | Camden |
 | LIVE `exec/` (`fidelity_live.py`, `fidelity_reconcile.py`) | Rule 7a line-by-line review | Camden |
