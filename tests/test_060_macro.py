@@ -46,20 +46,30 @@ SERIES = alfred(
 )
 
 
-def test_alfred_value_is_visible_from_its_vintage_start_not_before():
-    out = ms.alfred_asof(SERIES, [D("2024-02-12"), D("2024-02-13")])
+def test_alfred_value_is_visible_from_the_session_after_its_vintage_start():
+    """ALFRED dates availability, not the moment: a vintage starting on d may have been
+    released after d's 16:00 decision (WALCL posts Thursdays 16:30 ET), so it is used from
+    the next session on (Rule 1 over spec 060 FR-003's "vintage start <= d")."""
+    out = ms.alfred_asof(SERIES, [D("2024-02-12"), D("2024-02-13"), D("2024-02-14")])
     assert out[D("2024-02-12")] == 3.4  # January not yet released: December's print carries
-    assert out[D("2024-02-13")] == 3.1  # released on the session itself (vintage start <= d)
+    assert out[D("2024-02-13")] == 3.4  # released that day, possibly after the close
+    assert out[D("2024-02-14")] == 3.1
 
 
 def test_alfred_uses_the_vintage_current_on_each_session():
-    out = ms.alfred_asof(SERIES, [D("2024-03-11"), D("2024-03-12"), D("2024-06-03")])
-    assert list(out) == [3.1, 3.2, 3.2]  # the revision is never visible before 2024-03-12
+    sessions = [D("2024-03-11"), D("2024-03-12"), D("2024-03-13"), D("2024-06-03")]
+    assert list(ms.alfred_asof(SERIES, sessions)) == [3.1, 3.1, 3.2, 3.2]  # revision from 03-13
 
 
 def test_alfred_first_sessions_before_any_release_are_nan():
-    out = ms.alfred_asof(SERIES, [D("2024-01-10"), D("2024-01-11")])
-    assert np.isnan(out[D("2024-01-10")]) and out[D("2024-01-11")] == 3.4
+    out = ms.alfred_asof(SERIES, [D("2024-01-11"), D("2024-01-12")])
+    assert np.isnan(out[D("2024-01-11")]) and out[D("2024-01-12")] == 3.4
+
+
+def test_alfred_weekly_release_after_the_close_waits_one_session():
+    walcl = alfred(("2024-03-06", "2024-03-07", OPEN, 7.5e6))  # posted Thu 2024-03-07 16:30 ET
+    out = ms.alfred_asof(walcl, [D("2024-03-07"), D("2024-03-08")])
+    assert np.isnan(out[D("2024-03-07")]) and out[D("2024-03-08")] == 7.5e6
 
 
 def test_alfred_missing_value_does_not_mask_the_last_known_print():
@@ -149,7 +159,7 @@ def test_rates_record_dated_after_the_session_is_never_used():
 # --- Rule 12 planted defects (spec 060 §6: an ALFRED value used before its vintage) ---
 
 def oracle_vintage_start():
-    test_alfred_value_is_visible_from_its_vintage_start_not_before()
+    test_alfred_value_is_visible_from_the_session_after_its_vintage_start()
 
 
 def oracle_close():
@@ -158,9 +168,9 @@ def oracle_close():
 
 
 @pytest.mark.parametrize("old, new, oracle", [
-    # A vintage is used one day before it started.
-    ('view["realtime_start"] <= day', 'view["realtime_start"] <= day + pd.Timedelta(days=1)',
-     oracle_vintage_start),
+    # A vintage is used on its own start date, possibly before it was released (the
+    # spec's literal "vintage start <= d" at a 16:00 decision).
+    ("known_by = day - pd.Timedelta(days=1)", "known_by = day", oracle_vintage_start),
     # Rates are joined at end of day instead of the 16:00 decision time.
     ("DECISION_TIME = time(16, 0)", "DECISION_TIME = time(23, 59)", oracle_close),
 ], ids=["vintage-start", "close-time"])

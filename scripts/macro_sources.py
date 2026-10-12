@@ -4,8 +4,10 @@ Pure: no I/O, no network, no credentials. Fetching stays in ``scripts/data_sourc
 (``AlfredSeries`` for ALFRED; the Treasury adapter waits on spec 060 T001's verification).
 
 Rule 1 for each join: the value placed on session ``d`` was public at ``d``'s decision time.
-- ALFRED: a vintage is usable on ``d`` only if ``realtime_start <= d <= realtime_end``
-  (spec 060 FR-003). ALFRED records availability by date only, so that date is the bound.
+- ALFRED: ALFRED records availability by date, not moment, and some series post after the
+  close (WALCL, Thursdays 16:30 ET). So session ``d`` sees the vintages current at the end of
+  the previous calendar day: ``realtime_start <= d - 1 <= realtime_end``. This is stricter
+  than spec 060 FR-003's "vintage start <= d"; Rule 1 governs the conflict.
 - Rates with a publication instant: usable on ``d`` only if published at or before
   ``DECISION_TIME`` America/New_York on ``d``. Session labels stay naive; they are localized
   to New York explicitly here, at the boundary with the instant (CLAUDE.md, Timestamps).
@@ -28,13 +30,13 @@ def _sessions(sessions) -> list[pd.Timestamp]:
 
 
 def alfred_asof(frame: pd.DataFrame, sessions) -> pd.Series:
-    """Value of the newest observation known on each session, as published that session.
+    """Value of the newest observation known before each session, as then published.
 
     ``frame`` has the ``AlfredSeries.fetch`` columns ``date``, ``realtime_start``,
     ``realtime_end`` and ``value``. On session ``d`` the visible rows are those with
-    ``date <= d`` and ``realtime_start <= d <= realtime_end`` and a non-missing value; the
-    newest observation date wins, and among its vintages the latest ``realtime_start``. A
-    session with nothing visible gets NaN. The result is indexed by ``sessions`` in the
+    ``date <= d - 1`` and ``realtime_start <= d - 1 <= realtime_end`` (calendar days) and a
+    non-missing value; the newest observation date wins, and among its vintages the latest
+    ``realtime_start``. A session with nothing visible gets NaN. The result is indexed by ``sessions`` in the
     given order; ``frame`` is not mutated.
     """
     starts = pd.to_datetime(frame["realtime_start"])
@@ -44,8 +46,9 @@ def alfred_asof(frame: pd.DataFrame, sessions) -> pd.Series:
                          "realtime_end": ends, "value": frame["value"]})
     out = {}
     for day in _sessions(sessions):
-        known = view.loc[(view["realtime_start"] <= day) & (view["realtime_end"] >= day)
-                         & (view["date"] <= day) & view["value"].notna()]
+        known_by = day - pd.Timedelta(days=1)
+        known = view.loc[(view["realtime_start"] <= known_by) & (view["realtime_end"] >= known_by)
+                         & (view["date"] <= known_by) & view["value"].notna()]
         newest = known.sort_values(["date", "realtime_start"]).tail(1)
         out[day] = float(newest["value"].iloc[0]) if len(newest) else float("nan")
     return pd.Series(out, dtype=float)
