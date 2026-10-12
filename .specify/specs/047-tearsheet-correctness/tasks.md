@@ -135,7 +135,7 @@ since the plan's `2942240`, so the plan's line numbers still hold.
 
 ## U1b — view friction display (≤300 lines; assumes D-1 (a); plan U1b)
 
-- [ ] T008 Write contracts first. Files: a web test beside the view, at the location T005 fixes.
+- [x] T008 Write contracts first. Files: a web test beside the view, at the location T005 fixes.
   **Acceptance:** red on: given a fixture response with `slippage_total > 0` and a trade count whose
   `2 * commission * trades` differs from `commission_total`, the card renders `commission_total` and
   `slippage_total` as given, and no sum (FR-002: the view does no friction arithmetic; the plan's
@@ -145,7 +145,7 @@ since the plan's `2942240`, so the plan's line numbers still hold.
   `trade_log.length * (2 * commission_per_trade)`). Control: the unmutated view. **Depends on:**
   T005, T007.
 
-- [ ] T009 Implement U1b. Files: `reports/web/src/types/api.ts` (two fields),
+- [x] T009 Implement U1b. Files: `reports/web/src/types/api.ts` (two fields),
   `BacktestTearsheetView.tsx` (delete `:92-93`, render the response fields), the T008 test.
   **Acceptance:** T008 passes; V1 killed with its control green; lint and build pass; FR-008 text
   check recorded. **Depends on:** T008.
