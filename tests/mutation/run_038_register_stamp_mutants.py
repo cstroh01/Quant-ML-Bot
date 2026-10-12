@@ -31,7 +31,7 @@ SCOPE_DAILY = "- **Daily bars only.** No intraday, no microstructure, no order-b
 UTC = "run = run.astimezone(timezone.utc)"
 RUN_LINE = "f\"run (UTC): {run.date().isoformat()} {run.strftime('%H:%M:%S')}Z\","
 IDENTITY = "identity = source_identity(root, workspace_state=workspace_state)"
-# (name, file, exact old fragment, mutant fragment, witness, needs time.tzset)
+# (name, file, exact old fragment, mutant fragment, witness, needs time.tzset[, failing case name])
 MUTANTS = (
     ("M1 dividend-bound item dropped", GUARD, DIVIDEND, "", "038 REGISTER drift", False),
     ("M1-scope SCOPE copy gains a bullet", SCOPE, SCOPE_DAILY,
@@ -47,11 +47,12 @@ MUTANTS = (
     ("review: zone east of UTC", GUARD, UTC, "run = datetime.fromtimestamp(run.timestamp() + 3600, timezone.utc)",
      "038 STAMP M3b midnight", False),
     ("review: data_end after run accepted", GUARD, "if label > run.date().isoformat():", "if False:",
-     "DID NOT RAISE", False),
+     "DID NOT RAISE", False, "test_refusals[change4-ValueError]"),
     ("review: register entries reordered", GUARD, FUNDAMENTALS + DAILY, DAILY + FUNDAMENTALS,
      "038 REGISTER drift", False),
     ("review: naive clock accepted", GUARD, "if not isinstance(run, datetime) or run.tzinfo is None or run.utcoffset() is None:",
-     "if not isinstance(run, datetime):", "DID NOT RAISE", False),
+     "if not isinstance(run, datetime):", "DID NOT RAISE", False,
+     "test_refusals[change0-ValueError]"),
     ("review: Sharpe status reworded", GUARD, 'SHARPE_STATUS = "provisional, undeflated (Rule 15)"',
      'SHARPE_STATUS = "provisional (Rule 15)"', "038 REGISTER sharpe_status", False),
 )
@@ -100,13 +101,15 @@ def main() -> int:
                 continue
             results = run_copy(mutant)
             ok = not any(k == "error" for k, _, _ in results) and any(
-                k == "failure" and name.startswith("test_") and msg.startswith(FAILURE) and mutant[4] in msg
+                k == "failure" and (name == mutant[6] if len(mutant) > 6 else name.startswith("test_"))
+                and msg.startswith(FAILURE) and mutant[4] in msg
                 for k, name, msg in results)
             killed += ok
             print("KILLED  " if ok else "SURVIVED", f"{mutant[0]} -> {mutant[4]}")
     assert tree_digest(watched) == sources, "sources changed"
     assert tree_digest(["docs/trials"]) == ledger, "docs/trials changed"
-    print(f"{killed}/{len(runnable)} killed; sources and docs/trials ({len(ledger)} files) byte-identical")
+    skipped = len(MUTANTS) - len(runnable)
+    print(f"{killed}/{len(runnable)} killed ({skipped} skipped); sources and docs/trials ({len(ledger)} files) byte-identical")
     return 0 if killed == len(runnable) else 1
 
 
