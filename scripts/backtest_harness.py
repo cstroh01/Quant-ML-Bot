@@ -48,6 +48,8 @@ def run_backtest(
     if cost_config is not None:
         if not isinstance(cost_config, CostConfig) or slippage_bps != 0:
             raise ValueError("one cost model per run: a CostConfig with slippage_bps=0, or flat bps alone")
+        if missing := [c for c in ("High", "Low", "Volume") if c not in prices]:
+            raise ValueError(f"Rule 13 costs need full OHLCV; missing columns: {missing}")
         if prices.attrs.get("volume_basis") not in PERMITTED_VOLUME_BASES:
             raise ValueError(f"volume_basis {prices.attrs.get('volume_basis')!r} is not verified for Rule 13 costs")
     if prices.attrs.get("price_basis") != "unadjusted_dollars":
@@ -108,6 +110,8 @@ def run_backtest(
             return rate, None
         if i < 1:
             raise CostUnavailable("warmup", "no session before the first fill")
+        if i < len(prices) and prices.Split.iloc[i] != 1:  # applied at this open: Q is post-split, the window is not
+            raise CostUnavailable("split_in_window", "split on the fill session")
         past = history.iloc[:i]
         past.attrs["volume_basis"] = prices.attrs["volume_basis"]
         est = estimate_fill_cost(past, as_of=dates.iloc[i - 1], quantity=float(units),
@@ -197,6 +201,7 @@ def run_backtest(
         record(row.Date, "close", "mark", row.Close)
     if quantity and liquidate:
         sell(len(prices) - 1, row.Date, "close", row.Close, "liquidation")
+    liquidation_refused = bool(quantity and liquidate)
     log = pd.DataFrame(trades, columns=TRADE_LOG_COLUMNS + ["Quantity", "Entry Quantity", "Entry Cost", "Dividend Income"])
     log["Trade_ID"] = np.arange(len(log))
     log["P&L"] = log["P&L"].astype(float)
@@ -208,6 +213,7 @@ def run_backtest(
                      slippage_total=float(fills["Slippage"].sum()),
                      commission_per_trade=float(commission_per_trade),
                      slippage_bps=float(slippage_bps), liquidate=liquidate,
+                     liquidation_refused=liquidation_refused,
                      cost_model=MODEL if cost_config is not None else "flat_bps",
                      cost_label=MODEL if cost_config is not None else FLAT_LABEL,
                      cost_config=cost_config.as_mapping() if cost_config is not None else None)

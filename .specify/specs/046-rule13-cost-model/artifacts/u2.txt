@@ -18,14 +18,23 @@ reconstruction), held to the declared mode: flat == slippage_bps/1e4; modeled ==
 Impact, in [0, 1), Cost_As_Of before the fill session, and slippage_bps == 0; Slippage dollars
 == Q * quote * fraction for both. cost_refused is a non-fill event.
 
-Unmutated: tests/test_046_cost_wiring.py 11 passed. Existing accounting and caller tests
+Unmutated: tests/test_046_cost_wiring.py 16 passed. Existing accounting and caller tests
 (test_backtest_harness, test_metrics, test_019_*, test_041, test_047_friction,
 test_033_trial_instrumentation, test_signals, test_ma_crossover_backtest, test_reports_api,
 test_046_*, test_020, test_clean_clone_037, test_logistic_baseline, test_ml_signal,
-test_no_fabricated_values): 436 passed, no existing test edited.
+test_no_fabricated_values): all pass, no existing test edited.
+
+Fresh-context review fixes (contracts red first: 5 failed, 11 passed; then 16 passed):
+- P1 a split on the fill session (applied at that open) made Q post-split against a pre-split
+  window; the harness now refuses it (split_in_window).
+- P1 a refused terminal liquidation (close-phase cost_refused) broke equity_curve; metrics accept
+  it on the final session only, and attrs liquidation_refused records the open position.
+- P2 the slippage-dollar check used an absolute 1e-9; it now scales with fill notional
+  (1e6-share flat and modeled runs reconcile).
+- Model mode without High/Low/Volume raises ValueError, not KeyError.
 
 Rule 12: python tests/mutation/run_046_u2_mutants.py
-CONTROL green (unchanged copy, 11 collected)
+CONTROL green (unchanged copy, 16 collected)
 KILLED   M5 flat 5 bps executed under the model label -> test_buy_and_sell_charge_the_model_on_the_right_cutoff_and_quantity
 KILLED   M8 sell pays the buy sign -> test_buy_and_sell_charge_the_model_on_the_right_cutoff_and_quantity
 KILLED   M8 exit charged on the entry quantity -> test_exit_quantity_is_the_held_post_split_quantity
@@ -36,16 +45,20 @@ KILLED   refused order falls back to a zero-cost fill -> test_warmup_and_split_w
 KILLED   affordability ignores the modeled cost -> test_affordability_includes_the_modeled_cost
 KILLED   estimate sees the fill session (Rule 1) -> test_future_bars_do_not_move_a_fill_fraction
 KILLED   liquidation uses the same-session bar -> test_terminal_liquidation_uses_the_preceding_session_estimate
+KILLED   split on the fill session not refused -> test_a_split_on_the_fill_session_refuses
+KILLED   refused liquidation not flagged -> test_a_refused_liquidation_is_flagged_and_still_reconciles
+KILLED   slippage dollars checked at a fixed tolerance -> test_large_notional_fills_still_reconcile[flat]
 KILLED   flat diagnostic stamped with the model label -> test_model_and_flat_runs_are_labelled_and_never_mixed
-11/11 killed; sources and docs/trials (6 files) byte-identical
-Driver red proof (both real, found while building it): the "refused order falls back to a
-zero-cost fill" mutant first SURVIVED (the refusal test did not assert that no fill happened that
-session), and "metrics accept any flat rate" first SURVIVED (its test forged only Cost_Fraction,
-which the slippage-dollar cross-check caught first). Each test was strengthened; both now killed.
+14/14 killed; sources and docs/trials (6 files) byte-identical
+
+Driver red proof (real, found while building it): "refused order falls back to a zero-cost fill"
+first SURVIVED (the refusal test did not assert that no fill happened that session), and
+"metrics accept any flat rate" first SURVIVED (its test forged only Cost_Fraction, which the
+slippage-dollar cross-check caught first). Each test was strengthened; both now killed.
 
 021 whole-file SHA-256 (after):
-c51785d0308c905cbbe75e624d31ea435b0643b841e69928ad2c19bcf2ad16aa  scripts/backtest_harness.py
-ea69fc4dcf31e09f56c2acc280fa5731b27b29931cce6ff6681671f2de18cfde  scripts/metrics.py
+529f031c4b1533ce9d0e6c6d93ae70edb42db23688eb5c8def98fcc1baf29e67  scripts/backtest_harness.py
+6ab817ed7ef4fe7884a94260db6330aa3d82073d155200d67622d8e1f4233e36  scripts/metrics.py
 021 whole-file SHA-256 (origin/main):
 9483418cedf1945d6ce28baa89aca49b9d8a6f9d9e142cd3b98b77f7d4cb9307  scripts/backtest_harness.py
 45dc9e3d13368864fb20386010574005a3a32053fa164002680248a3562ebe84  scripts/metrics.py

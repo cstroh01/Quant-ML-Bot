@@ -120,12 +120,16 @@ def equity_curve(
                   and pd.notna(event.Cost_As_Of) and event.Cost_As_Of < event.Date)
         else:
             ok = f == slippage_bps / 10000
-        if not ok or abs(event.Slippage - units * event.Price * f) > RECONCILIATION_TOLERANCE:
+        notional = units * event.Price
+        if not ok or abs(event.Slippage - notional * f) > RECONCILIATION_TOLERANCE * max(1., notional):
             raise ValueError("recorded fill cost differs from the declared cost model")
         return f
 
     for event in ledger.iloc[1:].itertuples(index=False):
         phase = "close" if event.Event in ("mark", "liquidation") else "open"
+        if event.Event == "cost_refused" and event.Phase == "close" and event.Date == source.index[-1]:
+            # a refused terminal liquidation (spec 046): the position stays marked
+            phase = "close"
         if (event.Phase != phase or event.Date not in source.index
                 or event.Price != source.loc[event.Date, "Close" if phase == "close" else "Open"]):
             raise ValueError("event phase or quote differs from source")

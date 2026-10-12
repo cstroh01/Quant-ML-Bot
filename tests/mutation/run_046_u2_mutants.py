@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[2]
 HARNESS, METRICS = "scripts/backtest_harness.py", "scripts/metrics.py"
 TEST = "tests/test_046_cost_wiring.py"
 COPIED = ("scripts", "tests/context.py", TEST)
-COLLECTED = 11
+COLLECTED = 16
 CUTOFF = "past = history.iloc[:i]\n"
 # (name, file, exact old fragment, mutant fragment, failing test, witness in its message)
 MUTANTS = (
@@ -51,6 +51,13 @@ MUTANTS = (
     ("liquidation uses the same-session bar", HARNESS, 'sell(len(prices) - 1, row.Date, "close"',
      'sell(len(prices), row.Date, "close"',
      "test_terminal_liquidation_uses_the_preceding_session_estimate", "046 U2 liquidation"),
+    ("split on the fill session not refused", HARNESS, "if i < len(prices) and prices.Split.iloc[i] != 1:", "if False:",
+     "test_a_split_on_the_fill_session_refuses", "046 U2 fill-session split"),
+    ("refused liquidation not flagged", HARNESS, "liquidation_refused = bool(quantity and liquidate)",
+     "liquidation_refused = False", "test_a_refused_liquidation_is_flagged_and_still_reconciles",
+     "046 U2 refused liquidation"),
+    ("slippage dollars checked at a fixed tolerance", METRICS, "> RECONCILIATION_TOLERANCE * max(1., notional)",
+     "> RECONCILIATION_TOLERANCE", "test_large_notional_fills_still_reconcile[flat]", "046 U2 large notional"),
     ("flat diagnostic stamped with the model label", HARNESS,
      "cost_label=MODEL if cost_config is not None else FLAT_LABEL,", "cost_label=MODEL,",
      "test_model_and_flat_runs_are_labelled_and_never_mixed", "046 U2 labels"),

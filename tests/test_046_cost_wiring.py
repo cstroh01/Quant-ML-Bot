@@ -174,3 +174,45 @@ def test_metrics_hold_flat_runs_to_their_declared_rate():
     other.attrs["slippage_bps"] = 5.0
     with pytest.raises(ValueError, match="declared cost model"):
         equity_curve(prices, other, commission_per_trade=FEE, slippage_bps=5.0)
+
+
+def test_a_split_on_the_fill_session_refuses():
+    # Review P1-a: the split is applied at the open before the fill, so Q is post-split while every
+    # window bar is pre-split. The estimator's window ends at t, so the harness must refuse here.
+    prices = frame(buys=[24], sells=[32], split=(32, 2.0))
+    ledger = run(prices).attrs["ledger"]
+    refused = ledger[ledger.Event == "cost_refused"]
+    assert list(zip(refused.Date, refused.Cost_Status)) == [(prices.Date[32], "split_in_window")], \
+        "046 U2 fill-session split"
+    assert "sell" not in set(ledger.Event), "046 U2 fill-session split"
+
+
+def test_a_refused_liquidation_is_flagged_and_still_reconciles():
+    # Review P1-b: a split in the last 21 sessions refuses terminal liquidation; the position stays marked.
+    prices = frame(buys=[24], split=(60, 2.0))
+    log = run(prices, liquidate=True)
+    last = log.attrs["ledger"].iloc[-1]
+    assert (last.Phase, last.Event, last.Cost_Status) == ("close", "cost_refused", "split_in_window"), \
+        "046 U2 refused liquidation"
+    assert log.attrs["liquidation_refused"] is True and last.Quantity == 2 * SHARES, "046 U2 refused liquidation"
+    try:
+        equity_curve(prices, log, commission_per_trade=FEE, slippage_bps=0.0)
+    except ValueError as error:
+        pytest.fail(f"046 U2 refused liquidation: {error}")
+
+
+@pytest.mark.parametrize("cost", ["flat", "model"])
+def test_large_notional_fills_still_reconcile(cost):
+    # Review P2: slippage dollars must be compared at a tolerance that scales with notional.
+    prices = frame(buys=[30], sells=[45])
+    kw = dict(slippage_bps=5.0) if cost == "flat" else dict(cost_config=CostConfig())
+    log = run_backtest(prices, commission_per_trade=FEE, starting_capital=1e9, shares=1_000_000, **kw)
+    try:
+        equity_curve(prices, log, commission_per_trade=FEE, slippage_bps=kw.get("slippage_bps", 0.0))
+    except ValueError as error:
+        pytest.fail(f"046 U2 large notional: {error}")
+
+
+def test_model_mode_needs_full_ohlcv():
+    with pytest.raises(ValueError, match="High"):
+        run(frame(buys=[30]).drop(columns="High"))
