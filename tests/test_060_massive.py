@@ -123,6 +123,7 @@ def test_five_calls_per_minute(monkeypatch):
     (ms.BASE_URL + "/v3/reference/dividends?cursor=abc", True),
     (ms.BASE_URL + "/v3/reference/dividends?cursor=abc&apiKey=" + KEY, False),
     ("https://elsewhere.example/v3/reference/dividends?cursor=abc", False),
+    (ms.BASE_URL.replace("https://", "http://") + "/v3/reference/dividends?cursor=abc", False),
 ])
 def test_pagination_is_followed_on_host_and_without_credentials(monkeypatch, next_url, ok):
     page_two = {**DIV, "ex_dividend_date": "2026-06-20"}
@@ -136,7 +137,7 @@ def test_pagination_is_followed_on_host_and_without_credentials(monkeypatch, nex
     assert followed is (True if ok else None), f"T060 PAGES {next_url}"
 
 
-@pytest.mark.parametrize("start, end", [(date(2024, 10, 1), date(2026, 10, 9)), (date(2026, 1, 2), date(2026, 10, 20))])
+@pytest.mark.parametrize("start, end", [(date(2024, 10, 11), date(2026, 10, 9)), (date(2026, 1, 2), date(2026, 10, 20))])
 def test_out_of_plan_windows_are_refused_not_truncated(monkeypatch, start, end):
     source, fake = adapter(pages(), monkeypatch)
     refused = False
@@ -160,3 +161,29 @@ def test_inactive_tickers_are_listed_and_a_wrong_flag_refused(monkeypatch):
     except SourceFetchError:
         refused = True
     assert refused, "T060 TICKERS flag"
+
+
+def test_the_plan_boundary_day_is_served_and_an_error_reply_refused(monkeypatch):
+    source, _ = adapter(pages(), monkeypatch)
+    try:
+        served = len(source.actions("SPY", date(2024, 10, 12), date(2026, 10, 9))[0])  # exactly two years back
+    except SourceFetchError:
+        served = None
+    assert served == 2, "T060 BOUNDARY"
+    source, _ = adapter({"/v3/reference/dividends": [{"status": "ERROR", "error": "plan limit"}],
+                         "/v3/reference/splits": [{"results": []}]}, monkeypatch)
+    refused = False
+    try:
+        source.actions("SPY", date(2025, 1, 2), date(2026, 10, 9))
+    except SourceFetchError:
+        refused = True
+    assert refused, "T060 ERROR reply"
+
+
+def test_an_instant_written_for_a_date_keeps_its_calendar_date(monkeypatch):
+    source, _ = adapter(pages(divs=[{**DIV, "ex_dividend_date": "2026-03-20T00:00:00Z"}], splits=[]), monkeypatch)
+    try:
+        dates = source.actions("SPY", date(2025, 1, 2), date(2026, 10, 9))[0]["Date"]
+    except (SourceFetchError, TypeError):
+        dates = None
+    assert dates is not None and dates.iloc[0] == pd.Timestamp("2026-03-20") and dates.dt.tz is None, "T060 DATES"

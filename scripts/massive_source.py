@@ -17,7 +17,7 @@ host and fields are unverified until the first bounded run, which must confirm t
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date
 import hashlib
 import json
 from urllib.parse import urlencode, urlsplit
@@ -47,13 +47,14 @@ class MassiveReference(_Limited):
         digest, results, url, seen = hashlib.sha256(), [], endpoint, set()
         while url:
             page = json.loads(self._request(digest, url, headers))
-            if not isinstance(page, dict) or not isinstance(page.get("results", []), list):
+            if not isinstance(page, dict) or page.get("status") == "ERROR" or not isinstance(page.get("results", []), list):
                 raise SourceFetchError(f"{self.source} returned a malformed page")
             results += page.get("results") or []
             url = page.get("next_url")
             if url:
-                if urlsplit(url).netloc != urlsplit(BASE_URL).netloc or not _credential_free(url):
-                    raise SourceFetchError(f"{self.source} pagination URL is off-host or carries a credential")
+                parts = urlsplit(url)
+                if parts.scheme != "https" or parts.netloc != urlsplit(BASE_URL).netloc or not _credential_free(url):
+                    raise SourceFetchError(f"{self.source} pagination URL is not https, off-host or carries a credential")
                 if url in seen:
                     raise SourceFetchError(f"{self.source} pagination repeated")
                 seen.add(url)
@@ -63,7 +64,9 @@ class MassiveReference(_Limited):
         today = self.now().date()
         if start > end or end > today:
             raise SourceFetchError("need start <= end <= the fetch date")
-        if start < today - timedelta(days=365 * HISTORY_YEARS + 1):
+        earliest = today.replace(year=today.year - HISTORY_YEARS) if (today.month, today.day) != (2, 29) \
+            else today.replace(year=today.year - HISTORY_YEARS, day=28)
+        if start < earliest:
             raise SourceFetchError(f"Stocks Basic serves {HISTORY_YEARS} years; {start} is older (refused, not truncated)")
         return today
 
@@ -88,13 +91,13 @@ class MassiveReference(_Limited):
             for d in dividends:
                 if d["ticker"] != ticker:
                     raise SourceFetchError(f"{self.source} returned another ticker's dividend")
-                rows.append({"Date": pd.Timestamp(d["ex_dividend_date"]), "Ticker": ticker, "Action_Type": "dividend",
+                rows.append({"Date": pd.Timestamp(str(d["ex_dividend_date"])[:10]), "Ticker": ticker, "Action_Type": "dividend",
                              "Value": float(d["cash_amount"]),
                              "Amount_Basis": "per_share" if d.get("currency") == "USD" else None, "Source": self.source})
             for s in splits:
                 if s["ticker"] != ticker:
                     raise SourceFetchError(f"{self.source} returned another ticker's split")
-                rows.append({"Date": pd.Timestamp(s["execution_date"]), "Ticker": ticker, "Action_Type": "split",
+                rows.append({"Date": pd.Timestamp(str(s["execution_date"])[:10]), "Ticker": ticker, "Action_Type": "split",
                              "Value": float(s["split_to"]) / float(s["split_from"]), "Amount_Basis": None,
                              "Source": self.source})
         except (KeyError, TypeError, ValueError, ZeroDivisionError):
