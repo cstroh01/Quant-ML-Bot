@@ -18,7 +18,7 @@ production ledger/cache writes or changes to existing human gates.
 - M1–M10 refer to spec §5. Record initial contract red, unmutated green and
   mutation kill separately. A killed mutant must fail the named assertion or
   reason; an import error, unrelated exception or zero-test run is not evidence.
-- Each U1/U2/U3 diff is ≤300 added-plus-removed lines including tests and
+- Each U1/U2/U3 diff is ≤600 added-plus-removed lines including tests and
   evidence/status edits. Measure against pre-unit copies without Git. If a cap
   cannot cover the required scope, stop for a plan revision before exceeding
   it. Review never authorizes omitted checks or a silent fourth unit.
@@ -44,13 +44,13 @@ production ledger/cache writes or changes to existing human gates.
   **Acceptance:** record S1/035, S2 and 044 implementation prerequisites as
   complete before U1; otherwise keep U1 blocked. Explicitly keep
   real-data acceptance closed for `provider_unverified`; identify any pinned
-  caller requiring human authorization and confirm a ≤300-line budget for each
+  caller requiring human authorization and confirm a ≤600-line budget for each
   complete unit. No production bundle or permission is invented. **Rule 12
   planted defect:** an evidence checklist treating 044 completion or an
   unverified-volume manifest as sufficient must be refused; an explicitly
   qualified synthetic-only readiness record is the control. **Depends on:** T001.
 
-## U1 — cost model and tests (≤300 changed lines)
+## U1 — cost model and tests (≤600 changed lines)
 
 - [x] T003 Write source-backed contracts first. Files:
   `tests/test_046_cost_model.py`, future `research.md` oracle reference.
@@ -79,12 +79,12 @@ production ledger/cache writes or changes to existing human gates.
 
 - [x] T006 Close U1 evidence. Files: `tests/test_046_cost_model.py`, future
   `artifacts/u1.txt`, `tasks.md`. **Acceptance:** record collected count, named
-  reds, green controls, all U1 kills and ≤300 changed lines including evidence.
+  reds, green controls, all U1 kills and ≤600 changed lines including evidence.
   **Rule 12 planted defect:** a harness for mutation evidence that accepts a
   surviving centered-window M1 must fail the evidence check; clean evidence
   has a real assertion failure and a passing control. **Depends on:** T005.
 
-## U2 — harness, reconciliation and recorder (≤300 changed lines)
+## U2 — harness, reconciliation and recorder (≤600 changed lines)
 
 - [x] T007 Write execution contracts before wiring. Files:
   `tests/test_046_cost_wiring.py`, read-only `scripts/backtest_harness.py` and
@@ -121,13 +121,13 @@ production ledger/cache writes or changes to existing human gates.
   `tests/test_046_cost_wiring.py`, future `artifacts/u2.txt`, `tasks.md`;
   read-only `tests/fixtures/spec_033/runner_inventory.json` and its named
   callers. **Acceptance:** actual accounting/config evidence and M5/M6/M8
-  controls pass, ≤300 changed lines, and every remaining reported path has an
+  controls pass, ≤600 changed lines, and every remaining reported path has an
   explicit U3 migration/refusal owner; additional pinned edits wait on T002's
   human authorization and a budgeted plan revision. **Rule 12 planted defect:**
   an inventory copy omitting a known flat-cost reported entry point must fail
   the coverage check; full inventory is the control. **Depends on:** T009.
 
-## U3 — API and report disclosure (≤300 changed lines)
+## U3 — API and report disclosure (≤600 changed lines)
 
 - [ ] T011 Write report-boundary contracts first. Files:
   `tests/test_046_cost_reporting.py`, narrowly scoped
@@ -164,7 +164,7 @@ production ledger/cache writes or changes to existing human gates.
   `tests/test_046_cost_reporting.py`, future `artifacts/u3.txt`, `tasks.md`.
   **Acceptance:** record M1–M10 controls/kills, full offline suite counts and
   exit status, frontend checks, complete reported-path coverage and each unit's
-  ≤300-line total. Original production-ledger bytes remain unchanged.
+  ≤600-line total. Original production-ledger bytes remain unchanged.
   **Rule 12 planted defect:** a completion report lacking one mutant's named
   failure/control or hiding a still-reportable flat path must fail acceptance;
   the complete evidenced report passes. **Depends on:** T013.

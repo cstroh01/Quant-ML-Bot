@@ -15,6 +15,7 @@
     "asset_vol": "EWMA of daily log returns, span 60 sessions, rows <= t only",
     "portfolio_vol_target_annual": 0.10,
     "gross_cap": 1.0,
+    "sizing": "D-8: equal-weight configurations form equal legs, then the book is scaled by min(1, portfolio_vol_target_annual / sigma_p) and capped at gross_cap; only H10 is unscaled",
     "long_only": true,
     "eligibility": "an instrument is eligible once every row its lookback needs exists; no pre-listing backfill",
     "costs": "spec 046 model: half of the EDGE full-spread estimate (Ardia-Guidotti-Kroencke 2024; bidask v2.1.0 algorithm; negative S^2 -> sqrt(|S^2|)) plus square-root impact Y=1.0, 21-session windows",
@@ -41,6 +42,8 @@
     {"id": "B-BH", "role": "buy_and_hold_baseline", "rule": "equal weight of eligible universe, rebalanced monthly"},
     {"id": "B-RND", "role": "random_signal_baseline", "rule": "seeded random long/flat per asset, monthly, same sizing and costs"}
   ],
+  "gate3": {"alignment": "exact_intersection", "objective": "daily_sharpe", "min_coverage": 0.95,
+            "risk_free": {"annual_rate": 0.0378, "days_per_year": 252}, "horizon": 1, "hac_lags": 21},
   "selection_rule": "highest research-window DSR at N_family; ties go to the lower configuration order above",
   "holdout_pass": "D-4: holdout net Sharpe > 0 and one-sided HAC t >= 1.645, and research-window Gate 3 per spec 033",
   "voiding": "any breach of spec 058 D-1 (a)-(d), or more than n_family_cap candidate starts, reverts this family to lifetime N"

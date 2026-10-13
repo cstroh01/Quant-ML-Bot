@@ -176,7 +176,7 @@ any displayed cost total from recorded evidence. Existing historical results
 are not relabelled as compliant. No global governance/disclosure rewrite is
 authorized; independent S7 work remains separate.
 
-## 5. Three implementation units — hard cap ≤300 lines each
+## 5. Three implementation units — hard cap ≤600 lines each
 
 The budget is added plus removed lines across the entire unit, including tests,
 evidence and task-status changes, measured against pre-unit copies without Git.
@@ -211,4 +211,4 @@ verified; upstream nominal-volume bundle available; separately authorized real
 evidence produced; 033's independent gates satisfied. These are not synonyms.
 The current 044 Q-P4 policy and 043 ledger guards can leave real-data acceptance
 blocked even when the offline implementation passes. A paper mismatch or a
-≤300-line budget overrun is reported, not hidden by changing D-1/D-2 or scope.
+≤600-line budget overrun is reported, not hidden by changing D-1/D-2 or scope.

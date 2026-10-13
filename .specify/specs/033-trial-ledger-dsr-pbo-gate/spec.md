@@ -582,3 +582,11 @@ This approval does not approve the historical backfill.
   helper in `scripts/trial_registry.py` that returns a verified count bound to one ledger head;
   `selection_bias` receives the numbers and reads no files. Queue item Q97 does the move, tests first.
 
+
+## Amendments — 2026-10-12 (Camden, chat, 2026-10-12 19:25 CT: "Yes to all" (decision list `claude/decisions-20261012.md`))
+- **Current matrix hash (PRs #185, #194).** `current_inputs` rebuilds the matrix deterministically
+  from the verified ledger head plus the immutable family declaration and compares hashes. No emitted
+  matrix file is stored next to the ledger.
+- **Holdout-spend event (Q98; spec 058 D-7).** `verify()` accepts one more event type,
+  `holdout_spend`, bound to the selection record's config hash; a second spend for the same family is
+  invalid. The code is agent-buildable; the ledger write stays Camden's (058 T016).
