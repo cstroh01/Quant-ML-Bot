@@ -1,5 +1,6 @@
 """Augmented Dickey-Fuller stationarity checks for cached market data."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -9,9 +10,16 @@ from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import acf
 
-from data import download_market_data
+from data import _cache_key, cache_path, download_market_data
+from disclosure import LIMITATIONS, provenance_stamp
 
 TICKERS = ["AAPL", "MSFT", "GOOGL"]
+PERIOD = "2y"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+# Spec 038 D-4: script panels carry a one-line, same-surface reference to the register.
+LIMITATIONS_REFERENCE = (
+    f"Limitations (Rule 16): docs/SCOPE-V1.md §6 lists {len(LIMITATIONS)} limitations that "
+    "bound every figure below.")
 ADF_SIGNIFICANCE_LEVEL = 0.05
 ACF_LAGS = 30
 PLOTS_DIRECTORY = Path(__file__).resolve().parent.parent / "plots"
@@ -41,8 +49,13 @@ def save_acf_plot(log_returns: pd.Series, ticker: str):
     plt.close(figure)
 
 
-def main():
-    market_data = download_market_data(TICKERS)
+def main(*, clock=lambda: datetime.now(timezone.utc), root: Path = REPO_ROOT):
+    """Print the ADF and ACF panel; the Rule 11 stamp and register reference come before any figure."""
+    market_data = download_market_data(TICKERS, period=PERIOD)
+    for line in provenance_stamp(cache_path(_cache_key(TICKERS, PERIOD)), root=root, clock=clock,
+                                 data_end=market_data["Date"].max()):
+        print(line)
+    print(LIMITATIONS_REFERENCE)
     summary_rows = []
 
     for ticker in TICKERS:

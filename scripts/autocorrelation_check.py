@@ -1,5 +1,6 @@
 """Autocorrelation checks for daily log returns."""
 
+from datetime import datetime, timezone
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -8,9 +9,16 @@ import pandas as pd
 from statsmodels.graphics.tsaplots import plot_acf
 from statsmodels.tsa.stattools import acf
 
-from data import download_market_data
+from data import _cache_key, cache_path, download_market_data
+from disclosure import LIMITATIONS, provenance_stamp
 
 TICKERS = ["AAPL", "MSFT", "GOOGL"]
+PERIOD = "2y"
+REPO_ROOT = Path(__file__).resolve().parents[1]
+# Spec 038 D-4: script panels carry a one-line, same-surface reference to the register.
+LIMITATIONS_REFERENCE = (
+    f"Limitations (Rule 16): docs/SCOPE-V1.md §6 lists {len(LIMITATIONS)} limitations that "
+    "bound every figure below.")
 PLOTS_DIRECTORY = Path(__file__).resolve().parent.parent / "plots"
 TABLE_LAGS = 5
 PLOT_LAGS = 30
@@ -43,9 +51,17 @@ def save_acf_plot(log_returns: pd.Series, ticker: str) -> None:
     plt.close(figure)
 
 
-def main() -> None:
-    """Download data, print ACF values, and save ACF plots."""
-    market_data = download_market_data(TICKERS)
+def main(*, clock=lambda: datetime.now(timezone.utc), root: Path = REPO_ROOT) -> None:
+    """Download data, print ACF values, and save ACF plots.
+
+    The Rule 11 stamp (the cache file read, with its SHA-256) and the register reference print
+    before any figure or plot (spec 038 T031).
+    """
+    market_data = download_market_data(TICKERS, period=PERIOD)
+    for line in provenance_stamp(cache_path(_cache_key(TICKERS, PERIOD)), root=root, clock=clock,
+                                 data_end=market_data["Date"].max()):
+        print(line)
+    print(LIMITATIONS_REFERENCE)
     acf_rows = []
 
     for ticker in TICKERS:

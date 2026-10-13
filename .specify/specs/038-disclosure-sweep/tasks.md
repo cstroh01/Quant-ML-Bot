@@ -131,7 +131,7 @@ D-1–D-5 stay open, and a task that consumes one waits for the human decision r
   `tests/test_return_stats.py`, `tests/test_038_panels_p1.py`. Stamp before first figure, register line,
   printed Rule 15 flag on the Sharpe line (`scripts/return_stats.py:99-112`); `:106` comment becomes printed text.
   Red: captured-stdout contract. Mutant M4 (flag removed; control asserts ≥1 Sharpe line matched).
-- [ ] T031 P2. Files: `scripts/autocorrelation_check.py`, `scripts/stationarity_check.py`,
+- [x] T031 P2. Files: `scripts/autocorrelation_check.py`, `scripts/stationarity_check.py`,
   `tests/test_038_panels_p2.py`. Panel stamp/register only; plots move in T040. Red: stdout lacks stamp.
   Mutant: stamp printed after first figure. Control: stamped stdout.
 - [ ] T032 P3. Files: `scripts/scratch_aapl_correlations.py`, `scripts/scratch_multiticker_collinearity.py`,
