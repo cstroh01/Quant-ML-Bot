@@ -15,6 +15,9 @@ sources Camden chose, each verified before code depends on it.
 - **D-1 Universe.** "~100 liquid ETFs" — not single stocks.
 - **D-2 Data.** Alpaca, Tiingo, SEC EDGAR, FRED/ALFRED, EODHD free, plus Massive (Camden has a key),
   plus "more research into possible free ones that would be useful".
+- **D-3 Class coverage (PR #180; Camden, chat, 2026-10-12 19:25 CT: "Yes to all" (decision list `claude/decisions-20261012.md`)).** One reserved slot per asset class; the $20M floor and
+  every other §3 screen still apply to it.
+- **D-4 Vintage lag (PR #184; Camden, chat, 2026-10-12 19:25 CT: "Yes to all" (decision list `claude/decisions-20261012.md`)).** FR-003 uses a strict `<`, matching the merged adapter.
 
 ## 3. Universe rule (fixed now)
 An ETF is eligible on date `d` when all hold, using only data known at `d` (Rule 1):
@@ -28,7 +31,8 @@ An ETF is eligible on date `d` when all hold, using only data known at `d` (Rule
    real estate, commodities broad, gold/precious, currency.
 
 The v1 list is the ~100 highest-dollar-volume eligible ETFs on 2026-10-01, capped at 12 per class so
-no class dominates, stored as `docs/universe/etf_universe_v1.csv` with listing date, class and the
+no class dominates, with one slot reserved per class for that class's highest-dollar-volume eligible
+ETF (a class with no eligible ETF is reported absent with its reason, not refused) (D-3), stored as `docs/universe/etf_universe_v1.csv` with listing date, class and the
 reason any candidate was excluded (spec 052). Disclosed: chosen as of 2026, so closed ETFs are
 absent (survivorship, Rule 16).
 
@@ -56,7 +60,8 @@ future revisions and later preregistered families only.
 - **FR-002 Massive adapter.** Corporate actions and reference tickers (active and inactive), rate
   limited to 5/min, key from environment only, manifests per 056, offline fakes in tests.
 - **FR-003 Macro and rates adapters.** FRED/ALFRED by real-time vintage (a value is usable at `d`
-  only if its vintage start ≤ `d`); Treasury yields by publication date.
+  only if its vintage start < `d`: ALFRED vintages carry dates without times, so a same-day vintage
+  is treated as known the next session) (D-4); Treasury yields by publication date.
 - **FR-004 Cross-source reconciliation.** Massive joins Tiingo/EODHD/EDGAR as an independent
   corporate-action source in spec 035's reconciliation; disagreements are disclosed, never resolved
   silently (Rule 14).

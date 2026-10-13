@@ -485,6 +485,9 @@ def test_command_refuses_a_family_without_a_preregistered_gate3_policy(tmp_path,
     source = trial_registry.DECLARED_FAMILIES["058-edge"]
     (tmp_path / source).parent.mkdir(parents=True)
     shutil.copyfile(trial_registry.ROOT / source, tmp_path / source)
+    declaration = json.loads((tmp_path / source).read_text(encoding="utf-8"))
+    declaration.pop("gate3", None)  # the real declaration preregisters one (058 D-9); test its absence
+    (tmp_path / source).write_text(json.dumps(declaration), encoding="utf-8")
     trial_registry.declare_family("058-edge", root=tmp_path, synthetic=True)
     message = ""
     try:

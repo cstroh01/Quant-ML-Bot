@@ -182,7 +182,7 @@ verification; adopting it as a new dependency is not proposed or authorized.
 - **FR-010 — Evidence and review size.** Tests are offline, use synthetic
   temporary ledgers, and do not write production history or fetch market data.
   Every gate has its named planted defect and clean control (§5). The three
-  implementation units in the plan each have a hard ≤300 added-plus-removed
+  implementation units in the plan each have a hard ≤600 added-plus-removed
   line cap, including tests/evidence/status edits. Scope pressure is reported
   before proceeding; it cannot remove a required check or waive the cap.
 
@@ -221,7 +221,7 @@ unrelated exceptions, imports or collection failures are not successful kills.
   no flat-bps result is reportable. Diagnostic exceptions are explicit.
 - **SC-005**: M1–M10 have named failures and green controls; the full offline
   suite passes with actual passed/failed/xfailed/skipped counts reported. Each
-  implementation unit meets its measured ≤300-line cap.
+  implementation unit meets its measured ≤600-line cap.
 - **SC-006 — HUMAN GATE, real-data readiness**: After upstream source/bundle,
   volume and ledger permissions are satisfied, a separately authorized run
   binds a valid bundle and actual cost evidence. Until then report offline
@@ -277,3 +277,10 @@ unchanged independent accounting, provenance and human gates.
 ### T002 amendment — APPROVED (Camden, 2026-10-09 (gate packet `claude/gate-packet-20261009.md`))
 For spec 058's universe, "upstream data ready" is satisfied by spec 058 T009's verified data check.
 Specs 035 and 044 still gate the stock-basket paths.
+
+### Amendments — 2026-10-12 (Camden, chat, 2026-10-12 19:25 CT: "Yes to all" (decision list `claude/decisions-20261012.md`))
+- **Unit size (PR #186).** The per-unit cap is 600 added-plus-removed lines, matching constitution
+  Rule 9b condition 4.
+- **FR-009 enforcement point (PR #186).** Pinned 019 scripts keep their default. Explicit flat intent
+  is enforced at the reporting boundary (T009 / U3): a reported or published result with no spec 046
+  cost configuration is refused.

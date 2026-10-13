@@ -31,6 +31,16 @@ market or any baseline, and every surface says so.
   (`docs/SCOPE-V1.md` §11.3 item 6).
 - **D-5 Budget.** Unchanged from 2026-10-09: $100 of settled cash; deposits never raise it.
 
+### Recorded decisions (2026-10-12)
+- **D-6 Data hole (PR #195; Camden, chat, 2026-10-12 19:25 CT: "Yes to all" (decision list `claude/decisions-20261012.md`)).** If any required EWMA variance or pairwise covariance is
+  undefined at decision `t`, the whole book is cash for that month. Sleeves are never dropped because
+  of data availability. The report counts cash months.
+- **D-7 Random baseline (PR #197; Camden, chat, 2026-10-12 19:35 CT: "confirm" (decision list `claude/decisions-20261012.md`)).** The Rule 4 random baseline is spec 058's B-RND form: each
+  sleeve long or flat with probability 1/2 per decision row, then the same §3 sizing (inverse-vol among
+  held sleeves, 10% vol target, gross ≤ 1) and the same 046 costs, over at least two seeds.
+- **D-8 History window (PR #197; Camden, chat, 2026-10-12 19:25 CT: "Yes to all" (decision list `claude/decisions-20261012.md`)).** FR-003 reports the research window (≤ 2023-09-29) only. The
+  full-history variant runs only after spec 058 T016 has spent the holdout, and is labelled so.
+
 ## 3. The allocation (fixed now; hashed into the ledger before 058 T015 runs)
 - **Sleeves (8).** SPY (US equity), EFA (developed ex-US equity), EEM (emerging equity), IEF
   (intermediate Treasuries), TLT (long Treasuries), TIP (inflation-linked Treasuries), GLD (gold),
@@ -53,7 +63,7 @@ market or any baseline, and every surface says so.
   decision session. Tests: hand oracle on two and three assets; perturbing `t+1` changes nothing at
   `t`; gross cap; cash remainder; listing-date entry; months without a decision carry weights forward.
 - **FR-003 Backtest report.** Costed walk-forward backtest over the research window (≤ 2023-09-29)
-  and, separately labelled, the full available history, beside equal-weight buy-and-hold and a
+  and, separately labelled and only after spec 058 T016 (D-8), the full available history, beside equal-weight buy-and-hold and a
   seeded random baseline with identical costs (Rule 4). Reports PSR at this family's own N = 1 with
   the line `ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED` and the limitations register (Rule 16).
   It never opens spec 058's sealed holdout.

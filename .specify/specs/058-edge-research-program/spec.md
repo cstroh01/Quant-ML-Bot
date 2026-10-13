@@ -147,6 +147,15 @@ Approximate net annualized Sharpe needed for DSR ≥ 0.95 (HAC t ≥ 3 binds les
   second opening, whatever `spent_path` a caller passes. A loose file is not the authority, because it
   can be deleted and the holdout silently reused. The ledger write stays Camden's (T016 HUMAN GATE).
 
+### Recorded decisions (2026-10-12)
+- **D-8 Equal-weight sizing (PR #189; Camden, chat, 2026-10-12 19:25 CT: "Yes to all" (decision list `claude/decisions-20261012.md`)).** H3-3, H3-5, H6-6, H6-12, H7 and H8 form equal legs,
+  then the common portfolio vol target applies: the book is scaled by `min(1, 0.10 / σ_p)` and capped
+  at gross 1.0. Only H10 is unscaled. Recorded as `common.sizing` in `declaration.json`.
+- **D-9 Gate 3 policy (PR #194; Camden, chat, 2026-10-12 19:35 CT: "confirm" (decision list `claude/decisions-20261012.md`)).** The declaration's `gate3` block, fixed before T006 and
+  before any 058 statistic: `alignment` exact_intersection, `objective` daily_sharpe, `min_coverage`
+  0.95, `risk_free` 0.0378 annual over 252 sessions (repository constant), `horizon` 1, `hac_lags` 21.
+  Changing any value after a 058 statistic is seen voids D-1.
+
 ## 9. Out of scope
 Intraday data, single stocks, futures, leverage above 1.0, ML models in this family. ML stays a later
 challenger under 053.

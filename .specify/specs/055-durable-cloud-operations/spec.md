@@ -52,3 +52,8 @@ duplicate run, unknown submit, restart) recorded; then the laptop task is retire
   the PAPER schedule may be enabled and the local `paper_large` loop retired. The `.github/` workflow
   edit that enables the schedule is a governance PR: Rule 9a cannot merge it, so it waits for Camden's
   merge. LIVE stays off.
+
+## Decisions — 2026-10-12 (Camden, chat, 2026-10-12 19:25 CT: "Yes to all" (decision list `claude/decisions-20261012.md`))
+- **KILL incident (PRs #183, #168 blocker 1).** `ops_runner` honours the workflow `KILL` file itself:
+  it refuses to trade and emits one halt incident per profile. The workflow no longer exits before the
+  runner starts, so a kill is never silent.
