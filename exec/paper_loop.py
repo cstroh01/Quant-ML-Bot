@@ -258,16 +258,38 @@ def load_env_file(path: Path, environ: dict) -> None:
         environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 
-def reconcile_pending(gate: Any, client: Any, now: datetime) -> list[dict]:
-    """Release reservations the broker reports terminal. Unknown stays open."""
+FILLS_LOG = "fills.jsonl"
+
+
+def reconcile_pending(gate: Any, client: Any, now: datetime, fills_path: Path | None = None) -> list[dict]:
+    """Release reservations the broker reports terminal. Unknown stays open.
+
+    With ``fills_path`` (spec 059 FR-005, queue Q117), each order released here appends its broker
+    snapshot (status, filled quantity and average price) as one JSONL line, the ``--fills`` input of
+    ``scripts/paper_evidence.py``. The line is written before the reservation is released, so a crash
+    between the two re-records the same snapshot rather than losing it; readers key by order id.
+    """
     report = []
     for row in gate.pending_orders():
         if row["terminal"]:
             continue
-        status = client.order_status(row["client_order_id"])
+        cid = row["client_order_id"]
+        if hasattr(client, "order_snapshot"):
+            snapshot = client.order_snapshot(cid)
+            status = None if snapshot is None else snapshot["status"]
+        else:
+            snapshot, status = None, client.order_status(cid)
+        recorded = False
         if status in TERMINAL_STATUSES:
-            gate.record_order_outcome(row["client_order_id"], terminal=True, reason=status, now=now)
-        report.append({"client_order_id": row["client_order_id"], "broker_status": status})
+            if fills_path is not None and snapshot is not None:
+                fills_path.parent.mkdir(parents=True, exist_ok=True)
+                with fills_path.open("a", encoding="utf-8") as handle:
+                    handle.write(json.dumps({**snapshot, "recorded_at_utc": now.isoformat()}, sort_keys=True) + "\n")
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                recorded = True
+            gate.record_order_outcome(cid, terminal=True, reason=status, now=now)
+        report.append({"client_order_id": cid, "broker_status": status, "fill_recorded": recorded})
     return report
 
 
@@ -302,7 +324,13 @@ def run_once(
         if ny_time >= PRE_OPEN_CUTOFF:
             raise RunAborted(f"{ny_time:%H:%M} ET is past the {PRE_OPEN_CUTOFF:%H:%M} market-on-open cutoff.")
 
-    reconciliation = reconcile_pending(gate, client, now_fn()) if submit else []
+    fills_path = durable.intents_dir / FILLS_LOG if durable is not None else None
+    reconciliation = reconcile_pending(gate, client, now_fn(), fills_path) if submit else []
+    if durable is not None and any(r["fill_recorded"] for r in reconciliation):
+        try:
+            durable.persist()
+        except Exception as exc:  # noqa: BLE001 - evidence not durable: add no exposure on top of it
+            raise RunAborted(f"recorded fills not persisted ({type(exc).__name__}); no new orders") from None
     unresolved = [r["client_order_id"] for r in reconciliation if r["broker_status"] is None]
     if unresolved:
         raise RunAborted(f"{len(unresolved)} unresolved reservation(s) the broker has no record of: "
