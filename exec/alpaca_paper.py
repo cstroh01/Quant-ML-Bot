@@ -109,8 +109,10 @@ class AlpacaPaperClient:
         asset = self._request("GET", f"/v2/assets/{quote(symbol, safe='')}")
         return bool(asset.get("fractionable")) and bool(asset.get("tradable")) and asset.get("status") == "active"
 
-    def order_status(self, client_order_id: str) -> str | None:
-        """The order's Alpaca status, or None if the broker does not know it."""
+    def order_snapshot(self, client_order_id: str) -> dict | None:
+        """Broker truth for one order (spec 059 FR-005), or None if the broker does not know it:
+        ``client_order_id``, ``status``, ``filled_qty``, ``filled_avg_price`` (None until filled),
+        ``filled_at`` and ``symbol``, exactly as Alpaca reports them."""
         try:
             order = self._request(
                 "GET",
@@ -121,7 +123,16 @@ class AlpacaPaperClient:
             if "HTTP 404" in str(exc):
                 return None
             raise
-        return str(order["status"])
+        price = order.get("filled_avg_price")
+        return {"client_order_id": client_order_id, "status": str(order["status"]), "symbol": order.get("symbol"),
+                "filled_qty": float(order.get("filled_qty") or 0.0),
+                "filled_avg_price": None if price in (None, "") else float(price),
+                "filled_at": order.get("filled_at")}
+
+    def order_status(self, client_order_id: str) -> str | None:
+        """The order's Alpaca status, or None if the broker does not know it."""
+        snapshot = self.order_snapshot(client_order_id)
+        return None if snapshot is None else snapshot["status"]
 
     def snapshot(self, prices: Mapping[str, float], *, parse_time: Callable[[str], datetime]) -> BrokerSnapshot:
         """The gate's view of the account, as of the broker's own clock.
