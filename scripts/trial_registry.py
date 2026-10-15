@@ -257,8 +257,35 @@ def declare_family(family: str, *, root: Path = ROOT, synthetic: bool = False) -
     return record
 
 
-def verify_family(family: str, *, root: Path = ROOT) -> dict:
-    """Return the verified declaration record, or raise naming the missing or altered declaration."""
+AMEND_COMMAND = "python scripts/amend_family.py {family} --record"
+
+
+def _amendment_paths(family: str, root: Path) -> list[Path]:
+    """Amendment files in index order; a gap or a stray index raises (058 T006a)."""
+    pattern = re.compile(re.escape(family) + r"\.amend-(\d+)\.json")
+    found = {}
+    for path in (Path(root) / FAMILY_DIR).glob(f"{family}.amend-*.json"):
+        match = pattern.fullmatch(path.name)
+        if not match or match.group(1) != str(int(match.group(1))):
+            raise ValueError(f"family {family!r} amendment file {path.name!r} is malformed")
+        found[int(match.group(1))] = path
+    if sorted(found) != list(range(1, len(found) + 1)):
+        raise ValueError(f"family {family!r} amendments are not contiguous from 1: {sorted(found)}")
+    return [found[k] for k in sorted(found)]
+
+
+def _apply_addition(declaration: dict, path: str, value) -> None:
+    *parents, key = path.split("/")
+    target = declaration
+    for part in parents:
+        target = target.get(part) if isinstance(target, dict) else None
+    if not isinstance(target, dict) or key in target:
+        raise ValueError(f"amendment adds {path!r}, which is not a new key of an existing object")
+    target[key] = value
+
+
+def _verified_family(family: str, root: Path) -> dict:
+    """Base record plus every amendment, each verified and chained; no drift check."""
     path = _family_path(family, root)
     if not path.exists():
         raise ValueError(f"family {family!r} requires its declaration (spec 058 T006) at {FAMILY_DIR}")
@@ -267,7 +294,109 @@ def verify_family(family: str, *, root: Path = ROOT) -> dict:
     if (claimed != digest(record) or record.get("family") != family
             or digest(record.get("declaration")) != record.get("declaration_hash")):
         raise ValueError(f"family {family!r} declaration record is altered or malformed")
-    return {**record, "record_hash": claimed}
+    effective = json.loads(canonical_json(record["declaration"]))
+    previous, amendments = claimed, []
+    for index, amend_path in enumerate(_amendment_paths(family, root), 1):
+        amendment = json.loads(amend_path.read_bytes())
+        amend_hash = amendment.pop("record_hash", None)
+        if (amend_hash != digest(amendment) or amendment.get("family") != family
+                or amendment.get("amendment_index") != index or amendment.get("previous_record_hash") != previous
+                or not isinstance(amendment.get("added"), dict) or not amendment["added"]):
+            raise ValueError(f"family {family!r} amendment {index} is altered, reordered or unchained")
+        for key in sorted(amendment["added"]):
+            _apply_addition(effective, key, amendment["added"][key])
+        amendments.append({**amendment, "record_hash": amend_hash})
+        previous = amend_hash
+    return {**record, "record_hash": claimed, "base_declaration": record["declaration"], "declaration": effective,
+            "effective_declaration_hash": digest(effective), "amendments": amendments,
+            "anchors": [record["ledger_head_at_declaration"], *(a["ledger_head_at_amendment"] for a in amendments)]}
+
+
+def _first_difference(frozen, source, path: str = "") -> str | None:
+    if isinstance(frozen, dict) and isinstance(source, dict):
+        for key in sorted(set(frozen) | set(source)):
+            if key not in frozen or key not in source:
+                return f"{path}/{key}".lstrip("/")
+            found = _first_difference(frozen[key], source[key], f"{path}/{key}")
+            if found: return found
+        return None
+    return None if canonical_json(frozen) == canonical_json(source) else (path.lstrip("/") or "<root>")
+
+
+def verify_family(family: str, *, root: Path = ROOT) -> dict:
+    """Return the verified record whose `declaration` is the effective one (base + amendments).
+
+    Guarantees: raises naming the missing or altered declaration or amendment, and raises when the
+    committed declaration source differs from the effective frozen declaration (drift), naming the
+    first differing key and the command that records an additions-only amendment.
+    """
+    verified = _verified_family(family, root)
+    source = Path(root) / DECLARED_FAMILIES[family]
+    if not source.is_file():
+        raise ValueError(f"family {family!r} declaration source {DECLARED_FAMILIES[family]} is missing")
+    current = json.loads(source.read_text(encoding="utf-8"))
+    differs = _first_difference(verified["declaration"], current)
+    if differs is not None:
+        raise ValueError(f"family {family!r} declaration source drifted from its frozen record at {differs!r}; "
+                         f"record the additions with `{AMEND_COMMAND.format(family=family)}` before any trial")
+    return verified
+
+
+def _additions(frozen: dict, source: dict, family: str) -> dict:
+    """New top-level or `common` keys only; any changed or removed value is refused by name."""
+    added = {}
+    for key in sorted(set(frozen) | set(source)):
+        if key not in source:
+            raise ValueError(f"amendment refused: {key!r} would be removed from family {family!r}")
+        if key not in frozen:
+            added[key] = source[key]
+        elif key == "common" and isinstance(frozen[key], dict) and isinstance(source[key], dict):
+            for inner in sorted(set(frozen[key]) | set(source[key])):
+                if inner not in source[key]:
+                    raise ValueError(f"amendment refused: 'common/{inner}' would be removed from family {family!r}")
+                if inner not in frozen[key]:
+                    added[f"common/{inner}"] = source[key][inner]
+                elif canonical_json(frozen[key][inner]) != canonical_json(source[key][inner]):
+                    raise ValueError(f"amendment refused: 'common/{inner}' changes an existing value of family {family!r}")
+        elif canonical_json(frozen[key]) != canonical_json(source[key]):
+            raise ValueError(f"amendment refused: {key!r} changes an existing value of family {family!r}")
+    if any("/" in name for name in [*source, *(source.get("common") or {})] if isinstance(name, str)):
+        raise ValueError("amendment refused: a declaration key may not contain '/'")
+    return added
+
+
+def amend_family(family: str, *, root: Path = ROOT, synthetic: bool = False) -> dict:
+    """Write the next additions-only amendment record (spec 058 T006a, Camden's "A", 2026-10-12).
+
+    Guarantees: production writes require deliberate enablement; only new top-level or `common`
+    keys enter; refused once any trial of the family exists or when nothing changed; each record
+    chains to the previous record hash and is never replaced.
+    """
+    root = Path(root).resolve()
+    base_path = _family_path(family, root)
+    if (root == ROOT) == synthetic:
+        raise ValueError("synthetic amendments require an injected root, and only those")
+    if not synthetic:
+        _require_production_enabled("trial_registry.amend_family", base_path)
+    verified = _verified_family(family, root)
+    source = root / DECLARED_FAMILIES[family]
+    current = json.loads(source.read_text(encoding="utf-8"))
+    if current.get("family") != family:
+        raise ValueError(f"declaration source names family {current.get('family')!r}, not {family!r}")
+    added = _additions(verified["declaration"], current, family)
+    if not added:
+        raise ValueError(f"amendment refused: family {family!r} source adds nothing to its frozen declaration")
+    state = TrialLedger(root, synthetic=synthetic).verify()
+    if any(e["family"] == family for e in state["events"]):
+        raise ValueError(f"amendment refused: family {family!r} already has trials; its declaration is final")
+    index = len(verified["amendments"]) + 1
+    previous = verified["amendments"][-1]["record_hash"] if verified["amendments"] else verified["record_hash"]
+    record = {"family": family, "amendment_index": index, "previous_record_hash": previous, "added": added,
+              "source": DECLARED_FAMILIES[family], "source_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
+              "ledger_head_at_amendment": state["head"], "amended_at_utc": datetime.now(timezone.utc).isoformat()}
+    record["record_hash"] = digest(record)
+    immutable_write(base_path.with_name(f"{family}.amend-{index}.json"), canonical_json(record))
+    return record
 
 
 def _family_count(family: str, events: list[dict], root: Path) -> dict:
@@ -314,10 +443,10 @@ def trial_counts(backfill: dict, ledger: "TrialLedger", *, family: str | None = 
     if family is not None:
         try:
             status = _family_count(family, state["events"], ledger.root)
-            anchor = verify_family(family, root=ledger.root)["ledger_head_at_declaration"]
+            anchors = verify_family(family, root=ledger.root)["anchors"]
             heads = [ZERO, *(e["record_hash"] for e in state["events"])]
             first = next((i for i, e in enumerate(state["events"], 1) if e["family"] == family), len(heads))
-            if anchor not in heads[:first]: raise ValueError("declaration not anchored before the family's first start")
+            if any(a not in heads[:first] for a in anchors): raise ValueError("declaration not anchored before the family's first start")
             if not 1 <= status["cap"] <= 50: raise ValueError("family cap outside 1..50")
         except (ValueError, KeyError, TypeError) as exc:
             status = {"family": family, "n_family": None, "cap": None, "within_cap": False, "detail": str(exc)}
