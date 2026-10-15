@@ -145,6 +145,7 @@ class Plan:
     fractionable: Mapping[str, bool]
     decision_session: str | None = None
     pending: bool = False
+    deferred: bool = False  # buys held back until this run's sells fill: the decision is not done
 
 
 class TrendPlanner:
@@ -188,7 +189,8 @@ class AllocationPlanner:
                                                        fractionable=self.fractionable, executed_decision=executed)
         except ValueError as exc:
             raise RunAborted(f"allocation: {exc}") from None
-        return Plan(decision, orders, self.fractionable, chosen, pending=chosen is not None and chosen != executed)
+        return Plan(decision, orders, self.fractionable, chosen, pending=chosen is not None and chosen != executed,
+                    deferred=bool(decision.attrs.get("deferred_buys")))
 
     def complete(self, decision_session: str) -> None:
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
@@ -415,7 +417,7 @@ def run_once(
 
     # Spec 059: a decision is executed only when every order it needed was sent and none was shrunk.
     executed = None
-    if submit and plan.pending and not shrunk and all(a.get("outcome") == "SUBMITTED" for a in actions):
+    if submit and plan.pending and not plan.deferred and not shrunk and all(a.get("outcome") == "SUBMITTED" for a in actions):
         planner.complete(plan.decision_session)
         executed = plan.decision_session
         if durable is not None:
