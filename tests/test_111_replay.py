@@ -58,7 +58,8 @@ def test_fills_happen_at_the_session_open():
 
 def test_denials_under_the_live_limits_fail_the_replay():
     opens, closes = panels()
-    report = replay_runner.replay_window(opens, closes, START, END, profile=profile())
+    report = replay_runner.replay_window(opens, closes, START, END, profile=profile(),
+                                         config=replay_runner.paper_loop.PAPER_SAFETY_CONFIG)
     assert report["denied"], "Q111 DENIED 2026-09-29 limits let the allocation through"
     assert not replay_runner.verdict([report]), "Q111 DENIED verdict passed with denials"
 

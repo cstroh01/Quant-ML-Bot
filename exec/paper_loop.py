@@ -89,6 +89,22 @@ PAPER_SAFETY_CONFIG = SafetyConfig(
     max_clock_skew_seconds=5,
 )
 
+# Spec 059 allocation limits (Camden, chat, 2026-10-14 23:32 CT: "alloc config yes", accepting the
+# proposed values). The 2026-09-29 limits deny the allocation: inverse-vol puts ~20-35% in TIP/IEF and
+# gross runs to 0.95. Position 0.40 covers the largest bond sleeve; gross 1.00 is the allocation's own
+# cap; daily loss 0.03 and a 0.15 / 63-session drawdown fit a 10%-vol book (2% fires on ordinary stress
+# days, 8% would latch in the 2020/2022 replays). Configuration, not results. Camden-owned (Rule 7a).
+ALLOCATION_SAFETY_CONFIG = SafetyConfig(
+    version="2026-10-14-alloc-v1",
+    max_position_pct=0.40,
+    max_gross_pct=1.00,
+    daily_loss_pct=0.03,
+    rolling_drawdown_pct=0.15,
+    rolling_window_sessions=63,
+    max_snapshot_age_seconds=60,
+    max_clock_skew_seconds=5,
+)
+
 
 class OfflineClient:
     """No-network stand-in for a dry run before credentials exist.
@@ -432,7 +448,7 @@ def run_once(
         "equity_source": "placeholder, not an account" if placeholder else "broker",
         "session": str(session.date()),
         "equity": equity,
-        "safety_config_version": PAPER_SAFETY_CONFIG.version,
+        "safety_config_version": getattr(getattr(gate, "_config", None), "version", None),
         "profile": profile.name if profile is not None else None,
         "reconciliation": reconciliation,
         "decision": json.loads(decision.to_json(orient="index")),
@@ -556,7 +572,7 @@ def main(argv: list[str] | None = None) -> int:
             load_env_file(args.env_file, os.environ)  # type: ignore[arg-type]
         client = AlpacaPaperClient(environ=profile_environ(profile, os.environ)) if profile else AlpacaPaperClient()
     gate_db.parent.mkdir(parents=True, exist_ok=True)
-    gate = LiveSafetyGate(gate_db, PAPER_SAFETY_CONFIG)
+    gate = LiveSafetyGate(gate_db, ALLOCATION_SAFETY_CONFIG)  # main() trades only the spec 059 allocation
     manifests: list = []
     try:
         keys = profile_credential_names(profile) if profile else ("APCA_API_KEY_ID", "APCA_API_SECRET_KEY")
