@@ -158,6 +158,20 @@ Approximate net annualized Sharpe needed for DSR ≥ 0.95 (HAC t ≥ 3 binds les
 - T006 (2026-10-09) froze the declaration before D-8 and D-9, so both enter by an additions-only
   amendment record (T006a; Camden, chat, 2026-10-12 20:57 CT: "A") before any 058 trial.
 
+### Recorded decision (Camden, chat, 2026-10-15 13:57 CT)
+- **D-10 Price basis (implements declaration `common.bars`, "daily, unadjusted OHLC with separately
+  verified corporate actions"; no declaration value changes).** Bars are the T008 Tiingo raw OHLCV.
+  Corporate actions are Tiingo `splitFactor` and `divCash`, used only after T009 verifies them:
+  against Alpaca from 2016 onward; earlier actions are single-source and disclosed. Signals and P&L use
+  a panel back-adjusted in-repo from the raw opens/closes and the verified actions. Prices before an
+  ex-date are multiplied by (1 − div / close on the session before the ex-date); prices before a split
+  session are divided by the split ratio. Costs use the raw OHLCV (`volume_basis` provider_nominal;
+  split sessions refused in-window, spec 046). An order's quantity is converted to nominal shares at
+  the decision close by dollar notional. Provider-adjusted fields (`adjOpen`, `adjClose`, `adjVolume`)
+  are never used for signals, P&L or costs; they serve only as a T009 cross-check. Recorded before any
+  058 statistic exists. (Option A, provider-adjusted bars, was withdrawn: it would change the frozen
+  `common.bars`.)
+
 ## 9. Out of scope
 Intraday data, single stocks, futures, leverage above 1.0, ML models in this family. ML stays a later
 challenger under 053.

@@ -2393,6 +2393,45 @@
       "depends_on": [
         "Camden's values in chat"
       ]
+    },
+    {
+      "id": "Q132",
+      "kind": "fix",
+      "status": "ready",
+      "lane": "A",
+      "spec_task": "058 T013/T014 B-RND wiring (Q120 remainder)",
+      "summary": "Wire B-RND into scripts/edge_walk_forward.py: BRND_SEEDS = tuple(range(20261015, 20261035)) (20 seeds, fixed before T015); per candidate c, selection = target_book(c) > 0, matched_activity fitted on the research-window panel, same cadence (H8 weekly), same sizing class as c (inverse-vol: H1/H2/H4/H5/H9; D-8 equal legs + portfolio vol target: H3/H6/H7/H8; unscaled equal weight: H10), same fill_cost/commission/capital; each (c, seed) one research_attempt with role random_signal_baseline (300 records, excluded from N_family). Pure brnd_dispersion(returns_by_seed) -> mean/sd/min/max/n_seeds of annualized net Sharpe, log return, volatility, max drawdown. Rule 12 mutants: one seed accepted; seed ignored (sd 0); B-RND recorded as candidate; sizing class swapped; activity fitted past RESEARCH_END; H8 cadence ignored.",
+      "allowed_paths": [
+        "scripts/edge_walk_forward.py",
+        "tests/test_058_walk_forward.py",
+        "tests/mutation/run_058_brnd_mutants.py",
+        "docs/implementation/spec-058/T013-brnd.md"
+      ],
+      "file_cap_lines": 600,
+      "depends_on": [
+        "Q120 PR merged (#212)"
+      ]
+    },
+    {
+      "id": "Q133",
+      "kind": "fix",
+      "status": "blocked",
+      "lane": "A",
+      "spec_task": "058 T015 run command (Camden runs it; agents never)",
+      "summary": "New entry point scripts/run_058_t015.py plus a 058 panel loader section in scripts/data_sources.py (058 D-10): verify each private T008 Tiingo body's SHA-256 against docs/implementation/spec-058/t008-tiingo-20261009.json; truncate to <= RESEARCH_END before building columns; back-adjust raw opens/closes in-repo with T009-verified splitFactor/divCash (never provider adj* fields); cost history = raw OHLCV with volume_basis provider_nominal and split sessions; fill_cost converts quantity to nominal shares by notional at close t. Preflight refusals before any ledger byte: verify_family('058-edge'); a T009 data-check file whose panel hash matches; no existing 058-edge candidate trial unless --rerun '<reason>'; no uncommitted scripts/ change; CostConfig() primary. Order: 15 candidates in declared order, B-BH, then B-RND (Q132); an errored config stops the run. --dry-run = preflight + panel summary, computes no returns; --record-trial = production_recording(reason='058 T015'). Verify all 15 candidates enter build_matrix despite runner risk_free 0.0 vs D-9 0.0378; measure runtime on a synthetic 25x6500 panel. Rule 12 mutants: P&L on raw close (dividend oracle); unconverted quantity (2:1 split oracle); T009 preflight removed; truncation after column build; silent rerun; B-RND as candidate.",
+      "allowed_paths": [
+        "scripts/run_058_t015.py",
+        "scripts/data_sources.py",
+        "tests/test_058_t015.py",
+        "tests/mutation/run_058_t015_mutants.py",
+        "docs/implementation/spec-058/T015-run-command.md"
+      ],
+      "file_cap_lines": 600,
+      "depends_on": [
+        "058 D-10 recorded in spec 058 (Camden, 2026-10-15)",
+        "Q132 PR merged"
+      ],
+      "note": "Blocked only on Q132. 058 T009 (Codex lane) must land before Camden's --record-trial run, not before this code unit; tests use synthetic panels and a synthetic ledger."
     }
   ]
 }
