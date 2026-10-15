@@ -155,6 +155,8 @@ Approximate net annualized Sharpe needed for DSR ≥ 0.95 (HAC t ≥ 3 binds les
   before any 058 statistic: `alignment` exact_intersection, `objective` daily_sharpe, `min_coverage`
   0.95, `risk_free` 0.0378 annual over 252 sessions (repository constant), `horizon` 1, `hac_lags` 21.
   Changing any value after a 058 statistic is seen voids D-1.
+- T006 (2026-10-09) froze the declaration before D-8 and D-9, so both enter by an additions-only
+  amendment record (T006a; Camden, chat, 2026-10-12 20:57 CT: "A") before any 058 trial.
 
 ## 9. Out of scope
 Intraday data, single stocks, futures, leverage above 1.0, ML models in this family. ML stays a later

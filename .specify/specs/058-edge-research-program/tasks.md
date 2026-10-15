@@ -51,9 +51,15 @@ Order matters: D-1(a) requires T006 to land before T007.
   - A run in family `058-edge` without a matching declaration is refused.
   - Exceeding the cap reverts the family to lifetime N, and the run says so.
   - Synthetic ledger only.
-- [ ] T006 **HUMAN GATE — write the declaration to the real ledger, Camden.**
+- [x] T006 **HUMAN GATE — write the declaration to the real ledger, Camden.**
   - A one-command write. Camden runs it; agents never write `docs/trials/`.
   - Record the resulting ledger hashes.
+  - Done 2026-10-09T20:58Z (commit df477f8b, `docs/trials/families/058-edge.json`), before D-8 and D-9.
+- [ ] T006a **HUMAN GATE — Camden runs `python scripts/amend_family.py 058-edge --record` (D-8, D-9).**
+  - Camden chose an additions-only amendment over redeclaring (chat, 2026-10-12 20:57 CT: "A").
+  - Adds only `gate3` and `common/sizing`; any changed or removed frozen value is refused.
+  - Until it is recorded, `verify_family("058-edge")` refuses on source drift, so no 058 trial can start.
+  - Must run before any 058 trial: one trial makes the declaration final.
 - [ ] T007 Holdout seal contract (FR-002).
   - Files: `tests/test_058_holdout.py`, then the loader path that serves §4 data.
   - Sessions ≥ 2023-10-02 are refused without a one-shot token bound to the selected configuration hash.

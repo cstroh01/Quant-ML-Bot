@@ -77,8 +77,8 @@ def test_tampered_record_is_refused(tmp_path):
     record = json.loads(path.read_text(encoding="utf-8"))
     record["declaration"]["n_family_cap"] = 5000
     path.write_text(json.dumps(record), encoding="utf-8")
-    refuses(lambda: trial_registry.verify_family(FAMILY, root=root), "T005 TAMPER", "declaration")
-    refuses(lambda: ledger(root).start(config(), role="synthetic_test", family=FAMILY, runner="t"), "T005 TAMPER", "declaration")
+    refuses(lambda: trial_registry.verify_family(FAMILY, root=root), "T005 TAMPER", "altered or malformed")
+    refuses(lambda: ledger(root).start(config(), role="synthetic_test", family=FAMILY, runner="t"), "T005 TAMPER", "altered or malformed")
     assert ledger(root).verify()["events"] == [], "T005 TAMPER accepted"
 
 
@@ -96,7 +96,12 @@ def test_unknown_family_cannot_be_declared(tmp_path):
 def test_production_declaration_requires_deliberate_enablement():
     target = ROOT / trial_registry.FAMILY_DIR / f"{FAMILY}.json"
     existed = target.exists()
-    refuses(lambda: trial_registry.declare_family(FAMILY), "T005 ENABLE", errors=(trial_registry.LedgerWriteRefused,))
+    try:
+        trial_registry.declare_family(FAMILY)
+    except Exception as error:  # noqa: BLE001 - any other refusal means the guard did not fire first
+        assert isinstance(error, trial_registry.LedgerWriteRefused), f"T005 ENABLE guard did not refuse first: {error!r}"
+    else:
+        raise AssertionError("T005 ENABLE did not refuse")
     assert target.exists() == existed, "T005 ENABLE wrote without production recording"
 
 
@@ -117,5 +122,9 @@ def test_cli_refuses_without_record_flag():
     import declare_family
     target = ROOT / trial_registry.FAMILY_DIR / f"{FAMILY}.json"
     existed = target.exists()
-    assert declare_family.main([FAMILY]) == 2, "T005 CLI ran without --record"
+    try:
+        code = declare_family.main([FAMILY])
+    except Exception as error:  # noqa: BLE001 - reaching the writer at all means the flag was ignored
+        raise AssertionError(f"T005 CLI ran without --record: {error!r}") from error
+    assert code == 2, "T005 CLI ran without --record"
     assert target.exists() == existed, "T005 CLI wrote without --record"
