@@ -70,13 +70,18 @@ Order matters: D-1(a) requires T006 to land before T007.
     - the token bound to a different hash
 
 ## Phase 2 — data (Codex, after T006)
-- [ ] T008 **Codex — bounded fetch, Camden's "go".** Tiingo EOD for the 25 §4 tickers, full history.
+- [x] T008 **Codex — bounded fetch, Camden's "go".** Tiingo EOD for the 25 §4 tickers, full history.
   - The script refuses to run unless the T006 declaration hash is present.
   - Raw data stays private. A sanitized manifest is published per FR-005.
   - The check source is Alpaca raw SIP, 2016 onward.
-- [ ] T009 Cross-source and corporate-action checks (056 FR-004, Rule 14).
+  - Done (Camden tick, 2026-10-15): fetched 2026-10-09, manifests `T008-fetch-20261009.md`,
+    `t008-tiingo-20261009.json`, `t008-alpaca-20261009.json`; 75/75 private bodies re-hashed before T009.
+- [x] T009 Cross-source and corporate-action checks (056 FR-004, Rule 14).
   - Disagreements are excluded or disclosed, never averaged.
   - Evidence: `docs/implementation/spec-058/data-check-<YYYYMMDD>.md`.
+  - Done 2026-10-15 (Camden, chat, 16:43 CT: "A"): `data-check-20261015.md`, status EXCLUSIONS, 290 excluded
+    ticker-sessions, panel hash `3b80b330`. Strict D-10: mismatched actions are not applied and their sessions
+    are excluded.
 
 ## Phase 3 — strategies and accounting (after T004)
 - [ ] T010 Portfolio accounting.
