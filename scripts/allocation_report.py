@@ -57,6 +57,19 @@ def series_stats(equity: pd.Series) -> dict:
     return stats
 
 
+def cash_months(weights: pd.DataFrame, required: pd.DataFrame) -> dict:
+    """Spec 059 D-6: decision rows of `weights` that hold nothing although `required` marks a sleeve.
+
+    A row whose sleeves need an EWMA variance or covariance that is undefined is sized all cash; such
+    a row counts. A row where no sleeve is eligible yet (warm-up) is not a data hole and is not counted.
+    Missing weights count as cash. Returns the count and the ISO dates, in row order.
+    """
+    invested = weights.fillna(0.0).ne(0.0).any(axis=1)
+    needed = required.loc[weights.index].any(axis=1)
+    dates = weights.index[needed & ~invested]
+    return {"count": int(len(dates)), "dates": [d.strftime("%Y-%m-%d") for d in dates]}
+
+
 def allocation_report(bars: dict[str, pd.DataFrame], *, commission_per_fill: float, cost_config: CostConfig,
                       split_sessions: dict[str, tuple], seeds: list[int], starting_capital: float = 100_000.0) -> dict:
     """The FR-003 research-window report: allocation, buy-and-hold and seeded random baselines.
@@ -90,13 +103,22 @@ def allocation_report(bars: dict[str, pd.DataFrame], *, commission_per_fill: flo
         return run_portfolio_backtest(opens, closes, weights, starting_capital=starting_capital,
                                       commission_per_fill=commission_per_fill, fill_cost=fill_cost).equity
 
-    allocation = series_stats(run(allocation_weights(selection, closes, decisions)))
-    buy_and_hold = series_stats(run(equal_weight_book(closes.notna(), max_gross=1.0).loc[decisions]))
+    allocation_book = allocation_weights(selection, closes, decisions)
+    allocation = series_stats(run(allocation_book))
+    held = closes.notna()
+    buy_and_hold_book = equal_weight_book(held, max_gross=1.0).loc[decisions]
+    buy_and_hold = series_stats(run(buy_and_hold_book))
     # `matched_activity` of an always-invested allocation is degenerate (enter 1, exit 0): the draws
     # would reproduce the allocation and the baseline would show no dispersion. Each sleeve is instead
     # long or flat with probability 1/2 on every decision row: same cadence, sizing and costs.
     draws = random_selections(closes, decision_mask=decisions, seeds=seeds, **RANDOM_ACTIVITY)
-    random = {seed: series_stats(run(allocation_weights(draw, closes, decisions))) for seed, draw in draws.items()}
+    random_books = {seed: allocation_weights(draw, closes, decisions) for seed, draw in draws.items()}
+    random = {seed: series_stats(run(book)) for seed, book in random_books.items()}
+    cash = {"allocation": cash_months(allocation_book, selection),
+            "buy_and_hold": cash_months(buy_and_hold_book, held),
+            # a draw may hold a sleeve before it is eligible (warm-up); only eligible draws are required
+            "random": {seed: cash_months(book, draws[seed] & selection) for seed, book in random_books.items()},
+            "warmup_rows": int((~selection.loc[allocation_book.index].any(axis=1)).sum())}
     sharpes = [s["sharpe"] for s in random.values() if s["sharpe"] is not None]
     dispersion = {"seeds": list(draws), "mean_sharpe": float(np.mean(sharpes)) if sharpes else None,
                   "std_sharpe": float(np.std(sharpes, ddof=1)) if len(sharpes) > 1 else None,
@@ -104,11 +126,20 @@ def allocation_report(bars: dict[str, pd.DataFrame], *, commission_per_fill: flo
     return {"label": LABEL, "window": [closes.index[0].strftime("%Y-%m-%d"), closes.index[-1].strftime("%Y-%m-%d")],
             "costs": {"commission": commission_per_fill, "slippage": cost_config.as_mapping()},
             "allocation": allocation, "buy_and_hold": buy_and_hold, "random": random,
-            "random_dispersion": dispersion, "random_activity": dict(RANDOM_ACTIVITY)}
+            "random_dispersion": dispersion, "random_activity": dict(RANDOM_ACTIVITY), "cash_months": cash}
 
 
 def _number(value: float | None, digits: int = 3) -> str:
     return "undefined" if value is None else f"{value:.{digits}f}"
+
+
+def _cash_line(cash: dict) -> str:
+    def one(name: str, entry: dict) -> str:
+        return f"{name} {entry['count']} [{', '.join(entry['dates'])}]"
+    random = "; ".join(one(f"seed {seed}", entry) for seed, entry in cash["random"].items())
+    return (f"cash months (D-6: a required EWMA variance or covariance undefined, whole book cash): "
+            f"{one('allocation', cash['allocation'])}; {one('buy-and-hold', cash['buy_and_hold'])}; random {random}; "
+            f"{cash['warmup_rows']} warm-up decision rows with no sleeve eligible are cash and not counted")
 
 
 def render(report: dict, stamp: list[str]) -> list[str]:
@@ -123,5 +154,6 @@ def render(report: dict, stamp: list[str]) -> list[str]:
              f"buy-and-hold (equal-weight sleeves, rebalanced monthly): Sharpe {_number(b['sharpe'])} [{LABEL}]",
              f"random baseline ({len(d['seeds'])} seeds, each sleeve long/flat at 1/2 per decision): mean Sharpe {_number(d['mean_sharpe'])}, "
              f"std {_number(d['std_sharpe'])}, range {_number(d['min_sharpe'])} to {_number(d['max_sharpe'])} [{LABEL}]",
+             _cash_line(report["cash_months"]),
              "Limitations (Rule 16), docs/SCOPE-V1.md §6:"]
     return lines + [f"- {item}" for item in LIMITATIONS]
