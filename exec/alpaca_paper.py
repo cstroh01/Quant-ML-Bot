@@ -23,8 +23,11 @@ from __future__ import annotations
 
 import math
 import os
+from decimal import ROUND_DOWN, Decimal
 from datetime import datetime
 from typing import Any, Callable, Mapping
+
+from urllib.parse import quote
 
 import requests
 
@@ -45,6 +48,17 @@ class BrokerError(RuntimeError):
 
 class SubmissionUnknown(BrokerError):
     """The order may or may not have reached the broker. Do not retry."""
+
+
+def order_quantity(delta_quantity: float) -> str:
+    """Plain decimal text, floored to six places: never scientific notation, never rounded up.
+
+    ``f"{q:g}"`` kept six significant digits, so 12.3456789 became "12.3457" (more than the gate
+    reserved) and 1234567 became "1.23457e+06".
+    """
+    value = Decimal(str(abs(float(delta_quantity)))).quantize(Decimal("0.000001"), rounding=ROUND_DOWN)
+    text = format(value, "f")
+    return text.rstrip("0").rstrip(".") if "." in text else text
 
 
 class AlpacaPaperClient:
@@ -89,6 +103,11 @@ class AlpacaPaperClient:
 
     def clock(self) -> dict:
         return self._request("GET", "/v2/clock")
+
+    def fractionable(self, symbol: str) -> bool:
+        """True only when Alpaca lists ``symbol`` as an active, tradable, fractionable asset."""
+        asset = self._request("GET", f"/v2/assets/{quote(symbol, safe='')}")
+        return bool(asset.get("fractionable")) and bool(asset.get("tradable")) and asset.get("status") == "active"
 
     def order_status(self, client_order_id: str) -> str | None:
         """The order's Alpaca status, or None if the broker does not know it."""
@@ -141,10 +160,9 @@ class AlpacaPaperClient:
         all four ``opg`` orders on 2026-10-05 expired unfilled. A queued day
         order fills near, not at, the official open; that gap is disclosed in
         spec 049 section 4."""
-        quantity = abs(float(intent.delta_quantity))
         body = {
             "symbol": intent.instrument,
-            "qty": f"{quantity:g}",
+            "qty": order_quantity(intent.delta_quantity),
             "side": "buy" if intent.delta_quantity > 0 else "sell",
             "type": "market",
             "time_in_force": "day",
