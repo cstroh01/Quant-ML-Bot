@@ -202,3 +202,126 @@ def test_an_equal_leg_configuration_records_one_completed_trial(ledger):
     assert [e["event_type"] for e in events] == ["started", "completed"], "T014 D8 trial"
     assert events[0]["config"]["model"]["params"]["sizing"] == "equal_legs_scaled_down", "T014 D8 sizing recorded"
     assert receipt["event_type"] == "completed", "T014 D8 receipt"
+
+
+# --- Spec 058 T013 B-RND (queue Q132). EXAMPLE — NOT A RESULT: synthetic panels and ledger only. ---
+from portfolio_risk import equal_weight_book, equal_weight_vol_target_book
+from signals import random_selection
+
+
+def test_brnd_seeds_are_the_twenty_preregistered_constants():
+    assert wf.BRND_SEEDS == tuple(range(20261015, 20261035)) and len(wf.BRND_SEEDS) == 20, "Q132 SEEDS"
+    assert wf.require_brnd_seeds(wf.BRND_SEEDS) == wf.BRND_SEEDS
+    for bad in (wf.BRND_SEEDS[:1], wf.BRND_SEEDS[:19], wf.BRND_SEEDS[::-1], tuple(range(1, 21))):
+        with pytest.raises(ValueError):
+            wf.require_brnd_seeds(bad)
+
+
+def test_brnd_matches_each_candidates_sizing_class_and_cadence():
+    for c in wf.CANDIDATES:
+        expected = ("equal_legs_vol_target" if c in wf.EQUAL_LEGS else
+                    "equal_weight_unscaled" if c == "H10" else "inverse_vol_vol_target")
+        assert wf.sizing_class(c) == expected, f"Q132 SIZING {c}"
+        assert wf.cadence(c) == ("weekly" if c == "H8" else "monthly"), f"Q132 CADENCE {c}"
+    assert len(wf.CANDIDATES) == 15
+    with pytest.raises(ValueError):
+        wf.sizing_class("B-BH")
+
+
+def test_inverse_vol_brnd_book_is_the_hand_built_vol_target_book():
+    _, closes = panel(3)
+    activity = wf.brnd_activity("H4", closes)
+    mask = decision_sessions(closes.index, cadence="monthly")
+    selection = random_selection(closes, decision_mask=mask, seed=wf.BRND_SEEDS[0], **activity)
+    oracle = volatility_target_book(selection, closes, span=wf.VOL_SPAN, target_volatility=wf.TARGET_VOLATILITY,
+                                    max_gross=wf.MAX_GROSS).loc[mask]
+    book = wf.brnd_book("H4", closes, seed=wf.BRND_SEEDS[0], activity=activity)
+    pd.testing.assert_frame_equal(book, oracle)
+    wrong = equal_weight_vol_target_book(selection, closes, span=wf.VOL_SPAN, target_volatility=wf.TARGET_VOLATILITY,
+                                         max_gross=wf.MAX_GROSS).loc[mask]
+    assert not np.allclose(book.to_numpy(), wrong.to_numpy()), "Q132 SIZING CLASS"
+
+
+def test_h10_brnd_is_unscaled_equal_weight():
+    _, closes = panel(4)
+    activity = wf.brnd_activity("H10", closes)
+    mask = decision_sessions(closes.index, cadence="monthly")
+    selection = random_selection(closes, decision_mask=mask, seed=wf.BRND_SEEDS[1], **activity)
+    book = wf.brnd_book("H10", closes, seed=wf.BRND_SEEDS[1], activity=activity)
+    pd.testing.assert_frame_equal(book, equal_weight_book(selection, max_gross=1.0).loc[mask])
+
+
+def test_h8_brnd_decides_on_iso_week_starts():
+    _, closes = wide_panel(5)
+    book = wf.brnd_book("H8", closes, seed=wf.BRND_SEEDS[2], activity=wf.brnd_activity("H8", closes))
+    weekly = closes.index[decision_sessions(closes.index, cadence="weekly")]
+    assert book.index.equals(weekly) and len(book) > 200, "Q132 CADENCE H8"
+
+
+def test_brnd_activity_is_matched_and_fitted_inside_the_research_window(monkeypatch):
+    _, closes = panel(6)
+    activity = wf.brnd_activity("H1-12", closes)
+    assert set(activity) == {"enter_probability", "exit_probability", "initial_probability"}
+    assert 0 < activity["initial_probability"] < 1, "Q132 MATCHED"
+    late = pd.bdate_range(closes.index[-1] + pd.Timedelta(days=1), periods=5)
+    extended = pd.concat([closes, pd.DataFrame(100.0, index=late, columns=closes.columns)])
+    monkeypatch.setattr(wf, "matched_activity", lambda *a, **k: pytest.fail("fitted on a sealed panel"))
+    with pytest.raises(HoldoutSealError):
+        wf.brnd_activity("H1-12", extended)
+
+
+def test_seeds_give_different_baselines_and_a_positive_dispersion():
+    opens, closes = panel(7)
+    activity = wf.brnd_activity("H1-12", closes)  # a switching candidate; an always-invested one matches itself
+    returns = {}
+    for seed in wf.BRND_SEEDS[:3]:
+        rows, _ = wf._oos_from_book(wf.brnd_book("H1-12", closes, seed=seed, activity=activity), opens, closes,
+                                    fill_cost=FILL, commission_per_fill=1.0, starting_capital=100_000.0)
+        returns[seed] = rows
+    spread = wf.brnd_dispersion(returns)
+    assert spread["annual_log_return"]["sd"] > 0 and spread["sharpe"]["n_seeds"] == 3, "Q132 SEED STREAMS"
+
+
+def test_dispersion_matches_hand_computation():
+    a, b = [0.01, -0.02, 0.03], [0.0, 0.01, 0.01]
+    out = wf.brnd_dispersion({1: a, 2: b})
+    sa, sb = np.std(a, ddof=1), np.std(b, ddof=1)
+    sharpe = [np.mean(a) / sa * np.sqrt(252), np.mean(b) / sb * np.sqrt(252)]
+    assert out["sharpe"]["mean"] == pytest.approx(np.mean(sharpe))
+    assert out["max_drawdown"]["min"] == pytest.approx(np.exp(-0.02) - 1)
+    assert out["max_drawdown"]["max"] == pytest.approx(0.0)
+    with pytest.raises(ValueError):
+        wf.brnd_dispersion({1: a})
+
+
+def test_brnd_is_recorded_as_a_random_signal_baseline_never_a_candidate(ledger, monkeypatch):
+    before = real_ledger_digest()
+    roles, original = [], wf.research_attempt
+
+    def spy(config, *, role, family):
+        roles.append((role, family, config["model"]["name"], config["seed"]))
+        return original(config, role=role, family=family)
+
+    monkeypatch.setattr(wf, "research_attempt", spy)
+    opens, closes = panel(8)
+    receipt = wf.run_brnd("H3-3", wf.BRND_SEEDS[0], opens, closes, fill_cost=FILL, costs=COSTS, data=DATA)
+    assert roles == [("random_signal_baseline", wf.FAMILY, "B-RND", wf.BRND_SEEDS[0])], "Q132 ROLE"
+    events = ledger.verify()["events"]
+    assert [e["event_type"] for e in events] == ["started", "completed"]
+    params = events[0]["config"]["model"]["params"] if "config" in events[0] else None
+    assert receipt["sidecar"]["metadata"]["oos"] is True
+    assert params is None or (params["candidate"] == "H3-3" and params["sizing"] == "equal_legs_vol_target")
+    assert real_ledger_digest() == before, "Q132 REAL LEDGER"
+
+
+def test_brnd_refuses_unregistered_seeds_and_sealed_panels_before_any_ledger_event(ledger):
+    opens, closes = panel(9)
+    with pytest.raises(ValueError):
+        wf.run_brnd("H4", 7, opens, closes, fill_cost=FILL, costs=COSTS, data=DATA)
+    with pytest.raises(ValueError):
+        wf.run_brnd_family("H4", opens, closes, seeds=wf.BRND_SEEDS[:1], fill_cost=FILL, costs=COSTS, data=DATA)
+    late = pd.bdate_range(closes.index[-1] + pd.Timedelta(days=1), periods=3)
+    grow = lambda f: pd.concat([f, pd.DataFrame(100.0, index=late, columns=f.columns)])  # noqa: E731
+    with pytest.raises(HoldoutSealError):
+        wf.run_brnd("H4", wf.BRND_SEEDS[0], grow(opens), grow(closes), fill_cost=FILL, costs=COSTS, data=DATA)
+    assert ledger.verify()["events"] == [], "Q132 PRE-LEDGER REFUSAL"
