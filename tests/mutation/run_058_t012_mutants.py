@@ -40,6 +40,12 @@ MUTANTS = (
     ("H10 with one leg listed", "notna().all(axis=1)", "notna().any(axis=1)", "T013 H10 LISTING"),
     ("H9 blends a levered book", "if (book.sum(axis=1) > 1.0 + CORRELATION_TOLERANCE).any():", "if False:",
      "T013 H9 GROSS"),
+    ("equal legs levered up", "legs[active] = equal * min(1.0, target / np.sqrt(variance))",
+     "legs[active] = equal * (target / np.sqrt(variance))", "T012 EQUAL"),
+    ("equal legs scaled per leg", "variance = float(equal @ block @ equal)",
+     "variance = float(equal @ np.diag(np.diag(block)) @ equal)", "T012 EQUAL"),
+    ("equal-leg pair gap read as zero", "block = covariance.loc[session].loc[active, active].to_numpy(dtype=float)",
+     "block = np.nan_to_num(covariance.loc[session].loc[active, active].to_numpy(dtype=float))", "T012 EQUAL pair gap"),
     ("H9 summed, not averaged", "for book in books) / len(books)", "for book in books)", "T013 H9"),
 )
 
@@ -64,7 +70,7 @@ def main() -> int:
     failed = 0
     for guard, mutants in ((GUARD, MUTANTS), (CADENCE_GUARD, CADENCE_MUTANTS)):
         base.GUARD, base.TEST, base.SOURCE = guard, TEST, TEST
-        base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 12, mutants
+        base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", TEST), 14, mutants
         print(f"== {guard}")
         failed |= base.main()
     return failed
