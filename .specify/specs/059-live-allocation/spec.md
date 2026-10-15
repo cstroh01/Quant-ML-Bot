@@ -40,6 +40,11 @@ market or any baseline, and every surface says so.
   held sleeves, 10% vol target, gross ≤ 1) and the same 046 costs, over at least two seeds.
 - **D-8 History window (PR #197; Camden, chat, 2026-10-12 19:25 CT: "Yes to all" (decision list `claude/decisions-20261012.md`)).** FR-003 reports the research window (≤ 2023-09-29) only. The
   full-history variant runs only after spec 058 T016 has spent the holdout, and is labelled so.
+- **D-9 PAPER data source (queue Q100; Camden, chat, 2026-10-14 20:41 CT: "1) yes", answering
+  "Decouple Q100? … the paper loop reads Alpaca SIP bars for the 8 sleeves now, and the 035 cache
+  comes later").** The PAPER loop reads Alpaca raw SIP daily bars for the 8 sleeves directly instead
+  of waiting for the spec 044 → 035 chain. A missing or stale bar still refuses the run. The research
+  report (FR-003) keeps the 035 cache.
 
 ## 3. The allocation (fixed now; hashed into the ledger before 058 T015 runs)
 - **Sleeves (8).** SPY (US equity), EFA (developed ex-US equity), EEM (emerging equity), IEF
@@ -67,8 +72,9 @@ market or any baseline, and every surface says so.
   seeded random baseline with identical costs (Rule 4). Reports PSR at this family's own N = 1 with
   the line `ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED` and the limitations register (Rule 16).
   It never opens spec 058's sealed holdout.
-- **FR-004 PAPER.** Both PAPER profiles trade the allocation through the safety gate, on spec 035
-  validated data (queue Q100, Q110).
+- **FR-004 PAPER.** Both PAPER profiles trade the allocation through the safety gate, on spec 056's
+  primary daily source, Alpaca raw SIP bars for the 8 sleeves (D-9; queue Q100, Q110). The spec 035
+  validated cache replaces it later as an upgrade, not a prerequisite.
 - **FR-005 Paper evidence.** A per-order report: intended price, fill price, realized cost, modeled
   cost, reconciliation status, sessions completed per profile. It prints PASS only when both
   profiles have ≥ 10 completed sessions and every order reconciled (`docs/SCOPE-V1.md` §11.3 item 4).
