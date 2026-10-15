@@ -25,7 +25,8 @@ production ledger/cache writes or changes to existing human gates.
 
 ## Prerequisites — human verification, no implementation
 
-- [ ] T001 **HUMAN GATE — published-source verification.** Files: future
+- [x] T001 **HUMAN GATE — published-source verification.** Done: approved by Camden 2026-10-09
+  (spec.md "T001 source review — APPROVED"); recorded in research.md 2026-10-15. Files: future
   `research.md`, source fixture specification for `tests/test_046_cost_model.py`.
   **Task:** implement from the published paper; record the equation and page
   reference in research.md before coding. Verify estimator/version, half-spread
