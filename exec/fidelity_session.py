@@ -77,13 +77,14 @@ class Session:
         self.broker = broker
         self.live = None
 
-    def connect(self, csv=None):
+    def connect(self, csv=None, *, reconcile=None):
         if self.broker is None:
             self.broker=LibraryBroker('FIDELITY_LIVE_ACCOUNT',self.env)
         if self.broker.account_fingerprint != self.profile.account_fingerprint:
             raise HaltProfile('account fingerprint mismatch')
         self.live=FidelityLive(self.profile,broker=self.broker,state_dir=self.state,environ=self.env)
         self.live.connect()
+        if reconcile is not None: reconcile(self.live)
         self.record['totp_step']=bool(self.broker.totp_step)
         self.record['settled_cash']=self.live.settled_cash(self.now)
         if self.record['settled_cash']['settled_amt']<=0: raise UnsettledCash('deposit not settled')
