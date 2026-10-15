@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT / "exec") not in sys.path:
     sys.path.insert(0, str(ROOT / "exec"))
 
+import ops_runner  # noqa: E402
 import paper_loop  # noqa: E402
 from mode_config import load_profiles  # noqa: E402
 from mode_fixtures import raw  # noqa: E402
@@ -78,6 +79,25 @@ def test_runner_refuses_non_identifier_profiles(tmp_path, profile):
         run_once(tmp_path, profile=profile, command=["true"], strategy_version="v1",  # after cutoff: no lease path,
                  now=datetime(2026, 10, 8, 10, 0, tzinfo=ZoneInfo("America/New_York")))  # so only the runner's check can refuse
     assert not (tmp_path / "leases").exists() or not any((tmp_path / "leases").iterdir())
+
+
+@pytest.mark.parametrize("profile", BAD_PROFILES)
+def test_runner_refuses_non_identifier_profiles_without_the_kill_path_check(tmp_path, monkeypatch, profile):
+    """``_kill_path`` also validates, and ``run_once`` reaches it next, so the test above cannot tell
+    whether ``run_once``'s own check exists. Replace ``_kill_path`` with a non-validating stand-in
+    (no kill file) so that only the runner's explicit check can refuse the profile."""
+    monkeypatch.setattr(ops_runner, "_kill_path", lambda state_dir, name: Path(state_dir) / "ops" / "no-kill.json")
+    with pytest.raises(ValueError, match="storage identifier"):
+        run_once(tmp_path, profile=profile, command=["true"], strategy_version="v1",
+                 now=datetime(2026, 10, 8, 10, 0, tzinfo=ZoneInfo("America/New_York")))
+    assert not (tmp_path / "leases").exists() or not any((tmp_path / "leases").iterdir())
+
+
+def test_runner_kill_path_stub_control_accepts_a_valid_profile(tmp_path, monkeypatch):
+    """Green control for the stub above: with the same stand-in a valid profile is not refused."""
+    monkeypatch.setattr(ops_runner, "_kill_path", lambda state_dir, name: Path(state_dir) / "ops" / "no-kill.json")
+    run_once(tmp_path, profile="paper_small", command=["true"], strategy_version="v1",
+             now=datetime(2026, 10, 8, 10, 0, tzinfo=ZoneInfo("America/New_York")))
 
 
 def test_valid_profile_lease_control(tmp_path):
