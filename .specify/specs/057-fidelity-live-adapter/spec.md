@@ -35,6 +35,31 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   site as fallback. Choose the one that returns order status by id and supports preview.
 - **D-3 (Camden, at arming)** LIVE bot budget (a few hundred dollars), 0.20 daily deploy fraction.
 
+### Amendment — 2026-10-15 (Camden, D-4..D-7 approved in chat)
+- D-4 Primary SDK only (fidelity-trader-api==0.2.2). Playwright fallback dropped: stealth-by-default
+  (FR-005), no settled-cash read, no order status by id. On SDK breakage: halt; Camden trades manually.
+- D-5 Session tokens stay memory-only (FR-004 unchanged). Never import or call cli/_session or any
+  save/load path. One login (with TOTP) per run; at most one run per trading day.
+- D-6 The SDK's status-1201 TOTP step answered with the configured seed is EXPECTED, not a challenge.
+  The wrapper must observe it (record `totp_step: true` in run evidence). Any other non-1200 status,
+  AuthenticationError, CSRFTokenError, 401/403, login redirect, or unknown auth payload = latched halt.
+- D-7 The SDK's built-in Trader+ client headers are accepted as inherent to D-1. Headers are static:
+  never modified, randomized, rotated or extended by our code. Recorded as risk, not compliance.
+
+### Dedicated-account amendment (Camden, 2026-10-15, codex-task6c-dedicated-account.md)
+The new $100 cash bot account alone is in scope. Every account-sensitive request filters exactly that
+account; a missing/swapped filter or foreign account in any response halts. Evidence records its SHA-256
+fingerprint only. Broker sleeve quantities must equal the bot ledger exactly; sweep is cash; foreign
+symbols/mismatches latch and alert. No manual baseline. Budget is min($100, settled_amt); coreBalance
+is recorded separately. Unsettled deposits produce a normal refusal, not an error or latched halt.
+
+### Host/credentials amendment (Camden, 2026-10-15, Task 6d)
+Windows laptop first, dedicated Linux runner later. The exact live_fidelity credential_refs and
+LibraryBroker account reference are FIDELITY_LIVE_USERNAME, FIDELITY_LIVE_PASSWORD,
+FIDELITY_LIVE_TOTP, FIDELITY_LIVE_ACCOUNT. Q140 follows Q135: Windows Credential Manager
+(service qmb-fidelity-live) or Linux environment, child env only, no parent mutation or disclosure.
+Q138 provides both dispatch-only self-hosted variants; no installation or session is authorized here.
+
 ## 4. Rule 12 mutants (fakes only; no real Fidelity call in tests)
 Place succeeds without arming; order bypasses the gate; credential appears in a log/exception;
 timeout releases a reservation; security challenge ignored instead of halting; second session opened in one run.

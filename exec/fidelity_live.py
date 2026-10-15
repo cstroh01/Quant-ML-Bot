@@ -33,9 +33,13 @@ What this module guarantees:
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
+import json
+import math
 import os
 from typing import Any, Mapping, Protocol
+from urllib.parse import urljoin, urlparse
+from zoneinfo import ZoneInfo
 
 from live_safety_gate import OrderIntent
 from mode_config import ArmingRecord, ModeProfile, ProfileError, require_armed
@@ -187,17 +191,112 @@ class LibraryBroker:
     """Thin wrapper over the pinned ``fidelity-trader-api==0.2.2`` (audit: spec 057 research.md)."""
 
     def __init__(self, account_number_env: str, environ: Mapping[str, str] | None = None) -> None:
-        from fidelity_trader import FidelityClient  # imported only here; never in tests
-
+        if account_number_env != 'FIDELITY_LIVE_ACCOUNT': raise SecurityChallenge('fixed account reference required')
+        from fidelity_sdk import client
         env = os.environ if environ is None else environ
         self.__account = env[account_number_env]
-        self._client: Any = FidelityClient(max_retries=0, live_trading=True)
+        self._client: Any = client()
+        self.totp_step = False
+        self._totp_present = False
+        self._client._http.event_hooks['request'].append(self._request_hook)
+        self._client._http.event_hooks['response'].append(self._response_hook)
 
     def __repr__(self) -> str:
         return "LibraryBroker(fidelity-trader-api==0.2.2)"
 
     def login(self, username: str, password: str, totp_secret: str) -> None:
-        self._client.login(username, password, totp_secret=totp_secret)
+        self.totp_step = False
+        self._totp_present = bool(totp_secret)
+        try:
+            self._client.login(username, password, totp_secret=totp_secret)
+            context = self._client.security_context.get_context()
+            if getattr(context, 'has_atp_access', None) is not True or getattr(context, 'errors', None) != []:
+                raise SecurityChallenge('Fidelity entitlement refused')
+        except Exception:
+            raise SecurityChallenge('Fidelity authentication or entitlement refused') from None
+
+    @staticmethod
+    def _allowed(url) -> bool:
+        parsed = urlparse(str(url))
+        return parsed.scheme == 'https' and bool(parsed.hostname) and parsed.hostname.endswith('.fidelity.com')
+
+    def _request_hook(self, request) -> None:
+        if not self._allowed(request.url):
+            raise SecurityChallenge('Fidelity request host refused')
+        if any(p in request.url.path for p in ('/position/', '/balance/', '/order-status/', '/equity/', '/accounts')):
+            try: accounts = self._account_ids(json.loads(request.content))
+            except Exception: raise SecurityChallenge('Fidelity account filter missing') from None
+            if not accounts or set(accounts) != {self.__account}:
+                raise SecurityChallenge('Fidelity account filter refused')
+
+    @staticmethod
+    def _account_ids(value):
+        if isinstance(value, list): return [a for v in value for a in LibraryBroker._account_ids(v)]
+        if not isinstance(value, dict): return []
+        return [a for k,v in value.items() for a in ([v] if k in ('acctNum','accountNumber','account_number') else LibraryBroker._account_ids(v))]
+
+    def _response_hook(self, response) -> None:
+        self._request_hook(response.request)
+        try:
+            response.read(); payload = response.json()
+        except Exception: payload = None
+        if any(a != self.__account for a in self._account_ids(payload)):
+            raise SecurityChallenge('Fidelity response account refused')
+        location = response.headers.get('location')
+        if location:
+            target = urljoin(str(response.url), location)
+            if not self._allowed(target) or any(x in urlparse(target).path.lower() for x in ('/signin', '/login')):
+                raise SecurityChallenge('Fidelity redirect refused')
+        if response.status_code in (401, 403):
+            raise SecurityChallenge('Fidelity session refused')
+        path = response.request.url.path
+        if response.request.method == 'POST' and path.endswith(('/user/session/login', '/user/factor/password/authentication', '/user/factor/totp/authentication')):
+            try:
+                response.read()
+                code = response.json()['responseBaseInfo']['status']['code']
+            except Exception:
+                raise SecurityChallenge('Fidelity auth payload refused') from None
+            if type(code) is not int:
+                raise SecurityChallenge('Fidelity auth status refused')
+            if code == 1201 and path.endswith('/user/session/login') and self._totp_present:
+                self.totp_step = True
+            elif code != 1200 or isinstance(code, bool):
+                raise SecurityChallenge('Fidelity authentication refused')
+
+    def settled_cash(self, as_of: datetime) -> dict:
+        """Configured-account settled cash only; fresh NY session, never buying power."""
+        try:
+            from data import trading_days
+            if as_of.utcoffset() is None:
+                raise ValueError
+            session = as_of.astimezone(ZoneInfo('America/New_York')).date()
+            if trading_days(session, session) != [session]:
+                raise ValueError
+            accounts = self._client.balances.get_balances([self.__account]).accounts
+            if len(accounts) != 1 or accounts[0].acct_num != self.__account:
+                raise ValueError
+            snapshots = [getattr(accounts[0], name, None) for name in
+                         ('recent_balance_detail', 'intraday_balance_detail', 'close_balance_detail')]
+            candidates = []
+            for snapshot in snapshots:
+                if snapshot is None:
+                    continue
+                stamp = snapshot.as_of_date_time
+                if isinstance(stamp, bool) or not isinstance(stamp, (int, float)) or not math.isfinite(stamp):
+                    raise ValueError
+                when = datetime.fromtimestamp(stamp / 1000 if abs(stamp) > 100000000000 else stamp, timezone.utc)
+                if when > as_of or when.astimezone(ZoneInfo('America/New_York')).date() != as_of.astimezone(ZoneInfo('America/New_York')).date():
+                    continue
+                amount = snapshot.cash_detail.settled_amt
+                if isinstance(amount, bool) or not isinstance(amount, (int, float)) or not math.isfinite(amount) or amount < 0:
+                    raise ValueError
+                core = getattr(snapshot.cash_detail, 'core_balance', None)
+                if core is not None and (isinstance(core,bool) or not isinstance(core,(int,float)) or not math.isfinite(core) or core<0): raise ValueError
+                candidates.append((when, float(amount), core))
+            when, amount, core = max(candidates, key=lambda row: row[0])
+            return {'amount': amount, 'settled_amt': amount, 'coreBalance': core, 'as_of': when.isoformat()}
+        except Exception:
+            raise SecurityChallenge('Fidelity settled cash unavailable or stale') from None
 
     def _order(self, symbol: str, side: str, quantity: float):
         from fidelity_trader.models.equity_order import EquityOrderRequest
@@ -206,7 +305,9 @@ class LibraryBroker:
                                   acctTypeCode="C", qty=quantity, priceTypeCode="M", tifCode="D")
 
     def preview(self, symbol: str, side: str, quantity: float) -> str:
-        conf = self._client.equity_orders.preview_order(self._order(symbol, side, quantity)).conf_num
+        response = self._client.equity_orders.preview_order(self._order(symbol, side, quantity))
+        if response.acct_num != self.__account: raise SecurityChallenge('Fidelity preview account refused')
+        conf = response.conf_num
         if not conf:
             raise BrokerError("preview returned no confirmation number")
         return conf
@@ -215,22 +316,33 @@ class LibraryBroker:
         order = self._order(symbol, side, quantity)  # built before the send: errors here sent nothing
         try:
             response = self._client.equity_orders.place_order(order, conf_num)
+        except SecurityChallenge:
+            raise
         except Exception as exc:  # noqa: BLE001 - the request may have reached Fidelity
             raise SubmissionUnknown(f"place outcome unknown: {type(exc).__name__}") from None
+        if response.acct_num != self.__account: raise SecurityChallenge('Fidelity placement account refused')
         return response.conf_num or conf_num
 
     def status(self, conf_num: str) -> str | None:
         summary = self._client.order_status.get_order_status([self.__account])
+        if any(getattr(row, 'acct_num', None) != self.__account for row in
+               (getattr(summary,'account_summaries',[]) or []) + (getattr(summary,'orders',[]) or [])):
+            raise SecurityChallenge('Fidelity status account refused')
         for order in getattr(summary, "orders", []) or []:
-            if getattr(order, "conf_num", None) == conf_num:
-                return getattr(order, "status_code", None) or getattr(order, "status_desc", None)
+            if getattr(getattr(order, 'id_detail', None), 'conf_num', None) == conf_num:
+                detail = getattr(order, 'status_detail', None)
+                return getattr(detail, 'status_code', None) or getattr(detail, 'status_desc', None)
         return None
 
     def positions(self) -> dict[str, float]:
         result = self._client.positions.get_positions([self.__account])
+        if len(result.accounts) != 1 or result.accounts[0].acct_num != self.__account:
+            raise SecurityChallenge('Fidelity positions account refused')
         held: dict[str, float] = {}
         for account in result.accounts:
             for position in account.positions:
+                if not position.symbol or position.quantity is None:
+                    raise SecurityChallenge('Fidelity position quantity unknown')
                 if position.symbol and position.quantity is not None:
                     held[position.symbol] = held.get(position.symbol, 0.0) + float(position.quantity)
         return held
