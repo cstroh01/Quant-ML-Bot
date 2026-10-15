@@ -118,13 +118,13 @@ def replay_profile(budget: float, daily_deploy_fraction: float, name: str = "pap
         "credential_refs": ["PAPER_REPLAY_KEY_ID", "PAPER_REPLAY_SECRET"], "state_dir": "state/paper_replay",
         "log_namespace": name, "bot_budget_usd": budget, "daily_deploy_fraction": daily_deploy_fraction,
         "instruments": ["etf"], "fractional": True,
-        "safety_config_version": paper_loop.PAPER_SAFETY_CONFIG.version}])[name]
+        "safety_config_version": paper_loop.ALLOCATION_SAFETY_CONFIG.version}])[name]
 
 
 def replay_window(opens: pd.DataFrame, closes: pd.DataFrame, start: date, end: date, *, profile,
                   config=None) -> dict:
     """Replay every NYSE session in [start, end]; returns the window's record (see module guarantees)."""
-    config = config if config is not None else paper_loop.PAPER_SAFETY_CONFIG
+    config = config if config is not None else paper_loop.ALLOCATION_SAFETY_CONFIG
     broker = SimulatedBroker(opens=opens, closes=closes, cash=float(profile.bot_budget_usd))
     sessions = [d for d in trading_days(start, end) if pd.Timestamp(d) in closes.index]
     report = {"window": [start.isoformat(), end.isoformat()], "sessions": 0, "orders": 0, "denied": [],
