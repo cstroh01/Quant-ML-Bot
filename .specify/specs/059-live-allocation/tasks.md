@@ -15,6 +15,6 @@ Labels: **HUMAN GATE** = Camden acts. Queue ids in brackets.
 - [ ] T005 PAPER wiring for both profiles (FR-004, Rule 7a) [Q100, Q110].
 - [ ] T006 Paper evidence report (FR-005) [Q112].
 - [ ] T007 Historical replay harness and run (FR-006) [Q111].
-- [ ] T008 Gate checklist command (FR-007).
+- [x] T008 Gate checklist command (FR-007). `python scripts/gate_checklist.py docs/implementation/spec-059/gate-manifest.json`.
 - [ ] T009 Rule 12 driver for §5 mutants across T002–T008.
 - [ ] T010 **HUMAN GATE — LIVE arming.** Camden reads the T008 checklist and arms LIVE.

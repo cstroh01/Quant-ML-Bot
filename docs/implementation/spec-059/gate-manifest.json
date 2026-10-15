@@ -1,0 +1,4 @@
+{
+  "note": "SCOPE §11.3 evidence manifest for scripts/gate_checklist.py. One entry per item, keyed \"1\"..\"7\": {\"artifact\": repo-relative path, \"sha256\": 64 hex, \"commit\": sha, \"date_utc\": ISO instant with Z}. Empty until evidence exists; the checklist prints NOT ARMABLE.",
+  "items": {}
+}
