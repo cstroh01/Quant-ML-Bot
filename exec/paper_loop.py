@@ -42,6 +42,7 @@ for _p in (ROOT / "scripts", ROOT / "exec"):
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
+from data_sources import AlpacaDailyBars, SourceFetchError  # noqa: E402
 from alpaca_paper import (  # noqa: E402
     TERMINAL_STATUSES,
     AlpacaPaperClient,
@@ -52,11 +53,16 @@ from data import download_market_data, trading_days  # noqa: E402
 from live_safety_gate import LiveSafetyGate, OrderIntent, SafetyConfig  # noqa: E402
 from order_gateway import OrderDeniedError, submit_order  # noqa: E402
 from paper_targets import close_panel, plan_next_open  # noqa: E402
+from signals import ALLOCATION_SLEEVES  # noqa: E402
 from mode_config import BuyRequest, ModeProfile, bound_buys, load_profiles  # noqa: E402
 from ops_runtime import client_order_id, open_intents, record_intent, require_storage_identifier  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
 UNIVERSE = ("AAPL", "AMZN", "GOOGL", "MSFT", "NVDA")
+# Spec 059 D-9: years of bars per sleeve; the 60-session EWMA's weight beyond ~500 sessions is < 1e-6.
+HISTORY_DAYS = 3 * 365
+# A larger one-day close-to-close move is treated as an unadjusted split or a bad print: refuse.
+MAX_DAILY_LOG_MOVE = 0.25
 GATE_DB = ROOT / "data" / "live_safety" / "paper-gate.sqlite"
 RUN_LOG_DIR = ROOT / "data" / "live_safety" / "paper-runs"
 # Conservative executable price for the gate: last close plus an overnight
@@ -100,6 +106,9 @@ class OfflineClient:
     def positions(self) -> dict:
         return {}
 
+    def fractionable(self, symbol: str) -> bool:
+        return True
+
 
 @dataclasses.dataclass(frozen=True)
 class Durable:
@@ -119,6 +128,32 @@ class PersistFailed(RuntimeError):
 
 class RunAborted(RuntimeError):
     """The run stopped before acting. The reason is in the message."""
+
+
+def fetch_sleeve_closes(now: datetime, *, key_env: str = "APCA_API_KEY_ID", secret_env: str = "APCA_API_SECRET_KEY",
+                        fetcher: Any = None, symbols: tuple[str, ...] = ALLOCATION_SLEEVES) -> tuple[pd.DataFrame, list]:
+    """Spec 059 D-9: raw SIP daily closes per sleeve (spec 056 adapter) and their source manifests.
+
+    Sessions whose 16:00 New York close is at least 16 minutes before ``now`` only. Raises
+    ``RunAborted`` on any fetch failure or a one-day log move above ``MAX_DAILY_LOG_MOVE``.
+    """
+    fetcher = fetcher if fetcher is not None else AlpacaDailyBars(key_env=key_env, secret_env=secret_env)
+    end = now - timedelta(minutes=16)
+    columns, manifests = {}, []
+    for symbol in symbols:
+        try:
+            frame, manifest = fetcher.fetch(symbol, end - timedelta(days=HISTORY_DAYS), end)
+        except SourceFetchError as exc:
+            raise RunAborted(f"bars for {symbol}: {exc}") from None
+        columns[symbol] = frame["close"].astype(float)
+        manifests.append(dataclasses.asdict(manifest) if dataclasses.is_dataclass(manifest) else dict(manifest))
+    closes = pd.DataFrame(columns).sort_index()
+    moves = np.log(closes / closes.shift(1)).abs()
+    jumps = sorted({t for t in closes.columns if (moves[t] > MAX_DAILY_LOG_MOVE).any()})
+    if jumps:
+        raise RunAborted(f"one-day move above {MAX_DAILY_LOG_MOVE} in {jumps}: possible unadjusted split "
+                         "or bad print; verify corporate actions before trading")
+    return closes, manifests
 
 
 def parse_broker_time(text: str) -> datetime:
@@ -365,13 +400,19 @@ def state_paths(profile: ModeProfile | None) -> tuple[Path, Path]:
     return gate, runs
 
 
-def profile_environ(profile: ModeProfile, environ: Any) -> dict:
-    """Alpaca credentials for this profile only, taken from the env names it lists."""
+def profile_credential_names(profile: ModeProfile) -> tuple[str, str]:
+    """The env names (never values) of this profile's one *_KEY_ID and one *_SECRET."""
     key = [r for r in profile.credential_refs if r.endswith("_KEY_ID")]
     secret = [r for r in profile.credential_refs if r.endswith("_SECRET")]
     if len(key) != 1 or len(secret) != 1:
         raise RunAborted(f"{profile.name}: credential_refs must name one *_KEY_ID and one *_SECRET")
-    return {"APCA_API_KEY_ID": environ.get(key[0], ""), "APCA_API_SECRET_KEY": environ.get(secret[0], "")}
+    return key[0], secret[0]
+
+
+def profile_environ(profile: ModeProfile, environ: Any) -> dict:
+    """Alpaca credentials for this profile only, taken from the env names it lists."""
+    key, secret = profile_credential_names(profile)
+    return {"APCA_API_KEY_ID": environ.get(key, ""), "APCA_API_SECRET_KEY": environ.get(secret, "")}
 
 
 def main(argv: list[str] | None = None) -> int:
