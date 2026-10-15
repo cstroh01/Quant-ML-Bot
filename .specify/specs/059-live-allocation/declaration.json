@@ -1,0 +1,63 @@
+{
+  "family": "059-allocation",
+  "label": "EXAMPLE — NOT A RESULT. ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED. Preregistration only; contains no performance figure.",
+  "spec": ".specify/specs/059-live-allocation/spec.md",
+  "spec_sha256": "365b1f6f09c2c24735b4c1488fbb83d59e84333e4456cfd794d125dc33f5b26f",
+  "decisions": "spec 059 §2 D-1..D-9, Camden 2026-10-12 and 2026-10-14",
+  "n_family_cap": 2,
+  "n_family_note": "one configuration (N = 1); two permitted starts: the research-window report, then the full-history report only after spec 058 T016 (D-8)",
+  "research_end": "2023-09-29",
+  "holdout": "never opens spec 058's sealed holdout (sessions >= 2023-10-02) before spec 058 T016",
+  "universe": [
+    "SPY",
+    "EFA",
+    "EEM",
+    "IEF",
+    "TLT",
+    "TIP",
+    "GLD",
+    "DBC"
+  ],
+  "common": {
+    "bars": "daily close-to-close; research on the spec 035 validated unadjusted cache, PAPER on Alpaca raw SIP bars (D-9)",
+    "entry": "a sleeve enters on its first full session after listing plus 60 observed sessions",
+    "asset_vol": "EWMA of daily log returns, span 60 sessions, rows <= t only",
+    "weights": "raw w_i proportional to 1 / sigma_i over held sleeves, normalized to sum 1",
+    "portfolio_vol": "60-session EWMA covariance at t, annualized over 252 sessions",
+    "portfolio_vol_target_annual": 0.1,
+    "scaling": "all weights scaled by min(1, portfolio_vol_target_annual / sigma_p)",
+    "gross_cap": 1.0,
+    "long_only": true,
+    "cash": "the remainder after scaling is cash",
+    "rebalance": "first session of each calendar month",
+    "execution": "decision at close t, fill at open t+1; positions held between decisions (no daily re-targeting)",
+    "data_hole": "D-6: any undefined EWMA variance or pairwise covariance at t makes the whole book cash for that month; sleeves are never dropped",
+    "costs": "spec 046 model only: half of the EDGE full-spread estimate (bidask v2.1.0 algorithm) plus square-root impact Y=1.0, 21-session windows",
+    "cost_model_version": "EDGE per bidask 2.1.0 reference algorithm (return de-meaning included)"
+  },
+  "configurations": [
+    {
+      "id": "A1",
+      "rule": "spec 059 §3 as stated in common; no free parameter",
+      "role": "candidate"
+    }
+  ],
+  "baselines": [
+    {
+      "id": "B-BH",
+      "role": "buy_and_hold_baseline",
+      "rule": "equal weight of every sleeve with a close at t, same calendar and costs"
+    },
+    {
+      "id": "B-RND",
+      "role": "random_signal_baseline",
+      "rule": "D-7: each sleeve long or flat with probability 1/2 per decision row, then the same §3 sizing and 046 costs, at least two seeds"
+    }
+  ],
+  "report": {
+    "statistic": "PSR at this family's own N = 1",
+    "label": "ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED",
+    "limitations": "spec 038 limitations register (Rule 16)"
+  },
+  "voiding": "any change to these values after a 058 or 059 result is seen voids spec 059 D-1; a change needs a new spec number and preregistration"
+}

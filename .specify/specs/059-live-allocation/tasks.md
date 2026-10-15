@@ -7,6 +7,8 @@ Labels: **HUMAN GATE** = Camden acts. Queue ids in brackets.
 - [ ] T001 **HUMAN GATE — preregistration (FR-001).** Camden appends the 059 declaration to the
   ledger with the trial-registry API before 058 T015 runs. An agent prepares the record and the
   command; Camden runs it.
+  - Record: `.specify/specs/059-live-allocation/declaration.json` (hashes this spec.md).
+  - Command: `python scripts/declare_family.py 059-allocation --record`; paste the output back.
 - [ ] T002 Weights builder (FR-002) [Q108]. Depends on queue Q103 (058 portfolio vol fix).
 - [ ] T003 Backtest report builder, offline on fixtures (FR-003) [Q109].
 - [ ] T004 Bounded data run of the report on the 035 cache (Codex lane), published with provenance.
