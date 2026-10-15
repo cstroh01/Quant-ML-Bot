@@ -4,10 +4,14 @@ One run, before the open on a trading day:
 
 1. Reconcile: every open safety-gate reservation is looked up at the broker
    by client order ID; a terminal one is released. Unknown stays open.
-2. Data: free daily bars (``data.download_market_data``) through the last
-   completed session. The run aborts unless that session is exactly the
-   previous NYSE session, so a missing bar can never produce a stale trade.
-3. Decide: ``paper_targets.plan_next_open`` (trend state, spec 017 sizing).
+2. Data: Alpaca raw SIP daily bars for the 8 spec 059 sleeves (spec 056's
+   primary source; spec 059 D-9) through the last completed session. The run
+   aborts unless that session is exactly the previous NYSE session, so a
+   missing bar can never produce a stale trade, and aborts on a one-day move
+   larger than ``MAX_DAILY_LOG_MOVE`` (an unadjusted split would size wrongly).
+3. Decide: ``paper_targets.plan_allocation`` (spec 059 §3; no edge claimed),
+   held between monthly decisions. ``plan_next_open`` (the spec 049 trend
+   prototype) remains as ``TrendPlanner`` for its tests.
 4. Act: each order goes through ``order_gateway.submit_order`` with a fresh
    broker snapshot, sells first. Without ``--submit`` nothing reaches the
    broker and the gate reserves nothing.
@@ -49,20 +53,21 @@ from alpaca_paper import (  # noqa: E402
     BrokerError,
     SubmissionUnknown,
 )
-from data import download_market_data, trading_days  # noqa: E402
+from data import trading_days  # noqa: E402
 from live_safety_gate import LiveSafetyGate, OrderIntent, SafetyConfig  # noqa: E402
 from order_gateway import OrderDeniedError, submit_order  # noqa: E402
-from paper_targets import close_panel, plan_next_open  # noqa: E402
+from paper_targets import plan_allocation, plan_next_open  # noqa: E402
 from signals import ALLOCATION_SLEEVES  # noqa: E402
 from mode_config import BuyRequest, ModeProfile, bound_buys, load_profiles  # noqa: E402
 from ops_runtime import client_order_id, open_intents, record_intent, require_storage_identifier  # noqa: E402
 
 NY = ZoneInfo("America/New_York")
-UNIVERSE = ("AAPL", "AMZN", "GOOGL", "MSFT", "NVDA")
+UNIVERSE = ("AAPL", "AMZN", "GOOGL", "MSFT", "NVDA")  # spec 049 trend prototype only (TrendPlanner)
 # Spec 059 D-9: years of bars per sleeve; the 60-session EWMA's weight beyond ~500 sessions is < 1e-6.
 HISTORY_DAYS = 3 * 365
 # A larger one-day close-to-close move is treated as an unadjusted split or a bad print: refuse.
 MAX_DAILY_LOG_MOVE = 0.25
+ALLOCATION_STATE = "allocation-state.json"
 GATE_DB = ROOT / "data" / "live_safety" / "paper-gate.sqlite"
 RUN_LOG_DIR = ROOT / "data" / "live_safety" / "paper-runs"
 # Conservative executable price for the gate: last close plus an overnight
@@ -128,6 +133,70 @@ class PersistFailed(RuntimeError):
 
 class RunAborted(RuntimeError):
     """The run stopped before acting. The reason is in the message."""
+
+
+@dataclasses.dataclass(frozen=True)
+class Plan:
+    """What a planner wants at the next open: the decision record, the orders, and for the
+    allocation the decision session they serve (``pending`` until fully executed)."""
+
+    decision: pd.DataFrame
+    orders: list
+    fractionable: Mapping[str, bool]
+    decision_session: str | None = None
+    pending: bool = False
+
+
+class TrendPlanner:
+    """The spec 049 mechanics prototype (trend state, spec 017 sizing). Whole shares; nothing to record."""
+
+    def plan(self, closes: pd.DataFrame, session: pd.Timestamp, *, equity: float, positions: dict) -> Plan:
+        decision, orders = plan_next_open(closes, session, equity=equity, positions=positions, entries_halted=False)
+        return Plan(decision, orders, {})
+
+    def complete(self, decision_session: str) -> None:
+        return None
+
+
+class AllocationPlanner:
+    """Spec 059 FR-004: trade the preregistered allocation, held between monthly decisions.
+
+    The last fully executed decision session lives in ``state_path`` (inside the profile's durable
+    state folder), so a decision is traded once and a partly executed one is finished next run.
+    """
+
+    def __init__(self, state_path: Path, fractionable: Mapping[str, bool]) -> None:
+        self.state_path = Path(state_path)
+        self.fractionable = dict(fractionable)
+
+    def executed_decision(self) -> str | None:
+        if not self.state_path.exists():
+            return None
+        try:
+            value = json.loads(self.state_path.read_text(encoding="utf-8"))["executed_decision"]
+        except (ValueError, KeyError, TypeError) as exc:
+            raise RunAborted(f"allocation state {self.state_path.name} is unreadable ({type(exc).__name__}); "
+                             "inspect it before trading") from None
+        if not isinstance(value, str) or not value:
+            raise RunAborted(f"allocation state {self.state_path.name} names no decision; inspect it before trading")
+        return value
+
+    def plan(self, closes: pd.DataFrame, session: pd.Timestamp, *, equity: float, positions: dict) -> Plan:
+        executed = self.executed_decision()
+        try:
+            decision, orders, chosen = plan_allocation(closes, session, equity=equity, positions=positions,
+                                                       fractionable=self.fractionable, executed_decision=executed)
+        except ValueError as exc:
+            raise RunAborted(f"allocation: {exc}") from None
+        return Plan(decision, orders, self.fractionable, chosen, pending=chosen is not None and chosen != executed)
+
+    def complete(self, decision_session: str) -> None:
+        self.state_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = self.state_path.with_name(self.state_path.name + ".tmp")
+        temporary.write_text(json.dumps({"executed_decision": decision_session,
+                                         "recorded_at_utc": datetime.now(timezone.utc).isoformat()}),
+                             encoding="utf-8")
+        os.replace(temporary, self.state_path)
 
 
 def fetch_sleeve_closes(now: datetime, *, key_env: str = "APCA_API_KEY_ID", secret_env: str = "APCA_API_SECRET_KEY",
@@ -211,6 +280,7 @@ def run_once(
     now_fn: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
     profile: ModeProfile | None = None,
     durable: Durable | None = None,
+    planner: Any = None,
 ) -> dict:
     """One loop iteration. Returns the run record; raises ``RunAborted``.
 
@@ -259,18 +329,21 @@ def run_once(
     positions = client.positions()
     # Spec 051: with a profile, size against the bot budget, never the broker balance.
     sizing_equity = min(profile.bot_budget_usd, equity) if profile is not None else equity
-    decision, orders = plan_next_open(
-        completed, session, equity=sizing_equity, positions=positions, entries_halted=False
-    )
+    planner = planner if planner is not None else TrendPlanner()
+    plan = planner.plan(completed, session, equity=sizing_equity, positions=positions)
+    decision, orders = plan.decision, plan.orders
     last = completed.loc[session]
     budget_refusals = []
+    shrunk = False
     if profile is not None:
         buys = [o for o in orders if o.delta_quantity > 0]
         accepted, refused = bound_buys(
-            profile, [BuyRequest(o.ticker, o.delta_quantity, float(last[o.ticker]), False) for o in buys],
+            profile, [BuyRequest(o.ticker, o.delta_quantity, float(last[o.ticker]),
+                                 bool(plan.fractionable.get(o.ticker, False))) for o in buys],
             settled_cash=float(account.get("cash", 0.0)),
             deployed_today_usd=_deployed_today(durable, today), min_notional_usd=1.0)
         sized = {a.ticker: a.quantity for a in accepted}
+        shrunk = any(float(sized[o.ticker]) < float(o.delta_quantity) for o in buys if o.ticker in sized)
         orders = [o for o in orders if o.delta_quantity < 0] + [
             dataclasses.replace(o, delta_quantity=sized[o.ticker]) for o in buys if o.ticker in sized]
         budget_refusals = [{"ticker": t, "outcome": "BUDGET_REFUSED", "reason": r} for t, r in refused]
@@ -312,6 +385,17 @@ def run_once(
             record.update(outcome="REFUSED", reason=str(exc))
         actions.append(record)
 
+    # Spec 059: a decision is executed only when every order it needed was sent and none was shrunk.
+    executed = None
+    if submit and plan.pending and not shrunk and all(a.get("outcome") == "SUBMITTED" for a in actions):
+        planner.complete(plan.decision_session)
+        executed = plan.decision_session
+        if durable is not None:
+            try:
+                durable.persist()
+            except Exception as exc:  # noqa: BLE001 - orders are already sent; report, never resend
+                executed = f"{plan.decision_session} (state persist failed: {type(exc).__name__})"
+
     return {
         "run_at_utc": now_fn().isoformat(),
         "mode": "offline_example" if placeholder else ("submit" if submit else "dry_run"),
@@ -322,6 +406,8 @@ def run_once(
         "profile": profile.name if profile is not None else None,
         "reconciliation": reconciliation,
         "decision": json.loads(decision.to_json(orient="index")),
+        "decision_session": plan.decision_session,
+        "decision_executed": executed,
         "actions": actions,
         "disclosure": "Paper mechanics prototype. Not a performance result (SCOPE §6; spec 049).",
     }
@@ -420,7 +506,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--submit", action="store_true", help="send orders to Alpaca paper")
     parser.add_argument("--env-file", type=Path, default=ROOT / ".env")
     parser.add_argument("--offline", action="store_true", help="dry run with no broker and no credentials")
-    parser.add_argument("--period", default="2y")
+    parser.add_argument("--period", default="2y", help="ignored since spec 059 D-9 (kept for old invocations)")
     parser.add_argument("--profile", help="spec 051 PAPER profile name (requires --profiles-file)")
     parser.add_argument("--profiles-file", type=Path, help="private JSON list of spec 051 profiles")
     parser.add_argument("--persist-command",
@@ -439,16 +525,21 @@ def main(argv: list[str] | None = None) -> int:
         if args.env_file.exists():
             load_env_file(args.env_file, os.environ)  # type: ignore[arg-type]
         client = AlpacaPaperClient(environ=profile_environ(profile, os.environ)) if profile else AlpacaPaperClient()
-    closes = close_panel(download_market_data(list(UNIVERSE), period=args.period, force_refresh=True))
     gate_db.parent.mkdir(parents=True, exist_ok=True)
     gate = LiveSafetyGate(gate_db, PAPER_SAFETY_CONFIG)
+    manifests: list = []
     try:
+        keys = profile_credential_names(profile) if profile else ("APCA_API_KEY_ID", "APCA_API_SECRET_KEY")
+        closes, manifests = fetch_sleeve_closes(datetime.now(timezone.utc), key_env=keys[0], secret_env=keys[1])
+        planner = AllocationPlanner(gate_db.parent / ALLOCATION_STATE,
+                                    {s: bool(client.fractionable(s)) for s in ALLOCATION_SLEEVES})
         durable = (Durable(intents_dir=gate_db.parent, persist=persist_command(args.persist_command))
                    if args.persist_command else None)
         record = run_once(client=client, gate=gate, closes=closes, submit=args.submit, profile=profile,
-                          durable=durable)
-    except RunAborted as exc:
-        record = {"run_at_utc": datetime.now(timezone.utc).isoformat(), "aborted": str(exc)}
+                          durable=durable, planner=planner)
+        record["sources"] = manifests
+    except (RunAborted, BrokerError) as exc:
+        record = {"run_at_utc": datetime.now(timezone.utc).isoformat(), "aborted": str(exc), "sources": manifests}
     finally:
         gate.close()
     run_log_dir.mkdir(parents=True, exist_ok=True)
