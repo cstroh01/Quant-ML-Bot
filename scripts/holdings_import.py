@@ -112,14 +112,15 @@ def _rows(text: str, first_header: str) -> list[dict]:
     return list(csv.DictReader(io.StringIO("\n".join(block))))
 
 
-def parse_positions_csv(text: str) -> PositionsSnapshot:
+def parse_positions_csv(text: str, *, account_fingerprint_fn=None) -> PositionsSnapshot:
     """Normalize a Fidelity Positions export into a dated, pseudonymized snapshot."""
     as_of = _downloaded(text)
     positions, cash, accounts = [], 0.0, set()
+    fingerprint = account_fingerprint_fn or (lambda account: hashlib.sha256(account.encode()).hexdigest())
     for row in _rows(text, "Account Number"):
         symbol = (row.get("Symbol") or "").strip()
         if row.get("Account Number"):
-            accounts.add(hashlib.sha256(row["Account Number"].strip().encode()).hexdigest())
+            accounts.add(fingerprint(row["Account Number"].strip()))
         if not symbol or symbol == "Pending Activity":
             continue
         value = _number(row.get("Current Value", ""), "Current Value", symbol)

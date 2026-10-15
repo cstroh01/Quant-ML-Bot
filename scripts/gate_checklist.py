@@ -13,7 +13,7 @@ that item ``MISSING`` and the verdict ``NOT ARMABLE``. Exit status 0 only for ``
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import date, datetime
 import hashlib
 import json
 from pathlib import Path
@@ -71,11 +71,52 @@ def checklist(manifest: dict, root: Path = ROOT) -> tuple[bool, list[str]]:
     lines, armable = [], True
     for number, title in ITEMS:
         ok, reason = check_item(items.get(number), root)
+        if ok and number == '6':
+            typed, detail = fidelity_preview(items.get(number), root)
+            ok = typed
+            reason += '; ' + detail
         armable &= ok
         lines.append(f"[{'EVIDENCED' if ok else 'MISSING  '}] §11.3.{number} {title} — {reason}")
     lines.append("ARMABLE — Camden may arm LIVE (spec 059 T010); this command arms nothing."
                  if armable else "NOT ARMABLE — every item above needs evidence first.")
     return armable, lines
+
+
+def fidelity_preview(entry, root):
+    """Typed item 6: hashed, distinct NYSE days; clean sessions and a CSV match."""
+    from data import trading_days
+    from zoneinfo import ZoneInfo
+    import math
+    try:
+        if entry.get('type') != 'fidelity_preview': raise ValueError
+        fingerprint=entry['account_fingerprint']
+        if not SHA.fullmatch(fingerprint): raise ValueError
+        manifest=json.loads((root/entry['artifact']).read_text(encoding='utf-8'))
+        days, csv_days = set(), set()
+        for item in manifest['sessions']:
+            path=(root/item['artifact']).resolve()
+            if root.resolve() not in path.parents or hashlib.sha256(path.read_bytes()).hexdigest()!=item['sha256']:
+                raise ValueError
+            row=json.loads(path.read_text(encoding='utf-8'))
+            if row['account_fingerprint']!=fingerprint: raise ValueError
+            day=date.fromisoformat(row['session'])
+            if day in days or trading_days(day,day)!=[day]: raise ValueError
+            if row['clean'] is not True or row['challenge'] is not False or row['place_calls']!=0: raise ValueError
+            if row.get('profile') != 'live_fidelity' or type(row.get('totp_step')) is not bool: raise ValueError
+            if not re.fullmatch('[0-9a-f]{40}',row['pin_sha']): raise ValueError
+            if not row['pin_sha'].startswith(entry.get('commit',row['pin_sha'])): raise ValueError
+            if row['library']!={'version':'0.2.2','sha256':'f5a94056bd9a055ba88482ffcc7dc17013de9871b852b4d9b0dc55352506dd15'}: raise ValueError
+            cash=row['settled_cash']; stamp=datetime.fromisoformat(cash['as_of'])
+            if stamp.utcoffset() is None or stamp.astimezone(ZoneInfo('America/New_York')).date()!=day: raise ValueError
+            if isinstance(cash['amount'],bool) or not math.isfinite(cash['amount']) or cash['amount']<0: raise ValueError
+            if not any(p['qty']==1.0 and p['conf_num'] for p in row['previews']): raise ValueError
+            if row['holdings_match'] not in (None,True): raise ValueError
+            if row['holdings_match'] is True and bool(SHA.fullmatch(row.get('csv_sha256',''))): csv_days.add(day)
+            days.add(day)
+        csv=bool(days) and max(days) in csv_days
+        return len(days)>=5 and csv, f'{len(days)} distinct clean sessions; latest CSV match {csv}'
+    except (OSError,ValueError,KeyError,TypeError,AttributeError):
+        return False,'invalid fidelity_preview evidence'
 
 
 def main(argv: list[str] | None = None) -> int:
