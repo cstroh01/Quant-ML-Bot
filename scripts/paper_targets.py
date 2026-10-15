@@ -206,6 +206,8 @@ def plan_next_open(
 # Investing at most 95% of the bot budget keeps the gate's view at or below gross 1.0. Disclosed:
 # PAPER holds up to 5% more cash than the spec 059 backtest.
 ALLOCATION_CASH_BUFFER = 0.05
+# Orders smaller than this fraction of equity are not sent (disclosed tracking difference).
+ALLOCATION_MIN_TRADE = 0.005
 FRACTION_PLACES = 6
 
 
@@ -223,6 +225,8 @@ def plan_allocation(
     fractionable: Mapping[str, bool],
     executed_decision: str | None,
     cash_buffer: float = ALLOCATION_CASH_BUFFER,
+    sells_before_buys: bool = True,
+    min_trade_fraction: float = ALLOCATION_MIN_TRADE,
 ) -> tuple[pd.DataFrame, list[OrderDelta], str | None]:
     """Orders for the open after ``session`` that move the book to spec 059's latest decision target.
 
@@ -237,6 +241,13 @@ def plan_allocation(
     - **Cash, never leverage.** Targets are scaled by ``1 - cash_buffer``; a data hole at ``d``
       (spec 059 D-6) is an all-cash target. Buys floor (to six decimals where fractionable, else
       whole shares); sells never go below zero; sells come first.
+    - **Sells settle before buys.** With ``sells_before_buys``, a run that must sell returns only the
+      sells and sets ``frame.attrs["deferred_buys"]``; the buys go out at the next run, once the
+      sells have filled. The safety gate counts a queued sell as still held, so near full
+      investment a same-morning rebalance buy is denied on the gross cap (found by the queue Q111
+      replay). Disclosed: the buy half of a rebalance fills one session later.
+    - **No-trade band.** An order worth less than ``min_trade_fraction`` of equity is skipped, so
+      price drift between the sell and buy days cannot keep a decision perpetually re-selling.
 
     Returns ``(decision frame, orders, d)``; ``d`` is None before the first decision exists.
     """
@@ -281,10 +292,11 @@ def plan_allocation(
         wanted = _floor_quantity(weight * equity / price, fractional) if weight > 0 else 0.0
         gap = wanted - held
         delta = _floor_quantity(gap, fractional) if gap > 0 else gap
-        if abs(delta) < 10 ** -FRACTION_PLACES:
+        if abs(delta) < 10 ** -FRACTION_PLACES or abs(delta) * price < min_trade_fraction * equity:
             continue
         item = OrderDelta(ticker, float(delta), weight, price)
         (sells if delta < 0 else buys).append(item)
     frame = pd.DataFrame({"Target": targets, "Raw": weights.fillna(0.0)})
     frame.attrs["decision_session"] = decision.strftime("%Y-%m-%d")
-    return frame, sells + buys, decision.strftime("%Y-%m-%d")
+    frame.attrs["deferred_buys"] = len(buys) if sells_before_buys and sells else 0
+    return frame, (sells if frame.attrs["deferred_buys"] else sells + buys), decision.strftime("%Y-%m-%d")

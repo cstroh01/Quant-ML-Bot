@@ -33,7 +33,7 @@ MUTANTS = (
     ("run floors fractional buys", LOOP, "                                 bool(plan.fractionable.get(o.ticker, False))) for o in buys],",
      "                                 False) for o in buys],", "Q110 FRACTION"),
     ("partial decision marked done", LOOP, 'all(a.get("outcome") == "SUBMITTED" for a in actions)', "True", "Q110 PENDING"),
-    ("cap shrink ignored", LOOP, "    if submit and plan.pending and not shrunk and", "    if submit and plan.pending and", "Q110 PENDING"),
+    ("cap shrink ignored", LOOP, " and not shrunk and all(", " and all(", "Q110 PENDING"),
     ("decision never recorded", LOOP, "        planner.complete(plan.decision_session)\n", "", "Q110 STATE"),
 )
 
