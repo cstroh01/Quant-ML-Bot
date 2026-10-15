@@ -20,6 +20,19 @@ def evidenced(tmp_path, numbers=None):
         path.write_text(f"evidence for item {n}\n", encoding="utf-8")
         items[n] = {"artifact": f"evidence/item{n}.md", "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                     "commit": "c3eb34846a65", "date_utc": "2026-10-15T01:00:00Z"}
+        if n == '6':
+            sessions=[]
+            for day in (8,9,12,13,14):
+                session=path.parent/f'session-{day}.json'
+                session.write_text(json.dumps({'profile':'live_fidelity','session':f'2026-10-{day:02}',
+                    'clean':True,'challenge':False,'place_calls':0,'totp_step':True,
+                    'library':{'version':'0.2.2','sha256':'f5a94056bd9a055ba88482ffcc7dc17013de9871b852b4d9b0dc55352506dd15'},
+                    'pin_sha':'c3eb34846a65'+'0'*28,'holdings_match':True,'csv_sha256':'b'*64,'account_fingerprint':'f'*64,
+                    'previews':[{'qty':1.0,'conf_num':'FIXTURE'}],
+                    'settled_cash':{'amount':10,'as_of':f'2026-10-{day:02}T15:00:00+00:00'}}))
+                sessions.append({'artifact':str(session.relative_to(tmp_path)),'sha256':hashlib.sha256(session.read_bytes()).hexdigest()})
+            path.write_text(json.dumps({'sessions':sessions}))
+            items[n].update(type='fidelity_preview',sha256=hashlib.sha256(path.read_bytes()).hexdigest(),account_fingerprint='f'*64)
     return {"items": items}
 
 

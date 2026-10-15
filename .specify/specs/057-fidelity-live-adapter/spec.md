@@ -67,3 +67,6 @@ timeout releases a reservation; security challenge ignored instead of halting; s
 ## 5. Acceptance
 Fakes-only suite green with mutants killed; dependency audit recorded; Camden's line-by-line review;
 a supervised preview-only session against his real account (no order); LIVE activation only after §5.
+
+### Fingerprint amendment (Camden, 2026-10-15, Task 8)
+Q135 supersedes the earlier four-name and plain-SHA fingerprint text: exactly FIDELITY_LIVE_USERNAME, FIDELITY_LIVE_PASSWORD, FIDELITY_LIVE_TOTP, FIDELITY_LIVE_ACCOUNT, FIDELITY_LIVE_FP_KEY; FP_KEY is exactly 64 lowercase hex characters and fingerprints are HMAC-SHA256 keyed by its 32 decoded bytes, never plain SHA-256.

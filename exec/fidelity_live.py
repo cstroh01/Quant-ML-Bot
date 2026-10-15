@@ -135,6 +135,27 @@ class FidelityLive:
         self._check_halt()
         return self._call("positions", self._broker.positions)
 
+    def preview(self, intent: OrderIntent) -> dict:
+        """Preview only: connected, sleeve-only; no arming, intent write or placement."""
+        from signals import ALLOCATION_SLEEVES
+        self._check_halt()
+        if not self._connected or intent.instrument not in ALLOCATION_SLEEVES:
+            raise BrokerError('connected sleeve preview required')
+        side = 'B' if intent.delta_quantity > 0 else 'S'
+        qty = abs(float(intent.delta_quantity))
+        conf = self._call('preview', self._broker.preview, intent.instrument, side, qty)
+        if not isinstance(conf, str) or not conf:
+            raise BrokerError('preview confirmation missing')
+        return {'symbol': intent.instrument, 'side': side, 'qty': qty, 'conf_num': conf}
+
+    def settled_cash(self, now: datetime) -> dict:
+        self._check_halt()
+        return self._call('settled_cash', self._broker.settled_cash, now)
+
+    def prices(self) -> dict:
+        self._check_halt()
+        return self._call('prices', self._broker.prices)
+
     def submit(self, intent: OrderIntent, *, arming: ArmingRecord | None, now: datetime) -> str:
         """Preview, record, then place one market order. Call only via order_gateway after ALLOW."""
         self._check_halt()
@@ -187,6 +208,12 @@ class FidelityLive:
         return self._call("status", self._broker.status, previous["conf_num"])
 
 
+def account_hmac(account, key):
+    import hashlib, hmac, re
+    if not isinstance(key,str) or not re.fullmatch('[0-9a-f]{64}',key) or not isinstance(account,str) or not account:
+        raise HaltProfile('account fingerprint credentials refused')
+    return hmac.new(bytes.fromhex(key),account.encode(),hashlib.sha256).hexdigest()
+
 class LibraryBroker:
     """Thin wrapper over the pinned ``fidelity-trader-api==0.2.2`` (audit: spec 057 research.md)."""
 
@@ -195,6 +222,7 @@ class LibraryBroker:
         from fidelity_sdk import client
         env = os.environ if environ is None else environ
         self.__account = env[account_number_env]
+        self.__fp_key = env.get('FIDELITY_LIVE_FP_KEY')
         self._client: Any = client()
         self.totp_step = False
         self._totp_present = False
@@ -339,10 +367,20 @@ class LibraryBroker:
         if len(result.accounts) != 1 or result.accounts[0].acct_num != self.__account:
             raise SecurityChallenge('Fidelity positions account refused')
         held: dict[str, float] = {}
+        self._prices = {}
         for account in result.accounts:
             for position in account.positions:
                 if not position.symbol or position.quantity is None:
                     raise SecurityChallenge('Fidelity position quantity unknown')
                 if position.symbol and position.quantity is not None:
                     held[position.symbol] = held.get(position.symbol, 0.0) + float(position.quantity)
+                    self._prices[position.symbol] = getattr(position.price_detail, 'last_price', None)
         return held
+
+    def prices(self) -> dict:
+        if not hasattr(self, '_prices'): self.positions()
+        return dict(self._prices)
+
+    @property
+    def account_fingerprint(self) -> str:
+        return account_hmac(self.__account,self.__fp_key)
