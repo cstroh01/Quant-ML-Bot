@@ -141,3 +141,48 @@ def test_render_stamps_first_labels_every_sharpe_and_carries_the_register():
     text = "\n".join(lines)
     assert all(f"- {item}" in lines for item in LIMITATIONS) and "spread_plus_sqrt_impact" in text, "Q109 RENDER register"
     assert "folds, purge and embargo do not apply" in text and "rebalanced monthly" in text, "Q109 RENDER disclosure"
+
+
+def gapped(seed=1):
+    """`bars` with 13 SPY bars missing just after DBC lists (rows 205-217): SPY keeps its volatility,
+    but the SPY-DBC pair lacks 60 coinciding returns when DBC first becomes eligible, so the
+    covariance is undefined there and spec 059 D-6 makes the whole book cash for that month."""
+    data = bars(seed)
+    spy = data["SPY"].drop(data["SPY"].index[205:218])
+    spy.attrs["volume_basis"] = "provider_nominal"
+    return data | {"SPY": spy}
+
+
+def test_a_planted_covariance_gap_is_exactly_one_cash_month_at_its_date():
+    result = report(gapped())
+    cash = result["cash_months"]
+    assert cash["allocation"] == {"count": 1, "dates": ["2020-02-03"]}, f"Q127 CASH allocation {cash['allocation']}"
+    _, c = panel_of(gapped())
+    rows = decision_sessions(c.index, cadence="monthly")
+    weights = allocation_weights(allocation_selection(c), c, rows)
+    assert (weights.loc["2020-02-03"] == 0).all() and allocation_selection(c).loc["2020-02-03"].any(), \
+        "precondition: the gap month holds an eligible sleeve yet the book is flat"
+    assert cash["buy_and_hold"] == {"count": 0, "dates": []}, f"Q127 CASH buy-and-hold {cash['buy_and_hold']}"
+    assert set(cash["random"]) == set(SEEDS), "Q127 CASH random seeds"
+
+
+def test_no_gap_gives_zero_cash_months_for_every_series():
+    cash = report(bars())["cash_months"]
+    assert cash["allocation"] == {"count": 0, "dates": []}, f"Q127 CASH control allocation {cash['allocation']}"
+    assert cash["buy_and_hold"] == {"count": 0, "dates": []}, f"Q127 CASH control buy-and-hold {cash['buy_and_hold']}"
+    assert all(v == {"count": 0, "dates": []} for v in cash["random"].values()), f"Q127 CASH control random {cash['random']}"
+    assert cash["warmup_rows"] == 2, "precondition: the two warm-up rows (no sleeve eligible) are not D-6 cash months"
+
+
+def test_cash_months_count_only_flat_rows_that_hold_an_eligible_sleeve():
+    index = pd.DatetimeIndex(["2020-01-02", "2020-02-03", "2020-03-02"])
+    weights = pd.DataFrame({"SPY": [0.0, 0.0, 0.5], "IEF": [0.0, float("nan"), 0.0]}, index=index)
+    required = pd.DataFrame({"SPY": [False, True, True], "IEF": [False, True, False]}, index=index)
+    assert ar.cash_months(weights, required) == {"count": 1, "dates": ["2020-02-03"]}, "Q127 CASH unit"
+
+
+def test_render_prints_the_cash_months():
+    stamp = ["source: data/cache/EXAMPLE.csv sha256=" + "0" * 64, "commit: unknown"]
+    text = "\n".join(ar.render(report(gapped()), stamp))
+    assert "cash months (D-6" in text and "allocation 1 [2020-02-03]" in text and "buy-and-hold 0 []" in text, \
+        f"Q127 RENDER cash months: {text}"
