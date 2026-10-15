@@ -27,15 +27,20 @@ MUTANTS = (
      "    require_buildable(config_id)",
      "        pass\n    require_buildable(config_id)", "T014 REFUSE holdout session"),
     ("undecided sizing refused only after start", "    require_buildable(config_id)\n    _, cv = oos_sessions(",
-     "    _, cv = oos_sessions(", "T014 REFUSE undecided"),
+     "    _, cv = oos_sessions(", "T014 REFUSE unknown H11"),
     ("flat-bps costs accepted",
      "if not isinstance(slippage, dict) or slippage.get(\"model\") != COST_MODEL or \"commission\" not in costs:",
      "if not isinstance(slippage, dict) or \"commission\" not in costs:", "T014 REFUSE flat bps costs"),
     ("recorded as in-sample", "\"oos\": True, \"cv\": cv", "\"oos\": False, \"cv\": cv", "T014 RECORD metadata"),
     ("recorded outside the family", "research_attempt(config, role=role, family=FAMILY)",
      "research_attempt(config, role=role)", "T014 RECORD"),
-    ("re-targeted every session", "return book.loc[decision_sessions(book.index, cadence=\"monthly\")]",
+    ("re-targeted every session",
+     "return book.loc[decision_sessions(book.index, cadence=\"weekly\" if config_id in WEEKLY else \"monthly\")]",
      "return book", "T014 CADENCE"),
+    ("H8 rebalanced monthly", 'cadence="weekly" if config_id in WEEKLY else "monthly"', 'cadence="monthly"',
+     "T014 D8 H8"),
+    ("equal legs sized inverse-vol", "    if config_id in EQUAL_LEGS:\n        book = equal_weight_vol_target_book(",
+     "    if False:\n        book = equal_weight_vol_target_book(", "T014 D8"),
     ("H9 blends the wrong trend filter", "H9_PARTS = (\"H1-12\", \"H2-200\", \"H4\")",
      "H9_PARTS = (\"H1-12\", \"H2-100\", \"H4\")", "T014 H9"),
     ("costs dropped", "commission_per_fill=commission_per_fill, fill_cost=fill_cost)",
@@ -52,7 +57,7 @@ MUTANTS = (
 def main() -> int:
     base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, DECLARATION
     base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", "tests/conftest.py", DECLARATION,
-                                                  TEST), 12, MUTANTS
+                                                  TEST), 18, MUTANTS
     return base.main()
 
 

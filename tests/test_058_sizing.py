@@ -214,3 +214,32 @@ def test_a_monthly_book_trades_only_after_its_decision_rows():
     firsts = book.index.to_series().groupby(book.index.to_period("M")).first().iloc[1:]
     assert set(fills["Decision"]) == set(firsts), "T012 CADENCE trades"
     assert run(book)["Decision"].nunique() > 2 * len(firsts), "precondition: a daily book re-trades daily"
+
+
+def ew_book(selection, closes):
+    from portfolio_risk import equal_weight_vol_target_book
+    return equal_weight_vol_target_book(selection, closes, span=60, target_volatility=0.10, max_gross=1.0)
+
+
+def test_equal_legs_are_scaled_down_to_ten_percent_never_up():
+    closes = walk(31)
+    legs = ["SPY", "GLD"]  # 2% and 1% daily: equal weight runs far above 10% annualized
+    book = ew_book(only(*legs), closes)
+    returns = np.log(closes[legs]).diff().to_numpy()
+    for row in (60, 200, 299):
+        x = returns[1:row + 1]
+        cov = np.array([[ewma_cov_oracle(x[:, i], x[:, j], 60) for j in range(2)] for i in range(2)]) * 252
+        w = book.iloc[row][legs].to_numpy()
+        assert np.sqrt(w @ cov @ w) == pytest.approx(0.10, rel=1e-9), f"T012 EQUAL scaled row {row}"
+        assert w[0] == pytest.approx(w[1], rel=1e-12), f"T012 EQUAL legs row {row}"
+    calm = ew_book(only("IEF"), closes)  # 0.5% daily: about 8% annualized, below target
+    assert calm.iloc[100:]["IEF"].eq(1.0).all(), "T012 EQUAL levered up or scaled a calm book"
+
+
+def test_equal_legs_without_a_joint_covariance_window_stay_flat():
+    closes = walk(8)
+    closes.iloc[:100, T.index("GLD")] = np.nan
+    closes.iloc[150, T.index("IEF")] = np.nan
+    book = ew_book(only("IEF", "GLD"), closes)
+    assert book.loc[S[161]].eq(0).all(), "T012 EQUAL pair gap"
+    assert book.iloc[-1].gt(0).sum() == 2, "T012 EQUAL pair gap live"

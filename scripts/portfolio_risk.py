@@ -831,6 +831,46 @@ def volatility_target_book(
     return pd.DataFrame(rows, index=selection.index, columns=selection.columns).astype(float)
 
 
+def equal_weight_vol_target_book(
+    selection: pd.DataFrame,
+    closes: pd.DataFrame,
+    *,
+    span: int,
+    target_volatility: float,
+    max_gross: float,
+) -> pd.DataFrame:
+    """Spec 058 D-8 sizing: equal legs, the BOOK scaled by `min(1, target / portfolio_vol)`, then the gross cap.
+
+    Per session `t`: each of the k selected names gets `1 / k`; the legs are scaled together by
+    `min(1, target_volatility / sqrt(w' Cov w))` under the `ewma_covariance` (`span`) of the selected
+    legs at `t`, so an equal-weight book is only ever scaled down, never levered up; then
+    `apply_gross_cap`. A row whose legs lack any pairwise covariance is flat, never sized on a
+    guessed correlation. Row `t` reads closes at or before `t` only.
+    """
+    _require_book_frame(selection, closes, name="selection")
+    if not (selection.dtypes == bool).all():
+        raise ValueError("selection must be boolean.")
+    target = _require_positive_finite("target_volatility", target_volatility)
+    covariance = ewma_covariance(closes, span=span)
+
+    def size(session: pd.Timestamp) -> pd.Series:
+        held = selection.loc[session]
+        legs = pd.Series(0.0, index=selection.columns)
+        active = held.index[held.to_numpy(dtype=bool)]
+        if active.empty:
+            return legs
+        equal = np.full(len(active), 1.0 / len(active))
+        block = covariance.loc[session].loc[active, active].to_numpy(dtype=float)
+        variance = float(equal @ block @ equal) if np.isfinite(block).all() else np.nan
+        if not (np.isfinite(variance) and variance > 0):
+            return legs
+        legs[active] = equal * min(1.0, target / np.sqrt(variance))
+        return apply_gross_cap(legs, max_gross=max_gross)
+
+    rows = [size(session) for session in selection.index]
+    return pd.DataFrame(rows, index=selection.index, columns=selection.columns).astype(float)
+
+
 def equal_weight_book(selection: pd.DataFrame, *, max_gross: float) -> pd.DataFrame:
     """`max_gross / k` on each of the k selected names per session; an empty row stays flat.
 

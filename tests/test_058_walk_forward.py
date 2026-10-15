@@ -136,14 +136,14 @@ def test_embargo_covers_the_longest_signal_lookback():
         "T014 EMBARGO warmup"
 
 
-@pytest.mark.parametrize("case", ["holdout session", "undecided H3-3", "undecided H7", "unknown H11", "flat bps costs"])
+@pytest.mark.parametrize("case", ["holdout session", "unknown H11", "unknown H3-4", "flat bps costs"])
 def test_refusals_happen_before_any_ledger_event(ledger, case):
     opens, closes = panel(6)
     costs, config, error = COSTS, "H4", ValueError
     if case == "holdout session":
         opens, closes = panel(6, pd.bdate_range("2019-01-02", "2023-10-02"))
         error = HoldoutSealError
-    elif case.startswith(("undecided", "unknown")):
+    elif case.startswith("unknown"):
         config = case.split()[1]
     else:
         costs = {"commission": 1.0, "slippage": {"model": "flat_bps", "bps": 5}}
@@ -163,3 +163,42 @@ def test_holdout_is_refused_by_the_returns_function_too():
     except HoldoutSealError as error:
         refusal = str(error)
     assert "sealed" in refusal, "T014 SEAL"
+
+
+SECTORS = ["XLB", "XLE", "XLF", "XLI", "XLK", "XLP", "XLU", "XLV", "XLY"]
+
+
+def wide_panel(seed=21):
+    """Sector ETFs and SHY beside the core four, so H3, H6, H7 and H8 all select something."""
+    tickers = [*T, "SHY", *SECTORS]
+    rng = np.random.default_rng(seed)
+    scale = np.array([0.012, 0.004, 0.009, 0.008, 0.001, *np.linspace(0.008, 0.016, len(SECTORS))])
+    steps = rng.normal(0.0002, 1, (len(S), len(tickers))) * scale
+    closes = pd.DataFrame(100 * np.exp(np.cumsum(steps, axis=0)), index=S, columns=tickers)
+    opens = closes.shift(1) * np.exp(rng.normal(0, 0.002, closes.shape))
+    return opens.fillna(closes), closes
+
+
+@pytest.mark.parametrize("config_id", ["H3-3", "H3-5", "H6-6", "H6-12", "H7", "H8"])
+def test_equal_leg_configurations_follow_d8_sizing_and_their_cadence(config_id):
+    from portfolio_risk import equal_weight_vol_target_book
+    _, closes = wide_panel()
+    book = wf.target_book(config_id, closes)
+    full = equal_weight_vol_target_book(hypothesis_selection(config_id, closes), closes, span=60,
+                                        target_volatility=0.10, max_gross=1.0)
+    cadence = "weekly" if config_id == "H8" else "monthly"
+    expected = full.loc[decision_sessions(full.index, cadence=cadence)]
+    pd.testing.assert_frame_equal(book, expected, obj=f"T014 D8 {config_id}")
+    assert (book.sum(axis=1) <= 1 + 1e-12).all() and (book > 0).any().any(), f"T014 D8 {config_id} gross/empty"
+    held = book[book.sum(axis=1) > 0]
+    assert all(np.allclose(r[r > 0], r[r > 0].iloc[0]) for _, r in held.iterrows()), f"T014 D8 {config_id} equal legs"
+    assert len(book) > 3 * len(wf.target_book("H7", closes)) if config_id == "H8" else True, "T014 CADENCE weekly"
+
+
+def test_an_equal_leg_configuration_records_one_completed_trial(ledger):
+    opens, closes = wide_panel(22)
+    receipt = run("H8", opens, closes)
+    events = ledger.verify()["events"]
+    assert [e["event_type"] for e in events] == ["started", "completed"], "T014 D8 trial"
+    assert events[0]["config"]["model"]["params"]["sizing"] == "equal_legs_scaled_down", "T014 D8 sizing recorded"
+    assert receipt["event_type"] == "completed", "T014 D8 receipt"

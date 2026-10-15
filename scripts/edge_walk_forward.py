@@ -13,9 +13,9 @@ embargo at least the longest lookback stated beside them.
 
 Sizing (spec 058 §5, declaration `common`): inverse-volatility legs scaled to a 10% portfolio
 volatility target for H1, H2, H4, H5 (and H9 as their blend); H10 is a fixed 60/40; B-BH is equal
-weight of every name with a close. The declaration sizes H3, H6, H7 and H8 as equal weight while
-also setting the common portfolio volatility target; `portfolio_risk` has no equal-weight,
-portfolio-scaled book, so those configurations are refused until that choice is made.
+weight of every name with a close. H3, H6, H7 and H8 are equal legs whose book is scaled by
+`min(1, 0.10 / portfolio_vol)` and capped at gross 1 (058 D-8, declaration `common.sizing`). H8
+rebalances on the first session of each ISO week; every other configuration monthly.
 
 Never runs T015: tests inject a synthetic ledger and the real ledger is written only by a caller
 that enables production recording.
@@ -27,7 +27,8 @@ import pandas as pd
 
 from data_sources import RESEARCH_END, HoldoutSealError, sealed_sessions
 from portfolio_backtest import FillCost, run_portfolio_backtest
-from portfolio_risk import blend_books, equal_weight_book, fixed_allocation_book, volatility_target_book
+from portfolio_risk import (blend_books, equal_weight_book, equal_weight_vol_target_book, fixed_allocation_book,
+                            volatility_target_book)
 from signals import MONTH_SESSIONS, decision_sessions, hypothesis_selection
 from trial_runner import research_attempt
 from walk_forward_cv import walk_forward_splits
@@ -48,15 +49,13 @@ COST_MODEL = "spread_plus_sqrt_impact"
 INVERSE_VOL = ("H1-3", "H1-6", "H1-12", "H2-100", "H2-200", "H4", "H5")
 H9_PARTS = ("H1-12", "H2-200", "H4")
 H10 = {"SPY": 0.6, "IEF": 0.4}
-UNDECIDED = ("H3-3", "H3-5", "H6-6", "H6-12", "H7", "H8")
-CONFIGURATIONS = (*INVERSE_VOL, "H9", "H10", "B-BH")
+EQUAL_LEGS = ("H3-3", "H3-5", "H6-6", "H6-12", "H7", "H8")  # 058 D-8
+WEEKLY = ("H8",)
+CONFIGURATIONS = (*INVERSE_VOL, *EQUAL_LEGS, "H9", "H10", "B-BH")
 
 
 def require_buildable(config_id: str) -> None:
-    """Raise `ValueError` for an unknown configuration and for H3, H6, H7 and H8 (sizing undecided)."""
-    if config_id in UNDECIDED:
-        raise ValueError(f"{config_id}: the declaration sizes it as equal weight but also sets a 10% portfolio "
-                         "volatility target; portfolio_risk has no equal-weight portfolio-scaled book (open question)")
+    """Raise `ValueError` for a configuration the 058 declaration does not name."""
     if config_id not in CONFIGURATIONS:
         raise ValueError(f"unknown 058 configuration {config_id!r}")
 
@@ -69,7 +68,10 @@ def target_book(config_id: str, closes: pd.DataFrame) -> pd.DataFrame:
         return volatility_target_book(hypothesis_selection(part, closes), closes, span=VOL_SPAN,
                                       target_volatility=TARGET_VOLATILITY, max_gross=MAX_GROSS)
 
-    if config_id == "H9":
+    if config_id in EQUAL_LEGS:
+        book = equal_weight_vol_target_book(hypothesis_selection(config_id, closes), closes, span=VOL_SPAN,
+                                            target_volatility=TARGET_VOLATILITY, max_gross=MAX_GROSS)
+    elif config_id == "H9":
         book = blend_books(*(sized(part) for part in H9_PARTS))
     elif config_id == "H10":
         book = fixed_allocation_book(closes, H10)
@@ -77,7 +79,7 @@ def target_book(config_id: str, closes: pd.DataFrame) -> pd.DataFrame:
         book = equal_weight_book(closes.notna(), max_gross=MAX_GROSS)
     else:
         book = sized(config_id)
-    return book.loc[decision_sessions(book.index, cadence="monthly")]  # H8, weekly, is not buildable yet
+    return book.loc[decision_sessions(book.index, cadence="weekly" if config_id in WEEKLY else "monthly")]
 
 
 def oos_sessions(sessions: pd.DatetimeIndex) -> tuple[pd.DatetimeIndex, dict]:
@@ -133,7 +135,9 @@ def run_configuration(config_id: str, opens: pd.DataFrame, closes: pd.DataFrame,
               "date_range": [closes.index[0].strftime("%Y-%m-%d"), closes.index[-1].strftime("%Y-%m-%d")],
               "features": [], "transforms": [], "target": {"label": "next_open_fill_daily_log_return", "horizon": 1},
               "model": {"name": config_id, "params": {"vol_span": VOL_SPAN, "target_volatility": TARGET_VOLATILITY,
-                                                      "max_gross": MAX_GROSS}},
+                                                      "max_gross": MAX_GROSS,
+                                                      "sizing": "equal_legs_scaled_down" if config_id in EQUAL_LEGS
+                                                      else "per_configuration"}},
               "cv": cv,
               "seed": None, "initial_capital": starting_capital, "commission": costs["commission"],
               "slippage": slippage, "liquidation": False, "risk_free": {"annual_rate": 0.0, "days_per_year": 252}}
