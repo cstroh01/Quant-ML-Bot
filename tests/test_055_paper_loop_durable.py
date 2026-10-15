@@ -178,6 +178,6 @@ def test_workflow_gives_the_paper_loop_a_persist_command_and_cli_requires_it(tmp
         raise AssertionError("CLI: reached broker or network before refusing a missing --persist-command")
 
     monkeypatch.setattr(paper_loop, "AlpacaPaperClient", no_network)
-    monkeypatch.setattr(paper_loop, "download_market_data", no_network)
+    monkeypatch.setattr(paper_loop, "fetch_sleeve_closes", no_network)  # spec 059 D-9 data path
     with pytest.raises(paper_loop.RunAborted, match="persist-command"):
         paper_loop.main(["--submit", "--profile", "paper_small", "--profiles-file", str(profiles)])

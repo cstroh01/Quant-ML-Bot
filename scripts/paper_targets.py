@@ -195,3 +195,96 @@ def plan_next_open(
     prices = {t: float(last[t]) for t in closes.columns if pd.notna(last[t])}
     orders = order_deltas(decision["Target"], equity=equity, positions=positions, prices=prices)
     return decision, orders
+
+
+# ---------------------------------------------------------------------------
+# Spec 059 FR-004: the PAPER loop trades the preregistered allocation (no edge claimed)
+# ---------------------------------------------------------------------------
+
+# Execution-side cash buffer: the safety gate prices every position at the last close plus the
+# loop's 5% gap allowance, so a book invested at gross 1.0 would read as gross 1.05 and be denied.
+# Investing at most 95% of the bot budget keeps the gate's view at or below gross 1.0. Disclosed:
+# PAPER holds up to 5% more cash than the spec 059 backtest.
+ALLOCATION_CASH_BUFFER = 0.05
+FRACTION_PLACES = 6
+
+
+def _floor_quantity(quantity: float, fractional: bool) -> float:
+    scale = 10 ** FRACTION_PLACES if fractional else 1
+    return math.floor(quantity * scale + 1e-9) / scale
+
+
+def plan_allocation(
+    closes: pd.DataFrame,
+    session: pd.Timestamp,
+    *,
+    equity: float,
+    positions: Mapping[str, float],
+    fractionable: Mapping[str, bool],
+    executed_decision: str | None,
+    cash_buffer: float = ALLOCATION_CASH_BUFFER,
+) -> tuple[pd.DataFrame, list[OrderDelta], str | None]:
+    """Orders for the open after ``session`` that move the book to spec 059's latest decision target.
+
+    Guarantees:
+
+    - **Point-in-time (Rule 1).** Reads ``closes.loc[:session]`` only; the target is the spec 059
+      §3 weight row (``portfolio_risk.allocation_weights``) at the latest monthly decision session
+      ``d <= session``, so orders computed after the close of ``d`` fill at the open after it.
+    - **Held between decisions.** When ``executed_decision`` already names ``d`` the book is not
+      re-targeted: no orders. A decision not yet fully executed (first deployment, a missed run, a
+      buy the daily cap shrank) keeps moving toward that same ``d`` target.
+    - **Cash, never leverage.** Targets are scaled by ``1 - cash_buffer``; a data hole at ``d``
+      (spec 059 D-6) is an all-cash target. Buys floor (to six decimals where fractionable, else
+      whole shares); sells never go below zero; sells come first.
+
+    Returns ``(decision frame, orders, d)``; ``d`` is None before the first decision exists.
+    """
+    from portfolio_risk import allocation_weights
+    from signals import ALLOCATION_SLEEVES, allocation_selection, decision_sessions
+
+    if not 0.0 <= cash_buffer < 1.0:
+        raise ValueError("cash_buffer must be in [0, 1).")
+    if not (isinstance(equity, (int, float)) and math.isfinite(equity) and equity > 0):
+        raise ValueError("equity must be a positive finite number.")
+    label = pd.Timestamp(session)
+    missing = [t for t in ALLOCATION_SLEEVES if t not in closes.columns]
+    if missing:
+        raise ValueError(f"price panel lacks allocation sleeves: {missing}")
+    foreign = sorted(t for t, v in positions.items() if v and t not in ALLOCATION_SLEEVES)
+    if foreign:
+        raise ValueError(f"account holds positions outside the allocation sleeves: {foreign}; "
+                         "this account is not a dedicated allocation account")
+    history = closes.loc[:label, list(ALLOCATION_SLEEVES)]
+    if history.empty or history.index[-1] != label:
+        raise ValueError(f"session {label.date()} is not in the price panel.")
+    mask = decision_sessions(history.index, cadence="monthly")
+    if not mask.any():
+        return pd.DataFrame(columns=["Target"]), [], None
+    decision = history.index[mask][-1]
+    if executed_decision == decision.strftime("%Y-%m-%d"):
+        return pd.DataFrame(columns=["Target"]), [], executed_decision
+    weights = allocation_weights(allocation_selection(history), history, mask).loc[decision]
+    targets = (weights.fillna(0.0) * (1.0 - cash_buffer)).clip(lower=0.0)
+    last = history.loc[label]
+    sells: list[OrderDelta] = []
+    buys: list[OrderDelta] = []
+    for ticker in sorted(ALLOCATION_SLEEVES):
+        weight = float(targets.get(ticker, 0.0))
+        held = float(positions.get(ticker, 0.0))
+        if held < 0:
+            raise ValueError(f"{ticker}: short positions are out of scope (long-only).")
+        price = float(last[ticker]) if ticker in last.index and pd.notna(last[ticker]) else float("nan")
+        if weight > 0 and not (math.isfinite(price) and price > 0):
+            raise ValueError(f"{ticker}: no valid reference price to size a target.")
+        fractional = bool(fractionable.get(ticker, False))
+        wanted = _floor_quantity(weight * equity / price, fractional) if weight > 0 else 0.0
+        gap = wanted - held
+        delta = _floor_quantity(gap, fractional) if gap > 0 else gap
+        if abs(delta) < 10 ** -FRACTION_PLACES:
+            continue
+        item = OrderDelta(ticker, float(delta), weight, price)
+        (sells if delta < 0 else buys).append(item)
+    frame = pd.DataFrame({"Target": targets, "Raw": weights.fillna(0.0)})
+    frame.attrs["decision_session"] = decision.strftime("%Y-%m-%d")
+    return frame, sells + buys, decision.strftime("%Y-%m-%d")
