@@ -49,5 +49,9 @@ def test_shutdown_guard_names_changed_ledger_path(tmp_path, planted):
         assert "spec043" not in output, output
 
 
-def test_manifest_records_absent_returns():
-    assert manifest(REPO).get("returns") == "absent"
+def test_manifest_records_absent_returns(tmp_path):
+    (tmp_path / "docs/trials").mkdir(parents=True)
+    (tmp_path / "docs/trials/trials.jsonl").write_text("", encoding="utf-8")
+    assert manifest(tmp_path).get("returns") == "absent", "an absent returns folder is recorded explicitly"
+    (tmp_path / "docs/trials/returns").mkdir()
+    assert manifest(tmp_path).get("returns") == "directory"
