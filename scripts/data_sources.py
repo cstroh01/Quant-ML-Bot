@@ -535,3 +535,125 @@ def require_holdout_token(frame: pd.DataFrame, *, config_hash: str, token: Holdo
     except FileExistsError as error:
         raise HoldoutSealError("the holdout has already been opened; a second use is refused") from error
     return frame
+
+
+# --- 058 T015 panel (queue Q133; D-10 B). Private Tiingo raw bodies -> research-window frames. ---
+
+import numpy as np
+
+
+class PanelRefused(ValueError):
+    """The 058 panel cannot be built exactly as T008/T009 recorded it; nothing was computed."""
+
+
+def canonical_hash(value) -> str:
+    """SHA-256 of sorted-key, compact, UTF-8 JSON (the T009 `panel_hash` convention)."""
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+                          .encode("utf-8")).hexdigest()
+
+
+@dataclass(frozen=True)
+class EdgePanel:
+    """P&L frames (in-repo back-adjusted, exclusions NaN), raw cost histories and the T009 panel hash."""
+
+    opens: pd.DataFrame
+    closes: pd.DataFrame
+    raw_closes: pd.DataFrame
+    cost_history: dict
+    split_sessions: dict
+    panel_hash: str
+    summary: dict
+
+
+def back_adjust(raw: pd.DataFrame, *, excluded, spliced) -> tuple[pd.Series, pd.Series, dict]:
+    """D-10 B total-return open/close for one ticker from raw `open, close, divCash, splitFactor`.
+
+    Anchored at the last row. An applied action on ex-session e scales every earlier row by
+    `(1 - divCash * s / close[e-1]) / s` (s = splitFactor). A session in `spliced` (a T009 action
+    mismatch) applies no vendor action: the return from the last included session before it to the
+    first included session at or after it is set to exactly zero (no dividend, split or price move
+    booked across that gap), so an unverified ex-date drop never prints as a loss. Rows in `excluded`
+    are NaN (not tradable); ffill marks bridge them with the return preserved.
+    """
+    index = raw.index
+    close, open_ = raw["close"].to_numpy(float), raw["open"].to_numpy(float)
+    div = raw["divCash"].fillna(0.0).to_numpy(float)
+    split = raw["splitFactor"].fillna(1.0).to_numpy(float)
+    excluded = {pd.Timestamp(d) for d in excluded}
+    spliced = {pd.Timestamp(d) for d in spliced}
+    if not spliced <= excluded:
+        raise PanelRefused("every action-mismatch session must also be excluded (T009)")
+    included = [i for i, s in enumerate(index) if s not in excluded]
+    factor = np.ones(len(index))
+    for e in range(1, len(index)):
+        if index[e] in spliced or (div[e] == 0 and split[e] == 1):
+            continue
+        if not (split[e] > 0 and close[e - 1] > 0) or not 0 <= div[e] * split[e] < close[e - 1]:
+            raise PanelRefused(f"unusable action on {index[e].date()}")
+        factor[e] = (1 - div[e] * split[e] / close[e - 1]) / split[e]
+    multiplier = np.full(len(index), np.nan)
+    applied = splices = 0
+    for k in range(len(included) - 1, -1, -1):
+        a = included[k]
+        if k == len(included) - 1:
+            multiplier[a] = 1.0
+            continue
+        later = included[k + 1]
+        gap = range(a + 1, later + 1)
+        if any(index[e] in spliced for e in gap):
+            multiplier[a] = multiplier[later] * close[later] / close[a]  # zero return a -> later
+            splices += 1
+        else:
+            multiplier[a] = multiplier[later] * float(np.prod(factor[a + 1:later + 1]))
+            applied += int((factor[a + 1:later + 1] != 1).sum())
+    adj_close = pd.Series(close * multiplier, index=index)
+    adj_open = pd.Series(open_ * multiplier, index=index)
+    return adj_open, adj_close, {"actions_applied": applied, "splices": splices}
+
+
+def load_058_panel(raw_dir, *, tiingo_manifest: dict, data_check: dict) -> EdgePanel:
+    """Build the 058 T015 panel from the private T008 Tiingo bodies, exactly as T009 checked them.
+
+    Refuses (`PanelRefused`) before parsing any body unless: the data check status is VERIFIED or
+    EXCLUSIONS, its `panel_hash` reproduces from `panel_hash_input`, its research end is RESEARCH_END,
+    and every `/prices` body found under `raw_dir` hashes to both the T008 manifest and the T009 input.
+    Rows after RESEARCH_END are dropped before any frame is built (the holdout stays sealed).
+    """
+    if data_check.get("status") not in ("VERIFIED", "EXCLUSIONS"):
+        raise PanelRefused("data_check_status")
+    hash_input = data_check.get("panel_hash_input") or {}
+    if canonical_hash(hash_input) != data_check.get("panel_hash"):
+        raise PanelRefused("data_check_hash")
+    if hash_input.get("research_end") != str(RESEARCH_END):
+        raise PanelRefused("research_end")
+    wanted = {r["endpoint_path"].split("/")[3]: r["sha256"] for r in tiingo_manifest["requests"]
+              if r["endpoint_path"].endswith("/prices")}
+    if wanted != dict(hash_input["tiingo_bodies"]):
+        raise PanelRefused("manifest_and_data_check_disagree")
+    found = {hashlib.sha256(p.read_bytes()).hexdigest(): p for p in sorted(Path(raw_dir).glob("*.bin"))}
+    missing = sorted(t for t, h in wanted.items() if h not in found)
+    if missing:
+        raise PanelRefused(f"body_hash_mismatch:{','.join(missing)}")
+    exclusions = hash_input["exclusions"]
+    opens, closes, raws, costs, splits, summary = {}, {}, {}, {}, {}, {}
+    for ticker in sorted(wanted):
+        rows = [r for r in json.loads(found[wanted[ticker]].read_bytes()) if r["date"][:10] <= str(RESEARCH_END)]
+        frame = pd.DataFrame(rows)
+        frame.index = pd.DatetimeIndex(pd.to_datetime(frame.pop("date").str[:10]), name="session")
+        frame = frame.sort_index()
+        spliced = data_check["tickers"][ticker]["actions"]["mismatched_sessions"]
+        adj_open, adj_close, counts = back_adjust(frame, excluded=exclusions[ticker], spliced=spliced)
+        mask = frame.index.isin(pd.DatetimeIndex(exclusions[ticker]))
+        opens[ticker], closes[ticker] = adj_open.mask(mask), adj_close.mask(mask)
+        raws[ticker] = frame["close"].astype(float)
+        history = frame[["open", "high", "low", "close", "volume"]].astype(float)
+        history.columns = ["Open", "High", "Low", "Close", "Volume"]
+        history.attrs["volume_basis"] = "provider_nominal"
+        costs[ticker] = history
+        splits[ticker] = tuple(frame.index[frame["splitFactor"].fillna(1.0) != 1.0])
+        summary[ticker] = {"first_session": str(frame.index[0].date()), "last_session": str(frame.index[-1].date()),
+                           "rows": len(frame), "excluded": int(mask.sum()), **counts}
+    opens, closes, raws = (pd.DataFrame(x).sort_index() for x in (opens, closes, raws))
+    if sealed_sessions(closes.index).any():
+        raise HoldoutSealError("a sealed session reached the 058 panel")
+    return EdgePanel(opens, closes, raws, costs, splits, data_check["panel_hash"], summary)

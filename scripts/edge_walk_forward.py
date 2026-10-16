@@ -25,6 +25,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from constants import RISK_FREE_RATE_ANNUAL
 from data_sources import RESEARCH_END, HoldoutSealError, sealed_sessions
 from portfolio_backtest import FillCost, run_portfolio_backtest
 from portfolio_risk import (blend_books, equal_weight_book, equal_weight_vol_target_book, fixed_allocation_book,
@@ -52,6 +53,8 @@ H10 = {"SPY": 0.6, "IEF": 0.4}
 EQUAL_LEGS = ("H3-3", "H3-5", "H6-6", "H6-12", "H7", "H8")  # 058 D-8
 WEEKLY = ("H8",)
 CONFIGURATIONS = (*INVERSE_VOL, *EQUAL_LEGS, "H9", "H10", "B-BH")
+# 058 D-9: Gate 3's `build_matrix` excludes any trial whose recorded risk-free differs from the declared one.
+RISK_FREE = {"annual_rate": RISK_FREE_RATE_ANNUAL, "days_per_year": 252}
 
 
 def require_buildable(config_id: str) -> None:
@@ -144,7 +147,7 @@ def run_configuration(config_id: str, opens: pd.DataFrame, closes: pd.DataFrame,
                                                       else "per_configuration"}},
               "cv": cv,
               "seed": None, "initial_capital": starting_capital, "commission": costs["commission"],
-              "slippage": slippage, "liquidation": False, "risk_free": {"annual_rate": 0.0, "days_per_year": 252}}
+              "slippage": slippage, "liquidation": False, "risk_free": dict(RISK_FREE)}
     role = "buy_and_hold_baseline" if config_id == "B-BH" else "candidate"
     with research_attempt(config, role=role, family=FAMILY) as attempt:
         rows, cv = oos_returns(config_id, opens, closes, fill_cost=fill_cost,
@@ -256,7 +259,7 @@ def run_brnd(config_id: str, seed: int, opens: pd.DataFrame, closes: pd.DataFram
                                                     "max_gross": MAX_GROSS}},
               "cv": cv,
               "seed": int(seed), "initial_capital": starting_capital, "commission": costs["commission"],
-              "slippage": slippage, "liquidation": False, "risk_free": {"annual_rate": 0.0, "days_per_year": 252}}
+              "slippage": slippage, "liquidation": False, "risk_free": dict(RISK_FREE)}
     with research_attempt(config, role="random_signal_baseline", family=FAMILY) as attempt:
         rows, cv = _oos_from_book(brnd_book(config_id, closes, seed=seed, activity=activity), opens, closes,
                                   fill_cost=fill_cost, commission_per_fill=costs["commission"],
