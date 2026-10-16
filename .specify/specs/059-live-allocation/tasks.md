@@ -11,7 +11,7 @@ Labels: **HUMAN GATE** = Camden acts. Queue ids in brackets.
   - Command: `python scripts/declare_family.py 059-allocation --record`; paste the output back.
 - [x] T002 Weights builder (FR-002) [Q108]. Depends on queue Q103 (058 portfolio vol fix). _(done: #195)_
 - [x] T003 Backtest report builder, offline on fixtures (FR-003) [Q109]. _(done: #197)_
-- [ ] T004 Data run of the report, published with provenance. D-11: on the 058 D-10 B panel, not the 035 cache.
+- [x] T004 Data run of the report, published with provenance. D-11: on the 058 D-10 B panel, not the 035 cache. _(done: 2026-10-16, ledger head 0eec9b37846a; report docs/implementation/spec-059/t004-report-20261016.md)_
   - Camden, after 058 T015's ledger lines merge: `python scripts/amend_family.py 059-allocation --record`, then
     `python scripts/run_059_t004.py --panel <raw> --dry-run`, then `--record-trial --out <private>`.
   - Publish `t004-report.md` under `docs/implementation/spec-059/` and add it to the §11.3 item 2 manifest entry.

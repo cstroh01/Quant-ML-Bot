@@ -107,7 +107,7 @@ Order matters: D-1(a) requires T006 to land before T007.
   - Purged and embargoed (Rule 2), with the embargo ≥ the longest lookback.
   - The research window ends at 2023-09-29.
   - Every run goes through `research_attempt(family="058-edge")`.
-- [ ] T015 Run all 15 configurations once.
+- [x] T015 Run all 15 configurations once. _(done: 2026-10-16, ledger 808 events head 144024934a68; resumed after a GitKraken auto-stash interruption (#230))_
   - Record:
     - the family DSR at `N_family`
     - the lifetime-N DSR
