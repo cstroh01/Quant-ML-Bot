@@ -1,4 +1,11 @@
 {
   "note": "SCOPE §11.3 evidence manifest for scripts/gate_checklist.py. One entry per item, keyed \"1\"..\"7\": {\"artifact\": repo-relative path, \"sha256\": 64 hex, \"commit\": sha, \"date_utc\": ISO instant with Z}. Empty until evidence exists; the checklist prints NOT ARMABLE.",
-  "items": {}
+  "items": {
+    "5": {
+      "artifact": "docs/implementation/spec-059/replay-evidence-20261015.json",
+      "sha256": "b55b569822681b2da85d526af01c0c9cbc1adfac7bd5d21c118b96e03ee6a9bf",
+      "commit": "d95a4c05445e24e5fb7766ab1b738f2504cbd95a",
+      "date_utc": "2026-10-16T03:25:33Z"
+    }
+  }
 }
