@@ -42,3 +42,6 @@ review_*.log
 
 # Machine-local Claude Code settings (hooks with absolute Windows paths)
 .claude/settings.local.json
+
+# Serena MCP local memory (2026-10-15 incident: git clean -fd deleted it)
+.serena/
