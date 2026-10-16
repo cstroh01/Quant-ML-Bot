@@ -71,8 +71,8 @@ def checklist(manifest: dict, root: Path = ROOT) -> tuple[bool, list[str]]:
     lines, armable = [], True
     for number, title in ITEMS:
         ok, reason = check_item(items.get(number), root)
-        if ok and number == '6':
-            typed, detail = fidelity_preview(items.get(number), root)
+        if ok and number in TYPED:
+            typed, detail = TYPED[number](items.get(number), root)
             ok = typed
             reason += '; ' + detail
         armable &= ok
@@ -117,6 +117,34 @@ def fidelity_preview(entry, root):
         return len(days)>=5 and csv, f'{len(days)} distinct clean sessions; latest CSV match {csv}'
     except (OSError,ValueError,KeyError,TypeError,AttributeError):
         return False,'invalid fidelity_preview evidence'
+
+
+def paper_evidence_report(entry, root):
+    """Typed item 4: the artifact is a ``scripts/paper_evidence.py`` report that says PASS with at
+    least ``MIN_SESSIONS`` completed submit sessions for every required PAPER profile. A hashed file
+    that is not such a report (or says NOT PASSED) does not evidence item 4."""
+    from paper_evidence import MIN_SESSIONS, REQUIRED_PROFILES
+    try:
+        lines = (root / entry['artifact']).read_text(encoding='utf-8').splitlines()
+        if not lines or not lines[0].startswith('# PAPER evidence'):
+            return False, 'not a paper_evidence.py report'
+        if 'PAPER EVIDENCE: PASS' not in lines or 'PAPER EVIDENCE: NOT PASSED' in lines:
+            return False, 'report verdict is not PASS'
+        counts = {}
+        for line in lines[lines.index('completed submit sessions:') + 1:]:
+            m = re.fullmatch(r'- (\w+): (\d+)', line)
+            if not m:
+                break
+            counts[m.group(1)] = int(m.group(2))
+        short = [p for p in REQUIRED_PROFILES if counts.get(p, 0) < MIN_SESSIONS]
+        if short:
+            return False, f'sessions below {MIN_SESSIONS}: {", ".join(short)}'
+        return True, ', '.join(f'{p} {counts[p]} sessions' for p in REQUIRED_PROFILES)
+    except (OSError, ValueError, KeyError, TypeError):
+        return False, 'invalid paper evidence report'
+
+
+TYPED = {'4': paper_evidence_report, '6': fidelity_preview}
 
 
 def main(argv: list[str] | None = None) -> int:
