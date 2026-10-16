@@ -1,5 +1,5 @@
 {
-  "note": "SCOPE §11.3 evidence manifest for scripts/gate_checklist.py. One entry per item, keyed \"1\"..\"7\": {\"artifact\": repo-relative path, \"sha256\": 64 hex, \"commit\": sha, \"date_utc\": ISO instant with Z}. Empty until evidence exists; the checklist prints NOT ARMABLE.",
+  "note": "SCOPE \u00a711.3 evidence manifest for scripts/gate_checklist.py. One entry per item, keyed \"1\"..\"7\": {\"artifact\": repo-relative path, \"sha256\": 64 hex, \"commit\": sha, \"date_utc\": ISO instant with Z}. Empty until evidence exists; the checklist prints NOT ARMABLE.",
   "items": {
     "5": {
       "artifact": "docs/implementation/spec-059/replay-evidence-20261015.json",
@@ -12,6 +12,12 @@
       "sha256": "ecac666ebdc06a479ff07f1905e5892c94c6aa4e21562a46ecaa27f7346a630c",
       "commit": "79b2d22d20a9ffea33c6bb6e4deef842f0430baf",
       "date_utc": "2026-10-16T08:52:51Z"
+    },
+    "3": {
+      "artifact": "docs/implementation/spec-059/drill-evidence-20261016.json",
+      "sha256": "f4311b6d9dec008bf3a6add622a3bcee8a8fdbcb0d1650b5b977f7c4cad8acd0",
+      "commit": "ff83200bd4ea7a428c078c3cca15e1e478dbedf4",
+      "date_utc": "2026-10-16T15:47:02Z"
     }
   }
 }
