@@ -140,7 +140,7 @@ Stated in the README and in every surface that reports a result:
 - **Daily bars only.** No intraday, no microstructure, no order-book data.
 - **Costs are modeled, not calibrated.** Rule 13's half-spread plus square-root
   impact is an estimate from daily OHLC, never validated against real fills.
-- **No real capital has ever been deployed**, and none will be before §5 passes.
+- **No real capital has ever been deployed**, and none will be before the §11.3 capital gate passes (docs/SCOPE-V1.md §11.3 supersedes §5).
 
 ## 7. Explicitly cut from v1.0
 
