@@ -3,7 +3,7 @@ import importlib
 import sys
 from pathlib import Path
 import pytest
-from ledger_copy_support import run_child
+from ledger_copy_support import real_candidate_starts, run_child
 
 
 def test_permission_is_nested_and_resets_on_exception():
@@ -49,7 +49,7 @@ def test_enabled_e4_records_in_actual_spawned_workers():
     assert result["returncode"] == 0, result["stderr"]
     assert result["outcome"]["completed"] and result["outcome"]["verified"]
     assert result["outcome"]["roles"] == {"candidate": 8}
-    assert result["outcome"]["n_post_ledger"] == 95
+    assert result["outcome"]["n_post_ledger"] == real_candidate_starts() + 8
     assert result["records"] == 16
     assert result["outcome"]["worker_pids"]
     assert result["outcome"]["parent_pid"] not in result["outcome"]["worker_pids"]

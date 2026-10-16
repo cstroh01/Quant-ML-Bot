@@ -26,6 +26,18 @@ def manifest(root: Path) -> dict[str, str]:
     return result
 
 
+def real_candidate_starts(root: Path | None = None) -> int:
+    """Candidate starts already in the ledger (lifetime N before a child run), read without verifying."""
+    path = Path(REAL_ROOT if root is None else root) / "docs/trials/trials.jsonl"
+    if not path.exists():
+        return 0
+    count = 0
+    for line in path.read_bytes().splitlines():
+        event = json.loads(line)
+        count += event["event_type"] == "started" and event["role"] == "candidate"
+    return count
+
+
 def changed(before: dict, after: dict) -> list[str]:
     return sorted(key for key in before.keys() | after.keys()
                   if before.get(key) != after.get(key))

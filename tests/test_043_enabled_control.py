@@ -1,5 +1,5 @@
 """AC-3: a deliberate E1 recording must still produce a verified ledger."""
-from ledger_copy_support import run_child
+from ledger_copy_support import real_candidate_starts, run_child
 
 def test_record_trial_flag_records_complete_funded_trials():
     result = run_child("E1", enabled=True)
@@ -11,6 +11,6 @@ def test_record_trial_flag_records_complete_funded_trials():
     assert outcome["events"] == {"started": 22, "completed": 22}
     assert outcome["roles"] == {"candidate": 1, "buy_and_hold_baseline": 1,
                                 "random_signal_baseline": 20}
-    assert outcome["n_post_ledger"] == 88
+    assert outcome["n_post_ledger"] == real_candidate_starts() + 1
     assert all(path in {"trials.jsonl", "trials.head.json", "returns"}
                or path.startswith("returns/") for path in result["changed"])

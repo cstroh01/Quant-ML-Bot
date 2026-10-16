@@ -25,6 +25,10 @@ ROLES = {"candidate", "buy_and_hold_baseline", "random_signal_baseline", "synthe
 TERMINALS = {"completed", "rejected", "errored", "abandoned"}
 CONFIG_FIELDS = set("data universe date_range features transforms target model cv seed initial_capital commission slippage liquidation risk_free".split())
 ZERO = "0" * 64
+# Sidecars this process has fully verified, keyed by resolved path. An entry is reused only while the
+# event's recorded digest and coverage and the file's (size, mtime_ns, inode) are all unchanged; any
+# difference re-reads, re-hashes and re-validates the file. A fresh process always verifies in full.
+_VERIFIED_SIDECARS: dict[str, tuple] = {}
 # Spec 058 D-1: a preregistered family's trials are refused until its declaration is in docs/trials.
 FAMILY_DIR = "docs/trials/families"
 DECLARED_FAMILIES = {"058-edge": ".specify/specs/058-edge-research-program/declaration.json",
@@ -146,6 +150,32 @@ def source_identity(root: Path = ROOT, *, git_sha: str | None = None, workspace_
         path = root / name
         if path.is_file(): files.append([name, hashlib.sha256(path.read_bytes()).hexdigest()])
     return {"git_sha": candidate.lower() if candidate else None, "workspace_state": workspace_state, "source_tree_hash": digest(files)}
+
+
+def _verify_sidecar(path: Path, side: dict) -> None:
+    """Raise unless the sidecar exists, hashes to its recorded digest and covers its recorded rows.
+
+    A file this process already verified is not re-read while its recorded digest and coverage and
+    its (size, mtime_ns, inode) are unchanged (ledger verification is otherwise linear in all
+    sidecar bytes on every start and finish). Any change to either side re-checks it in full.
+    """
+    claim = (side["sha256"], side["rows"], side["first_session"], side["last_session"])
+    try:
+        stat = path.stat()
+    except OSError:
+        raise ValueError(f"sidecar missing/corrupt: {side['path']}") from None
+    key, stamp = str(path.resolve()), (stat.st_size, stat.st_mtime_ns, stat.st_ino)
+    if _VERIFIED_SIDECARS.get(key) == (claim, stamp):
+        return
+    if not path.is_file():
+        raise ValueError(f"sidecar missing/corrupt: {side['path']}")
+    payload = path.read_bytes()
+    if hashlib.sha256(payload).hexdigest() != side["sha256"]:
+        raise ValueError(f"sidecar missing/corrupt: {side['path']}")
+    rows = validate_rows([json.loads(x) for x in payload.splitlines()])
+    if (len(rows), rows[0]["session"], rows[-1]["session"]) != claim[1:]:
+        raise ValueError(f"sidecar coverage: {side['path']}")
+    _VERIFIED_SIDECARS[key] = (claim, stamp)
 
 
 def validate_rows(rows: list[dict]) -> list[dict]:
@@ -468,6 +498,17 @@ class TrialLedger:
         self.synthetic = synthetic
         self.anchor = self.path.with_suffix(".head.json")
 
+    def _warm_cache(self) -> None:
+        """Verify once outside the lock so the locked verify re-reads only changed sidecars.
+
+        Best effort: a concurrent writer can leave a partial last line mid-read, so any failure
+        here is ignored; the verify inside the lock is the authority and raises as before.
+        """
+        try:
+            self.verify()
+        except (ValueError, OSError):
+            pass
+
     def verify(self) -> dict:
         """Verify events, lifecycle, external head anchor and all bound sidecars."""
         if not self.path.exists():
@@ -503,9 +544,7 @@ class TrialLedger:
                         side = event["sidecar"]
                         path = self.root / relative_path(self.root, side["path"])
                         if "data/cache/" in side["path"]: raise ValueError("data/cache sidecar")
-                        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != side["sha256"]: raise ValueError(f"sidecar missing/corrupt: {side['path']}")
-                        rows = validate_rows([json.loads(x) for x in path.read_bytes().splitlines()])
-                        if (len(rows), rows[0]["session"], rows[-1]["session"]) != (side["rows"], side["first_session"], side["last_session"]): raise ValueError(f"sidecar coverage: {side['path']}")
+                        _verify_sidecar(path, side)
                 head = claimed
                 events.append(event)
             except (KeyError, TypeError, ValueError, AttributeError) as exc:
@@ -532,6 +571,7 @@ class TrialLedger:
         if role == "synthetic_test" and not self.synthetic: raise ValueError("synthetic role requires injected ledger")
         if family in DECLARED_FAMILIES: verify_family(family, root=self.root)
         normalized, hashed = canonical_config(config, root=self.root)
+        self._warm_cache()
         with serialized(self.path):
             state = self.verify()
             event = self._append({"trial_id": str(uuid.uuid4()), "event_type": "started", "role": role, "family": family, "runner": runner, "config": normalized, "config_hash": hashed, "source": source or source_identity()}, state["head"], len(state["events"]))
@@ -540,6 +580,7 @@ class TrialLedger:
     def finish(self, trial_id: str, outcome: str, *, returns: list[dict] | None = None, metadata: dict | None = None, reason: str | None = None) -> dict:
         if not self.synthetic: _require_production_enabled(f"TrialLedger.finish({trial_id})", self.path)
         if outcome not in TERMINALS: raise ValueError("unknown terminal outcome")
+        self._warm_cache()
         with serialized(self.path):
             state = self.verify()
             matches = [e for e in state["events"] if e["trial_id"] == trial_id]
