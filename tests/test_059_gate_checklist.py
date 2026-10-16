@@ -11,6 +11,10 @@ import context  # noqa: F401
 import gate_checklist  # noqa: E402
 
 
+PAPER_REPORT = ("# PAPER evidence (spec 059 FR-005, SCOPE §11.3 item 4)\nEXAMPLE\n\ncompleted submit sessions:\n"
+                "- paper_large: {large}\n- paper_small: {small}\n\nPAPER EVIDENCE: {verdict}\n")
+
+
 def evidenced(tmp_path, numbers=None):
     numbers = numbers or [n for n, _ in gate_checklist.ITEMS]
     items = {}
@@ -20,6 +24,9 @@ def evidenced(tmp_path, numbers=None):
         path.write_text(f"evidence for item {n}\n", encoding="utf-8")
         items[n] = {"artifact": f"evidence/item{n}.md", "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                     "commit": "c3eb34846a65", "date_utc": "2026-10-15T01:00:00Z"}
+        if n == '4':
+            path.write_text(PAPER_REPORT.format(large=10, small=12, verdict="PASS"), encoding="utf-8")
+            items[n]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
         if n == '6':
             sessions=[]
             for day in (8,9,12,13,14):
@@ -73,3 +80,16 @@ def test_cli_exit_code_and_unreadable_manifest(tmp_path, capsys):
     empty = tmp_path / "e.json"
     empty.write_text(json.dumps({"items": {}}), encoding="utf-8")
     assert gate_checklist.main([str(empty)]) == 1, "T008 CLI empty manifest passed"
+
+
+def test_item4_must_be_a_passing_paper_report(tmp_path):
+    """A hashed file is not enough for item 4: it must be a PASS report with >= 10 sessions per profile."""
+    for body, why in [("evidence for item 4\n", "not a paper_evidence.py report"),
+                      (PAPER_REPORT.format(large=10, small=12, verdict="NOT PASSED"), "verdict"),
+                      (PAPER_REPORT.format(large=10, small=9, verdict="PASS"), "paper_small")]:
+        manifest = evidenced(tmp_path)
+        path = tmp_path / "evidence" / "item4.md"
+        path.write_text(body, encoding="utf-8")
+        manifest["items"]["4"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+        armable, lines = gate_checklist.checklist(manifest, tmp_path)
+        assert not armable and "MISSING" in lines[3] and why in lines[3], f"Q-typed item 4 vacuous: {lines[3]}"
