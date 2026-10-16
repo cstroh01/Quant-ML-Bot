@@ -1,0 +1,91 @@
+{
+  "item": "SCOPE-V1 \u00a711.3 item 3 \u2014 safety layer in PAPER/LIVE order paths; kill-switch and reset drills passed (spec 055 G15)",
+  "source": {
+    "artifact": "docs/implementation/spec-055/task5-drills-20261016.json",
+    "sha256": "e34aaca346f00c7f38934356721c1d001f277813f45dbae5d4e5a933aea01f91",
+    "origin": "Codex Task 5 record, OneDrive Quant Project Claude/Task5-20261015/drills.json, copied verbatim 2026-10-16",
+    "record_status": "PART_A_PASS_6_OF_6",
+    "record_updated_at_utc": "2026-10-16T15:18:01.641108+00:00"
+  },
+  "drills": [
+    {
+      "drill": "restart",
+      "status": "PASS",
+      "run_ids": [
+        38760725654
+      ],
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760725654"
+    },
+    {
+      "drill": "crash",
+      "status": "PASS",
+      "run_ids": [
+        38760446562
+      ],
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760446562"
+    },
+    {
+      "drill": "concurrency",
+      "status": "PASS",
+      "run_ids": [
+        38684746478
+      ],
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38684746478"
+    },
+    {
+      "drill": "duplicate",
+      "status": "PASS",
+      "run_ids": [
+        38684844219
+      ],
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38684844219"
+    },
+    {
+      "drill": "missed-run",
+      "status": "PASS",
+      "run_ids": [
+        38684944670
+      ],
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38684944670"
+    },
+    {
+      "drill": "kill/reset",
+      "status": "PASS",
+      "run_ids": [
+        38685040940
+      ],
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38685040940"
+    }
+  ],
+  "verdict": "PASS",
+  "final_verification": {
+    "checked_at_utc": "2026-10-15T15:32:19.9806998+00:00",
+    "actual_actions_drills_passed": 6,
+    "total_drill_checks": 99,
+    "new_drill_checks": 55.0,
+    "failed_checks": 0,
+    "all_new_phase_reports_PASS": true,
+    "all_new_phase_orders_submitted_zero": true,
+    "all_state_changes_confined_to_drill_fixtures": true,
+    "new_drill_incident_rows": 3,
+    "friday_followup_active_unchanged": true,
+    "part_b_started": false
+  },
+  "safety": {
+    "env_values_read": false,
+    "broker_calls_made": false,
+    "orders_submitted": false,
+    "old_paper_trading_account_used": false,
+    "local_git_commands_run": false,
+    "repository_files_changed": false
+  },
+  "limitations": [
+    "Credential-free counting-stub drills exercise ops_runner in isolated DRILL state. They do not test broker restart reconciliation, unknown-submit crash recovery, fills, account fingerprints, or notification delivery.",
+    "Drills ran on the private companion repo's hosted Actions (PAPER profile fixtures, schedules disabled); run IDs are verifiable only with access to cstroh01/Quant-ML-Bot-private.",
+    "G16 (broker reconciliation + notification delivery, then schedule enable) is NOT evidenced here; it is part of item 4's PAPER sessions."
+  ],
+  "not_evidenced": {
+    "g16": "NOT_ELIGIBLE",
+    "part_b": "NOT_STARTED"
+  }
+}
