@@ -1,6 +1,7 @@
 """§11.3 item 1 evidence runner. Offline: drivers are faked; no driver or suite actually runs."""
 import json
 import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -24,7 +25,7 @@ def fake_run(codes, dirty_after=None):
 
     def run(args, **kwargs):
         calls.append(args)
-        name = args[2].split("/")[-1] if len(args) > 2 else ""
+        name = Path(args[2]).name if len(args) > 2 else ""
         return SimpleNamespace(returncode=codes.get(name, 0), stdout="KILLED x\n2/2 killed\n", stderr="")
     return run, calls
 
