@@ -25,7 +25,7 @@ from cost_utils import risk_free_log_return
 from data_sources import RESEARCH_END, HoldoutSealError, sealed_sessions
 from disclosure import LIMITATIONS
 from cost_model import CostConfig, estimate_fill_cost
-from portfolio_backtest import run_portfolio_backtest
+from portfolio_backtest import FillCost, run_portfolio_backtest
 from portfolio_risk import allocation_weights, equal_weight_book
 from selection_bias import deflated_sharpe
 from signals import ALLOCATION_SLEEVES, allocation_selection, decision_sessions, random_selections
@@ -71,7 +71,8 @@ def cash_months(weights: pd.DataFrame, required: pd.DataFrame) -> dict:
 
 
 def allocation_report(bars: dict[str, pd.DataFrame], *, commission_per_fill: float, cost_config: CostConfig,
-                      split_sessions: dict[str, tuple], seeds: list[int], starting_capital: float = 100_000.0) -> dict:
+                      split_sessions: dict[str, tuple], seeds: list[int], starting_capital: float = 100_000.0,
+                      fill_cost: FillCost | None = None, equity_out: dict | None = None) -> dict:
     """The FR-003 research-window report: allocation, buy-and-hold and seeded random baselines.
 
     `bars` maps tickers to OHLCV frames on NYSE session labels (with `attrs["volume_basis"]`); only the
@@ -79,6 +80,11 @@ def allocation_report(bars: dict[str, pd.DataFrame], *, commission_per_fill: flo
     `cost_config` (spec 046, Rule 13), computed here, so the recorded cost model is the one applied; a
     fill with no valid estimate is skipped, never filled free. Raises `HoldoutSealError` for bars past
     2023-09-29 and `ValueError` for a non-finite or negative commission or fewer than two seeds.
+
+    `fill_cost`, when given, replaces the per-ticker estimate from `bars` (spec 059 D-11: P&L on the 058
+    D-10 B back-adjusted panel, costs on raw nominal bars via `run_058_t015.fill_cost`); it must still
+    be the spec 046 model under `cost_config`. `equity_out`, when given, receives every series' equity
+    curve keyed `allocation`, `buy_and_hold` and each seed, so a caller can record the daily returns.
     """
     if not isinstance(cost_config, CostConfig):
         raise ValueError("cost_config must be a validated spec 046 CostConfig (Rule 13)")
@@ -95,25 +101,30 @@ def allocation_report(bars: dict[str, pd.DataFrame], *, commission_per_fill: flo
     decisions = decision_sessions(closes.index, cadence="monthly")
     selection = allocation_selection(closes)
 
-    def fill_cost(ticker: str, as_of: pd.Timestamp, quantity: float) -> float:
+    def own_fill_cost(ticker: str, as_of: pd.Timestamp, quantity: float) -> float:
         return estimate_fill_cost(bars[ticker], as_of=as_of, quantity=quantity, config=cost_config,
                                   split_sessions=split_sessions.get(ticker, ())).total
 
-    def run(weights: pd.DataFrame) -> pd.Series:
-        return run_portfolio_backtest(opens, closes, weights, starting_capital=starting_capital,
-                                      commission_per_fill=commission_per_fill, fill_cost=fill_cost).equity
+    cost = own_fill_cost if fill_cost is None else fill_cost
+    sink = {} if equity_out is None else equity_out
+
+    def run(weights: pd.DataFrame, key) -> pd.Series:
+        equity = run_portfolio_backtest(opens, closes, weights, starting_capital=starting_capital,
+                                        commission_per_fill=commission_per_fill, fill_cost=cost).equity
+        sink[key] = equity
+        return equity
 
     allocation_book = allocation_weights(selection, closes, decisions)
-    allocation = series_stats(run(allocation_book))
+    allocation = series_stats(run(allocation_book, "allocation"))
     held = closes.notna()
     buy_and_hold_book = equal_weight_book(held, max_gross=1.0).loc[decisions]
-    buy_and_hold = series_stats(run(buy_and_hold_book))
+    buy_and_hold = series_stats(run(buy_and_hold_book, "buy_and_hold"))
     # `matched_activity` of an always-invested allocation is degenerate (enter 1, exit 0): the draws
     # would reproduce the allocation and the baseline would show no dispersion. Each sleeve is instead
     # long or flat with probability 1/2 on every decision row: same cadence, sizing and costs.
     draws = random_selections(closes, decision_mask=decisions, seeds=seeds, **RANDOM_ACTIVITY)
     random_books = {seed: allocation_weights(draw, closes, decisions) for seed, draw in draws.items()}
-    random = {seed: series_stats(run(book)) for seed, book in random_books.items()}
+    random = {seed: series_stats(run(book, seed)) for seed, book in random_books.items()}
     cash = {"allocation": cash_months(allocation_book, selection),
             "buy_and_hold": cash_months(buy_and_hold_book, held),
             # a draw may hold a sleeve before it is eligible (warm-up); only eligible draws are required
