@@ -1,0 +1,1910 @@
+{
+  "task": "Codex Task 5 restart, 2026-10-15",
+  "status": "PART_A_PASS_6_OF_6",
+  "checked_at_utc": "2026-10-15T00:03:18.9882829-05:00",
+  "public": {
+    "repo": "cstroh01/Quant-ML-Bot",
+    "pinned_sha": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66",
+    "exec_tree_sha": "76eba76132df48501bd5564344dfbb0bca93c6a6",
+    "merge_pr": 208,
+    "exec_tree_verified": true,
+    "safety_config_version": "2026-10-14-alloc-v1"
+  },
+  "private": {
+    "repo": "cstroh01/Quant-ML-Bot-private",
+    "pin_changed": true,
+    "pin_readback_verified": true,
+    "workflow_blob_sha": "81210bc34b78c59ec31448da1a44f873b900f08f",
+    "paper_loop_schedule_present": false,
+    "required_secret_names_present": true,
+    "previous_pinned_sha": "3b54c5be74fcc000862fb8c1cea4fb63bdcda92e"
+  },
+  "preconditions": [
+    {
+      "number": 203,
+      "merged": true,
+      "merge_commit_sha": "b814b3e80257af75bb39ffd9b895ce34d7698a3f",
+      "included_in_pin": true,
+      "url": "https://github.com/cstroh01/Quant-ML-Bot/pull/203"
+    },
+    {
+      "number": 204,
+      "merged": true,
+      "merge_commit_sha": "9c43c8088b1b2566667d991e9abae72c3ec6ed2c",
+      "included_in_pin": true,
+      "url": "https://github.com/cstroh01/Quant-ML-Bot/pull/204"
+    },
+    {
+      "number": 205,
+      "merged": true,
+      "merge_commit_sha": "4bfb4c79396f0cfdccf0bec9edf553bc7458cc17",
+      "included_in_pin": true,
+      "url": "https://github.com/cstroh01/Quant-ML-Bot/pull/205"
+    },
+    {
+      "number": 206,
+      "merged": true,
+      "merge_commit_sha": "b2db7bd555ae10db72f6d93d50b9d6f3ac493779",
+      "included_in_pin": true,
+      "url": "https://github.com/cstroh01/Quant-ML-Bot/pull/206"
+    },
+    {
+      "number": 207,
+      "merged": true,
+      "merge_commit_sha": "2c7a9679cc6a11528c1460043b8976766b39fcbd",
+      "included_in_pin": true,
+      "url": "https://github.com/cstroh01/Quant-ML-Bot/pull/207"
+    },
+    {
+      "number": 208,
+      "merged": true,
+      "merge_commit_sha": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66",
+      "included_in_pin": true,
+      "url": "https://github.com/cstroh01/Quant-ML-Bot/pull/208"
+    }
+  ],
+  "family_records": [
+    {
+      "path": "docs/trials/families/058-edge.amend-1.json",
+      "blob_sha": "59d95b6058d07a6f827097ee05c78438fd710912",
+      "exists": true
+    },
+    {
+      "path": "docs/trials/families/059-allocation.json",
+      "blob_sha": "77944705a5a9819b37a151f14db689b9c09ad2d6",
+      "exists": true
+    }
+  ],
+  "drills": [
+    {
+      "drill": "restart",
+      "status": "PASS",
+      "run_ids": [
+        38760725654
+      ],
+      "reason": "Two distinct hosted jobs passed and persisted isolated fixture evidence.",
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760725654",
+      "path_scope_pass": true,
+      "changed_paths": [
+        "drills/paper_small/38760725654-1/DRILL",
+        "drills/paper_small/38760725654-1/commands.jsonl",
+        "drills/paper_small/38760725654-1/driver.py",
+        "drills/paper_small/38760725654-1/helper.py",
+        "drills/paper_small/38760725654-1/intents.jsonl",
+        "drills/paper_small/38760725654-1/leases/paper_small-2026-10-13.json",
+        "drills/paper_small/38760725654-1/leases/paper_small-2026-10-14.json",
+        "drills/paper_small/38760725654-1/loop-runs.jsonl",
+        "drills/paper_small/38760725654-1/ops/first_seen.json",
+        "drills/paper_small/38760725654-1/ops/outbox/summary-paper_small-2026-10-13.json",
+        "drills/paper_small/38760725654-1/ops/outbox/summary-paper_small-2026-10-14.json",
+        "drills/paper_small/38760725654-1/ops/runs.jsonl",
+        "drills/paper_small/38760725654-1/ops/sent.json",
+        "drills/paper_small/38760725654-1/paper-gate.sqlite",
+        "drills/paper_small/38760725654-1/persisted-hashes.json",
+        "drills/paper_small/38760725654-1/report-A.json",
+        "drills/paper_small/38760725654-1/report-B.json"
+      ],
+      "phase_state_commits": [
+        "3484188e7d5f3c8d0406ef8be0540dcb3e457ae9",
+        "047a08b676e347c3fc563c4fa1797b6861c4ac53"
+      ],
+      "ops_state_after": "047a08b676e347c3fc563c4fa1797b6861c4ac53",
+      "phase_reports": [
+        {
+          "checks": [
+            {
+              "actual": "paper_small",
+              "check": "profile restricted",
+              "expected": "paper_small",
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "kind supported",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "DRILL marker exists",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": [
+                0,
+                "completed"
+              ],
+              "check": "runner A dry fixture completed",
+              "expected": [
+                0,
+                "completed"
+              ],
+              "passed": true
+            },
+            {
+              "actual": "completed",
+              "check": "completed lease",
+              "expected": "completed",
+              "passed": true
+            },
+            {
+              "actual": 1,
+              "check": "one fixture intent",
+              "expected": 1,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "paper-gate.sqlite present and nonempty",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "intents.jsonl present and nonempty",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "state outside fixture unchanged",
+              "expected": true,
+              "passed": true
+            }
+          ],
+          "drill": "restart",
+          "failure": null,
+          "fixture_only": true,
+          "observations": [
+            {
+              "exit": 0,
+              "result": {
+                "exit_code": 0,
+                "finished_at_utc": "2026-10-15T10:29:45.517859-05:00",
+                "new_incidents": 0,
+                "profile": "paper_small",
+                "run_id": "1b525db20f6a4f89b4d213a8f23190a9",
+                "session": "2026-10-13",
+                "status": "completed",
+                "strategy_version": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66"
+              },
+              "stderr": ""
+            }
+          ],
+          "orders_submitted": 0,
+          "phase": "A",
+          "pinned_sha": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66",
+          "profile": "paper_small",
+          "result": "PASS",
+          "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760725654"
+        },
+        {
+          "checks": [
+            {
+              "actual": "paper_small",
+              "check": "profile restricted",
+              "expected": "paper_small",
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "kind supported",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "DRILL marker exists",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "paper-gate.sqlite present and nonempty",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "intents.jsonl present and nonempty",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": {
+                "intents.jsonl": "225e65ee75a0a63a2f9f0f59d35f136035cc999a7f14c8f4dd1c194712652c25",
+                "paper-gate.sqlite": "6d24b81f5c830ed097de6d2d17eb3915bbdfd2ab861c936b0782be7367911f1c"
+              },
+              "check": "restored gate and intent bytes",
+              "expected": {
+                "intents.jsonl": "225e65ee75a0a63a2f9f0f59d35f136035cc999a7f14c8f4dd1c194712652c25",
+                "paper-gate.sqlite": "6d24b81f5c830ed097de6d2d17eb3915bbdfd2ab861c936b0782be7367911f1c"
+              },
+              "passed": true
+            },
+            {
+              "actual": [
+                0,
+                "done"
+              ],
+              "check": "runner B same session skipped",
+              "expected": [
+                0,
+                "done"
+              ],
+              "passed": true
+            },
+            {
+              "actual": 1,
+              "check": "same-session command not run",
+              "expected": 1,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "paper-gate.sqlite present and nonempty",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "intents.jsonl present and nonempty",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": {
+                "intents.jsonl": "225e65ee75a0a63a2f9f0f59d35f136035cc999a7f14c8f4dd1c194712652c25",
+                "paper-gate.sqlite": "6d24b81f5c830ed097de6d2d17eb3915bbdfd2ab861c936b0782be7367911f1c"
+              },
+              "check": "gate and intents unchanged after skip",
+              "expected": {
+                "intents.jsonl": "225e65ee75a0a63a2f9f0f59d35f136035cc999a7f14c8f4dd1c194712652c25",
+                "paper-gate.sqlite": "6d24b81f5c830ed097de6d2d17eb3915bbdfd2ab861c936b0782be7367911f1c"
+              },
+              "passed": true
+            },
+            {
+              "actual": [
+                0,
+                "completed"
+              ],
+              "check": "next session clean after restore",
+              "expected": [
+                0,
+                "completed"
+              ],
+              "passed": true
+            },
+            {
+              "actual": [
+                "2026-10-13",
+                "2026-10-14"
+              ],
+              "check": "two completed sessions",
+              "expected": [
+                "2026-10-13",
+                "2026-10-14"
+              ],
+              "passed": true
+            },
+            {
+              "actual": 2,
+              "check": "one command per session",
+              "expected": 2,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "state outside fixture unchanged",
+              "expected": true,
+              "passed": true
+            }
+          ],
+          "drill": "restart",
+          "failure": null,
+          "fixture_only": true,
+          "observations": [
+            {
+              "exit": 0,
+              "result": {
+                "new_incidents": 0,
+                "session": "2026-10-13",
+                "status": "done"
+              },
+              "stderr": ""
+            },
+            {
+              "exit": 0,
+              "result": {
+                "exit_code": 0,
+                "finished_at_utc": "2026-10-15T10:30:33.864479-05:00",
+                "new_incidents": 0,
+                "profile": "paper_small",
+                "run_id": "7ea01408a19140f3a1e15bbf5063039e",
+                "session": "2026-10-14",
+                "status": "completed",
+                "strategy_version": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66"
+              },
+              "stderr": ""
+            }
+          ],
+          "orders_submitted": 0,
+          "phase": "B",
+          "pinned_sha": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66",
+          "profile": "paper_small",
+          "result": "PASS",
+          "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760725654"
+        }
+      ],
+      "job_ids": [
+        116510994535,
+        116511354099
+      ],
+      "checks": [
+        {
+          "actual": "paper_small",
+          "check": "profile restricted",
+          "expected": "paper_small",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "kind supported",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "DRILL marker exists",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": [
+            0,
+            "completed"
+          ],
+          "check": "runner A dry fixture completed",
+          "expected": [
+            0,
+            "completed"
+          ],
+          "passed": true
+        },
+        {
+          "actual": "completed",
+          "check": "completed lease",
+          "expected": "completed",
+          "passed": true
+        },
+        {
+          "actual": 1,
+          "check": "one fixture intent",
+          "expected": 1,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "paper-gate.sqlite present and nonempty",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "intents.jsonl present and nonempty",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "state outside fixture unchanged",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": "paper_small",
+          "check": "profile restricted",
+          "expected": "paper_small",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "kind supported",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "DRILL marker exists",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "paper-gate.sqlite present and nonempty",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "intents.jsonl present and nonempty",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": {
+            "intents.jsonl": "225e65ee75a0a63a2f9f0f59d35f136035cc999a7f14c8f4dd1c194712652c25",
+            "paper-gate.sqlite": "6d24b81f5c830ed097de6d2d17eb3915bbdfd2ab861c936b0782be7367911f1c"
+          },
+          "check": "restored gate and intent bytes",
+          "expected": {
+            "intents.jsonl": "225e65ee75a0a63a2f9f0f59d35f136035cc999a7f14c8f4dd1c194712652c25",
+            "paper-gate.sqlite": "6d24b81f5c830ed097de6d2d17eb3915bbdfd2ab861c936b0782be7367911f1c"
+          },
+          "passed": true
+        },
+        {
+          "actual": [
+            0,
+            "done"
+          ],
+          "check": "runner B same session skipped",
+          "expected": [
+            0,
+            "done"
+          ],
+          "passed": true
+        },
+        {
+          "actual": 1,
+          "check": "same-session command not run",
+          "expected": 1,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "paper-gate.sqlite present and nonempty",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "intents.jsonl present and nonempty",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": {
+            "intents.jsonl": "225e65ee75a0a63a2f9f0f59d35f136035cc999a7f14c8f4dd1c194712652c25",
+            "paper-gate.sqlite": "6d24b81f5c830ed097de6d2d17eb3915bbdfd2ab861c936b0782be7367911f1c"
+          },
+          "check": "gate and intents unchanged after skip",
+          "expected": {
+            "intents.jsonl": "225e65ee75a0a63a2f9f0f59d35f136035cc999a7f14c8f4dd1c194712652c25",
+            "paper-gate.sqlite": "6d24b81f5c830ed097de6d2d17eb3915bbdfd2ab861c936b0782be7367911f1c"
+          },
+          "passed": true
+        },
+        {
+          "actual": [
+            0,
+            "completed"
+          ],
+          "check": "next session clean after restore",
+          "expected": [
+            0,
+            "completed"
+          ],
+          "passed": true
+        },
+        {
+          "actual": [
+            "2026-10-13",
+            "2026-10-14"
+          ],
+          "check": "two completed sessions",
+          "expected": [
+            "2026-10-13",
+            "2026-10-14"
+          ],
+          "passed": true
+        },
+        {
+          "actual": 2,
+          "check": "one command per session",
+          "expected": 2,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "state outside fixture unchanged",
+          "expected": true,
+          "passed": true
+        }
+      ],
+      "workflow_conclusion": "success",
+      "ops_state_before": "fdf6cb57619d23e28b82fc5e66615e8948b2080d"
+    },
+    {
+      "drill": "crash",
+      "status": "PASS",
+      "run_ids": [
+        38760446562
+      ],
+      "reason": "Two distinct hosted jobs passed and persisted isolated fixture evidence.",
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760446562",
+      "path_scope_pass": true,
+      "changed_paths": [
+        "drills/paper_small/38760446562-1/DRILL",
+        "drills/paper_small/38760446562-1/child-sigkill/DRILL",
+        "drills/paper_small/38760446562-1/child-sigkill/commands.jsonl",
+        "drills/paper_small/38760446562-1/child-sigkill/leases/paper_small-2026-10-13.json",
+        "drills/paper_small/38760446562-1/child-sigkill/ops/first_seen.json",
+        "drills/paper_small/38760446562-1/child-sigkill/ops/incidents.jsonl",
+        "drills/paper_small/38760446562-1/child-sigkill/ops/outbox/incident-0d482527c6b41c12.json",
+        "drills/paper_small/38760446562-1/child-sigkill/ops/outbox/summary-paper_small-2026-10-13.json",
+        "drills/paper_small/38760446562-1/child-sigkill/ops/runs.jsonl",
+        "drills/paper_small/38760446562-1/child-sigkill/ops/sent.json",
+        "drills/paper_small/38760446562-1/child-started",
+        "drills/paper_small/38760446562-1/commands.jsonl",
+        "drills/paper_small/38760446562-1/driver.py",
+        "drills/paper_small/38760446562-1/helper.py",
+        "drills/paper_small/38760446562-1/intents.jsonl",
+        "drills/paper_small/38760446562-1/leases/paper_small-2026-10-13.json",
+        "drills/paper_small/38760446562-1/leases/paper_small-2026-10-14.json",
+        "drills/paper_small/38760446562-1/loop-runs.jsonl",
+        "drills/paper_small/38760446562-1/ops/first_seen.json",
+        "drills/paper_small/38760446562-1/ops/incidents.jsonl",
+        "drills/paper_small/38760446562-1/ops/outbox/incident-a72a015a3eda05b9.json",
+        "drills/paper_small/38760446562-1/ops/outbox/incident-cbe1f7b27556fac2.json",
+        "drills/paper_small/38760446562-1/ops/outbox/summary-paper_small-2026-10-14.json",
+        "drills/paper_small/38760446562-1/ops/runs.jsonl",
+        "drills/paper_small/38760446562-1/ops/sent.json",
+        "drills/paper_small/38760446562-1/paper-gate.sqlite",
+        "drills/paper_small/38760446562-1/report-A.json",
+        "drills/paper_small/38760446562-1/report-B.json"
+      ],
+      "phase_state_commits": [
+        "bd6388820a36066e1c75e9a483c3bb67ac9b483a",
+        "fdf6cb57619d23e28b82fc5e66615e8948b2080d"
+      ],
+      "ops_state_after": "fdf6cb57619d23e28b82fc5e66615e8948b2080d",
+      "phase_reports": [
+        {
+          "checks": [
+            {
+              "actual": "paper_small",
+              "check": "profile restricted",
+              "expected": "paper_small",
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "kind supported",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "DRILL marker exists",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": [
+                1,
+                "failed"
+              ],
+              "check": "child signal becomes failed run",
+              "expected": [
+                1,
+                "failed"
+              ],
+              "passed": true
+            },
+            {
+              "actual": [
+                "failure"
+              ],
+              "check": "child failure incident",
+              "expected": [
+                "failure"
+              ],
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "child failure alert queued",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": [
+                0,
+                "done"
+              ],
+              "check": "child failure is not automatically retried",
+              "expected": [
+                0,
+                "done"
+              ],
+              "passed": true
+            },
+            {
+              "actual": 1,
+              "check": "child variant command count",
+              "expected": 1,
+              "passed": true
+            },
+            {
+              "actual": "completed",
+              "check": "child variant completed lease",
+              "expected": "completed",
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "timeout killed runner",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "wrapped child entered sleep",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": "running",
+              "check": "lease survives as running",
+              "expected": "running",
+              "passed": true
+            },
+            {
+              "actual": [],
+              "check": "dead runner has no run record",
+              "expected": [],
+              "passed": true
+            },
+            {
+              "actual": 1,
+              "check": "crashed command count",
+              "expected": 1,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "state outside fixture unchanged",
+              "expected": true,
+              "passed": true
+            }
+          ],
+          "drill": "crash",
+          "failure": null,
+          "fixture_only": true,
+          "observations": [
+            {
+              "exit": 1,
+              "result": {
+                "exit_code": -9,
+                "finished_at_utc": "2026-10-15T10:27:56.027791-05:00",
+                "new_incidents": 1,
+                "profile": "paper_small",
+                "run_id": "f36537e914d74db08c959543ae565f8c",
+                "session": "2026-10-13",
+                "status": "failed",
+                "strategy_version": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66"
+              },
+              "stderr": ""
+            },
+            {
+              "exit": 0,
+              "result": {
+                "new_incidents": 0,
+                "session": "2026-10-13",
+                "status": "done"
+              },
+              "stderr": ""
+            },
+            {
+              "stderr": "",
+              "stdout": "",
+              "timeout_exit": -9
+            }
+          ],
+          "orders_submitted": 0,
+          "phase": "A",
+          "pinned_sha": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66",
+          "profile": "paper_small",
+          "result": "PASS",
+          "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760446562"
+        },
+        {
+          "checks": [
+            {
+              "actual": "paper_small",
+              "check": "profile restricted",
+              "expected": "paper_small",
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "kind supported",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "DRILL marker exists",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": "running",
+              "check": "restored lease running",
+              "expected": "running",
+              "passed": true
+            },
+            {
+              "actual": [],
+              "check": "restored dead runner has no run record",
+              "expected": [],
+              "passed": true
+            },
+            {
+              "actual": [
+                1,
+                "lease_held"
+              ],
+              "check": "same session refused",
+              "expected": [
+                1,
+                "lease_held"
+              ],
+              "passed": true
+            },
+            {
+              "actual": 1,
+              "check": "refusal did not run command",
+              "expected": 1,
+              "passed": true
+            },
+            {
+              "actual": [
+                "lease_held"
+              ],
+              "check": "lease-held incident",
+              "expected": [
+                "lease_held"
+              ],
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "lease-held alert queued",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": [
+                1,
+                "after_cutoff"
+              ],
+              "check": "missed crashed session recorded",
+              "expected": [
+                1,
+                "after_cutoff"
+              ],
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "missed-run alert queued",
+              "expected": true,
+              "passed": true
+            },
+            {
+              "actual": [
+                0,
+                "completed"
+              ],
+              "check": "next session clean",
+              "expected": [
+                0,
+                "completed"
+              ],
+              "passed": true
+            },
+            {
+              "actual": [
+                "2026-10-14"
+              ],
+              "check": "only next session completed",
+              "expected": [
+                "2026-10-14"
+              ],
+              "passed": true
+            },
+            {
+              "actual": {
+                "run_id": "e90ef5892baa44d394dd4ea6e635397a",
+                "state": "running"
+              },
+              "check": "dead-session lease unchanged",
+              "expected": {
+                "run_id": "e90ef5892baa44d394dd4ea6e635397a",
+                "state": "running"
+              },
+              "passed": true
+            },
+            {
+              "actual": 2,
+              "check": "one next-session command",
+              "expected": 2,
+              "passed": true
+            },
+            {
+              "actual": true,
+              "check": "state outside fixture unchanged",
+              "expected": true,
+              "passed": true
+            }
+          ],
+          "drill": "crash",
+          "failure": null,
+          "fixture_only": true,
+          "observations": [
+            {
+              "exit": 1,
+              "result": {
+                "new_incidents": 1,
+                "session": "2026-10-13",
+                "status": "lease_held"
+              },
+              "stderr": ""
+            },
+            {
+              "exit": 1,
+              "result": {
+                "new_incidents": 1,
+                "session": "2026-10-13",
+                "status": "after_cutoff"
+              },
+              "stderr": ""
+            },
+            {
+              "exit": 0,
+              "result": {
+                "exit_code": 0,
+                "finished_at_utc": "2026-10-15T10:28:49.005326-05:00",
+                "new_incidents": 0,
+                "profile": "paper_small",
+                "run_id": "4f59cde9d48e4b4488b5417e7cfde075",
+                "session": "2026-10-14",
+                "status": "completed",
+                "strategy_version": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66"
+              },
+              "stderr": ""
+            }
+          ],
+          "orders_submitted": 0,
+          "phase": "B",
+          "pinned_sha": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66",
+          "profile": "paper_small",
+          "result": "PASS",
+          "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760446562"
+        }
+      ],
+      "job_ids": [
+        116510014105,
+        116510453906
+      ],
+      "checks": [
+        {
+          "actual": "paper_small",
+          "check": "profile restricted",
+          "expected": "paper_small",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "kind supported",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "DRILL marker exists",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": [
+            1,
+            "failed"
+          ],
+          "check": "child signal becomes failed run",
+          "expected": [
+            1,
+            "failed"
+          ],
+          "passed": true
+        },
+        {
+          "actual": [
+            "failure"
+          ],
+          "check": "child failure incident",
+          "expected": [
+            "failure"
+          ],
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "child failure alert queued",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": [
+            0,
+            "done"
+          ],
+          "check": "child failure is not automatically retried",
+          "expected": [
+            0,
+            "done"
+          ],
+          "passed": true
+        },
+        {
+          "actual": 1,
+          "check": "child variant command count",
+          "expected": 1,
+          "passed": true
+        },
+        {
+          "actual": "completed",
+          "check": "child variant completed lease",
+          "expected": "completed",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "timeout killed runner",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "wrapped child entered sleep",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": "running",
+          "check": "lease survives as running",
+          "expected": "running",
+          "passed": true
+        },
+        {
+          "actual": [],
+          "check": "dead runner has no run record",
+          "expected": [],
+          "passed": true
+        },
+        {
+          "actual": 1,
+          "check": "crashed command count",
+          "expected": 1,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "state outside fixture unchanged",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": "paper_small",
+          "check": "profile restricted",
+          "expected": "paper_small",
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "kind supported",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "DRILL marker exists",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": "running",
+          "check": "restored lease running",
+          "expected": "running",
+          "passed": true
+        },
+        {
+          "actual": [],
+          "check": "restored dead runner has no run record",
+          "expected": [],
+          "passed": true
+        },
+        {
+          "actual": [
+            1,
+            "lease_held"
+          ],
+          "check": "same session refused",
+          "expected": [
+            1,
+            "lease_held"
+          ],
+          "passed": true
+        },
+        {
+          "actual": 1,
+          "check": "refusal did not run command",
+          "expected": 1,
+          "passed": true
+        },
+        {
+          "actual": [
+            "lease_held"
+          ],
+          "check": "lease-held incident",
+          "expected": [
+            "lease_held"
+          ],
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "lease-held alert queued",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": [
+            1,
+            "after_cutoff"
+          ],
+          "check": "missed crashed session recorded",
+          "expected": [
+            1,
+            "after_cutoff"
+          ],
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "missed-run alert queued",
+          "expected": true,
+          "passed": true
+        },
+        {
+          "actual": [
+            0,
+            "completed"
+          ],
+          "check": "next session clean",
+          "expected": [
+            0,
+            "completed"
+          ],
+          "passed": true
+        },
+        {
+          "actual": [
+            "2026-10-14"
+          ],
+          "check": "only next session completed",
+          "expected": [
+            "2026-10-14"
+          ],
+          "passed": true
+        },
+        {
+          "actual": {
+            "run_id": "e90ef5892baa44d394dd4ea6e635397a",
+            "state": "running"
+          },
+          "check": "dead-session lease unchanged",
+          "expected": {
+            "run_id": "e90ef5892baa44d394dd4ea6e635397a",
+            "state": "running"
+          },
+          "passed": true
+        },
+        {
+          "actual": 2,
+          "check": "one next-session command",
+          "expected": 2,
+          "passed": true
+        },
+        {
+          "actual": true,
+          "check": "state outside fixture unchanged",
+          "expected": true,
+          "passed": true
+        }
+      ],
+      "workflow_conclusion": "success",
+      "ops_state_before": "bca21328e298932ef1f574adb85f97f4d4bc1c53"
+    },
+    {
+      "drill": "concurrency",
+      "workflow_input": "concurrent_dispatch",
+      "status": "PASS",
+      "run_ids": [
+        38684746478
+      ],
+      "before_dispatch": "d97a43f10ced7bda0f16597db77d5481fe71f280",
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38684746478",
+      "workflow_conclusion": "success",
+      "ops_state_before": "d97a43f10ced7bda0f16597db77d5481fe71f280",
+      "ops_state_after": "952dedb24568b47a1139efe1d4d2b08a847d7c34",
+      "checks": [
+        {
+          "actual": true,
+          "check": "first dispatch inside stub",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": [
+            1,
+            "lease_held"
+          ],
+          "check": "overlapping second dispatch exit/status",
+          "expected": [
+            1,
+            "lease_held"
+          ],
+          "pass": true
+        },
+        {
+          "actual": 1,
+          "check": "new lease incident",
+          "expected": 1,
+          "pass": true
+        },
+        {
+          "actual": [
+            0,
+            "completed"
+          ],
+          "check": "first dispatch finishes exit/status",
+          "expected": [
+            0,
+            "completed"
+          ],
+          "pass": true
+        },
+        {
+          "actual": 1,
+          "check": "stub executions",
+          "expected": 1,
+          "pass": true
+        },
+        {
+          "actual": 1,
+          "check": "durable run records",
+          "expected": 1,
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "run profile isolation",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": [
+            "lease_held"
+          ],
+          "check": "incident kind",
+          "expected": [
+            "lease_held"
+          ],
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "all state outside drill namespace unchanged",
+          "expected": true,
+          "pass": true
+        }
+      ],
+      "changed_paths": [
+        "drills/paper_small/38684746478-1/DRILL",
+        "drills/paper_small/38684746478-1/executions.jsonl",
+        "drills/paper_small/38684746478-1/hold",
+        "drills/paper_small/38684746478-1/leases/paper_small-2026-10-13.json",
+        "drills/paper_small/38684746478-1/ops/first_seen.json",
+        "drills/paper_small/38684746478-1/ops/incidents.jsonl",
+        "drills/paper_small/38684746478-1/ops/outbox/incident-cbdab4936a954bd6.json",
+        "drills/paper_small/38684746478-1/ops/outbox/summary-paper_small-2026-10-13.json",
+        "drills/paper_small/38684746478-1/ops/runs.jsonl",
+        "drills/paper_small/38684746478-1/ops/sent.json",
+        "drills/paper_small/38684746478-1/release",
+        "drills/paper_small/38684746478-1/report.json",
+        "drills/paper_small/38684746478-1/started"
+      ],
+      "path_scope_pass": true,
+      "fixture_result": "PASS"
+    },
+    {
+      "drill": "duplicate",
+      "workflow_input": "repeat_dispatch",
+      "status": "PASS",
+      "run_ids": [
+        38684844219
+      ],
+      "before_dispatch": "952dedb24568b47a1139efe1d4d2b08a847d7c34",
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38684844219",
+      "workflow_conclusion": "success",
+      "ops_state_before": "952dedb24568b47a1139efe1d4d2b08a847d7c34",
+      "ops_state_after": "9c238522544bcdb690da5d679d51de9c58337dc9",
+      "checks": [
+        {
+          "actual": [
+            0,
+            "completed"
+          ],
+          "check": "first dispatch exit/status",
+          "expected": [
+            0,
+            "completed"
+          ],
+          "pass": true
+        },
+        {
+          "actual": [
+            0,
+            "done"
+          ],
+          "check": "repeat in fresh process exit/status",
+          "expected": [
+            0,
+            "done"
+          ],
+          "pass": true
+        },
+        {
+          "actual": 1,
+          "check": "stub executions",
+          "expected": 1,
+          "pass": true
+        },
+        {
+          "actual": 1,
+          "check": "durable run records",
+          "expected": 1,
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "run profile isolation",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": [
+            "2026-10-13"
+          ],
+          "check": "session",
+          "expected": [
+            "2026-10-13"
+          ],
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "all state outside drill namespace unchanged",
+          "expected": true,
+          "pass": true
+        }
+      ],
+      "changed_paths": [
+        "drills/paper_small/38684844219-1/DRILL",
+        "drills/paper_small/38684844219-1/executions.jsonl",
+        "drills/paper_small/38684844219-1/leases/paper_small-2026-10-13.json",
+        "drills/paper_small/38684844219-1/ops/first_seen.json",
+        "drills/paper_small/38684844219-1/ops/outbox/summary-paper_small-2026-10-13.json",
+        "drills/paper_small/38684844219-1/ops/runs.jsonl",
+        "drills/paper_small/38684844219-1/ops/sent.json",
+        "drills/paper_small/38684844219-1/report.json"
+      ],
+      "path_scope_pass": true,
+      "fixture_result": "PASS"
+    },
+    {
+      "drill": "missed-run",
+      "workflow_input": "missed_run",
+      "status": "PASS",
+      "run_ids": [
+        38684944670
+      ],
+      "before_dispatch": "9c238522544bcdb690da5d679d51de9c58337dc9",
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38684944670",
+      "workflow_conclusion": "success",
+      "ops_state_before": "9c238522544bcdb690da5d679d51de9c58337dc9",
+      "ops_state_after": "13ee313fe97f7ffa389ae72d7862414af4570293",
+      "checks": [
+        {
+          "actual": [
+            1,
+            "after_cutoff"
+          ],
+          "check": "first missed cutoff exit/status",
+          "expected": [
+            1,
+            "after_cutoff"
+          ],
+          "pass": true
+        },
+        {
+          "actual": 1,
+          "check": "new missed incident",
+          "expected": 1,
+          "pass": true
+        },
+        {
+          "actual": [
+            0,
+            "after_cutoff"
+          ],
+          "check": "deduplicated missed cutoff exit/status",
+          "expected": [
+            0,
+            "after_cutoff"
+          ],
+          "pass": true
+        },
+        {
+          "actual": 0,
+          "check": "incident deduplicated",
+          "expected": 0,
+          "pass": true
+        },
+        {
+          "actual": [
+            "missed_run"
+          ],
+          "check": "incident kind",
+          "expected": [
+            "missed_run"
+          ],
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "missed session named",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": 0,
+          "check": "stub executions",
+          "expected": 0,
+          "pass": true
+        },
+        {
+          "actual": 0,
+          "check": "durable run records",
+          "expected": 0,
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "run profile isolation",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "all state outside drill namespace unchanged",
+          "expected": true,
+          "pass": true
+        }
+      ],
+      "changed_paths": [
+        "drills/paper_small/38684944670-1/DRILL",
+        "drills/paper_small/38684944670-1/ops/first_seen.json",
+        "drills/paper_small/38684944670-1/ops/incidents.jsonl",
+        "drills/paper_small/38684944670-1/ops/outbox/incident-cbe1f7b27556fac2.json",
+        "drills/paper_small/38684944670-1/ops/sent.json",
+        "drills/paper_small/38684944670-1/report.json"
+      ],
+      "path_scope_pass": true,
+      "fixture_result": "PASS"
+    },
+    {
+      "drill": "kill/reset",
+      "workflow_input": "kill_reset",
+      "status": "PASS",
+      "run_ids": [
+        38685040940
+      ],
+      "before_dispatch": "13ee313fe97f7ffa389ae72d7862414af4570293",
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38685040940",
+      "workflow_conclusion": "success",
+      "ops_state_before": "13ee313fe97f7ffa389ae72d7862414af4570293",
+      "ops_state_after": "bca21328e298932ef1f574adb85f97f4d4bc1c53",
+      "checks": [
+        {
+          "actual": [
+            0,
+            "kill"
+          ],
+          "check": "kill selected profile exit/status",
+          "expected": [
+            0,
+            "kill"
+          ],
+          "pass": true
+        },
+        {
+          "actual": [
+            1,
+            "killed"
+          ],
+          "check": "killed dispatch exit/status",
+          "expected": [
+            1,
+            "killed"
+          ],
+          "pass": true
+        },
+        {
+          "actual": 0,
+          "check": "stub executions",
+          "expected": 0,
+          "pass": true
+        },
+        {
+          "actual": 0,
+          "check": "durable run records",
+          "expected": 0,
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "run profile isolation",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": [
+            2,
+            "cli_refused"
+          ],
+          "check": "wrong-profile reset refused exit/status",
+          "expected": [
+            2,
+            "cli_refused"
+          ],
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "reset refusal reason",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "kill survives refused reset",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "other kill survives kill/refusal",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": [
+            0,
+            "reset"
+          ],
+          "check": "confirmed reset exit/status",
+          "expected": [
+            0,
+            "reset"
+          ],
+          "pass": true
+        },
+        {
+          "actual": false,
+          "check": "selected kill cleared",
+          "expected": false,
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "other kill survives reset",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": [
+            0,
+            "completed"
+          ],
+          "check": "run after reset exit/status",
+          "expected": [
+            0,
+            "completed"
+          ],
+          "pass": true
+        },
+        {
+          "actual": 1,
+          "check": "stub executions",
+          "expected": 1,
+          "pass": true
+        },
+        {
+          "actual": 1,
+          "check": "durable run records",
+          "expected": 1,
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "run profile isolation",
+          "expected": true,
+          "pass": true
+        },
+        {
+          "actual": [
+            [
+              "paper_small",
+              "kill"
+            ],
+            [
+              "paper_small",
+              "reset"
+            ]
+          ],
+          "check": "kill audit",
+          "expected": [
+            [
+              "paper_small",
+              "kill"
+            ],
+            [
+              "paper_small",
+              "reset"
+            ]
+          ],
+          "pass": true
+        },
+        {
+          "actual": true,
+          "check": "all state outside drill namespace unchanged",
+          "expected": true,
+          "pass": true
+        }
+      ],
+      "changed_paths": [
+        "drills/paper_small/38685040940-1/DRILL",
+        "drills/paper_small/38685040940-1/executions.jsonl",
+        "drills/paper_small/38685040940-1/leases/paper_small-2026-10-13.json",
+        "drills/paper_small/38685040940-1/ops/first_seen.json",
+        "drills/paper_small/38685040940-1/ops/incidents.jsonl",
+        "drills/paper_small/38685040940-1/ops/kill-paper_large.json",
+        "drills/paper_small/38685040940-1/ops/kills.jsonl",
+        "drills/paper_small/38685040940-1/ops/outbox/incident-328d6ee37610b04b.json",
+        "drills/paper_small/38685040940-1/ops/outbox/incident-7f0ce3f6fd394278.json",
+        "drills/paper_small/38685040940-1/ops/outbox/summary-paper_small-2026-10-13.json",
+        "drills/paper_small/38685040940-1/ops/runs.jsonl",
+        "drills/paper_small/38685040940-1/ops/sent.json",
+        "drills/paper_small/38685040940-1/report.json"
+      ],
+      "path_scope_pass": true,
+      "fixture_result": "PASS"
+    }
+  ],
+  "limitations": [
+    "Credential-free counting-stub drills exercise ops_runner in isolated DRILL state. They do not test broker restart reconciliation, unknown-submit crash recovery, fills, account fingerprints, or notification delivery."
+  ],
+  "part_b": {
+    "status": "NOT_STARTED",
+    "reason": "Friday one-time follow-up arrived 2026-10-16 at 10:14:22 Chicago, outside authorized 07:00-08:15 window. No dry run, submissions or broker calls. A new authorized morning follow-up is needed.",
+    "run_records": [],
+    "fills": [],
+    "denied_or_aborted": []
+  },
+  "g16": {
+    "status": "NOT_ELIGIBLE",
+    "schedule_changed": false,
+    "local_windows_task_changed": false
+  },
+  "safety": {
+    "env_values_read": false,
+    "broker_calls_made": false,
+    "orders_submitted": false,
+    "old_paper_trading_account_used": false,
+    "local_git_commands_run": false,
+    "repository_files_changed": false
+  },
+  "updated_at_utc": "2026-10-16T15:18:01.641108+00:00",
+  "blocker": "PART_B_OUTSIDE_AUTHORIZED_WINDOW",
+  "final_verification": {
+    "checked_at_utc": "2026-10-15T15:32:19.9806998+00:00",
+    "actual_actions_drills_passed": 6,
+    "total_drill_checks": 99,
+    "new_drill_checks": 55.0,
+    "failed_checks": 0,
+    "all_new_phase_reports_PASS": true,
+    "all_new_phase_orders_submitted_zero": true,
+    "all_state_changes_confined_to_drill_fixtures": true,
+    "new_drill_incident_rows": 3,
+    "friday_followup_active_unchanged": true,
+    "part_b_started": false
+  },
+  "hook_audit": {
+    "checked_at_utc": "2026-10-15T00:18:39.0913663-05:00",
+    "pinned_sha": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66",
+    "profile": "paper_small",
+    "status": "STOPPED_MISSING_HOOKS",
+    "missing_hooks": [
+      {
+        "hook": "Preserve a running lease after the wrapped child self-terminates",
+        "evidence_kind": "Static audit of pinned source; no drill executed",
+        "expected": "Child SIGKILL leaves the ops_runner lease running; same-session retry refuses with LeaseHeld.",
+        "actual": "subprocess.run returns the negative signal status to the surviving ops_runner; lines 223-228 mark the run failed, complete the lease, and append a run record. Completed-session detection uses every run record, including failed records, so retry returns done.",
+        "source_url": "https://github.com/cstroh01/Quant-ML-Bot/blob/03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66/scripts/ops_runner.py#L222-L228",
+        "related_source_url": "https://github.com/cstroh01/Quant-ML-Bot/blob/03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66/scripts/ops_runner.py#L186-L202"
+      },
+      {
+        "hook": "Queue a summary naming the dead run on LeaseHeld refusal",
+        "evidence_kind": "Static audit of pinned source; no drill executed",
+        "expected": "Fresh runner refusal records an incident/alert and a summary naming the dead run.",
+        "actual": "LeaseHeld handling at lines 206-211 queues the incident and returns without creating a summary. The executed-run summary at lines 231-235 also omits the operations run_id from its body.",
+        "source_url": "https://github.com/cstroh01/Quant-ML-Bot/blob/03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66/scripts/ops_runner.py#L206-L211",
+        "related_source_url": "https://github.com/cstroh01/Quant-ML-Bot/blob/03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66/scripts/ops_runner.py#L231-L235"
+      }
+    ],
+    "public_code_changed": false,
+    "private_workflow_changed": false,
+    "new_workflow_runs": [],
+    "crash_or_restart_executed": false,
+    "passed_drills": 4,
+    "requested_drills": 6,
+    "source_copies": "hook-audit/ops_runner.py and hook-audit/ops_runtime.py",
+    "superseded_by_corrected_expectations": "User correction: kill ops_runner itself; require lease-held incident only. Previous missing-hook stop no longer applies. Restart uses explicitly seeded fixture DB and intents."
+  },
+  "prepared_workflow": {
+    "path": "workflow-change/paper-drill.yml",
+    "patch": "workflow-change/paper-drill.patch",
+    "workflow_sha256": "ab42d80a518543ea078e3e0efc7017b70a9d91091ee2e400282e5f5bbc623c68",
+    "driver_sha256": "6d54c6da83ebdc912051cba2bbbd6bf9a1594c7261798ce55b1c9d5e00079e8c",
+    "target_repo": "cstroh01/Quant-ML-Bot-private",
+    "target_path": ".github/workflows/paper-drill.yml",
+    "installed_workflow_blob_sha": "81210bc34b78c59ec31448da1a44f873b900f08f",
+    "published": true,
+    "added_lines": 335,
+    "actionlint": "PASS",
+    "shell_syntax": "PASS, 13 scripts",
+    "resume_coordinator_syntax": "PASS",
+    "local_restart_validation": {
+      "status": "PASS",
+      "evidence_kind": "Local offline validation; not Actions acceptance",
+      "python": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+      "pinned_source": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66",
+      "runner_A": "PASS",
+      "runner_B": "PASS",
+      "runner_A_checks": 9,
+      "runner_B_checks": 15,
+      "planted_defects": [
+        {
+          "planted_defect": "Persisted paper-gate.sqlite bytes changed",
+          "result": "DETECTED",
+          "failure": "AssertionError: restored gate and intent bytes"
+        },
+        {
+          "planted_defect": "Persisted intents.jsonl bytes changed",
+          "result": "DETECTED",
+          "failure": "AssertionError: restored gate and intent bytes"
+        }
+      ],
+      "public_source_unchanged": true,
+      "crash_and_child_SIGKILL_runtime_validation": "PENDING_LINUX_ACTIONS",
+      "ops_state_commit_restore": "PENDING_ACTIONS; local file-copy restore only"
+    },
+    "limitations": [
+      "Local validation uses Python 3.13.14 on Windows and a copied state directory, not two hosted runners or an ops-state commit.",
+      "Gate DB and intent row are clearly labeled credential-free fixtures; no broker reconciliation or production order-intent creation is claimed.",
+      "Crash, child-SIGKILL and hosted state-restore evidence are pending Linux Actions execution.",
+      "The crash drill explicitly records the crashed session as missed after its cutoff before expecting a clean next-session exit."
+    ]
+  },
+  "pr3_verification": {
+    "checked_at_utc": "2026-10-15T09:59:24.9397969-05:00",
+    "pr": 3,
+    "merged": true,
+    "merge_commit_sha": "692420ba1679ee01b95e4f16ad3f96a04dd528ea",
+    "changed_files": 0,
+    "wrong_file_commit": "0ba28ebeff4c8c577b8e43ef32ca02ad6211a71d",
+    "paper_drill_blob_sha": "81210bc34b78c59ec31448da1a44f873b900f08f",
+    "paper_loop_blob_sha": "fbf70bb983a86b4359c007b3c781a870416228b7",
+    "misplaced_workflow_matches_prepared_bytes": true,
+    "actual_paper_drill_supports_crash_restart": false,
+    "production_schedule_present": false,
+    "script_invoked": true,
+    "script_exit_code": 1,
+    "new_dispatches": 0,
+    "runtime_drills_failed": 0,
+    "correction_files": "workflow-correction/paper-drill.yml and workflow-correction/paper-loop.yml",
+    "correction_patch": "workflow-correction/correction.patch",
+    "correction_actionlint": "PASS",
+    "remote_files_changed": false,
+    "resolved_by_pr": 4
+  },
+  "morning_followup": {
+    "automation_id": "task-5-paper-morning-follow-up",
+    "status": "ACTIVE",
+    "target_chicago": "2026-10-16 07:00",
+    "one_time": true,
+    "requires_correct_workflow_paths": true,
+    "requires_6_of_6_before_broker_calls": true
+  },
+  "child_sigkill_variant": {
+    "status": "PASS",
+    "run_id": 38760446562,
+    "report": "report-crash-A.json",
+    "source": "Executed on Linux in phase A; failed status, failure alert, completed lease and retry done verified."
+  },
+  "pr4_preflight": {
+    "checked_at_utc": "2026-10-15T10:26:53.9551685-05:00",
+    "pr": 4,
+    "merged": true,
+    "merge_commit_sha": "66774860b776cf84c4ec4621a419e181e580d6bf",
+    "main_sha": "66774860b776cf84c4ec4621a419e181e580d6bf",
+    "checks": [
+      {
+        "check": "paper-drill.yml exact bytes",
+        "pass": true,
+        "blob_sha": "fbf70bb983a86b4359c007b3c781a870416228b7",
+        "actual_sha256": "ab42d80a518543ea078e3e0efc7017b70a9d91091ee2e400282e5f5bbc623c68",
+        "expected_sha256": "ab42d80a518543ea078e3e0efc7017b70a9d91091ee2e400282e5f5bbc623c68"
+      },
+      {
+        "check": "paper-loop.yml exact bytes",
+        "pass": true,
+        "blob_sha": "b645a0ee892e29d705e7b3e316f9ec8fb4a68a6a",
+        "actual_sha256": "e0a2368cb41190c47ed0b7be41df861c340152825e2c4e6c51e71590a3614402",
+        "expected_sha256": "e0a2368cb41190c47ed0b7be41df861c340152825e2c4e6c51e71590a3614402"
+      },
+      {
+        "check": "production schedule absent",
+        "pass": true
+      },
+      {
+        "check": "QMB_PINNED_SHA exact",
+        "pass": true,
+        "actual": "03c1d78c00c8d50bc1e3715f1ee3ed9afdbe9c66"
+      }
+    ],
+    "part_b_authorized_now": false
+  },
+  "new_drill_incident_rows": [
+    {
+      "drill": "crash",
+      "run_id": 38760446562,
+      "path": "drills/paper_small/38760446562-1/child-sigkill/ops/incidents.jsonl",
+      "ops_state_sha": "fdf6cb57619d23e28b82fc5e66615e8948b2080d",
+      "row": {
+        "detail": "2026-10-13 exit -9",
+        "kind": "failure",
+        "profile": "paper_small"
+      }
+    },
+    {
+      "drill": "crash",
+      "run_id": 38760446562,
+      "path": "drills/paper_small/38760446562-1/ops/incidents.jsonl",
+      "ops_state_sha": "fdf6cb57619d23e28b82fc5e66615e8948b2080d",
+      "row": {
+        "detail": "2026-10-13: paper_small 2026-10-13 already claimed: {\"run_id\": \"e90ef5892baa44d394dd4ea6e635397a\", \"state\": \"running\"}; reconcile before any rerun",
+        "kind": "lease_held",
+        "profile": "paper_small"
+      }
+    },
+    {
+      "drill": "crash",
+      "run_id": 38760446562,
+      "path": "drills/paper_small/38760446562-1/ops/incidents.jsonl",
+      "ops_state_sha": "fdf6cb57619d23e28b82fc5e66615e8948b2080d",
+      "row": {
+        "detail": "missed sessions: 2026-10-13",
+        "kind": "missed_run",
+        "profile": "paper_small"
+      }
+    }
+  ],
+  "final_phase_verification": [
+    {
+      "drill": "crash",
+      "phase": "A",
+      "result": "PASS",
+      "orders_submitted": 0,
+      "checks": 15,
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760446562",
+      "ops_state_sha": "bd6388820a36066e1c75e9a483c3bb67ac9b483a"
+    },
+    {
+      "drill": "crash",
+      "phase": "B",
+      "result": "PASS",
+      "orders_submitted": 0,
+      "checks": 16,
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760446562",
+      "ops_state_sha": "fdf6cb57619d23e28b82fc5e66615e8948b2080d"
+    },
+    {
+      "drill": "restart",
+      "phase": "A",
+      "result": "PASS",
+      "orders_submitted": 0,
+      "checks": 9,
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760725654",
+      "ops_state_sha": "3484188e7d5f3c8d0406ef8be0540dcb3e457ae9"
+    },
+    {
+      "drill": "restart",
+      "phase": "B",
+      "result": "PASS",
+      "orders_submitted": 0,
+      "checks": 15,
+      "run_url": "https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/38760725654",
+      "ops_state_sha": "047a08b676e347c3fc563c4fa1797b6861c4ac53"
+    }
+  ],
+  "morning_followup_20261016": {
+    "outcome": "PART_B_NOT_STARTED_OUTSIDE_AUTHORIZED_WINDOW",
+    "heartbeat_received_at_utc": "2026-10-16T15:14:22.105Z",
+    "received_chicago": "2026-10-16T10:14:22.105-05:00",
+    "genuine_hosted_passes_reverified": 6,
+    "all_workflow_pin_tree_guards_PASS": true,
+    "audit_file": "morning-followup-20261016.json",
+    "automation_status": "PAUSED",
+    "repeat_created": false,
+    "broker_calls": 0,
+    "orders_submitted": 0,
+    "workflow_dispatches": 0
+  }
+}
