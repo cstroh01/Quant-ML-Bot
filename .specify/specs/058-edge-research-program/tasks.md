@@ -38,7 +38,7 @@ Order matters: D-1(a) requires T006 to land before T007.
   - Signals stay in `scripts/signals.py`; sizing stays in `scripts/portfolio_risk.py`.
 
 ## Phase 1 — preregistration and seal (before any §4 data exists)
-- [ ] T005 Family declaration contract.
+- [x] T005 Family declaration contract. _(done: #126)_
   - Files: `tests/test_058_family.py`, then `scripts/trial_registry.py` (an additive declaration record type).
   - The declaration carries:
     - the §5 table
@@ -55,12 +55,12 @@ Order matters: D-1(a) requires T006 to land before T007.
   - A one-command write. Camden runs it; agents never write `docs/trials/`.
   - Record the resulting ledger hashes.
   - Done 2026-10-09T20:58Z (commit df477f8b, `docs/trials/families/058-edge.json`), before D-8 and D-9.
-- [ ] T006a **HUMAN GATE — Camden runs `python scripts/amend_family.py 058-edge --record` (D-8, D-9).**
+- [x] T006a **HUMAN GATE — Camden runs `python scripts/amend_family.py 058-edge --record` (D-8, D-9).** _(done: #200, #206)_
   - Camden chose an additions-only amendment over redeclaring (chat, 2026-10-12 20:57 CT: "A").
   - Adds only `gate3` and `common/sizing`; any changed or removed frozen value is refused.
   - Until it is recorded, `verify_family("058-edge")` refuses on source drift, so no 058 trial can start.
   - Must run before any 058 trial: one trial makes the declaration final.
-- [ ] T007 Holdout seal contract (FR-002).
+- [x] T007 Holdout seal contract (FR-002). _(done: #145)_
   - Files: `tests/test_058_holdout.py`, then the loader path that serves §4 data.
   - Sessions ≥ 2023-10-02 are refused without a one-shot token bound to the selected configuration hash.
   - A second use of the token is refused.
@@ -84,21 +84,21 @@ Order matters: D-1(a) requires T006 to land before T007.
     are excluded.
 
 ## Phase 3 — strategies and accounting (after T004)
-- [ ] T010 Portfolio accounting.
+- [x] T010 Portfolio accounting. _(done: #165)_
   - Files: `tests/test_058_portfolio.py`, then the T004 module.
   - Execution: signal at close `t`, fill at the open of `t+1`.
   - Costs: spec 046's model.
   - Instruments: a ticker with no row on a session is not tradable that session.
   - The test includes a hand-computed two-asset oracle.
-- [ ] T011 Signals H1–H8.
+- [x] T011 Signals H1–H8. _(done: #166)_
   - Files: `tests/test_058_signals.py`, then `scripts/signals.py`.
   - Per hypothesis:
     - a lookahead test (perturbing future rows leaves the current signal unchanged)
     - a listing-date test (no signal before the full lookback has been observed)
-- [ ] T012 Sizing.
+- [x] T012 Sizing. _(done: #169, #179, #212)_
   - Files: `scripts/portfolio_risk.py`. Reuse `volatility_target_weights` and `apply_gross_cap`.
   - Add tests only where behavior is new: the 10% target and gross ≤ 1.0.
-- [ ] T013 Combos H9/H10 and Rule 4 baselines.
+- [x] T013 Combos H9/H10 and Rule 4 baselines. _(done: #169, #192, #220)_
   - Baselines: equal-weight buy-and-hold and a seeded random signal.
   - Baselines use the same period and costs as the candidates, and are excluded from `N_family`.
 

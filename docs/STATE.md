@@ -8,7 +8,7 @@ work. Spec files stay the authority on their own tasks; this file points at them
 _Seeded 2026-09-30 by spec 045 from the tree at `e19d57c`. Camden confirms
 the active spec (spec 045 D-5)._
 
-_Refreshed 2026-10-12 by the lane D daily sync from the tree at `3b54c5b`. Queue
+_Refreshed 2026-10-15 ~20:45 CT by Claude (chat) from the tree at `2f53cd0` (#222 merged). Queue
 item status lives in `docs/autonomy/queue.json`; this file summarizes it._
 
 ## Active spec
@@ -32,45 +32,48 @@ were adopted in #174, and §11.3 replaces §5 as the capital gate while §11 is 
   Camden's.
 - **PAPER `exec/`.** Agent-built and agent-merged under Rule 7a, keeping the refuses-LIVE test.
 
-## Spec progress (ticked / total boxes in each `tasks.md`, at `3b54c5b`)
+## Spec progress (ticked / total boxes in each `tasks.md`, at `2f53cd0` plus this sync)
 
 | Spec | Boxes | Note |
 |---|---|---|
-| 033 trial ledger, DSR, PBO | 59/75 | Phase 8 tests merged (#157, #173); Phase 9 is Q97 then Q33 |
-| 035 free unadjusted bundle | 5/24 | Q38 (U2 close cross-check) is next |
-| 038 disclosure sweep | 10/39 | Q96, Q47, Q57 ready |
-| 044 nominal price reconstruction | 4/36 | Q73 baseline ready; later units wait on 044 T007/T008 |
-| 046 Rule 13 cost model | 4/15 | U1a/U1b merged (#142, #167); Q71 is next |
-| 047 tearsheet correctness | 4/16 | Q66 ready; Q67 blocked until the #158 recorded-payload revision lands |
-| 049 / 051 / 055 PAPER operations | 7/13, 6/9, 5/7 | Q106, Q107, Q112 ready (lane D) |
-| 058 edge research | 1/18 | Boxes lag merged work: T005 (#126), T006 (#134), T007 (#145), T008 (#140), T010 (#165), T011 (#166) and T012 (#169) merged unticked |
-| 059 LIVE allocation | 0/10 | Q108 waits on Q103 |
-| 060 universe and data | 0/8 | Q113–Q115 ready (lane B) |
+| 033 trial ledger, DSR, PBO | 60/75 | Q33b route wiring is a Camden-authorized unit |
+| 035 free unadjusted bundle | 7/24 | |
+| 038 disclosure sweep | 15/39 | Lane C items ready |
+| 044 nominal price reconstruction | 4/36 | Waits on 044 T007/T008 |
+| 046 Rule 13 cost model | 7/15 | |
+| 047 tearsheet correctness | 8/16 | Q67 blocked on the #158 revision |
+| 049 / 051 / 055 PAPER operations | 7/13, 6/9, 5/7 | |
+| 057 Fidelity LIVE adapter | 4/6 | Setup done 2026-10-15; preview session 1 on 2026-10-16 |
+| 058 edge research | 11/19 | T015 run command merged (#222); T014 part 1 (#189) left open |
+| 059 LIVE allocation | 6/10 | T007 harness merged (#207); its real-data run found gross-cap denials, fix in #223 |
+| 060 universe and data | 0/8 | Lane B items ready |
 
-## Next unblocked tasks (queue items `ready` with every dependency merged)
+## Next unblocked work
 
-| Lane | Items |
+| Who | Items |
 |---|---|
-| A | Q103, Q104 (Codex P1s merged in #169/#173), Q97 |
-| B | Q38, Q73, Q113, Q114, Q115 |
-| C | Q96, Q47, Q57, Q66, Q71 |
-| D | Q106, Q107, Q112 |
+| Camden | 058 T015 `--record-trial` (dry-run passed on the real panel 2026-10-15, panel hash `3b80b330…`); merge #223; Fidelity preview sessions; PAPER sessions |
+| Lane A | Q35, Q98, Q121, Q122, Q124 |
+| Lane B | Q73–Q81, Q123, Q125 |
+| Lane C | Q49–Q61, Q64, Q68, Q70, Q72, Q92, Q93, Q116, Q119, Q126, Q129, Q130 |
+| Lane D | Q128 |
 
 ## Expected red on `main`
 
-None. Check runs on `3b54c5b`: test, test-windows, web, actionlint, loop-guard and CodeQL
-(actions, javascript-typescript, python) all succeeded. The last recorded full Linux suite is
-1892 passed, 34 xfailed, 0 failed (#169, Python 3.12.3).
+None. Check runs on `25577e9` all succeeded; full Linux suite in the cloud on `25577e9`:
+2427 passed, 12 xfailed, 1386 subtests passed (Python 3.13.16).
 
 Ledger: `docs/trials/trials.jsonl` 174 lines, SHA-256
 `1bb5dbfe90c9df370c65910650ade15dd9d0e0366d011e09baf303975275f30f`; `trials.head.json` SHA-256
-`f83b1b9be5a608d444d61496899d25139eb56184fd924acd030e61347d22d764`; `docs/trials/returns/` absent.
+`f83b1b9be5a608d444d61496899d25139eb56184fd924acd030e61347d22d764`. Family declarations
+`058-edge` (+ amendment 1) and `059-allocation` verify.
 
 ## Blockers (human gate reached)
 
 | Where | Gate | Waiting on |
 |---|---|---|
-| 058 T015, T016 | Ledger-writing research and holdout runs | Camden runs them (one command each) |
+| 058 T015, T016 | Ledger-writing research and holdout runs | Camden runs them (T015 command in `docs/implementation/spec-058/T015-run-command.md`) |
+| §11.3 item 5 | Replay on real data fails on `main` (2020 TLT gross-cap denials) | Camden merges #223 (touches the LIVE planner) |
 | 033 Q33b (T063, T064) | `reports/api/routes/capital_gate.py` route reads the Gate 3 artifact | A Camden-authorized unit |
 | 044 T003, T004, T007 | Probe reviews and live probe | G12/G13 delegations (Codex lane) |
 | 047 Q67 (T010, T011) | Spec text and Q67 `allowed_paths` must be revised for the recorded-payload route, with an explicit as-of session (#158) | A spec 047 revision PR; then Q67 back to `ready` |
@@ -82,8 +85,7 @@ Ledger: `docs/trials/trials.jsonl` 174 lines, SHA-256
 
 - The previous refresh (2026-10-09) described Rule 9a merges and Track A/B; Rule 9b and lanes A–D
   replaced them on 2026-10-12 (#175).
-- Spec 058 `tasks.md` boxes lag merged PRs (see the table above). Ticking them belongs in a unit
-  whose `allowed_paths` include that file; no such queue item exists yet.
+- Spec 058/059 `tasks.md` boxes and `queue.json` lagged merged PRs; synced 2026-10-15 (this PR).
 
 ## Delegations (Camden, 2026-10-09 (delegation answers G12–G16 in chat; recorded by Claude))
 
