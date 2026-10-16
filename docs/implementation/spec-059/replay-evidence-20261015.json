@@ -1,0 +1,234 @@
+{
+ "label": "EXAMPLE — NOT A RESULT. Replay of the PAPER/LIVE code path with a simulated broker; not real fills (spec 059 §7).",
+ "item": "SCOPE §11.3 item 5",
+ "code_commit": "d95a4c05445e24e5fb7766ab1b738f2504cbd95a",
+ "command": "python scripts/replay_inputs_058.py --panel <058-tiingo raw> --out <private>; python scripts/replay_runner.py --history-dir <private> --budget B --daily-deploy-fraction F",
+ "inputs": {
+  "label": "EXAMPLE — NOT A RESULT",
+  "source": "058 T008 Tiingo bodies (private), adjOpen/adjClose",
+  "manifest": "docs/implementation/spec-058/t008-tiingo-20261009.json",
+  "research_end": "2023-09-29",
+  "files": {
+   "SPY": {
+    "body_sha256": "07cfcc3a271a1b53e3af668a55891a3bcf4005b8f03701941f501ae2aa7453ee",
+    "csv_sha256": "0315a132ec9b47b9d89f1b1440d9660030df9f363ab6c0264856faa360c15394",
+    "rows": 7723,
+    "first": "1993-01-29",
+    "last": "2023-09-29"
+   },
+   "EFA": {
+    "body_sha256": "53818bbee0b915f95417ec14919ff58734faee5a809fc067bcf1a54613eedefd",
+    "csv_sha256": "a4c3909859cca1b52530db97e4590afe3a7403c06eb34fdd1990b7608426ff3e",
+    "rows": 5564,
+    "first": "2001-08-17",
+    "last": "2023-09-29"
+   },
+   "EEM": {
+    "body_sha256": "974a84659942cecaf10168284b2da4e4aa3df3b47f4c87386178dc46009f9f25",
+    "csv_sha256": "73e3645f8f8869f4604fbce1759cb5e6d42ea5e00bc77128bf18d295417d3f77",
+    "rows": 5152,
+    "first": "2003-04-14",
+    "last": "2023-09-29"
+   },
+   "IEF": {
+    "body_sha256": "8516ffb0f030d8f53064a5be19bb02a64a6ac1f9732882e321737b8c0af731fc",
+    "csv_sha256": "6d8bed2382edf3de29aaf05ab280fd7dba7ac960a27f09201d5be1aeebaf983e",
+    "rows": 5332,
+    "first": "2002-07-26",
+    "last": "2023-09-29"
+   },
+   "TLT": {
+    "body_sha256": "2c5c4cc9288197a58634cd94df95c64c7a81e327fb4a3c94692bc41131f3eb46",
+    "csv_sha256": "efef2188270e02a6acbefda72a42bcd37952bbd6437b175328947cf0c231cff2",
+    "rows": 5332,
+    "first": "2002-07-26",
+    "last": "2023-09-29"
+   },
+   "TIP": {
+    "body_sha256": "bcd1acc00e4aa6d6237636177fe51b483f8c0ad2ef9c11fc512ee03153d43b45",
+    "csv_sha256": "e991c5feca7b9b0527130eed4d3857e66f6530dcc3b5c7cc9dd750f103334893",
+    "rows": 4988,
+    "first": "2003-12-05",
+    "last": "2023-09-29"
+   },
+   "GLD": {
+    "body_sha256": "69aa0d5d36c1eb1a2b3677e4ed000559d7274e6c8155125d064b75aef1992a73",
+    "csv_sha256": "c775ba013348e169170e125d7649b849e83c34ed462c25251e9ae317cd3dab71",
+    "rows": 4748,
+    "first": "2004-11-18",
+    "last": "2023-09-29"
+   },
+   "DBC": {
+    "body_sha256": "ad2ee67eff70b56c1216f60706187253622a301bc4c81b18e20c2e3d973628ae",
+    "csv_sha256": "e1f4c4da1e5d00d48af3b5cab6f1f7ad9d3fcb6cc8d42dd3dbe9922668260c7b",
+    "rows": 4444,
+    "first": "2006-02-03",
+    "last": "2023-09-29"
+   }
+  }
+ },
+ "profiles": "$5,000 small PAPER, $100,000 large PAPER, $100 LIVE at daily_deploy_fraction 0.2",
+ "safety_config_version": "2026-10-14-alloc-v1",
+ "verdict": "PASS",
+ "runs": [
+  {
+   "budget": 5000,
+   "daily_deploy_fraction": 1.0,
+   "verdict": "PASS",
+   "windows": [
+    {
+     "window": [
+      "2020-02-03",
+      "2020-04-30"
+     ],
+     "sessions": 62,
+     "orders": 29,
+     "denied": [],
+     "aborted": [],
+     "errors": [],
+     "decisions_executed": [
+      "2020-01-02",
+      "2020-02-03",
+      "2020-03-02",
+      "2020-04-01"
+     ],
+     "safety_config_version": "2026-10-14-alloc-v1",
+     "ending_equity_label": "simulated mark, not a result"
+    },
+    {
+     "window": [
+      "2022-01-03",
+      "2022-12-30"
+     ],
+     "sessions": 251,
+     "orders": 76,
+     "denied": [],
+     "aborted": [],
+     "errors": [],
+     "decisions_executed": [
+      "2021-12-01",
+      "2022-01-03",
+      "2022-02-01",
+      "2022-03-01",
+      "2022-04-01",
+      "2022-05-02",
+      "2022-06-01",
+      "2022-07-01",
+      "2022-08-01",
+      "2022-09-01",
+      "2022-10-03",
+      "2022-11-01",
+      "2022-12-01"
+     ],
+     "safety_config_version": "2026-10-14-alloc-v1",
+     "ending_equity_label": "simulated mark, not a result"
+    }
+   ]
+  },
+  {
+   "budget": 100000,
+   "daily_deploy_fraction": 1.0,
+   "verdict": "PASS",
+   "windows": [
+    {
+     "window": [
+      "2020-02-03",
+      "2020-04-30"
+     ],
+     "sessions": 62,
+     "orders": 29,
+     "denied": [],
+     "aborted": [],
+     "errors": [],
+     "decisions_executed": [
+      "2020-01-02",
+      "2020-02-03",
+      "2020-03-02",
+      "2020-04-01"
+     ],
+     "safety_config_version": "2026-10-14-alloc-v1",
+     "ending_equity_label": "simulated mark, not a result"
+    },
+    {
+     "window": [
+      "2022-01-03",
+      "2022-12-30"
+     ],
+     "sessions": 251,
+     "orders": 76,
+     "denied": [],
+     "aborted": [],
+     "errors": [],
+     "decisions_executed": [
+      "2021-12-01",
+      "2022-01-03",
+      "2022-02-01",
+      "2022-03-01",
+      "2022-04-01",
+      "2022-05-02",
+      "2022-06-01",
+      "2022-07-01",
+      "2022-08-01",
+      "2022-09-01",
+      "2022-10-03",
+      "2022-11-01",
+      "2022-12-01"
+     ],
+     "safety_config_version": "2026-10-14-alloc-v1",
+     "ending_equity_label": "simulated mark, not a result"
+    }
+   ]
+  },
+  {
+   "budget": 100,
+   "daily_deploy_fraction": 0.2,
+   "verdict": "PASS",
+   "windows": [
+    {
+     "window": [
+      "2020-02-03",
+      "2020-04-30"
+     ],
+     "sessions": 62,
+     "orders": 25,
+     "denied": [],
+     "aborted": [],
+     "errors": [],
+     "decisions_executed": [
+      "2020-02-03",
+      "2020-03-02",
+      "2020-04-01"
+     ],
+     "safety_config_version": "2026-10-14-alloc-v1",
+     "ending_equity_label": "simulated mark, not a result"
+    },
+    {
+     "window": [
+      "2022-01-03",
+      "2022-12-30"
+     ],
+     "sessions": 251,
+     "orders": 72,
+     "denied": [],
+     "aborted": [],
+     "errors": [],
+     "decisions_executed": [
+      "2022-01-03",
+      "2022-02-01",
+      "2022-03-01",
+      "2022-04-01",
+      "2022-05-02",
+      "2022-06-01",
+      "2022-10-03",
+      "2022-11-01",
+      "2022-12-01"
+     ],
+     "safety_config_version": "2026-10-14-alloc-v1",
+     "ending_equity_label": "simulated mark, not a result"
+    }
+   ]
+  }
+ ],
+ "history": "First real-data run on 25577e9 FAILED (2020: 4 MAX_GROSS_PCT_BREACH denials on TLT); fixed by #223 (cash buffer 0.05 -> 0.07).",
+ "limitations": "Tiingo adjusted prices (split and dividend), not the raw SIP bars PAPER reads; simulated fills at the open, no slippage realism; tests the code path, not execution under stress."
+}
