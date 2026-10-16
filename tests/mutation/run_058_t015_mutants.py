@@ -16,12 +16,18 @@ MUTANTS = {
                             "frame['close'].astype(float).mask(mask)"),
     "M2 unconverted quantity": (RUN, "nominal = quantity * float(panel.closes.at[as_of, ticker]) / "
                                      "float(panel.raw_closes.at[as_of, ticker])", "nominal = quantity"),
-    "M3 T009 preflight removed": (RUN, '    if data_check.get("status") not in ("VERIFIED", "EXCLUSIONS"):\n'
-                                       '        raise PreflightRefused("data_check_missing")\n', ""),
+    "M3 T009 preflight removed": (RUN, '        raise PreflightRefused("risk_free_mismatch")\n'
+                                       '    if data_check.get("status") not in ("VERIFIED", "EXCLUSIONS"):\n'
+                                       '        raise PreflightRefused("data_check_missing")\n',
+                                  '        raise PreflightRefused("risk_free_mismatch")\n'),
     "M4 truncation removed": (DS, 'if r["date"][:10] <= str(RESEARCH_END)]', "]"),
     "M5 rerun allowed silently": (RUN, "if prior and not (isinstance(rerun, str) and rerun.strip()):", "if False:"),
     "M6 B-BH run first": (RUN, 'for config_id in (*RUN_ORDER, "B-BH"):', 'for config_id in ("B-BH", *RUN_ORDER):'),
     "M7 mismatch not spliced": (DS, "if any(index[e] in spliced for e in gap):", "if False:"),
+    "M9 resume re-runs completed pairs": (RUN, "if (c, s) not in progress[\"brnd_pairs\"]]", "]"),
+    "M10 resume leaves dangling starts open": (RUN, 'receipts = [{"closed": d["trial_id"], "receipt": ledger.finish(d["trial_id"], "abandoned", reason=reason)}\n                for d in status["dangling"]]',
+                                               "receipts = []"),
+    "M11 resume accepts a duplicated candidate": (RUN, "    if progress[\"configs\"] != expected:\n", "    if False:\n"),
     "M8 risk-free 0": (WF, 'RISK_FREE = {"annual_rate": RISK_FREE_RATE_ANNUAL, "days_per_year": 252}',
                        'RISK_FREE = {"annual_rate": 0.0, "days_per_year": 252}'),
 }

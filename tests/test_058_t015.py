@@ -184,3 +184,72 @@ def test_first_error_stops_the_run(monkeypatch):
     with pytest.raises(RuntimeError):
         t015.run_family(panel, data_check_name="fixture.json", progress=lambda *_: None)
     assert calls == ["H1-3", "H1-6", "H1-12", "H2-100"], "Q133 STOP: no skipping ahead"
+
+
+# --- T015 resume (2026-10-15): a run interrupted by a checkout that stashed the ledger mid-run ---
+
+def _config(name, *, seed=None, candidate=None, sha="e" * 64):
+    params = {"candidate": candidate, "seed": seed} if name == "B-RND" else {}
+    return {"runner": "fixture", "data": {"sha256": sha}, "universe": ["SPY"], "date_range": ["2020-01-02", "2020-01-03"],
+            "features": [], "transforms": [], "target": {}, "model": {"name": name, "params": params}, "cv": None,
+            "seed": seed, "initial_capital": 1.0, "commission": 0.0, "slippage": {}, "liquidation": False,
+            "risk_free": {}}
+
+
+def _record(log, name, *, seed=None, candidate=None, finish=True, sha="e" * 64):
+    role = "synthetic_test"
+    trial = log.start(_config(name, seed=seed, candidate=candidate, sha=sha), role=role, family=wf.FAMILY, runner="fixture")
+    if finish:
+        log.finish(trial, "completed", returns=[{"session": "2020-01-02", "log_return": 0.0}], metadata={})
+    return trial
+
+
+def interrupted(log, *, seeds_done=2):
+    for config_id in (*t015.RUN_ORDER, "B-BH"):
+        _record(log, config_id)
+    for seed in wf.BRND_SEEDS[:seeds_done]:
+        _record(log, "B-RND", seed=seed, candidate=t015.RUN_ORDER[0])
+    return _record(log, "B-RND", seed=wf.BRND_SEEDS[seeds_done], candidate=t015.RUN_ORDER[0], finish=False)
+
+
+def test_resume_closes_the_dangling_start_and_runs_only_missing_pairs(tmp_path, ledger, monkeypatch):
+    dangling = interrupted(ledger)
+    _, _, check = write_panel(tmp_path, {"SPY": body("SPY")})
+    panel = type("P", (), {"panel_hash": check["panel_hash"], "opens": None, "closes": None})()
+    check = dict(check, panel_hash="e" * 64)
+    panel.panel_hash = "e" * 64
+    status = t015.resume_preflight(panel, data_check=check, ledger=ledger, reason="fixture checkout", root=ROOT,
+                                   clean=lambda r: True)
+    assert [d["trial_id"] for d in status["dangling"]] == [dangling], "RESUME DANGLING found"
+    assert len(status["remaining"]) == 15 * 20 - 2 and status["remaining"][0] == (t015.RUN_ORDER[0], wf.BRND_SEEDS[2]), \
+        "RESUME REMAINING: completed pairs skipped, the dangling pair re-run"
+    calls = []
+    monkeypatch.setattr(wf, "run_brnd", lambda c, s, *a, **k: calls.append((c, s)) or {"id": (c, s)})
+    monkeypatch.setattr(t015, "fill_cost", lambda panel: None)
+    monkeypatch.setattr(t015, "data_dict", lambda panel, name: {})
+    t015.resume_family(panel, ledger=ledger, data_check_name="fixture.json", status=status, reason="fixture checkout",
+                       progress=lambda *_: None)
+    events = ledger.verify()["events"]
+    closed = [e for e in events if e["trial_id"] == dangling and e["event_type"] != "started"]
+    assert [(e["event_type"], e["reason"]) for e in closed] == [("abandoned", "fixture checkout")], "RESUME CLOSE abandoned"
+    assert calls == status["remaining"], "RESUME ORDER no candidate re-run, declared B-RND order"
+
+
+@pytest.mark.parametrize("case", ["no_reason", "candidate_missing", "candidate_twice", "other_panel"])
+def test_resume_refusals_are_named(tmp_path, ledger, case):
+    if case == "candidate_missing":
+        _record(ledger, "B-BH")
+    else:
+        interrupted(ledger)
+    if case == "candidate_twice":
+        _record(ledger, t015.RUN_ORDER[3])
+    if case == "other_panel":
+        _record(ledger, "B-RND", seed=wf.BRND_SEEDS[5], candidate=t015.RUN_ORDER[1], sha="f" * 64)
+    panel = type("P", (), {"panel_hash": "e" * 64})()
+    check = {"status": "EXCLUSIONS", "panel_hash": "e" * 64}
+    expected = {"no_reason": "resume_reason_missing", "candidate_missing": "configs_not_complete_once",
+                "candidate_twice": "configs_not_complete_once", "other_panel": "ledger_panel_mismatch"}[case]
+    with pytest.raises(t015.PreflightRefused) as info:
+        t015.resume_preflight(panel, data_check=check, ledger=ledger, reason=None if case == "no_reason" else "x",
+                              root=ROOT, clean=lambda r: True)
+    assert info.value.reason == expected, f"RESUME PREFLIGHT {case}"
