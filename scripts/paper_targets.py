@@ -203,9 +203,12 @@ def plan_next_open(
 
 # Execution-side cash buffer: the safety gate prices every position at the last close plus the
 # loop's 5% gap allowance, so a book invested at gross 1.0 would read as gross 1.05 and be denied.
-# Investing at most 95% of the bot budget keeps the gate's view at or below gross 1.0. Disclosed:
-# PAPER holds up to 5% more cash than the spec 059 backtest.
-ALLOCATION_CASH_BUFFER = 0.05
+# A 5% buffer left the gate's view at 0.95 x 1.05 = 0.9975, and the 2020-02 real-data replay
+# (queue Q111 follow-up, 2026-10-15) then denied a deferred TLT buy four sessions running on the
+# gross cap once prices drifted 0.25%. 7% gives 0.93 x 1.05 = 0.9765, 2.35% of headroom; both
+# §11.3.5 windows then replay with no denial. Disclosed: PAPER and LIVE hold up to 7% more cash
+# than the spec 059 backtest.
+ALLOCATION_CASH_BUFFER = 0.07
 # Orders smaller than this fraction of equity are not sent (disclosed tracking difference).
 ALLOCATION_MIN_TRADE = 0.005
 FRACTION_PLACES = 6
