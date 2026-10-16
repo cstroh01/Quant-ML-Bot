@@ -120,6 +120,82 @@ def run_family(panel, *, data_check_name: str, progress=print) -> list[dict]:
     return receipts
 
 
+def ledger_progress(events: list[dict]) -> dict:
+    """058-edge progress from ledger events: completed configs, completed B-RND pairs, dangling starts.
+
+    A dangling start has no terminal event (an interrupted run). Pairs are (candidate, seed).
+    """
+    terminal = {e["trial_id"]: e["event_type"] for e in events if e["event_type"] != "started"}
+    done, pairs, dangling, starts = {}, set(), [], {}
+    for e in events:
+        if e["event_type"] != "started" or e["family"] != wf.FAMILY:
+            continue
+        model = e["config"]["model"]
+        key = ("B-RND", model["params"]["candidate"], int(model["params"]["seed"])) if model["name"] == "B-RND" \
+            else (model["name"],)
+        starts.setdefault(key, []).append(e["trial_id"])
+        outcome = terminal.get(e["trial_id"])
+        if outcome is None:
+            dangling.append({"trial_id": e["trial_id"], "key": key})
+        elif outcome == "completed":
+            if model["name"] == "B-RND":
+                pairs.add(key[1:])
+            else:
+                done[key[0]] = done.get(key[0], 0) + 1
+    return {"configs": done, "brnd_pairs": pairs, "dangling": dangling, "starts": starts}
+
+
+def resume_preflight(panel, *, data_check: dict, ledger: TrialLedger, reason: str | None, root: Path = ROOT,
+                     clean=workspace_clean) -> dict:
+    """Resume only an interrupted T015: every candidate and B-BH completed exactly once, nothing else run.
+
+    Refuses (named) before any ledger byte. The remaining work is the B-RND pairs without a completed
+    record; dangling starts are closed `abandoned` with `reason`, never deleted.
+    """
+    if not (isinstance(reason, str) and reason.strip()):
+        raise PreflightRefused("resume_reason_missing")
+    try:
+        verify_family(wf.FAMILY, root=root)
+    except ValueError as error:
+        raise PreflightRefused("family_unverified") from error
+    if data_check.get("status") not in ("VERIFIED", "EXCLUSIONS"):
+        raise PreflightRefused("data_check_missing")
+    if data_check.get("panel_hash") != panel.panel_hash:
+        raise PreflightRefused("panel_hash_mismatch")
+    events = ledger.verify()["events"]
+    hashes = {e["config"]["data"].get("sha256") for e in events
+              if e["event_type"] == "started" and e["family"] == wf.FAMILY}
+    if hashes != {panel.panel_hash}:
+        raise PreflightRefused("ledger_panel_mismatch")
+    progress = ledger_progress(events)
+    expected = {c: 1 for c in (*RUN_ORDER, "B-BH")}
+    if progress["configs"] != expected:
+        raise PreflightRefused("configs_not_complete_once")
+    extra = [k for k in progress["starts"] if k[0] != "B-RND" and k[0] not in expected]
+    if extra or any(len(v) != 1 for k, v in progress["starts"].items() if k[0] != "B-RND"):
+        raise PreflightRefused("unexpected_config_starts")
+    if not clean(root):
+        raise PreflightRefused("workspace_dirty")
+    remaining = [(c, s) for c in RUN_ORDER for s in wf.BRND_SEEDS if (c, s) not in progress["brnd_pairs"]]
+    return {"dangling": progress["dangling"], "remaining": remaining,
+            "brnd_completed": len(progress["brnd_pairs"]), "costs": costs()}
+
+
+def resume_family(panel, *, ledger: TrialLedger, data_check_name: str, status: dict, reason: str,
+                  progress=print) -> list[dict]:
+    """Close dangling starts as abandoned, then run the remaining B-RND pairs in declared order."""
+    receipts = [{"closed": d["trial_id"], "receipt": ledger.finish(d["trial_id"], "abandoned", reason=reason)}
+                for d in status["dangling"]]
+    kwargs = {"fill_cost": fill_cost(panel), "costs": costs(), "data": data_dict(panel, data_check_name),
+              "starting_capital": STARTING_CAPITAL}
+    for config_id, seed in status["remaining"]:
+        receipts.append({"config": "B-RND", "candidate": config_id, "seed": seed,
+                         "receipt": wf.run_brnd(config_id, seed, panel.opens, panel.closes, **kwargs)})
+        if seed == wf.BRND_SEEDS[-1]:
+            progress(f"B-RND {config_id} complete")
+    return receipts
+
+
 def _latest_data_check(root: Path) -> Path:
     found = sorted(root.glob(DATA_CHECK_GLOB))
     if not found:
@@ -133,6 +209,8 @@ def main(argv=None) -> int:
     mode = p.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dry-run", action="store_true")
     mode.add_argument("--record-trial", action="store_true")
+    p.add_argument("--resume", metavar="REASON",
+                      help="finish an interrupted run: close dangling starts as abandoned, run missing B-RND pairs")
     p.add_argument("--rerun", help="reason; required if any 058-edge candidate is already in the ledger")
     p.add_argument("--out", type=Path, help="private run summary (outside the repo)")
     a = p.parse_args(argv)
@@ -141,14 +219,36 @@ def main(argv=None) -> int:
         data_check = json.loads(check_path.read_text(encoding="utf-8"))
         manifest = json.loads((ROOT / T008_MANIFEST).read_text(encoding="utf-8"))
         panel = load_058_panel(a.panel, tiingo_manifest=manifest, data_check=data_check)
-        status = preflight(panel, data_check=data_check, ledger=TrialLedger(), rerun=a.rerun)
+        if a.resume is not None:
+            status = resume_preflight(panel, data_check=data_check, ledger=TrialLedger(), reason=a.resume)
+        else:
+            status = preflight(panel, data_check=data_check, ledger=TrialLedger(), rerun=a.rerun)
     except (PreflightRefused, PanelRefused) as error:
         print(f"T015 refused: {getattr(error, 'reason', error)}", file=sys.stderr)
         return 2
     summary = {"data_check": check_path.name, "panel_hash": panel.panel_hash, "tickers": panel.summary,
                "sessions": [str(panel.closes.index[0].date()), str(panel.closes.index[-1].date())], **status}
+    if a.dry_run and a.resume is not None:
+        print(json.dumps({k: v for k, v in summary.items() if k not in ("remaining", "tickers")}, indent=1, default=str))
+        print(f"T015 resume plan: {len(status['remaining'])} B-RND pair(s) to run, first "
+              f"{status['remaining'][:1]}, last {status['remaining'][-1:]}")
+        return 0
     if a.dry_run:
         print(json.dumps(summary, indent=1, default=str))
+        return 0
+    if a.resume is not None:
+        print(f"T015 resume: {len(status['dangling'])} dangling start(s) to close, "
+              f"{len(status['remaining'])} B-RND pair(s) to run, {status['brnd_completed']} already complete")
+        if a.out is None or ROOT in a.out.resolve().parents:
+            print("T015 refused: --out must be a private path outside the repo", file=sys.stderr)
+            return 2
+        with production_recording(reason="058 T015 resume"):
+            receipts = resume_family(panel, ledger=TrialLedger(), data_check_name=check_path.name, status=status,
+                                     reason=a.resume)
+        a.out.mkdir(parents=True, exist_ok=True)
+        (a.out / "t015-resume-summary.json").write_text(json.dumps({**summary, "receipts": receipts}, indent=1,
+                                                                   default=str), encoding="utf-8")
+        print(f"T015 resume recorded {len(receipts)} events; summary at {a.out / 't015-resume-summary.json'}")
         return 0
     if a.out is None or ROOT in a.out.resolve().parents:
         print("T015 refused: --out must be a private path outside the repo", file=sys.stderr)
