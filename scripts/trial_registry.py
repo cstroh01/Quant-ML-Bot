@@ -21,7 +21,9 @@ from _project import project_root
 
 ROOT = project_root()
 DEFAULT_TRIALS_PATH = ROOT / "docs/trials/trials.jsonl"
-ROLES = {"candidate", "buy_and_hold_baseline", "random_signal_baseline", "synthetic_test"}
+ROLES = {"candidate", "buy_and_hold_baseline", "random_signal_baseline", "synthetic_test", "holdout"}
+# 058 D-7: a `holdout` start is the family's holdout-spend record. It never counts toward N or enters a
+# research matrix (not a candidate), and a second `holdout` start in the same family is refused.
 TERMINALS = {"completed", "rejected", "errored", "abandoned"}
 CONFIG_FIELDS = set("data universe date_range features transforms target model cv seed initial_capital commission slippage liquidation risk_free".split())
 ZERO = "0" * 64
@@ -533,6 +535,9 @@ class TrialLedger:
                 trial = event["trial_id"]
                 if event["event_type"] == "started":
                     if trial in starts: raise ValueError("duplicate start")
+                    if event["role"] == "holdout" and any(s["role"] == "holdout" and s["family"] == event["family"]
+                                                          for s in starts.values()):
+                        raise ValueError("second holdout start in one family (058 D-7)")
                     starts[trial] = event
                 else:
                     if event["event_type"] not in TERMINALS or trial not in starts or trial in terminal: raise ValueError("invalid terminal lifecycle")
@@ -574,6 +579,9 @@ class TrialLedger:
         self._warm_cache()
         with serialized(self.path):
             state = self.verify()
+            if role == "holdout" and any(e["event_type"] == "started" and e["role"] == "holdout" and e["family"] == family
+                                         for e in state["events"]):
+                raise ValueError(f"holdout already spent for family {family!r}; a second opening is refused (058 D-7)")
             event = self._append({"trial_id": str(uuid.uuid4()), "event_type": "started", "role": role, "family": family, "runner": runner, "config": normalized, "config_hash": hashed, "source": source or source_identity()}, state["head"], len(state["events"]))
         return event["trial_id"]
 

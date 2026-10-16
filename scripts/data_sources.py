@@ -657,3 +657,125 @@ def load_058_panel(raw_dir, *, tiingo_manifest: dict, data_check: dict) -> EdgeP
     if sealed_sessions(closes.index).any():
         raise HoldoutSealError("a sealed session reached the 058 panel")
     return EdgePanel(opens, closes, raws, costs, splits, data_check["panel_hash"], summary)
+
+
+# --- 058 T016 holdout panel (D-3, D-7). Opened only under an open `holdout` ledger start. ---
+
+HOLDOUT_CLOSE_TOLERANCE_BPS = 10.0  # the T009 relative tolerance (1e-3), reused unchanged for the holdout rows
+
+
+def _alpaca_closes(alpaca_dir, alpaca_manifest: dict) -> dict:
+    """{ticker: raw SIP close Series by session} from the private T008 Alpaca bodies, hash-checked."""
+    from zoneinfo import ZoneInfo
+    eastern = ZoneInfo("America/New_York")
+    wanted = {r["endpoint_path"].split("/")[3]: r["sha256"] for r in alpaca_manifest["requests"]}
+    found = {hashlib.sha256(p.read_bytes()).hexdigest(): p for p in sorted(Path(alpaca_dir).glob("*.bin"))}
+    missing = sorted(t for t, h in wanted.items() if h not in found)
+    if missing:
+        raise PanelRefused(f"alpaca_body_hash_mismatch:{','.join(missing)}")
+    out = {}
+    for ticker, digest_ in sorted(wanted.items()):
+        body = json.loads(found[digest_].read_bytes())
+        if body.get("next_page_token"):
+            raise PanelRefused(f"alpaca_body_paginated:{ticker}")
+        sessions = [pd.Timestamp(datetime.fromisoformat(b["t"].replace("Z", "+00:00")).astimezone(eastern).date())
+                    for b in body["bars"]]
+        out[ticker] = pd.Series([float(b["c"]) for b in body["bars"]], index=pd.DatetimeIndex(sessions), dtype=float)
+    return out
+
+
+def check_058_holdout_rows(tiingo: dict, alpaca: dict, *, holdout_end: date) -> dict:
+    """Counts-only data check of the holdout rows (HOLDOUT_START..holdout_end), the T009 policy narrowed.
+
+    Per ticker: NYSE calendar gaps and non-NYSE rows (data.trading_days), Tiingo raw close vs Alpaca raw
+    SIP close beyond HOLDOUT_CLOSE_TOLERANCE_BPS or missing (`close_mismatches`), and Tiingo actions,
+    which are applied single-source (no independent corporate-action fetch covers the holdout).
+    Exclusions are the union of non-NYSE rows and close mismatches; nothing is averaged or spliced.
+    Returns no price, return or statistic.
+    """
+    from data import trading_days
+    calendar = pd.DatetimeIndex(trading_days(HOLDOUT_START, holdout_end))
+    tickers, totals = {}, {"calendar_gaps": 0, "non_nyse_rows": 0, "close_mismatches": 0, "single_source_actions": 0}
+    for ticker, frame in sorted(tiingo.items()):
+        rows = frame.loc[(frame.index >= pd.Timestamp(HOLDOUT_START)) & (frame.index <= pd.Timestamp(holdout_end))]
+        gaps = calendar.difference(rows.index)
+        non_nyse = rows.index.difference(calendar)
+        check = alpaca[ticker].reindex(rows.index)
+        mismatched = close_mismatches(rows["close"].astype(float), check, tolerance_bps=HOLDOUT_CLOSE_TOLERANCE_BPS).index
+        actions = rows.index[(rows["divCash"].fillna(0.0) != 0) | (rows["splitFactor"].fillna(1.0) != 1.0)]
+        excluded = sorted({*non_nyse, *mismatched})
+        tickers[ticker] = {"rows": len(rows), "calendar_gaps": [str(d.date()) for d in gaps],
+                           "non_nyse_sessions": [str(d.date()) for d in non_nyse],
+                           "close_mismatched_sessions": [str(d.date()) for d in mismatched],
+                           "single_source_action_sessions": [str(d.date()) for d in actions],
+                           "excluded_sessions": [str(d.date()) for d in excluded]}
+        totals["calendar_gaps"] += len(gaps)
+        totals["non_nyse_rows"] += len(non_nyse)
+        totals["close_mismatches"] += len(mismatched)
+        totals["single_source_actions"] += len(actions)
+    return {"window": [str(HOLDOUT_START), str(holdout_end)], "tolerance_bps": HOLDOUT_CLOSE_TOLERANCE_BPS,
+            "tickers": tickers, "totals": totals,
+            "limitations": ["Holdout corporate actions are Tiingo single-source; no independent action fetch covers "
+                            "2023-10-02 onward (the T009 Alpaca action fetch ended 2023-09-29).",
+                            "Close cross-check is Tiingo raw vs Alpaca raw SIP, tolerance 10 bps, as T009."]}
+
+
+def _require_open_holdout(ledger, *, family: str, config_hash: str) -> dict:
+    """The one `holdout` start for `family`, still open and bound to `config_hash` (058 D-7), or refuse."""
+    events = ledger.verify()["events"]
+    starts = [e for e in events if e["event_type"] == "started" and e["role"] == "holdout" and e["family"] == family]
+    if len(starts) != 1:
+        raise HoldoutSealError("no holdout-spend start in the ledger; the holdout stays sealed")
+    start = starts[0]
+    if start["config_hash"] != config_hash:
+        raise HoldoutSealError("the holdout-spend start is bound to a different configuration hash")
+    if any(e["event_type"] != "started" and e["trial_id"] == start["trial_id"] for e in events):
+        raise HoldoutSealError("the holdout has already been run; a second opening is refused")
+    return start
+
+
+def load_058_holdout_panel(raw_dir, alpaca_dir, *, tiingo_manifest: dict, alpaca_manifest: dict, data_check: dict,
+                           ledger, config_hash: str, holdout_end: date, family: str = "058-edge"
+                           ) -> tuple[EdgePanel, dict]:
+    """The 058 panel through `holdout_end`, for the single holdout run (T016), plus the holdout data check.
+
+    Refuses unless the ledger holds exactly one open `holdout` start for `family` bound to `config_hash`
+    (the spend precedes any sealed byte being parsed). Research rows (<= RESEARCH_END) are built exactly as
+    `load_058_panel` builds them (same T009 exclusions and splices, same body hashes); holdout rows use
+    `check_058_holdout_rows` exclusions. Back-adjustment is applied once over the whole series.
+    """
+    _require_open_holdout(ledger, family=family, config_hash=config_hash)
+    if not HOLDOUT_START <= holdout_end:
+        raise HoldoutSealError("holdout_end precedes the holdout")
+    research = load_058_panel(raw_dir, tiingo_manifest=tiingo_manifest, data_check=data_check)
+    hash_input = data_check["panel_hash_input"]
+    wanted = dict(hash_input["tiingo_bodies"])
+    found = {hashlib.sha256(p.read_bytes()).hexdigest(): p for p in sorted(Path(raw_dir).glob("*.bin"))}
+    frames = {}
+    for ticker in sorted(wanted):
+        rows = [r for r in json.loads(found[wanted[ticker]].read_bytes()) if r["date"][:10] <= str(holdout_end)]
+        frame = pd.DataFrame(rows)
+        frame.index = pd.DatetimeIndex(pd.to_datetime(frame.pop("date").str[:10]), name="session")
+        frames[ticker] = frame.sort_index()
+    check = check_058_holdout_rows(frames, _alpaca_closes(alpaca_dir, alpaca_manifest), holdout_end=holdout_end)
+    opens, closes, raws, costs, splits, summary = {}, {}, {}, {}, {}, {}
+    for ticker, frame in frames.items():
+        excluded = [*hash_input["exclusions"][ticker], *check["tickers"][ticker]["excluded_sessions"]]
+        spliced = data_check["tickers"][ticker]["actions"]["mismatched_sessions"]
+        adj_open, adj_close, counts = back_adjust(frame, excluded=excluded, spliced=spliced)
+        mask = frame.index.isin(pd.DatetimeIndex(excluded))
+        opens[ticker], closes[ticker] = adj_open.mask(mask), adj_close.mask(mask)
+        raws[ticker] = frame["close"].astype(float)
+        history = frame[["open", "high", "low", "close", "volume"]].astype(float)
+        history.columns = ["Open", "High", "Low", "Close", "Volume"]
+        history.attrs["volume_basis"] = "provider_nominal"
+        costs[ticker] = history
+        splits[ticker] = tuple(frame.index[frame["splitFactor"].fillna(1.0) != 1.0])
+        summary[ticker] = {"first_session": str(frame.index[0].date()), "last_session": str(frame.index[-1].date()),
+                           "rows": len(frame), "excluded": int(mask.sum()), **counts}
+    opens, closes, raws = (pd.DataFrame(x).sort_index() for x in (opens, closes, raws))
+    research_rows = closes.index <= pd.Timestamp(RESEARCH_END)
+    if not closes.index[research_rows].equals(research.closes.index):
+        raise PanelRefused("holdout panel research rows differ from the T015 panel")
+    holdout_hash = canonical_hash({"research_panel_hash": research.panel_hash, "holdout_check": check})
+    return EdgePanel(opens, closes, raws, costs, splits, holdout_hash, summary), check
