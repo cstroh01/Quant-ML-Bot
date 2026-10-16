@@ -384,14 +384,21 @@ def test_t044_lifetime_dsr_always_family_dsr_beside_it(tmp_path):
     assert both["family"]["inputs"]["n_current"] == 3 and both["family"]["value"] > both["lifetime"]["value"], f"T044 FAMILY: {both['family']}"
     assert dsr(other, selected_trial="b", counts=counts)["family"] == {"value": None, "reason": "matrix_family_mismatch"}, "T044 MISMATCH: another family's matrix deflated at N_family"
     record = tmp_path / trial_registry.FAMILY_DIR / f"{T039_FAMILY}.json"; original = record.read_bytes()
+    original_source = target.read_bytes()
+
+    def cap_51():
+        """Record and source both say 51, so the source drift check passes and only the 1..50 check can reject."""
+        target.write_text(json.dumps({**json.loads(original_source), "n_family_cap": 51}), encoding="utf-8")
+        t044_rewrite(record, cap=51)
+        assert trial_registry.verify_family(T039_FAMILY, root=tmp_path)["declaration"]["n_family_cap"] == 51, "T044 CAPLIMIT: setup"
     for name, edit in (("DECLARATION", lambda: record.write_bytes(original.replace(b'"n_family_cap":4', b'"n_family_cap":40', 1))),
                        ("ANCHOR", lambda: t044_rewrite(record, ledger_head_at_declaration=log.verify()["head"])),
-                       ("CAPLIMIT", lambda: t044_rewrite(record, cap=51)),
+                       ("CAPLIMIT", cap_51),
                        ("MALFORMED", lambda: t044_rewrite(record, cap=None))):
         edit(); assert record.read_bytes() != original, f"T044 {name}: tamper did not apply"
         fam = count(art, log, family=T039_FAMILY)["family"]
         assert (fam["within_cap"], fam["n_dsr"], fam["reverted_to_lifetime"]) == (False, 22, True), f"T044 {name}: must revert to lifetime N {fam}"
-        record.write_bytes(original)
+        record.write_bytes(original); target.write_bytes(original_source)
     for _ in range(2): edge()
     fam = count(art, log, family=T039_FAMILY)["family"]
     assert (fam["n_family"], fam["within_cap"], fam["n_dsr"], fam["reverted_to_lifetime"]) == (5, False, 24, True), f"T044 CAP: breach must revert to lifetime N {fam}"

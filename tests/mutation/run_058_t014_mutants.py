@@ -20,18 +20,17 @@ MUTANTS = (
     ("training rows recorded", "daily = daily.loc[tested].dropna()", "daily = daily.dropna()", "T014 TRAIN"),
     ("returns function ignores the seal",
      "        raise HoldoutSealError(f\"the walk-forward panel must end by {RESEARCH_END}; the holdout is sealed\")\n"
-     "    result = run_portfolio_backtest",
-     "        pass\n    result = run_portfolio_backtest", "T014 SEAL"),
-    ("runner ignores the seal",
-     "        raise HoldoutSealError(f\"the walk-forward panel must end by {RESEARCH_END}; the holdout is sealed\")\n"
-     "    require_buildable(config_id)",
-     "        pass\n    require_buildable(config_id)", "T014 REFUSE holdout session"),
+     "    return _oos_from_book(",
+     "        pass\n    return _oos_from_book(", "T014 SEAL"),
+    ("runner ignores the seal", "    _require_research_panel(opens, closes)\n    require_buildable(config_id)\n",
+     "    require_buildable(config_id)\n", "T014 REFUSE holdout session"),
     ("undecided sizing refused only after start", "    require_buildable(config_id)\n    _, cv = oos_sessions(",
      "    _, cv = oos_sessions(", "T014 REFUSE unknown H11"),
     ("flat-bps costs accepted",
      "if not isinstance(slippage, dict) or slippage.get(\"model\") != COST_MODEL or \"commission\" not in costs:",
      "if not isinstance(slippage, dict) or \"commission\" not in costs:", "T014 REFUSE flat bps costs"),
-    ("recorded as in-sample", "\"oos\": True, \"cv\": cv", "\"oos\": False, \"cv\": cv", "T014 RECORD metadata"),
+    ("recorded as in-sample", "commission_per_fill=costs[\"commission\"], starting_capital=starting_capital)\n        attempt.returns(rows, {\"frequency\": \"daily\", \"return_convention\": \"funded_account_log\", \"net_costs\": True,\n                               \"oos\": True,",
+     "commission_per_fill=costs[\"commission\"], starting_capital=starting_capital)\n        attempt.returns(rows, {\"frequency\": \"daily\", \"return_convention\": \"funded_account_log\", \"net_costs\": True,\n                               \"oos\": False,", "T014 RECORD metadata"),
     ("recorded outside the family", "research_attempt(config, role=role, family=FAMILY)",
      "research_attempt(config, role=role)", "T014 RECORD"),
     ("re-targeted every session",
@@ -49,7 +48,7 @@ MUTANTS = (
      "daily = equity / equity.shift(1) - 1", "T014 OOS"),
     ("book reads the next close", "hypothesis_selection(part, closes), closes",
      "hypothesis_selection(part, closes.shift(-1).ffill()), closes", "T014 LOOKAHEAD book"),
-    ("started config without the fold count", "    _, cv = oos_sessions(closes.index)", "    _, cv = oos_sessions(closes.index)\n    cv = {k: v for k, v in cv.items() if k != \"folds\"}",
+    ("started config without the fold count", "    _, cv = oos_sessions(closes.index)  # the started config", "    _, cv = oos_sessions(closes.index)\n    cv = {k: v for k, v in cv.items() if k != \"folds\"}  # the started config",
      "T014 ELIGIBLE"),
 )
 
@@ -57,7 +56,7 @@ MUTANTS = (
 def main() -> int:
     base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, DECLARATION
     base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "tests/context.py", "tests/conftest.py", DECLARATION,
-                                                  TEST), 18, MUTANTS
+                                                  TEST), 28, MUTANTS
     return base.main()
 
 
