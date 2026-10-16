@@ -9,9 +9,11 @@ over the project's entire trial history, cost modeling that includes spread and
 market impact, an append-only trial ledger, and an execution safety layer with
 durable halts and a kill switch.
 
-> **Status: v1.0 in progress.** `docs/SCOPE-V1.md` holds the definition of done.
-> No real capital has ever been deployed and none will be until the capital gate
-> in that document passes in full. Nothing here is investment advice.
+> **Status: v1.2 in progress** (`docs/SCOPE-V1.md` §11). PAPER trading runs a
+> preregistered multi-asset allocation; LIVE at Fidelity stays unarmed until every
+> item of the §11.3 capital gate has evidence (`python scripts/gate_checklist.py
+> docs/implementation/spec-059/gate-manifest.json`). No real capital has been
+> deployed. Nothing here is investment advice.
 
 ---
 
@@ -23,10 +25,21 @@ review. The rules are written down in
 [`.specify/memory/constitution.md`](.specify/memory/constitution.md) and a pull
 request that violates one is rejected regardless of its results.
 
-**It is not** a profitable strategy, and it does not claim to be. It runs on a
-static basket of five mega-cap survivors using free daily bars. That universe is
-an accounting and machinery smoke test. Any performance figure it produces is
-evidence that the plumbing is correct, not that an edge exists.
+**It is not** a profitable strategy, and it does not claim to be. Two research
+programs run on free daily bars:
+
+- **Spec 058 — preregistered edge research.** 15 configurations over 25 liquid
+  US-listed ETFs, each beside buy-and-hold and 20 seeded random baselines, with a
+  holdout sealed from 2023-10-02 and opened once. Gate 3 (deflated Sharpe and PBO
+  against the lifetime trial count) decides; the expected outcome is that nothing
+  passes, and that result is published either way.
+- **Spec 059 — the allocation the bot actually trades.** Inverse-volatility risk
+  parity over 8 asset-class ETFs (SPY, EFA, EEM, IEF, TLT, TIP, GLD, DBC), scaled to
+  10% annualized volatility, long-only, monthly. Every surface labels it
+  `ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED`: it is a portfolio-construction
+  choice, not a forecast.
+
+The original five-stock basket remains as an accounting smoke test only.
 
 ### Stated limitations
 
@@ -35,8 +48,10 @@ result appears (constitution Rule 16):
 
 | Limitation | Consequence |
 |---|---|
-| Static survivor basket (AAPL, MSFT, GOOGL, NVDA, AMZN), chosen as of 2026 | Survivorship bias. No delisted or distressed names in the history. |
-| Corporate actions from a free tier, reconciled against one free second source at best | yfinance has documented split, dividend, and 100x pricing defects. Unreconciled actions are flagged, not assumed correct. |
+| Static, survivor universes chosen as of 2026 (the five-stock basket; spec 058's 25 ETFs) | Survivorship bias. No delisted or distressed names in the history. |
+| Corporate actions from free tiers; before 2016 single-source (Tiingo) | Mismatches between sources are excluded or spliced to zero return, and disclosed, never assumed correct (spec 058 D-10). |
+| The allocation holds up to 7% cash that its backtest does not | A buffer under the safety gate's gross cap; a tracking difference, disclosed. |
+| The 2020/2022 replay uses adjusted prices and simulated fills | It proves the order path, not execution under real stress (SCOPE §11.3 item 5). |
 | No point-in-time fundamentals | Features are price and volume only. |
 | Daily bars | No intraday behavior, microstructure, or order-book information. |
 | Costs are modeled, never calibrated against real fills | Half-spread plus square-root impact estimated from daily OHLC is an estimate. |
@@ -58,6 +73,9 @@ replace a rule without touching execution.
 | Trial ledger | [`scripts/trial_registry.py`](scripts/trial_registry.py), [`scripts/trial_runner.py`](scripts/trial_runner.py) | Append-only hash-chained record of every variant ever tried |
 | Risk | [`scripts/portfolio_risk.py`](scripts/portfolio_risk.py) | Volatility-targeted sizing, correlation overlap, loss-cap halts |
 | Safety | [`scripts/live_safety_gate.py`](scripts/live_safety_gate.py), [`scripts/order_gateway.py`](scripts/order_gateway.py) | Independent pre-order limits, durable circuit breakers, manual kill switch |
+| Costs | [`scripts/cost_model.py`](scripts/cost_model.py) | Spread (EDGE estimator) plus square-root impact per fill (spec 046) |
+| Portfolio research | [`scripts/portfolio_backtest.py`](scripts/portfolio_backtest.py), [`scripts/edge_walk_forward.py`](scripts/edge_walk_forward.py), [`scripts/allocation_report.py`](scripts/allocation_report.py) | Multi-asset next-open fills; spec 058 walk-forward; spec 059 allocation report |
+| Operations | [`exec/paper_loop.py`](exec/paper_loop.py), [`exec/live_loop.py`](exec/live_loop.py), [`scripts/replay_runner.py`](scripts/replay_runner.py) | Alpaca PAPER loop, Fidelity LIVE loop (preview by default), historical replay |
 
 ## The correctness properties it enforces
 
@@ -88,7 +106,7 @@ with tests that fail when it is violated.
 
 ## Setup
 
-Python >= 3.12 is required by the current pins (NumPy requires >= 3.12; pandas and contourpy require >= 3.11); CI uses Python 3.12.
+Python >= 3.12 is required by the current pins; CI runs Python 3.12 on Linux and 3.13 on Windows.
 
 ```bash
 python -m venv venv
@@ -106,7 +124,12 @@ python scripts/return_stats.py                 # volatility, skew, kurtosis, dra
 python scripts/ma_crossover_backtest.py        # rule-based SMA crossover baseline
 python scripts/logistic_baseline.py            # walk-forward logistic baseline
 python scripts/multi_ticker_comparison.py      # the five-ticker panel comparison
+python scripts/gate_checklist.py docs/implementation/spec-059/gate-manifest.json   # §11.3 status; never arms
 ```
+
+Research runs that write the trial ledger (`scripts/run_058_t015.py`,
+`scripts/run_059_t004.py`) take `--dry-run` first and refuse to record without
+`--record-trial`; their raw vendor inputs stay outside the repository.
 
 ## Tests
 
@@ -173,10 +196,13 @@ safety gate in the live order path, a scheduled daily signal report, position
 reconciliation, and model-decay monitoring. This starts the capital gate's
 one-to-two-month paper clock.
 
-**Beyond** — real capital only after every step of the capital gate in
-[`docs/SCOPE-V1.md`](docs/SCOPE-V1.md) passes, starting from an amount sized by
-the risk layer and explicitly capped. Deferred research directions, and the
-condition that would justify each, are listed there too.
+**v1.2** — `docs/SCOPE-V1.md` §11: PAPER runs the spec 059 allocation on both
+Alpaca paper profiles; spec 058 research and its one-time holdout run are
+published; LIVE arms at Fidelity with a $100 settled-cash cap only after the
+§11.3 gate has evidence for every item (full and mutation suites, the allocation
+backtest with both baselines, safety drills, 10 reconciled PAPER sessions, the
+2020/2022 replay, 5 clean Fidelity preview sessions, the budget cap). Camden arms
+LIVE himself; no code path does.
 
 ## Disclaimer
 
