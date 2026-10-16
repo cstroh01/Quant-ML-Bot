@@ -16,21 +16,24 @@ muts = {
     "NaN minimum passes": ("    if not _finite(quote.min_notional_usd):\n        reasons.append(\"broker_minimum_unknown\")\n    elif", "    if"),
     "invalid order passes": ('        reasons.append("order_invalid")\n        return reasons', "        pass"),
     "NaN close passes": ("    if not _finite(last) or last < limits.min_price:", "    if last < limits.min_price:"),
-    "non-finite volume skipped": ("bool(dollar.map(_finite).all())", "bool(dollar.notna().all())"),
-    "negative volume skipped": ('bool((window["Volume"] >= 0).all())', "True"),
+    "non-finite volume skipped": ("not window.empty and bool(dollar.map(_finite).all())", "not window.empty and bool(dollar.notna().all())"),
+    "negative volume skipped": ('.all()) and bool((window["Volume"] >= 0).all())\n    median', ".all()) and True\n    median"),
     "NaN participation cap": ("        if not (_finite(self.max_participation) and 0 < self.max_participation <= 1):", "        if False:"),
     "NaN spread limit": ("            if not (_finite(value) and value >= 0):", "            if False:"),
 }
 killed = 0
-for name, (a, b) in muts.items():
-    assert orig.count(a) == 1, name
-    p.write_text(orig.replace(a, b))
-    r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_052_registry.py", "tests/test_052_membership.py",
-                        "tests/test_052_eligibility.py", "tests/test_052_acceptance.py", "-q", "-p", "no:cacheprovider"],
-                       capture_output=True, cwd=ROOT)
-    ok = r.returncode != 0
-    killed += ok
-    print(("KILLED  " if ok else "SURVIVED"), name)
-p.write_text(orig)
+for name, (a, _b) in muts.items():  # every anchor is checked before any mutant is written
+    assert orig.count(a) == 1, f"{name}: expected one site, found {orig.count(a)}"
+try:
+    for name, (a, b) in muts.items():
+        p.write_text(orig.replace(a, b))
+        r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_052_registry.py", "tests/test_052_membership.py",
+                            "tests/test_052_eligibility.py", "tests/test_052_acceptance.py", "-q", "-p", "no:cacheprovider"],
+                           capture_output=True, cwd=ROOT)
+        ok = r.returncode != 0
+        killed += ok
+        print(("KILLED  " if ok else "SURVIVED"), name)
+finally:
+    p.write_text(orig)  # a crash never leaves a mutant in the source
 print(f"{killed}/{len(muts)} killed")
 sys.exit(0 if killed == len(muts) else 1)

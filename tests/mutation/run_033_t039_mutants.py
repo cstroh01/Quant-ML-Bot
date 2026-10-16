@@ -44,7 +44,7 @@ MUTANTS = (
      'lifetime = matrix_dsr(matrix, selected_trial=selected_trial, n_current=len(matrix["columns"]))', "T044 NCURRENT"),
     ("unstored backfill accepted", TR, 'if backfill not in stored:', "if False:", "T039 ANCHOR"),
     ("superseded backfill accepted", TR, "if any(n_backfill < ", "if False and any(n_backfill < ", "T039 SUPERSEDED"),
-    ("declaration anchored after first start", TR, "if anchor not in heads[:first]:", "if anchor not in heads:", "T044 ANCHOR"),
+    ("declaration anchored after first start", TR, "if any(a not in heads[:first] for a in anchors):", "if any(a not in heads for a in anchors):", "T044 ANCHOR"),
     ("family cap unbounded", TR, 'if not 1 <= status["cap"] <= 50:', 'if not 1 <= status["cap"]:', "T044 CAPLIMIT"),
     ("family id unchecked", SB, 'elif matrix["family"]["id"] != fam["family"]:', "elif False:", "T044 MISMATCH"),
     ("altered declaration keeps family N", TR, '"cap": None, "within_cap": False,', '"cap": None, "within_cap": True,',
