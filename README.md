@@ -206,8 +206,11 @@ one-to-two-month paper clock.
 
 **v1.2** — `docs/SCOPE-V1.md` §11: the reviewed spec 061 allocation will run on both
 Alpaca paper profiles; spec 058 research and its one-time holdout run are
-published; a separate protected draft raises the LIVE cap from $100 to $200.
-The current deployed cap remains $100 until Camden reviews and merges it.
+published. A separate protected change sets the proposed LIVE cap to $200;
+this public report changes no LIVE cap. Verify that protected change on main,
+the installed pin, the Fidelity profile, and gate item 7 before treating the
+$200 budget as effective. The $100,000 research run does not establish that
+all eight orders are executable in a $200 account.
 LIVE arms at Fidelity only after the
 §11.3 gate has evidence for every item (full and mutation suites, the allocation
 backtest with both baselines, safety drills, 10 reconciled PAPER sessions, the
