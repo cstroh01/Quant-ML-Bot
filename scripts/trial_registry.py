@@ -34,7 +34,8 @@ _VERIFIED_SIDECARS: dict[str, tuple] = {}
 # Spec 058 D-1: a preregistered family's trials are refused until its declaration is in docs/trials.
 FAMILY_DIR = "docs/trials/families"
 DECLARED_FAMILIES = {"058-edge": ".specify/specs/058-edge-research-program/declaration.json",
-                     "059-allocation": ".specify/specs/059-live-allocation/declaration.json"}
+                     "059-allocation": ".specify/specs/059-live-allocation/declaration.json",
+                     "061-buffered-allocation": ".specify/specs/061-buffered-allocation/declaration.json"}
 ENABLE_ACTION = ("pass --record-trial to the CLI, or wrap library code in "
                  "`with production_recording(reason=...)`")
 # Spec 043 D-1 B: production recording is per-run, never environmental. Only
