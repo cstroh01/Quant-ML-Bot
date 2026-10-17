@@ -236,6 +236,34 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
     return record | {"new_incidents": _deliver(ops, incidents)}
 
 
+def preview_once(state_dir, *, profile: str, command: list[str], now: datetime, strategy_version: str) -> dict:
+    """A dry-run preview of a due session that takes NO lease and writes no run record.
+
+    Lets a supervised dry run precede the real submit run on the same session (hosted Part B)
+    without consuming that session's lease. Honours the profile's kill; runs nothing unless the
+    session is due; refuses any command that may submit, so a preview cannot place an order.
+    One line goes to ``<state>/ops/previews.jsonl``; runs.jsonl and the lease are untouched.
+    """
+    if not str(strategy_version).strip():
+        raise ValueError("strategy_version is required for the run identity")
+    require_storage_identifier(profile)
+    if _may_submit(shlex.join(command)):
+        raise ValueError("a preview is refused for a command that may submit")
+    if _kill_path(state_dir, profile).exists():
+        return _killed(state_dir, profile, now=now)  # same halt incident as run_once
+    ops = Path(state_dir) / "ops"
+    completed = {(profile, date.fromisoformat(r["session"])) for r in _jsonl(ops / "runs.jsonl") if r["profile"] == profile}
+    decision = due_run(now, profile=profile, completed=completed)
+    if decision.status != "due":
+        return {"status": decision.status, "session": decision.session.isoformat(), "new_incidents": []}
+    result = subprocess.run(command, capture_output=True, text=True)
+    record = {"profile": profile, "session": decision.session.isoformat(), "strategy_version": strategy_version,
+              "mode": "preview", "status": "previewed" if result.returncode == 0 else "failed",
+              "exit_code": result.returncode, "finished_at_utc": datetime.now(timezone.utc).isoformat()}
+    _append(ops / "previews.jsonl", record)
+    return record | {"new_incidents": []}
+
+
 def main(argv: list[str] | None = None) -> int:
     """Exit 1 on a failed run or any new incident, so the workflow's failure() alert step fires."""
     parser = argparse.ArgumentParser(description="Run one scheduled profile session if due")
@@ -247,6 +275,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-log", type=Path, help="the wrapped loop's runs.jsonl, for the daily summary")
     parser.add_argument("--drill", action="store_true", help="supervised drill; refused with a --submit command")
     parser.add_argument("--now", type=datetime.fromisoformat, help="drill only: injected timezone-aware clock")
+    parser.add_argument("--preview", action="store_true",
+                        help="dry-run preview of a due session: no lease, no run record; refused for a submit command")
     action = parser.add_mutually_exclusive_group()
     action.add_argument("--hold-lease", type=date.fromisoformat, metavar="SESSION",
                         help="drill only: write a held lease for SESSION and run nothing")
@@ -282,6 +312,13 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if not args.command:
         parser.error("--command is required for a run")
+    if args.preview:
+        if _may_submit(args.command) or args.persist_command or args.drill:
+            parser.error("--preview is refused with a command that may submit, a --persist-command or --drill")
+        result = preview_once(args.state_dir, profile=args.profile, command=shlex.split(args.command),
+                              now=_now(), strategy_version=args.strategy_version)
+        print(json.dumps(result, sort_keys=True, default=str))
+        return 0 if result["status"] in ("previewed", "done", "not_session", "before_window", "after_cutoff") else 1
     result = run_once(args.state_dir, profile=args.profile, command=shlex.split(args.command),
                       now=args.now or _now(), strategy_version=args.strategy_version,
                       persist_command=shlex.split(args.persist_command) if args.persist_command else None,
