@@ -30,6 +30,7 @@ import pandas as pd
 
 from _project import project_root
 from data import trading_days
+from allocation_policy import policy_evidence
 
 ROOT = project_root()
 if str(ROOT / "exec") not in sys.path:
@@ -129,6 +130,7 @@ def replay_window(opens: pd.DataFrame, closes: pd.DataFrame, start: date, end: d
     sessions = [d for d in trading_days(start, end) if pd.Timestamp(d) in closes.index]
     report = {"window": [start.isoformat(), end.isoformat()], "sessions": 0, "orders": 0, "denied": [],
               "aborted": [], "errors": [], "decisions_executed": [], "safety_config_version": config.version}
+    report["allocation"] = policy_evidence()
     with tempfile.TemporaryDirectory(prefix="qmb-replay-") as tmp:
         state = Path(tmp)
         gate = LiveSafetyGate(state / "gate.sqlite", config)
