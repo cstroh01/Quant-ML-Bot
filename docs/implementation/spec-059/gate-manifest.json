@@ -1,5 +1,5 @@
 {
-  "note": "SCOPE \u00a711.3 evidence manifest for scripts/gate_checklist.py. One entry per item, keyed \"1\"..\"7\": {\"artifact\": repo-relative path, \"sha256\": 64 hex, \"commit\": sha, \"date_utc\": ISO instant with Z}. Empty until evidence exists; the checklist prints NOT ARMABLE.",
+  "note": "Draft 061 adoption evidence: publication commit fields intentionally remain PENDING_MAIN_MERGE until Camden publishes/merges the reviewed units. Old 059/A1 report/replay is historical, not evidence of B7-EW. No arming; items 4/6/7 still require runtime/human evidence; final item-1 refresh must use the exact arming SHA.",
   "items": {
     "1": {
       "artifact": "docs/implementation/spec-059/item1-evidence-20261016.json",
@@ -8,16 +8,26 @@
       "date_utc": "2026-10-16T04:31:37Z"
     },
     "5": {
-      "artifact": "docs/implementation/spec-059/replay-evidence-20261015.json",
-      "sha256": "b55b569822681b2da85d526af01c0c9cbc1adfac7bd5d21c118b96e03ee6a9bf",
-      "commit": "d95a4c05445e24e5fb7766ab1b738f2504cbd95a",
-      "date_utc": "2026-10-16T03:25:33Z"
+      "artifact": "docs/implementation/spec-061/replay-evidence-20261017.json",
+      "sha256": "559a8f6aa0eb19e9d77bcde73142d483fced65520b87b3ffebeca647321d5492",
+      "commit": "PENDING_MAIN_MERGE",
+      "date_utc": "2026-10-17T16:06:32.807330+00:00",
+      "allocation": {
+        "policy_id": "061-b7-ew-v1",
+        "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731",
+        "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f"
+      }
     },
     "2": {
-      "artifact": "docs/implementation/spec-059/t004-report-20261016.md",
-      "sha256": "ecac666ebdc06a479ff07f1905e5892c94c6aa4e21562a46ecaa27f7346a630c",
-      "commit": "79b2d22d20a9ffea33c6bb6e4deef842f0430baf",
-      "date_utc": "2026-10-16T08:52:51Z"
+      "artifact": "docs/implementation/spec-061/trial-report-20261017.md",
+      "sha256": "19893f52fbdc18006ab2056f92d014def18433ecea82cbbc84bfa2a227ac5790",
+      "commit": "PENDING_MAIN_MERGE",
+      "date_utc": "2026-10-17T15:47:53.043068Z",
+      "allocation": {
+        "policy_id": "061-b7-ew-v1",
+        "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731",
+        "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f"
+      }
     },
     "3": {
       "artifact": "docs/implementation/spec-059/drill-evidence-20261016.json",
