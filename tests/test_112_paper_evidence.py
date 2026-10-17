@@ -37,7 +37,9 @@ def history(seed=7):
 
 
 def run(profile, session, actions, mode="submit"):
-    return {"profile": profile, "mode": mode, "session": session.isoformat(), "actions": actions}
+    from allocation_policy import policy_evidence
+    return {"profile": profile, "mode": mode, "session": session.isoformat(), "actions": actions,
+            "allocation": policy_evidence(), "evidence_scope": "qualifying"}
 
 
 def sent(cid, delta, notional, ticker="SPY", outcome="SUBMITTED"):
@@ -228,7 +230,7 @@ def test_cli_end_to_end_exits_nonzero_until_pass(tmp_path, capsys):
 @pytest.mark.parametrize("old, new, check", [
     ("for p in profiles if len(sessions.get(p, [])) < minimum]", "for p in profiles if len(sessions.get(p, [])) < minimum - 1]",
      check_pass_needs_ten_sessions_each),
-    ('if run.get("mode") == "submit" and run.get("profile"):', 'if run.get("profile"):', check_pass_needs_ten_sessions_each),
+    ('if qualifying_run(run) and run.get("profile"):', 'if run.get("profile"):', check_pass_needs_ten_sessions_each),
     ("as_of=pd.Timestamp(decided)", "as_of=pd.Timestamp(filled_on)", check_buy_and_sell_costs),
     ("realized = sign * (fill - open_price) / open_price", "realized = (fill - open_price) / open_price",
      check_buy_and_sell_costs),
