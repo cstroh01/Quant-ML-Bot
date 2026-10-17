@@ -32,7 +32,11 @@ programs run on free daily bars:
   US-listed ETFs, each beside buy-and-hold and 20 seeded random baselines, with a
   holdout sealed from 2023-10-02 and opened once. Gate 3 (deflated Sharpe and PBO
   against the lifetime trial count) decides; the expected outcome is that nothing
-  passes, and that result is published either way.
+  passes, and that result is published either way. **Result (2026-10-16): FAIL.**
+  The selected configuration (H10, 60/40 SPY/IEF) had family DSR 0.09 and HAC t 0.99
+  in the research window; equal-weight buy-and-hold beat all 15. Its one-time
+  holdout passed D-4, which is not evidence of edge for a fixed allocation. See
+  [`docs/implementation/spec-058/results-20261016.md`](docs/implementation/spec-058/results-20261016.md).
 - **Spec 059 — the allocation the bot actually trades.** Inverse-volatility risk
   parity over 8 asset-class ETFs (SPY, EFA, EEM, IEF, TLT, TIP, GLD, DBC), scaled to
   10% annualized volatility, long-only, monthly. Every surface labels it

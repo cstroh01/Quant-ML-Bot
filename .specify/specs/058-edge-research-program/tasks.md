@@ -103,7 +103,7 @@ Order matters: D-1(a) requires T006 to land before T007.
   - Baselines use the same period and costs as the candidates, and are excluded from `N_family`.
 
 ## Phase 4 — research runs (after 046 T001/T002; D-5)
-- [ ] T014 Walk-forward runner.
+- [x] T014 Walk-forward runner. _(done: edge_walk_forward + run_058_t015; §5 selection in run_058_t016.selection, #238)_
   - Purged and embargoed (Rule 2), with the embargo ≥ the longest lookback.
   - The research window ends at 2023-09-29.
   - Every run goes through `research_attempt(family="058-edge")`.
@@ -119,13 +119,13 @@ Order matters: D-1(a) requires T006 to land before T007.
   - Result-bearing; reviewed before publication.
 
 ## Phase 5 — holdout and gate
-- [ ] T016 **HUMAN GATE — holdout run, Camden authorizes.**
+- [x] T016 **HUMAN GATE — holdout run, Camden authorizes.** _(done 2026-10-16, authorized in chat: H10, 758 sessions, D-4 pass; ledger 854, head fb604ba367d1)_
   - One run of the selected configuration on sessions ≥ 2023-10-02, recorded in the ledger.
   - Pass condition: D-4.
-- [ ] T017 Gate 3 evidence artifact (033 Phases 8–9).
+- [x] T017 Gate 3 evidence artifact (033 Phases 8–9). _(done: reports/artifacts/capital_gate/gate3/5779c9c5…json, failed; verdict FAIL)_
   - The verdict is PASS only if the research-window Gate 3 passes **and** D-4 passes.
   - Otherwise FAIL, published as it is.
-- [ ] T018 Publication.
+- [x] T018 Publication. _(done: docs/implementation/spec-058/results-20261016.md, README)_
   - Content:
     - the tearsheet
     - limitations
