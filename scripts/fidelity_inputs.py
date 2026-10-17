@@ -26,6 +26,8 @@ import numpy as np  # noqa: E402
 
 from paper_loop import fetch_sleeve_closes, previous_session  # noqa: E402
 from signals import ALLOCATION_SLEEVES  # noqa: E402
+from allocation_policy import policy_evidence  # noqa: E402
+from buffered_allocation import buffered_weights  # noqa: E402
 
 
 class InputsRefused(RuntimeError):
@@ -59,12 +61,18 @@ def build_bundle(out: Path, *, now: datetime, session: date, fetcher=None,
         raise InputsRefused(f"last completed session is {closes.index[-1].date()}, the run on {session} needs {want}")
     if any(m.get("source") != "alpaca_sip_daily" for m in manifests):
         raise InputsRefused("every source must be alpaca_sip_daily")
+    book = buffered_weights(closes)
+    if book.empty:
+        raise InputsRefused("history contains no monthly allocation decision")
+    allocation = {**policy_evidence(), "decision_session": str(book.index[-1].date()),
+                  "targets": {ticker: float(book.iloc[-1][ticker]) for ticker in ALLOCATION_SLEEVES}}
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     raw = closes.to_csv(lineterminator="\n").encode("utf-8")
     digest = hashlib.sha256(raw).hexdigest()
     (out / "closes.csv").write_bytes(raw)
-    (out / "sources.json").write_text(json.dumps({"csv_sha256": digest, "sources": [_jsonable(m) for m in manifests]},
+    (out / "sources.json").write_text(json.dumps({"csv_sha256": digest, "sources": [_jsonable(m) for m in manifests],
+                                                 "allocation": allocation},
                                                  sort_keys=True, indent=1), encoding="utf-8")
     return {"csv_sha256": digest, "last_session": str(want), "rows": len(closes)}
 

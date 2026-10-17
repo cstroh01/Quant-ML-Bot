@@ -9,7 +9,7 @@ One run, before the open on a trading day:
    aborts unless that session is exactly the previous NYSE session, so a
    missing bar can never produce a stale trade, and aborts on a one-day move
    larger than ``MAX_DAILY_LOG_MOVE`` (an unadjusted split would size wrongly).
-3. Decide: ``paper_targets.plan_allocation`` (spec 059 §3; no edge claimed),
+3. Decide: ``paper_targets.plan_allocation`` (spec 061; no edge claimed),
    held between monthly decisions. ``plan_next_open`` (the spec 049 trend
    prototype) remains as ``TrendPlanner`` for its tests.
 4. Act: each order goes through ``order_gateway.submit_order`` with a fresh
@@ -47,6 +47,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from data_sources import AlpacaDailyBars, SourceFetchError  # noqa: E402
+from allocation_policy import DISCLOSURE as ALLOCATION_DISCLOSURE, policy_evidence  # noqa: E402
 from alpaca_paper import (  # noqa: E402
     TERMINAL_STATUSES,
     AlpacaPaperClient,
@@ -162,6 +163,7 @@ class Plan:
     decision_session: str | None = None
     pending: bool = False
     deferred: bool = False  # buys held back until this run's sells fill: the decision is not done
+    allocation: dict | None = None
 
 
 class TrendPlanner:
@@ -190,7 +192,10 @@ class AllocationPlanner:
         if not self.state_path.exists():
             return None
         try:
-            value = json.loads(self.state_path.read_text(encoding="utf-8"))["executed_decision"]
+            saved = json.loads(self.state_path.read_text(encoding="utf-8"))
+            if not isinstance(saved, dict) or saved.get("allocation") != policy_evidence():
+                raise RunAborted("allocation policy mismatch; inspect existing state before trading; do not delete it")
+            value = saved["executed_decision"]
         except (ValueError, KeyError, TypeError) as exc:
             raise RunAborted(f"allocation state {self.state_path.name} is unreadable ({type(exc).__name__}); "
                              "inspect it before trading") from None
@@ -206,12 +211,13 @@ class AllocationPlanner:
         except ValueError as exc:
             raise RunAborted(f"allocation: {exc}") from None
         return Plan(decision, orders, self.fractionable, chosen, pending=chosen is not None and chosen != executed,
-                    deferred=bool(decision.attrs.get("deferred_buys")))
+                    deferred=bool(decision.attrs.get("deferred_buys")), allocation=policy_evidence())
 
     def complete(self, decision_session: str) -> None:
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
         temporary = self.state_path.with_name(self.state_path.name + ".tmp")
         temporary.write_text(json.dumps({"executed_decision": decision_session,
+                                         "allocation": policy_evidence(),
                                          "recorded_at_utc": datetime.now(timezone.utc).isoformat()}),
                              encoding="utf-8")
         os.replace(temporary, self.state_path)
@@ -321,6 +327,8 @@ def run_once(
     profile: ModeProfile | None = None,
     durable: Durable | None = None,
     planner: Any = None,
+    submit_before: datetime | None = None,
+    evidence_scope: str = "qualifying",
 ) -> dict:
     """One loop iteration. Returns the run record; raises ``RunAborted``.
 
@@ -330,6 +338,10 @@ def run_once(
     reservation are persisted before the broker sees it, and today's earlier buy intents count
     against the daily deploy cap.
     """
+    if evidence_scope not in ("qualifying", "drill"):
+        raise RunAborted("evidence_scope must be qualifying or drill")
+    if submit:
+        _check_submit_deadline(submit_before, now_fn)
     clock = client.clock()
     broker_now = parse_broker_time(clock["timestamp"])
     today = broker_now.astimezone(NY).date()
@@ -413,10 +425,13 @@ def run_once(
             actions.append(record)
             continue
         snapshot = client.snapshot(gate_prices, parse_time=parse_broker_time)
-        send = _durable_send(client, durable, today, side, record["notional"])
+        send = _durable_send(client, durable, today, side, record["notional"], before=submit_before, now_fn=now_fn)
         try:
             submit_order(gate, snapshot=snapshot, intent=intent, now=now_fn(), submit=send)
             record["outcome"] = "SUBMITTED"
+        except RunAborted:
+            gate.record_order_outcome(intent.client_order_id, terminal=True, reason="NOT_SENT_CUTOFF", now=now_fn())
+            raise
         except PersistFailed as exc:
             gate.record_order_outcome(intent.client_order_id, terminal=True, reason="NOT_SENT_PERSIST_FAILED",
                                       now=now_fn())
@@ -454,8 +469,11 @@ def run_once(
         "decision": json.loads(decision.to_json(orient="index")),
         "decision_session": plan.decision_session,
         "decision_executed": executed,
+        "allocation": plan.allocation,
+        "evidence_scope": evidence_scope,
         "actions": actions,
-        "disclosure": "Paper mechanics prototype. Not a performance result (SCOPE §6; spec 049).",
+        "disclosure": (ALLOCATION_DISCLOSURE if plan.allocation else
+                       "Paper mechanics prototype. Not a performance result (SCOPE §6; spec 049)."),
     }
 
 
@@ -467,13 +485,28 @@ def _deployed_today(durable: Durable | None, today: date) -> float:
                if row["intent"].get("session") == today.isoformat() and row["intent"].get("side") == "buy")
 
 
-def _durable_send(client: Any, durable: Durable | None, today: date, side: str, notional: float):
+def _check_submit_deadline(before: datetime | None, now_fn: Callable[[], datetime]) -> None:
+    if before is None:
+        return
+    now = now_fn()
+    if before.utcoffset() is None or now.utcoffset() is None:
+        raise RunAborted("supervised submission cutoff and clock must be timezone-aware")
+    if now >= before:
+        raise RunAborted("supervised submission cutoff reached; no order sent")
+
+
+def _durable_send(client: Any, durable: Durable | None, today: date, side: str, notional: float,
+                  *, before: datetime | None = None, now_fn: Callable[[], datetime] | None = None):
     """The gateway's submit callable: record the intent, persist, and only then call the broker.
 
     Runs after the gate has reserved the order (``submit_order`` calls it only on ALLOW), so the
     persisted state holds both the reservation and the intent before the broker sees anything.
     """
+    clock = now_fn or (lambda: datetime.now(timezone.utc))
+    if before is not None and before.utcoffset() is None:
+        raise RunAborted("supervised submission cutoff must be timezone-aware")
     def send(intent: OrderIntent):
+        _check_submit_deadline(before, clock)
         if durable is not None:
             record_intent(durable.intents_dir, intent.client_order_id,
                           {"session": today.isoformat(), "ticker": intent.instrument, "side": side,
@@ -482,6 +515,7 @@ def _durable_send(client: Any, durable: Durable | None, today: date, side: str, 
                 durable.persist()
             except Exception as exc:  # noqa: BLE001 - any persist failure means "do not send"
                 raise PersistFailed(f"state not persisted ({type(exc).__name__}); order not sent") from None
+        _check_submit_deadline(before, clock)
         return client.submit_market_on_open(intent)
     return send
 
@@ -560,6 +594,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.offline and args.submit:
         parser.error("--offline cannot --submit")
+    raw_deadline = os.environ.get("QMB_INITIAL_SUBMIT_BEFORE")
+    try:
+        deadline = datetime.fromisoformat(raw_deadline.replace("Z", "+00:00")) if raw_deadline else None
+    except ValueError:
+        raise RunAborted("invalid supervised submission cutoff") from None
+    if args.submit:
+        _check_submit_deadline(deadline, lambda: datetime.now(timezone.utc))
+    evidence_scope = os.environ.get("QMB_EVIDENCE_SCOPE", "qualifying")
 
     profile = load_paper_profile(args.profiles_file, args.profile) if args.profile else None
     if args.submit and profile is not None and not args.persist_command:
@@ -582,7 +624,7 @@ def main(argv: list[str] | None = None) -> int:
         durable = (Durable(intents_dir=gate_db.parent, persist=persist_command(args.persist_command))
                    if args.persist_command else None)
         record = run_once(client=client, gate=gate, closes=closes, submit=args.submit, profile=profile,
-                          durable=durable, planner=planner)
+                          durable=durable, planner=planner, submit_before=deadline, evidence_scope=evidence_scope)
         record["sources"] = manifests
     except (RunAborted, BrokerError) as exc:
         record = {"run_at_utc": datetime.now(timezone.utc).isoformat(), "aborted": str(exc), "sources": manifests}
