@@ -1,5 +1,24 @@
 # STATE
 
+## 2026-10-17 buffered-allocation adoption draft
+
+Camden chose a fresh costed equal-weight allocation with a 7% target reserve,
+after seeing T004; historical A1/B-BH remain untraded research results. New
+spec 061 T005 is verified: candidate `8d4dfeda-10ef-4951-bf0e-147090ea9731`,
+22/22 series completed, ledger 898 lines, head `c510408010dd8af4e1cdbeeb2c686706a8f33b0aa052272c2353e840ebcc17cc`.
+See `docs/implementation/spec-061/trial-report-20261017.md` for costed figures,
+post-hoc selection and limitations. This is not an edge claim or deployment.
+
+T006 shared-planner/PAPER/input-bundle adoption is a local review draft. New
+replays pass both stress windows at both PAPER budgets, but publication commit
+fields deliberately remain unresolved in the gate manifest. Old A1 evidence
+does not accept the new policy. LIVE budget remains $100 until the separate
+protected $200 change is reviewed and merged; profiles.json is unchanged.
+Fidelity fractional sizing requires its own protected 0.001-share precision fix.
+Input refresh to 2026-10-16 is blocked: approved Alpaca environment keys absent.
+No arming, broker orders, production pin or schedule change. All runtime gates
+remain. The older checkpoint below is historical and has not been re-audited here.
+
 The loop's working memory, and the one place to see where the repo stands.
 **Camden owns** the active spec and every human-gate decision. **A loop PR
 updates** Next, Blockers, Expected red, and Lane status in the same PR as its

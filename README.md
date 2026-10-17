@@ -9,8 +9,8 @@ over the project's entire trial history, cost modeling that includes spread and
 market impact, an append-only trial ledger, and an execution safety layer with
 durable halts and a kill switch.
 
-> **Status: v1.2 in progress** (`docs/SCOPE-V1.md` §11). PAPER trading runs a
-> preregistered multi-asset allocation; LIVE at Fidelity stays unarmed until every
+> **Status: v1.2 in progress** (`docs/SCOPE-V1.md` §11). Supervised PAPER sessions
+> and reviewed spec 061 adoption remain pending; LIVE at Fidelity stays unarmed until every
 > item of the §11.3 capital gate has evidence (`python scripts/gate_checklist.py
 > docs/implementation/spec-059/gate-manifest.json`). No real capital has been
 > deployed. Nothing here is investment advice.
@@ -37,9 +37,13 @@ programs run on free daily bars:
   in the research window; equal-weight buy-and-hold beat all 15. Its one-time
   holdout passed D-4, which is not evidence of edge for a fixed allocation. See
   [`docs/implementation/spec-058/results-20261016.md`](docs/implementation/spec-058/results-20261016.md).
-- **Spec 059 — the allocation the bot actually trades.** Inverse-volatility risk
-  parity over 8 asset-class ETFs (SPY, EFA, EEM, IEF, TLT, TIP, GLD, DBC), scaled to
-  10% annualized volatility, long-only, monthly. Every surface labels it
+- **Spec 061 — fresh buffered allocation, adoption draft.** Monthly equal weights
+  over 8 asset-class ETFs (SPY, EFA, EEM, IEF, TLT, TIP, GLD, DBC), with 93% gross
+  target and 7% pre-cost target cash; signals fill at the next session's open.
+  Camden chose it after seeing spec 059 T004. Historical A1 and unbuffered B-BH
+  remain unchanged research; the new costed trial is recorded separately in
+  [`docs/implementation/spec-061/trial-report-20261017.md`](docs/implementation/spec-061/trial-report-20261017.md).
+  Every surface labels it
   `ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED`: it is a portfolio-construction
   choice, not a forecast.
 
@@ -54,7 +58,7 @@ result appears (constitution Rule 16):
 |---|---|
 | Static, survivor universes chosen as of 2026 (the five-stock basket; spec 058's 25 ETFs) | Survivorship bias. No delisted or distressed names in the history. |
 | Corporate actions from free tiers; before 2016 single-source (Tiingo) | Mismatches between sources are excluded or spliced to zero return, and disclosed, never assumed correct (spec 058 D-10). |
-| The allocation holds up to 7% cash that its backtest does not | A buffer under the safety gate's gross cap; a tracking difference, disclosed. |
+| Spec 061 targets 7% pre-cost cash at monthly rebalances in research and execution | Price moves, costs, rounding, minimums and deployment caps cause tracking differences; it is not a guaranteed daily cash floor. |
 | The 2020/2022 replay uses adjusted prices and simulated fills | It proves the order path, not execution under real stress (SCOPE §11.3 item 5). |
 | No point-in-time fundamentals | Features are price and volume only. |
 | Daily bars | No intraday behavior, microstructure, or order-book information. |
@@ -200,9 +204,11 @@ safety gate in the live order path, a scheduled daily signal report, position
 reconciliation, and model-decay monitoring. This starts the capital gate's
 one-to-two-month paper clock.
 
-**v1.2** — `docs/SCOPE-V1.md` §11: PAPER runs the spec 059 allocation on both
+**v1.2** — `docs/SCOPE-V1.md` §11: the reviewed spec 061 allocation will run on both
 Alpaca paper profiles; spec 058 research and its one-time holdout run are
-published; LIVE arms at Fidelity with a $100 settled-cash cap only after the
+published; a separate protected draft raises the LIVE cap from $100 to $200.
+The current deployed cap remains $100 until Camden reviews and merges it.
+LIVE arms at Fidelity only after the
 §11.3 gate has evidence for every item (full and mutation suites, the allocation
 backtest with both baselines, safety drills, 10 reconciled PAPER sessions, the
 2020/2022 replay, 5 clean Fidelity preview sessions, the budget cap). Camden arms
