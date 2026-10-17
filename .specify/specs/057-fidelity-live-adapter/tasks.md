@@ -11,5 +11,10 @@
 - Q135: preview-only daily session, dedicated-account bot-ledger reconciliation, typed five-session evidence; six mutants.
 - Q140 (after Q135): child-only credential launcher, Windows Credential Manager/Linux environment, hash-locked keyring; four mutants.
 - Q137: dormant allocation loop, reconciliation, gateway, settled-cash/$100 cap; five mutants.
-- Q138: private Windows laptop and future Linux self-hosted dispatch-only launcher workflows and installation map, draft only.
+- Q138: SUPERSEDED by Camden's 2026-10-17 local Windows Task Scheduler instruction.
+  A public-repository self-hosted runner can execute PR workflow code beside
+  credentials. Replacement drafts: scripts/fidelity_preview_day.ps1,
+  scripts/install-fidelity-preview-task.ps1, scripts/uninstall-fidelity-preview-task.ps1,
+  ops/windows/fidelity-preview-task.xml. See ops/windows/README.md. No runner or
+  task installed; reboot/lid-close and five-session evidence are runtime gates.
 Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or broker probe authorized.
