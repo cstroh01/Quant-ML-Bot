@@ -198,7 +198,7 @@ def plan_next_open(
 
 
 # ---------------------------------------------------------------------------
-# Spec 059 FR-004: the PAPER loop trades the preregistered allocation (no edge claimed)
+# Spec 061 T006: the shared planner targets the freshly recorded buffered allocation
 # ---------------------------------------------------------------------------
 
 # Execution-side cash buffer: the safety gate prices every position at the last close plus the
@@ -206,8 +206,8 @@ def plan_next_open(
 # A 5% buffer left the gate's view at 0.95 x 1.05 = 0.9975, and the 2020-02 real-data replay
 # (queue Q111 follow-up, 2026-10-15) then denied a deferred TLT buy four sessions running on the
 # gross cap once prices drifted 0.25%. 7% gives 0.93 x 1.05 = 0.9765, 2.35% of headroom; both
-# §11.3.5 windows then replay with no denial. Disclosed: PAPER and LIVE hold up to 7% more cash
-# than the spec 059 backtest.
+# §11.3.5 windows then replay with no denial. The new spec 061 trial includes this reserve;
+# it must not be applied a second time. Historical spec 059 research is unchanged.
 ALLOCATION_CASH_BUFFER = 0.07
 # Orders smaller than this fraction of equity are not sent (disclosed tracking difference).
 ALLOCATION_MIN_TRADE = 0.005
@@ -231,18 +231,18 @@ def plan_allocation(
     sells_before_buys: bool = True,
     min_trade_fraction: float = ALLOCATION_MIN_TRADE,
 ) -> tuple[pd.DataFrame, list[OrderDelta], str | None]:
-    """Orders for the open after ``session`` that move the book to spec 059's latest decision target.
+    """Orders for the open after ``session`` targeting the recorded spec 061 allocation.
 
     Guarantees:
 
-    - **Point-in-time (Rule 1).** Reads ``closes.loc[:session]`` only; the target is the spec 059
-      §3 weight row (``portfolio_risk.allocation_weights``) at the latest monthly decision session
+    - **Point-in-time (Rule 1).** Reads ``closes.loc[:session]`` only; the target is spec 061's
+      buffered equal-weight row at the latest monthly decision session
       ``d <= session``, so orders computed after the close of ``d`` fill at the open after it.
     - **Held between decisions.** When ``executed_decision`` already names ``d`` the book is not
       re-targeted: no orders. A decision not yet fully executed (first deployment, a missed run, a
       buy the daily cap shrank) keeps moving toward that same ``d`` target.
-    - **Cash, never leverage.** Targets are scaled by ``1 - cash_buffer``; a data hole at ``d``
-      (spec 059 D-6) is an all-cash target. Buys floor (to six decimals where fractionable, else
+    - **Cash, never leverage.** The frozen rule already targets 7% cash before costs; the
+      reserve cannot be overridden here or applied twice. Buys floor (to six decimals where fractionable, else
       whole shares); sells never go below zero; sells come first.
     - **Sells settle before buys.** With ``sells_before_buys``, a run that must sell returns only the
       sells and sets ``frame.attrs["deferred_buys"]``; the buys go out at the next run, once the
@@ -254,11 +254,11 @@ def plan_allocation(
 
     Returns ``(decision frame, orders, d)``; ``d`` is None before the first decision exists.
     """
-    from portfolio_risk import allocation_weights
-    from signals import ALLOCATION_SLEEVES, allocation_selection, decision_sessions
+    from buffered_allocation import CASH_RESERVE, buffered_weights
+    from signals import ALLOCATION_SLEEVES, decision_sessions
 
-    if not 0.0 <= cash_buffer < 1.0:
-        raise ValueError("cash_buffer must be in [0, 1).")
+    if cash_buffer != CASH_RESERVE:
+        raise ValueError("cash_buffer must equal the frozen spec 061 reserve (0.07).")
     if not (isinstance(equity, (int, float)) and math.isfinite(equity) and equity > 0):
         raise ValueError("equity must be a positive finite number.")
     label = pd.Timestamp(session)
@@ -278,8 +278,8 @@ def plan_allocation(
     decision = history.index[mask][-1]
     if executed_decision == decision.strftime("%Y-%m-%d"):
         return pd.DataFrame(columns=["Target"]), [], executed_decision
-    weights = allocation_weights(allocation_selection(history), history, mask).loc[decision]
-    targets = (weights.fillna(0.0) * (1.0 - cash_buffer)).clip(lower=0.0)
+    targets = buffered_weights(history).loc[decision].fillna(0.0)
+    weights = targets / (1.0 - CASH_RESERVE)
     last = history.loc[label]
     sells: list[OrderDelta] = []
     buys: list[OrderDelta] = []
