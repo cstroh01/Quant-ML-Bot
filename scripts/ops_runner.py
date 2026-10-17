@@ -78,6 +78,14 @@ def _kill_path(state_dir, profile: str) -> Path:
     return Path(state_dir) / "ops" / f"kill-{require_storage_identifier(profile)}.json"
 
 
+def _workflow_kill(state_dir, profile: str) -> dict | None:
+    """A workflow KILL file never runs a command or takes a lease; alert once per profile."""
+    if not (Path(state_dir) / "KILL").exists():
+        return None
+    incident = Incident("halt", profile, "workflow KILL file present; no command ran; Camden review required")
+    return {"status": "killed", "new_incidents": _deliver(Path(state_dir) / "ops", [incident])}
+
+
 def _skipped_while_killed(state_dir, profile: str, kill_at: datetime, now: datetime) -> list[date]:
     """Sessions with no completed run whose 09:28 New York cutoff fell after ``kill_at`` and by ``now``.
 
@@ -184,6 +192,9 @@ def run_once(state_dir, *, profile: str, command: list[str], now: datetime, stra
     if not str(strategy_version).strip():
         raise ValueError("strategy_version is required for the run identity")
     require_storage_identifier(profile)  # names lease and outbox files: one portable component only
+    killed = _workflow_kill(state_dir, profile)
+    if killed is not None:
+        return killed
     if _kill_path(state_dir, profile).exists():
         return _killed(state_dir, profile, now)  # nothing runs until an explicit reset
     ops = Path(state_dir) / "ops"
@@ -249,6 +260,9 @@ def preview_once(state_dir, *, profile: str, command: list[str], now: datetime, 
     require_storage_identifier(profile)
     if _may_submit(shlex.join(command)):
         raise ValueError("a preview is refused for a command that may submit")
+    killed = _workflow_kill(state_dir, profile)
+    if killed is not None:
+        return killed
     if _kill_path(state_dir, profile).exists():
         return _killed(state_dir, profile, now=now)  # same halt incident as run_once
     ops = Path(state_dir) / "ops"
