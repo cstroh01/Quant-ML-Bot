@@ -4,6 +4,7 @@ import json
 import math
 import os
 from pathlib import Path
+from types import SimpleNamespace
 import re
 import uuid
 from zoneinfo import ZoneInfo
@@ -112,6 +113,10 @@ class Session:
         if not affordable: raise PreviewUnaffordable('no affordable sleeve')
         bound,symbol=affordable[0]
         for qty in (1.0,0.01):
+            # Proof previews must not outlive a dedicated-account ownership change.
+            fresh=self.live.positions()
+            snapshot=SimpleNamespace(positions=[SimpleNamespace(symbol=s,quantity=q) for s,q in fresh.items()])
+            self.bot=ownership(self.state,snapshot,self.profile.account_fingerprint)
             try:
                 row=self.live.preview(OrderIntent('preview-only',symbol if qty==1.0 else 'SPY',qty))
                 if qty==1.0: row.update(last_close=float(last[symbol]),bound=bound)

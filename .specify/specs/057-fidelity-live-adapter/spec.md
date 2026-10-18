@@ -47,10 +47,10 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   never modified, randomized, rotated or extended by our code. Recorded as risk, not compliance.
 
 ### Dedicated-account amendment (Camden, 2026-10-15, codex-task6c-dedicated-account.md)
-The new $100 cash bot account alone is in scope. Every account-sensitive request filters exactly that
+The dedicated $200 cash bot account alone is in scope (Camden, 2026-10-17; settled cash only). Every account-sensitive request filters exactly that
 account; a missing/swapped filter or foreign account in any response halts. Evidence records its SHA-256
 fingerprint only. Broker sleeve quantities must equal the bot ledger exactly; sweep is cash; foreign
-symbols/mismatches latch and alert. No manual baseline. Budget is min($100, settled_amt); coreBalance
+symbols/mismatches latch and alert. No manual baseline. Budget is min($200, settled_amt); profiles above $200 are refused before login. Fractional share quantities are floored to .001 both before and after daily-cap sizing; minimum order notional $1. coreBalance
 is recorded separately. Unsettled deposits produce a normal refusal, not an error or latched halt.
 
 ### Host/credentials amendment (Camden, 2026-10-15, Task 6d)

@@ -17,6 +17,8 @@ PAPER_BROKERS = frozenset({"alpaca_paper"})
 LIVE_BROKERS = frozenset({"fidelity"})
 INSTRUMENTS = frozenset({"us_equity", "etf"})
 DEFAULT_PROFILE = "paper_small"
+# Camden-approved v1.2 budget increase; effective only after his protected review/merge.
+MAX_LIVE_BUDGET_USD = 200.0
 _DIGEST = re.compile(r"[0-9a-f]{64}")
 _ENV_NAME = re.compile(r"[A-Z][A-Z0-9_]{2,63}")
 _UNIQUE = ("state_dir", "log_namespace", "account_fingerprint", "credential_refs")

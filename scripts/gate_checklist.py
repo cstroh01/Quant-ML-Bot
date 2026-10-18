@@ -25,12 +25,12 @@ from _project import project_root
 ROOT = project_root()
 ITEMS = (
     ("1", "Full suite and mutation suites green on main (specs 012, 017, 019, 032, 033)"),
-    ("2", "Spec 059 allocation preregistered and its costed backtest with both baselines published"),
+    ("2", "Spec 061 buffered allocation declared before its fresh costed trial; both baselines published"),
     ("3", "Safety layer in the PAPER and LIVE order paths; kill-switch and reset drills passed (spec 055)"),
     ("4", "PAPER evidence: >= 10 sessions on both profiles, every order reconciled, cost compared per order"),
     ("5", "Historical replay 2020-02-03..2020-04-30 and calendar 2022 without error or unshown breach"),
     ("6", "Fidelity: 5 clean preview-only sessions; holdings reconcile with spec 054"),
-    ("7", "LIVE budget $100 of settled cash, deposits never raise it"),
+    ("7", "LIVE budget $200 of settled cash, deposits never raise it"),
 )
 SHA = re.compile(r"[0-9a-f]{64}")
 COMMIT = re.compile(r"[0-9a-f]{7,40}")
