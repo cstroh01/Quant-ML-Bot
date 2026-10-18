@@ -1,0 +1,279 @@
+{
+  "label": "EXAMPLE — NOT A RESULT. Replay of the PAPER code path with a simulated broker; not real fills.",
+  "allocation": {
+    "policy_id": "061-b7-ew-v1",
+    "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731",
+    "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f"
+  },
+  "source": {
+    "git_sha": "8244bca441a1a0dd787bc710b23063f5d0c6b907",
+    "workspace_state": "unknown",
+    "source_tree_hash": "4cb8baf32965cfb2c6e4f3e9f33770ee8aaaddce1572080412a9ac68ddf564f9"
+  },
+  "inputs": {
+    "label": "EXAMPLE — NOT A RESULT",
+    "source": "058 T008 Tiingo bodies (private), adjOpen/adjClose",
+    "manifest": "docs/implementation/spec-058/t008-tiingo-20261009.json",
+    "research_end": "2023-09-29",
+    "files": {
+      "SPY": {
+        "body_sha256": "07cfcc3a271a1b53e3af668a55891a3bcf4005b8f03701941f501ae2aa7453ee",
+        "csv_sha256": "652faf21c89f85c61780fe44dfd923ee77e8cc4eba5b300cc3641befb8eef3f8",
+        "rows": 7723,
+        "first": "1993-01-29",
+        "last": "2023-09-29"
+      },
+      "EFA": {
+        "body_sha256": "53818bbee0b915f95417ec14919ff58734faee5a809fc067bcf1a54613eedefd",
+        "csv_sha256": "a288d8e0dad53488bdd9dc9b56610b036c2c33fccb4b611634a04faaa4ba15e6",
+        "rows": 5564,
+        "first": "2001-08-17",
+        "last": "2023-09-29"
+      },
+      "EEM": {
+        "body_sha256": "974a84659942cecaf10168284b2da4e4aa3df3b47f4c87386178dc46009f9f25",
+        "csv_sha256": "fcefe19f2f8cffc871609bfb00942d813ff8facae17f7cc255e9da0428b53d18",
+        "rows": 5152,
+        "first": "2003-04-14",
+        "last": "2023-09-29"
+      },
+      "IEF": {
+        "body_sha256": "8516ffb0f030d8f53064a5be19bb02a64a6ac1f9732882e321737b8c0af731fc",
+        "csv_sha256": "e9aaf45998875f525b48347baf3c2e1cf9db81ba028fd28df4931c2cb1413bb5",
+        "rows": 5332,
+        "first": "2002-07-26",
+        "last": "2023-09-29"
+      },
+      "TLT": {
+        "body_sha256": "2c5c4cc9288197a58634cd94df95c64c7a81e327fb4a3c94692bc41131f3eb46",
+        "csv_sha256": "90f41dbb27d2291c15997f097201f403367bf0e03de7fdbf058971bde1fe27f2",
+        "rows": 5332,
+        "first": "2002-07-26",
+        "last": "2023-09-29"
+      },
+      "TIP": {
+        "body_sha256": "bcd1acc00e4aa6d6237636177fe51b483f8c0ad2ef9c11fc512ee03153d43b45",
+        "csv_sha256": "47a620253099854d3dd54cef3b90a713afa20865a0fd21033a6ee1d9a37d3c94",
+        "rows": 4988,
+        "first": "2003-12-05",
+        "last": "2023-09-29"
+      },
+      "GLD": {
+        "body_sha256": "69aa0d5d36c1eb1a2b3677e4ed000559d7274e6c8155125d064b75aef1992a73",
+        "csv_sha256": "4a53f985850f161ad5d790ca8967657f8056bfd8eb221b104310c851ed4a4778",
+        "rows": 4748,
+        "first": "2004-11-18",
+        "last": "2023-09-29"
+      },
+      "DBC": {
+        "body_sha256": "ad2ee67eff70b56c1216f60706187253622a301bc4c81b18e20c2e3d973628ae",
+        "csv_sha256": "3d09d4a94161240efcafab9d9d8735625e6b77cbc717e2c3e2befb273e8d143c",
+        "rows": 4444,
+        "first": "2006-02-03",
+        "last": "2023-09-29"
+      }
+    }
+  },
+  "verdict": "PASS",
+  "runs": [
+    {
+      "profile_label": "paper_small",
+      "budget": 5000.0,
+      "daily_deploy_fraction": 0.2,
+      "verdict": "PASS",
+      "windows": [
+        {
+          "window": [
+            "2020-02-03",
+            "2020-04-30"
+          ],
+          "sessions": 62,
+          "orders": 25,
+          "denied": [],
+          "aborted": [],
+          "errors": [],
+          "decisions_executed": [
+            "2020-02-03",
+            "2020-03-02",
+            "2020-04-01"
+          ],
+          "safety_config_version": "2026-10-14-alloc-v1",
+          "allocation": {
+            "policy_id": "061-b7-ew-v1",
+            "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731",
+            "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f"
+          },
+          "ending_equity_label": "simulated mark, not a result"
+        },
+        {
+          "window": [
+            "2022-01-03",
+            "2022-12-30"
+          ],
+          "sessions": 251,
+          "orders": 35,
+          "denied": [],
+          "aborted": [],
+          "errors": [],
+          "decisions_executed": [
+            "2022-01-03",
+            "2022-02-01",
+            "2022-03-01",
+            "2022-04-01",
+            "2022-05-02",
+            "2022-06-01",
+            "2022-07-01",
+            "2022-08-01",
+            "2022-09-01",
+            "2022-10-03",
+            "2022-11-01",
+            "2022-12-01"
+          ],
+          "safety_config_version": "2026-10-14-alloc-v1",
+          "allocation": {
+            "policy_id": "061-b7-ew-v1",
+            "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731",
+            "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f"
+          },
+          "ending_equity_label": "simulated mark, not a result"
+        }
+      ]
+    },
+    {
+      "profile_label": "paper_large",
+      "budget": 100000.0,
+      "daily_deploy_fraction": 0.2,
+      "verdict": "PASS",
+      "windows": [
+        {
+          "window": [
+            "2020-02-03",
+            "2020-04-30"
+          ],
+          "sessions": 62,
+          "orders": 25,
+          "denied": [],
+          "aborted": [],
+          "errors": [],
+          "decisions_executed": [
+            "2020-02-03",
+            "2020-03-02",
+            "2020-04-01"
+          ],
+          "safety_config_version": "2026-10-14-alloc-v1",
+          "allocation": {
+            "policy_id": "061-b7-ew-v1",
+            "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731",
+            "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f"
+          },
+          "ending_equity_label": "simulated mark, not a result"
+        },
+        {
+          "window": [
+            "2022-01-03",
+            "2022-12-30"
+          ],
+          "sessions": 251,
+          "orders": 35,
+          "denied": [],
+          "aborted": [],
+          "errors": [],
+          "decisions_executed": [
+            "2022-01-03",
+            "2022-02-01",
+            "2022-03-01",
+            "2022-04-01",
+            "2022-05-02",
+            "2022-06-01",
+            "2022-07-01",
+            "2022-08-01",
+            "2022-09-01",
+            "2022-10-03",
+            "2022-11-01",
+            "2022-12-01"
+          ],
+          "safety_config_version": "2026-10-14-alloc-v1",
+          "allocation": {
+            "policy_id": "061-b7-ew-v1",
+            "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731",
+            "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f"
+          },
+          "ending_equity_label": "simulated mark, not a result"
+        }
+      ]
+    },
+    {
+      "profile_label": "budget_200_simulation",
+      "budget": 200.0,
+      "daily_deploy_fraction": 1.0,
+      "verdict": "PASS",
+      "windows": [
+        {
+          "window": [
+            "2020-02-03",
+            "2020-04-30"
+          ],
+          "sessions": 62,
+          "orders": 19,
+          "denied": [],
+          "aborted": [],
+          "errors": [],
+          "decisions_executed": [
+            "2020-01-02",
+            "2020-02-03",
+            "2020-03-02",
+            "2020-04-01"
+          ],
+          "safety_config_version": "2026-10-14-alloc-v1",
+          "allocation": {
+            "policy_id": "061-b7-ew-v1",
+            "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731",
+            "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f"
+          },
+          "ending_equity_label": "simulated mark, not a result"
+        },
+        {
+          "window": [
+            "2022-01-03",
+            "2022-12-30"
+          ],
+          "sessions": 251,
+          "orders": 28,
+          "denied": [],
+          "aborted": [],
+          "errors": [],
+          "decisions_executed": [
+            "2021-12-01",
+            "2022-01-03",
+            "2022-02-01",
+            "2022-03-01",
+            "2022-04-01",
+            "2022-05-02",
+            "2022-06-01",
+            "2022-07-01",
+            "2022-08-01",
+            "2022-09-01",
+            "2022-10-03",
+            "2022-11-01",
+            "2022-12-01"
+          ],
+          "safety_config_version": "2026-10-14-alloc-v1",
+          "allocation": {
+            "policy_id": "061-b7-ew-v1",
+            "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731",
+            "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f"
+          },
+          "ending_equity_label": "simulated mark, not a result"
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Simulated PAPER path with adjusted provider prices; not real fills, no P&L result, not a Fidelity adapter test.",
+    "The $200 scenario is PAPER simulation only, not evidence of real broker minimum/eligibility or budget acceptance."
+  ],
+  "execution_source_sha256": {
+    "exec/paper_loop.py": "051c94b4e124532e4399bf381ccc8c475379f86ef496285ef513bcde624721f9",
+    "exec/alpaca_paper.py": "fd22db2c267c9e467b5bafece8882cf10b1b6b315a47217948babf4b8d26780d"
+  }
+}
