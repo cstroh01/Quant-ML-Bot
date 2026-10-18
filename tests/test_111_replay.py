@@ -33,6 +33,13 @@ def profile():
 
 def test_window_replays_every_session_and_trades_each_monthly_decision():
     opens, closes = panels()
+    # The 061 equal-weight rule needs an actual weight drift beyond the no-trade
+    # band to require eight more orders; do not depend on A1's vol re-sizing.
+    factors = pd.DataFrame(1.0, index=closes.index, columns=closes.columns)
+    factors.loc["2020-02-18":, list(ALLOCATION_SLEEVES[:4])] = 1.12
+    factors.loc["2020-02-18":, list(ALLOCATION_SLEEVES[4:])] = 0.88
+    closes *= factors
+    opens *= factors.shift(1).fillna(1.0)
     report = replay_runner.replay_window(opens, closes, START, END, profile=profile(), config=OPEN_CONFIG)
     assert report["sessions"] == len(trading_days(START, END)), f"Q111 SESSIONS {report['sessions']}"
     assert not report["errors"] and not report["aborted"] and not report["denied"], f"Q111 CLEAN {report}"

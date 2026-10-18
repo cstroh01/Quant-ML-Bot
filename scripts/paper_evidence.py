@@ -36,12 +36,19 @@ from cost_model import CostConfig, CostUnavailable, estimate_fill_cost
 from data import trading_days
 from disclosure import LIMITATIONS
 from trial_registry import ROOT, source_identity
+from allocation_policy import policy_evidence
 
 REQUIRED_PROFILES = ("paper_large", "paper_small")
 MIN_SESSIONS = 10
 SENT_OUTCOMES = frozenset({"SUBMITTED", "UNKNOWN"})
 TERMINAL = frozenset({"filled", "canceled", "expired", "rejected"})
-DISCLOSURE = "PAPER mechanics evidence, not a performance result. Costs are modeled, not calibrated."
+DISCLOSURE = ("PAPER mechanics evidence, not a performance result. Costs are modeled, not calibrated. "
+              "Only qualifying spec 061 records count; old/missing policies and drills are excluded.")
+
+
+def qualifying_run(run: Mapping) -> bool:
+    return (run.get("mode") == "submit" and run.get("allocation") == policy_evidence()
+            and run.get("evidence_scope") == "qualifying")
 
 
 @dataclass(frozen=True)
@@ -101,7 +108,7 @@ def evidence_rows(runs: Iterable[Mapping], snapshots: Mapping[str, Mapping],
     config = CostConfig() if config is None else config
     rows = []
     for run in runs:
-        if run.get("mode") != "submit":
+        if not qualifying_run(run):
             continue
         decided = date.fromisoformat(run["session"])
         filled_on = next_session(decided)
@@ -145,7 +152,7 @@ def completed_sessions(runs: Iterable[Mapping]) -> dict[str, list[date]]:
     """Distinct decision sessions with a submit run, per profile, ascending."""
     seen: dict[str, set[date]] = {}
     for run in runs:
-        if run.get("mode") == "submit" and run.get("profile"):
+        if qualifying_run(run) and run.get("profile"):
             seen.setdefault(run["profile"], set()).add(date.fromisoformat(run["session"]))
     return {profile: sorted(sessions) for profile, sessions in seen.items()}
 

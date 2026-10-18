@@ -24,8 +24,8 @@ import alpaca_paper  # noqa: E402
 import paper_loop  # noqa: E402
 from live_safety_gate import LiveSafetyGate, SafetyConfig  # noqa: E402
 from paper_targets import ALLOCATION_CASH_BUFFER, plan_allocation  # noqa: E402
-from portfolio_risk import allocation_weights  # noqa: E402
-from signals import ALLOCATION_SLEEVES, allocation_selection, decision_sessions  # noqa: E402
+from buffered_allocation import buffered_weights  # noqa: E402
+from signals import ALLOCATION_SLEEVES  # noqa: E402
 
 VOLS = dict(zip(ALLOCATION_SLEEVES, (0.010, 0.011, 0.014, 0.004, 0.009, 0.003, 0.009, 0.012)))
 NOW = lambda: datetime(2026, 10, 5, 12, 30, 1, tzinfo=timezone.utc)  # Monday 08:30 New York
@@ -58,10 +58,11 @@ def test_targets_are_the_latest_decision_row_scaled_by_the_cash_buffer():
     frame, orders, decision = plan(closes)
     assert decision == "2026-10-01", f"Q110 DECISION latest monthly decision {decision}"
     history = closes.loc[:SESSION]
-    mask = decision_sessions(history.index, cadence="monthly")
-    expected = allocation_weights(allocation_selection(history), history, mask).loc["2026-10-01"]
-    np.testing.assert_allclose(frame["Target"].to_numpy(), expected.to_numpy() * (1 - ALLOCATION_CASH_BUFFER),
-                               err_msg="Q110 DECISION target is not the spec 059 row times (1 - buffer)")
+    expected = buffered_weights(history).loc["2026-10-01"]
+    np.testing.assert_allclose(frame["Target"].to_numpy(), expected.to_numpy(),
+                               err_msg="Q110 DECISION target is not the recorded 061 buffered rule")
+    np.testing.assert_allclose(frame["Target"].to_numpy(), 0.11625,
+                               err_msg="Q110 DECISION eight sleeves must be equal weight with one reserve")
     assert frame["Target"].sum() <= 1 - ALLOCATION_CASH_BUFFER + 1e-12, "Q110 GROSS above 1 - buffer"
     notional = sum(o.delta_quantity * closes.at[SESSION, o.ticker] for o in orders)
     assert notional <= 100_000.0 * (1 - ALLOCATION_CASH_BUFFER) + 1e-6, "Q110 GROSS orders exceed the budget"
