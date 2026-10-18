@@ -14,3 +14,6 @@
   environment-only credentials, bounded free requests, manifests and the real
   spec-035 reconciler. Offline fixtures/mutants and integrated suite required.
   This does not complete T006's real-account entitlement and first-fetch gate.
+
+## Local reconciliation follow-up
+- [ ] T009 Fail closed when callers pass splits or unknown action types to the dividend-only EODHD reconciler. Preserve spec 035/044 split ownership; add a semantic regression and document the separate split gate. Add explicit credential-name configuration for the existing local name without reading secrets.

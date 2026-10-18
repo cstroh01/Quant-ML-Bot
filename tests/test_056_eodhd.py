@@ -169,3 +169,58 @@ def test_planted_defects(monkeypatch, old, new, case):
             return
         test_nominal_cash_split_ratio_and_manifest_hashes(monkeypatch)
     killed(es, old, new, oracle)
+
+
+def test_dividend_reconciliation_cannot_silently_accept_unchecked_splits(monkeypatch):
+    api, _, _ = client(monkeypatch)
+    result = api.fetch("AAA.US", START, END)
+    primary = pd.DataFrame([dict(Ticker="AAA", Date=pd.Timestamp(SPLIT["date"]),
+                                 Action_Type="split", Value=2.)])
+    with pytest.raises(ValueError, match="dividends only"):
+        result.reconcile(primary)
+
+
+def test_existing_local_token_name_is_explicitly_configurable(monkeypatch):
+    api, calls, _ = client(monkeypatch)
+    monkeypatch.delenv("EODHD_API_KEY")
+    monkeypatch.setenv("EODHD_API_TOKEN", "synthetic-local-name")
+    api.key_env = "EODHD_API_TOKEN"
+    assert len(api.fetch("AAA.US", START, END).manifests) == 2
+    assert len(calls) == 2
+
+
+def test_unchecked_split_refusal_has_a_semantic_red_proof(monkeypatch):
+    def oracle():
+        api, _, _ = client(monkeypatch)
+        primary = pd.DataFrame([dict(Ticker="AAA", Date=pd.Timestamp(SPLIT["date"]),
+                                     Action_Type="split", Value=2.)])
+        try:
+            api.fetch("AAA.US", START, END).reconcile(primary)
+        except ValueError as exc:
+            assert "dividends only" in str(exc)
+            return
+        raise AssertionError("unchecked split silently accepted")
+    killed(es, '"Action_Type" not in primary or primary.Action_Type.isna().any() or not primary.Action_Type.eq("dividend").all()',
+           'False', oracle)
+
+
+def test_nullable_unknown_action_type_is_not_a_dividend(monkeypatch):
+    api, _, _ = client(monkeypatch)
+    primary = pd.DataFrame([dict(Ticker="AAA", Date=pd.Timestamp(SPLIT["date"]), Value=2.)])
+    primary["Action_Type"] = pd.Series([pd.NA], dtype="string")
+    with pytest.raises(ValueError, match="dividends only"):
+        api.fetch("AAA.US", START, END).reconcile(primary)
+
+
+def test_nullable_action_type_refusal_has_a_semantic_red_proof(monkeypatch):
+    def oracle():
+        api, _, _ = client(monkeypatch)
+        primary = pd.DataFrame([dict(Ticker="AAA", Date=pd.Timestamp(SPLIT["date"]), Value=2.)])
+        primary["Action_Type"] = pd.Series([pd.NA], dtype="string")
+        try:
+            api.fetch("AAA.US", START, END).reconcile(primary)
+        except ValueError as exc:
+            assert "dividends only" in str(exc)
+            return
+        raise AssertionError("nullable unknown action type silently accepted")
+    killed(es, "primary.Action_Type.isna().any() or ", "", oracle)

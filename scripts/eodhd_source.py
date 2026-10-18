@@ -57,7 +57,9 @@ class ActionBundle:
     manifests: tuple
 
     def reconcile(self, primary):
-        """Real spec-035 union/coverage comparison; disagreement is never silently accepted."""
+        """Dividend-only spec-035 comparison. Splits require the separate spec-044 checks."""
+        if "Action_Type" not in primary or primary.Action_Type.isna().any() or not primary.Action_Type.eq("dividend").all():
+            raise ValueError("EODHD reconciliation accepts dividends only; splits require spec 044")
         if ("Ticker" not in primary or primary.Ticker.isna().any()
                 or not set(primary.Ticker) <= {self.ticker, self.ticker[:-3]}):
             raise ValueError("primary actions must name the bundle's single US instrument")

@@ -40,3 +40,16 @@ Planted defects change nominal cash, invert splits, bypass history/quota and
 mislabel foreign currency; every oracle has a clean control. Integrated suite
 and ledger hashes are recorded in the PR description. No real data was fetched,
 no production ledger changed, and this does not make EODHD a model feature.
+
+
+Local follow-up (2026-10-18): pre-existing 035 observations and private generic
+fetch tooling were found, so this is a new reusable adapter rather than a first
+EODHD observation. Configure `EodhdActions(key_env="EODHD_API_TOKEN")` for the
+existing local credential name. No dotenv loading or secret copying is added.
+`ActionBundle.reconcile` checks dividends only and rejects primary splits or
+unknown action types. Splits retain the spec 044 verification requirement;
+the adapter fetching a ratio does not independently reconcile that ratio.
+
+Nullable unknown action labels are also rejected explicitly: pandas nullable-string
+comparisons must not skip missing values and silently accept an unchecked action.
+The local fake-only regressions and separate semantic bypass controls cover both cases.
