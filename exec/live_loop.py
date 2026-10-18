@@ -1,6 +1,7 @@
 """057 Q137: dormant 059 allocation; unarmed runs preview only. Camden reviews every line."""
 import argparse
 from dataclasses import replace
+from decimal import Decimal, ROUND_FLOOR
 from datetime import datetime, time, timezone
 import hashlib
 import json
@@ -18,14 +19,41 @@ from fidelity_live import HaltProfile, SecurityChallenge
 from fidelity_reconcile import require_reconciled, TERMINAL, WORKING
 from fidelity_session import Session, NY, ownership, UnsettledCash, PreviewUnaffordable
 from live_safety_gate import BrokerSnapshot, LiveSafetyGate, OrderIntent
-from mode_config import BuyRequest, ProfileError, bound_buys, load_profiles, require_armed
+from mode_config import BuyRequest, ProfileError, bound_buys, load_profiles, require_armed, MAX_LIVE_BUDGET_USD
+from allocation_policy import policy_evidence, DISCLOSURE as ALLOCATION_DISCLOSURE
+from buffered_allocation import buffered_weights
 from holdings_import import _CASH_SYMBOLS
 from ops_runtime import atomic_write, client_order_id, queue_outbox
 from order_gateway import OrderDeniedError, submit_order
 from paper_loop import (ALLOCATION_SAFETY_CONFIG, AllocationPlanner, GAP_ALLOWANCE,
                         MAX_DAILY_LOG_MOVE, previous_session, persist_command)
 from signals import ALLOCATION_SLEEVES
-LIVE_CAP=100.0
+LIVE_CAP=MAX_LIVE_BUDGET_USD
+
+def validate_live_budget(profile):
+    if profile.bot_budget_usd > LIVE_CAP:
+        raise HaltProfile('LIVE budget exceeds the reviewed $200 cap')
+
+def live_order_precision(orders, fractional):
+    step = Decimal('0.001') if fractional else Decimal('1')
+    result = []
+    for order in orders:
+        magnitude = Decimal(str(abs(order.delta_quantity))).quantize(step, rounding=ROUND_FLOOR)
+        if magnitude:
+            result.append(replace(order, delta_quantity=float(magnitude) * (1 if order.delta_quantity > 0 else -1)))
+    return result
+
+def validate_allocation_bundle(bundle, closes):
+    saved = bundle.get('allocation', {})
+    if {key: saved.get(key) for key in policy_evidence()} != policy_evidence():
+        raise HaltProfile('allocation input policy mismatch')
+    book = buffered_weights(closes)
+    if book.empty or saved.get('decision_session') != str(book.index[-1].date()):
+        raise HaltProfile('allocation input decision mismatch')
+    expected = book.iloc[-1].to_dict()
+    targets = saved.get('targets', {})
+    if set(targets) != set(expected) or any(not math.isclose(float(targets[key]), value, rel_tol=0, abs_tol=1e-12) for key, value in expected.items()):
+        raise HaltProfile('allocation input target mismatch')
 
 class DurableBroker:
     """Persist reservation + book + adapter intent immediately before a real send."""
@@ -48,6 +76,7 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
     if now.utcoffset() is None or not time(9,35)<=now.astimezone(NY).time()<time(12):
         raise HaltProfile('conservative NYSE morning window is 09:35-12:00 ET')
     now_fn=now_fn or (lambda:now)
+    validate_live_budget(profile)
     session=Session(profile,state,now=now,broker=broker,environ=environ,pin=pin)
     own_gate=gate is None
     book_path=Path(state)/'bot-positions.json'
@@ -101,15 +130,26 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
         planner=AllocationPlanner(Path(state)/'allocation-state.json',{s:profile.fractional for s in ALLOCATION_SLEEVES})
         plan=planner.plan(closes,closes.index[-1],equity=equity,positions=session.bot)
         worst={s:float(last[s])*(1+GAP_ALLOWANCE) for s in ALLOCATION_SLEEVES}
+        precise_orders=live_order_precision(plan.orders,profile.fractional)
         buys=[BuyRequest(o.ticker,o.delta_quantity,worst[o.ticker],profile.fractional)
-              for o in plan.orders if o.delta_quantity>0]
+              for o in precise_orders if o.delta_quantity>0]
         book=read_book()
         deployed=sum(o['notional'] for o in book['orders'].values() if o['session']==str(today) and o['delta']>0)
-        sized,refused=bound_buys(bounded,buys,settled_cash=grant,deployed_today_usd=deployed,min_notional_usd=0.01)
+        sized,refused=bound_buys(bounded,buys,settled_cash=grant,deployed_today_usd=deployed,min_notional_usd=1.0)
+        final_sized=[]
+        step=Decimal('0.001') if profile.fractional else Decimal('1')
+        for order in sized:
+            quantity=float(Decimal(str(order.quantity)).quantize(step,rounding=ROUND_FLOOR))
+            notional=quantity*worst[order.ticker]
+            if quantity<=0 or notional<1.0:
+                refused.append((order.ticker,'below_minimum'))
+            else:
+                final_sized.append(replace(order,quantity=quantity,notional=notional))
+        sized=final_sized
         accepted={o.ticker:o.quantity for o in sized}
         shrunk=bool(refused) or any(accepted.get(o.ticker,0)<o.quantity for o in buys)
-        orders=[o for o in plan.orders if o.delta_quantity<0]+[
-            replace(o,delta_quantity=accepted[o.ticker]) for o in plan.orders if o.delta_quantity>0 and o.ticker in accepted]
+        orders=[o for o in precise_orders if o.delta_quantity<0]+[
+            replace(o,delta_quantity=accepted[o.ticker]) for o in precise_orders if o.delta_quantity>0 and o.ticker in accepted]
         actions=[{'ticker':s,'outcome':'BUDGET_REFUSED','reason':reason} for s,reason in refused]
         for order in orders:
             reconcile(live)
@@ -148,9 +188,9 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
             planner.complete(plan.decision_session); executed=plan.decision_session
         session.record.update(run_at_utc=now_fn().isoformat(),mode='submit' if armed else 'preview',
             equity_source='broker',data_session=str(expected),equity=equity,budget=grant,
-            safety_config_version=ALLOCATION_SAFETY_CONFIG.version,decision=json.loads(plan.decision.to_json(orient='index')),
+            safety_config_version=ALLOCATION_SAFETY_CONFIG.version,allocation=policy_evidence(),quantity_decimal_places=3,decision=json.loads(plan.decision.to_json(orient='index')),
             decision_session=plan.decision_session,decision_executed=executed,actions=actions,sources=sources,
-            disclosure='Allocation mechanics, no edge claimed. Last close + 5% is an estimate, not a fill-price guarantee.')
+            disclosure=ALLOCATION_DISCLOSURE + f' LIVE budget ${profile.bot_budget_usd:g}; hard cap ${LIVE_CAP:g}. Last close + 5% is an estimate, not a fill-price guarantee.')
         if not armed: session.preview_pair(closes)
         else: session.record['clean']=True
         session.record['place_calls']=durable.place_calls
@@ -183,6 +223,7 @@ def main(argv=None):
         for source in sources:
             if SourceManifest(**(source|{'fetched_at':datetime.fromisoformat(source['fetched_at'])})).source!='alpaca_sip_daily': raise ValueError
         closes=pd.read_csv(a.closes_file,index_col=0,parse_dates=True)
+        validate_allocation_bundle(bundle,closes)
         profile=load_profiles(json.loads(Path(a.profiles_file).read_text(encoding='utf-8')))[a.profile]
         arming=None
         if a.arming_file:

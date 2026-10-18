@@ -10,7 +10,7 @@ MUTANTS={
  'places unarmed':('if not armed: return live.preview(candidate)',"if not armed:\n                    session.broker.place(candidate.instrument,'B',candidate.delta_quantity,'FIXTURE')\n                    return live.preview(candidate)"),
  'bypasses gateway':('result=submit_order(gate,snapshot=snapshot,intent=intent,now=now_fn(),submit=send)','result=send(intent)'),
  'skips reconcile':("session.record['reconciliation']=require_reconciled(gate,live,now=now_fn())","session.record['reconciliation']=[]"),
- 'exceeds 100 cap':('LIVE_CAP=100.0','LIVE_CAP=1000.0'),
+ 'exceeds 200 cap':('LIVE_CAP=MAX_LIVE_BUDGET_USD','LIVE_CAP=1000.0'),
  'uses unsettled cash':("cash=session.record['settled_cash']['settled_amt']","cash=session.record['settled_cash'].get('coreBalance',9000.0)"),
 }
 def main():
@@ -18,7 +18,7 @@ def main():
     original=PATH.read_bytes(); results=[]
     def run(label):
         report=directory/(label+'.xml')
-        proc=subprocess.run([sys.executable,'-B','-m','pytest','tests/test_057_q137.py','-q',
+        proc=subprocess.run([sys.executable,'-B','-m','pytest','tests/test_057_q137.py','tests/test_v12_protected_budget.py','-q',
             '-p','no:cacheprovider','--junitxml='+str(report)],cwd=ROOT,capture_output=True,text=True,encoding='utf-8')
         (directory/(label+'.log')).write_text(proc.stdout+proc.stderr,encoding='utf-8')
         tree=ET.parse(report); failures=tree.findall('.//failure')

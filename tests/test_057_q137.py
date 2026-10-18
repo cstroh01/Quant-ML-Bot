@@ -13,7 +13,7 @@ from mode_config import ArmingRecord
 import fidelity_session as fs
 import live_loop as loop
 
-def profile(): return replace(live_profile(),safety_config_version=loop.ALLOCATION_SAFETY_CONFIG.version)
+def profile(): return replace(live_profile(),bot_budget_usd=100.0,safety_config_version=loop.ALLOCATION_SAFETY_CONFIG.version)
 def bars():
     c=sleeve_closes(end='2026-10-14'); c[c.columns[-1]]*=0.1; return c
 class Gate:
