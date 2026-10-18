@@ -1,5 +1,5 @@
 {
-  "note": "Draft 061 adoption evidence: publication commit fields intentionally remain PENDING_MAIN_MERGE until Camden publishes/merges the reviewed units. Old 059/A1 report/replay is historical, not evidence of B7-EW. No arming; items 4/6/7 still require runtime/human evidence; final item-1 refresh must use the exact arming SHA.",
+  "note": "Spec 061 report and replay artifacts were published on main by merge commit c6524ee210fe6a8e5ce11e165f2ceaf22d63a391; the exact artifact bytes and SHA-256 values were independently checked. Old 059/A1 report/replay is historical, not evidence of B7-EW. No arming; items 4/6/7 still require runtime/human evidence; final item-1 refresh must use the exact arming SHA.",
   "items": {
     "1": {
       "artifact": "docs/implementation/spec-059/item1-evidence-20261016.json",
@@ -10,7 +10,7 @@
     "5": {
       "artifact": "docs/implementation/spec-061/replay-evidence-20261017.json",
       "sha256": "559a8f6aa0eb19e9d77bcde73142d483fced65520b87b3ffebeca647321d5492",
-      "commit": "PENDING_MAIN_MERGE",
+      "commit": "c6524ee210fe6a8e5ce11e165f2ceaf22d63a391",
       "date_utc": "2026-10-17T16:06:32.807330+00:00",
       "allocation": {
         "policy_id": "061-b7-ew-v1",
@@ -21,7 +21,7 @@
     "2": {
       "artifact": "docs/implementation/spec-061/trial-report-20261017.md",
       "sha256": "19893f52fbdc18006ab2056f92d014def18433ecea82cbbc84bfa2a227ac5790",
-      "commit": "PENDING_MAIN_MERGE",
+      "commit": "c6524ee210fe6a8e5ce11e165f2ceaf22d63a391",
       "date_utc": "2026-10-17T15:47:53.043068Z",
       "allocation": {
         "policy_id": "061-b7-ew-v1",
