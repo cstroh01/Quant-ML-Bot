@@ -33,7 +33,9 @@ try:
  assert set(expected)==actual
  for name,sha in expected.items():
   body=(root/name).read_bytes().replace(b'\r\n',b'\n')
-  assert hashlib.sha1(b'blob '+str(len(body)).encode()+b'\0'+body).hexdigest()==sha
+  # Reviewed blobs may themselves use CRLF. Accept only newline-equivalent bytes.
+  variants=(body,body.replace(b'\n',b'\r\n'))
+  assert sha in {hashlib.sha1(b'blob '+str(len(value)).encode()+b'\0'+value).hexdigest() for value in variants}
  assert 'scripts/allocation_policy.py' in expected
  assert '--preview' in (root/'scripts/ops_runner.py').read_text(encoding='utf-8')
  sys.path.insert(0,str(root/'scripts'))
