@@ -15,7 +15,7 @@ if (-not (Test-Path -LiteralPath $Python -PathType Leaf)) { throw 'Reviewed Pyth
 
 # One public GitHub tree request and a main-ancestry check. No Git process or broker.
 $PinGuard=@'
-import hashlib,json,subprocess,sys
+import base64,hashlib,json,subprocess,sys
 from pathlib import Path
 root=Path(sys.argv[1]).resolve(); pin=sys.argv[2]
 def api(path):
@@ -32,10 +32,15 @@ try:
          if p.suffix in ('.py','.ps1') and '__pycache__' not in p.parts}
  assert set(expected)==actual
  for name,sha in expected.items():
-  body=(root/name).read_bytes().replace(b'\r\n',b'\n')
-  # Reviewed blobs may themselves use CRLF. Accept only newline-equivalent bytes.
-  variants=(body,body.replace(b'\n',b'\r\n'))
-  assert sha in {hashlib.sha1(b'blob '+str(len(value)).encode()+b'\0'+value).hexdigest() for value in variants}
+  raw=(root/name).read_bytes(); body=raw.replace(b'\r\n',b'\n')
+  variants=(raw,body,body.replace(b'\n',b'\r\n'))
+  if sha not in {hashlib.sha1(b'blob '+str(len(value)).encode()+b'\0'+value).hexdigest() for value in variants}:
+   # Mixed reviewed endings cannot be reconstructed from a digest alone.
+   blob=api('repos/cstroh01/Quant-ML-Bot/git/blobs/'+sha)
+   assert blob['encoding']=='base64'
+   remote=base64.b64decode(blob['content'])
+   assert hashlib.sha1(b'blob '+str(len(remote)).encode()+b'\0'+remote).hexdigest()==sha  # BLOB_IDENTITY
+   assert remote.replace(b'\r\n',b'\n')==body  # NEWLINE_ONLY
  assert 'scripts/allocation_policy.py' in expected
  assert '--preview' in (root/'scripts/ops_runner.py').read_text(encoding='utf-8')
  sys.path.insert(0,str(root/'scripts'))

@@ -4,7 +4,7 @@
 - [x] T003 **Reviewed lane**: implement `exec/fidelity_live.py` U1; Camden reads every line.
 - [x] T004 **Reviewed lane**: U2 reconciliation + positions read.
 - [ ] T005 **Human (Camden)**: credentials + TOTP seed into secrets; supervised preview-only session.
-- [ ] T006 LIVE arming only after `docs/SCOPE-V1.md` §5 passes — Camden.
+- [ ] T006 LIVE arming only after `docs/SCOPE-V1.md` Â§5 passes â€” Camden.
 
 ## Camden's numbered extension, 2026-10-15 (drafts, reviewed lane)
 - Q139: fix audited adapter defects, restricted SDK loading, entitlement and settled cash; eight mutants.
@@ -18,3 +18,7 @@
   ops/windows/fidelity-preview-task.xml. See ops/windows/README.md. No runner or
   task installed; reboot/lid-close and five-session evidence are runtime gates.
 Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or broker probe authorized.
+
+
+## Local pin preflight correction - 2026-10-18
+- [x] T007 Q138 follow-up draft: preserve exact mixed-newline reviewed blobs and verify the pinned Git object before accepting a newline-only representation. Original guard refused the exact main scripts/return_stats.py (161 CRLF, 7 bare LF). Three regressions were red; 12 pin contracts pass, including two semantic bypass defects with clean controls. Patched -CheckPinOnly succeeds against unchanged production main; no credentials or broker calls. This is not an installed task or operational acceptance.
