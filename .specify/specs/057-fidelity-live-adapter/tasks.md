@@ -4,7 +4,7 @@
 - [x] T003 **Reviewed lane**: implement `exec/fidelity_live.py` U1; Camden reads every line.
 - [x] T004 **Reviewed lane**: U2 reconciliation + positions read.
 - [ ] T005 **Human (Camden)**: credentials + TOTP seed into secrets; supervised preview-only session.
-- [ ] T006 LIVE arming only after `docs/SCOPE-V1.md` Â§5 passes â€” Camden.
+- [ ] T006 LIVE arming only after `docs/SCOPE-V1.md` §5 passes — Camden.
 
 ## Camden's numbered extension, 2026-10-15 (drafts, reviewed lane)
 - Q139: fix audited adapter defects, restricted SDK loading, entitlement and settled cash; eight mutants.
