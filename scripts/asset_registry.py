@@ -290,12 +290,19 @@ def _liquidity(frame: pd.DataFrame, cutoff: pd.Timestamp) -> tuple:
 
 
 def _select(pool: pd.DataFrame, size: int) -> tuple[list, list, list]:
-    """(chosen in rank order, class-capped, cut) indices: top ``CLASS_CAP`` per class by median
-    dollar volume, then the top ``size`` overall; ties break by symbol."""
+    """Reserve each eligible class's leader, then fill by volume under ``CLASS_CAP`` (060 D-3)."""
+    if isinstance(size, bool) or not isinstance(size, int) or size < 1:
+        raise ValueError("size must be a positive integer")
     ordered = pool.sort_values(["median_dollar_volume_252", "symbol"], ascending=[False, True])
     in_class = ordered.groupby("asset_class", sort=False).cumcount()
     kept = list(in_class.index[in_class < CLASS_CAP])
-    return kept[:size], list(in_class.index[in_class >= CLASS_CAP]), kept[size:]
+    reserved = set(in_class.index[in_class == 0])
+    if size < len(reserved):
+        raise ValueError("size cannot be smaller than the number of eligible asset classes")
+    extra = [i for i in kept if i not in reserved][:size - len(reserved)]
+    selected = reserved | set(extra)
+    return ([i for i in kept if i in selected], list(in_class.index[in_class >= CLASS_CAP]),
+            [i for i in kept if i not in selected])
 
 
 def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: date,
@@ -308,8 +315,9 @@ def build_etf_universe(candidates: pd.DataFrame, bars: pd.DataFrame, *, as_of: d
     ``as_of`` minus ``HISTORY_YEARS`` years (bars before its listing date are ignored: a reused
     ticker's older bars belong to another instrument; no listing date means no history), and has a trailing ``DOLLAR_VOLUME_SESSIONS``-session
     median dollar volume of at least ``MIN_MEDIAN_DOLLAR_VOLUME`` (inclusive; a short, non-finite
-    or negative window fails closed). Eligible ETFs keep the top ``CLASS_CAP`` per class by that
-    median, then the top ``size`` overall; ties break by symbol. Every unselected row names
+    or negative window fails closed). Reserve the highest-volume eligible ETF per class, then
+    fill to ``size`` by volume, keeping at most ``CLASS_CAP`` per class. A size smaller than the
+    number of eligible classes refuses; ties break by symbol. Every unselected row names
     exactly one reason, the first rule it fails. Selected rows come first by rank, then the rest
     by symbol. Inputs are never mutated; the result is deterministic.
     """

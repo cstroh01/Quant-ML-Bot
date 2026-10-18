@@ -184,6 +184,55 @@ def test_class_cap_and_size_cutoff_rank_by_dollar_volume():
     assert list(result["rank"].dropna()) == list(range(1, 13))
 
 
+def coverage_universe(*, size=14):
+    """Synthetic leaders: currency is liquid but below every competing equity ETF."""
+    cands = [cand(f"C{k:02d}", cls) for k, cls in enumerate(ar.ETF_ASSET_CLASSES)]
+    cands += [cand(f"EX{k:02d}") for k in range(12)]
+    volumes = {c["symbol"]: ("2022-01-03", LIQUID + 100e6) for c in cands}
+    volumes["C13"] = ("2022-01-03", LIQUID)
+    return build(cands, panel(volumes), size=size)
+
+
+def test_each_eligible_class_keeps_its_leader_before_global_volume_fill():
+    result = coverage_universe()
+    chosen = result.loc[result["selected"]]
+    assert len(chosen) == 14
+    assert set(chosen["asset_class"]) == set(ar.ETF_ASSET_CLASSES)
+    assert row(result, "C13")["selected"]
+    assert row(result, "C00")["selected"]  # symbol breaks the tie for class leader
+    assert row(result, "EX00")["exclusion_reason"] == "below_cutoff"
+    assert row(result, "EX11")["exclusion_reason"] == "class_cap"
+    assert chosen["median_dollar_volume_252"].is_monotonic_decreasing
+    ar.validate_universe(result, size=14)
+
+
+def test_class_reservations_leave_extra_slots_for_highest_volume():
+    result = coverage_universe(size=16)
+    assert row(result, "EX00")["selected"] and row(result, "EX01")["selected"]
+    assert not row(result, "EX02")["selected"]
+    ar.validate_universe(result, size=16)
+
+
+def test_size_cannot_silently_drop_an_eligible_class():
+    try:
+        coverage_universe(size=13)
+    except ValueError as error:
+        assert "size" in str(error) and "eligible asset classes" in str(error)
+    else:
+        raise AssertionError("size silently dropped an eligible class")
+
+
+def test_validator_rejects_displacing_a_reserved_class_leader():
+    result = coverage_universe()
+    forged = swap(result, "C13", "EX00")
+    # Keep volume ranks valid: rejection must come from lost coverage/selection.
+    ranked = forged.loc[forged["selected"]].sort_values(
+        ["median_dollar_volume_252", "symbol"], ascending=[False, True]).index
+    forged.loc[ranked, "rank"] = range(1, len(ranked) + 1)
+    with pytest.raises(ValueError, match="highest-dollar-volume selection"):
+        ar.validate_universe(forged, require_all_classes=False, size=14)
+
+
 def test_build_is_deterministic_and_does_not_mutate_inputs():
     cands = pd.DataFrame([cand("B"), cand("A")])
     bars = panel({"A": ("2022-01-03", LIQUID), "B": ("2022-01-03", LIQUID)})
@@ -363,6 +412,9 @@ def oracle_duplicates():
     ("if _LEVERAGED_NAME.search(", "if False and _LEVERAGED_NAME.search(", oracle_leveraged),
     # The validator stops checking duplicate symbols.
     ("if frame[\"symbol\"].duplicated().any():", "if False:", oracle_duplicates),
-], ids=["history", "future-window", "leveraged", "duplicates"])
+    ("reserved = set(in_class.index[in_class == 0])", "reserved = set()",
+     test_each_eligible_class_keeps_its_leader_before_global_volume_fill),
+    ("if size < len(reserved):", "if False:", test_size_cannot_silently_drop_an_eligible_class),
+], ids=["history", "future-window", "leveraged", "duplicates", "class-reservation", "size-coverage"])
 def test_planted_defects_are_killed(old, new, oracle):
     killed(ar, old, new, oracle)
