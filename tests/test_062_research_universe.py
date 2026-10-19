@@ -107,6 +107,14 @@ def test_missing_or_bad_data_is_excluded(edit, reason):
     assert not result.iloc[0].candidate and reason in result.iloc[0].reasons.split(";")
 
 
+def test_invalid_bar_cannot_hide_outside_the_liquidity_tail():
+    for field, value in [("Volume", -1.), ("Close", -1.), ("Close", 0.), ("Close", float("nan"))]:
+        bad = bars("one")
+        bad.loc[bad.index[-25], field] = value
+        result = screen(prices=bad).iloc[0]
+        assert not result.candidate and "invalid_bars" in result.reasons.split(";")
+
+
 def test_holiday_gap_is_not_a_missing_bar():
     # The exchange calendar excludes Labor Day, rather than expecting a weekday bar.
     assert pd.Timestamp("2026-09-07") not in DATES
@@ -236,6 +244,9 @@ def test_cli_failed_publication_leaves_no_inventory(tmp_path, monkeypatch, failu
      test_mature_successor_never_uses_predecessor_bars),
     ('if len(history) < policy.min_sessions:', 'if False:',
      test_identity_join_never_inherits_another_instruments_history),
+    ('valid = bool(len(values) and np.isfinite(values.to_numpy()).all()\n                     and (values.Close > 0).all() and (values.Volume >= 0).all())',
+     'valid = bool(len(values))', test_invalid_bar_cannot_hide_outside_the_liquidity_tail),
+    ('if not valid:', 'if False:', test_invalid_bar_cannot_hide_outside_the_liquidity_tail),
 ])
 def test_planted_defects(old, new, oracle):
     killed(ru, old, new, oracle)

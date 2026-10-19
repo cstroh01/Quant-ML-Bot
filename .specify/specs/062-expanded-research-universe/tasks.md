@@ -16,3 +16,6 @@
 - [ ] T008 Review correction: prove eligibility and immutable-ID guards with semantic
   mutants; publish CSV/receipt together without failed-write residue, expose
   provenance on stdout, and replace unsupported acceptance claims. Offline only.
+
+- [ ] T009 Review acceptance: prove malformed-history validation and exclusion
+  with semantic mutants; correct audit provenance without changing account gates.
