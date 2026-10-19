@@ -1,0 +1,113 @@
+# 057 T008: DORMANT TEMPLATE. Private companion main only; Camden installs.
+# No schedule or submit/arming input. Requires separately authorized broker reads.
+name: fidelity-preview
+on: workflow_dispatch
+permissions:
+  contents: write
+  issues: write
+# Same group as installed PAPER: both write the same ops-state branch.
+concurrency:
+  group: paper-loop
+  cancel-in-progress: false
+jobs:
+  preview:
+    if: >-
+      github.repository == 'cstroh01/Quant-ML-Bot-private' &&
+      github.event.repository.private == true && github.ref == 'refs/heads/main' &&
+      vars.QMB_FIDELITY_PREVIEW_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PIN: ${{ vars.QMB_FIDELITY_PIN }}
+      AUTHORIZED_SESSION: ${{ vars.QMB_FIDELITY_AUTHORIZED_SESSION }}
+      QMB_STATE_DIR: ${{ github.workspace }}/state/live_fidelity
+    steps:
+      - name: Require immutable public-main ancestor
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json,os,re,subprocess
+          pin=os.environ['PIN']
+          if not re.fullmatch('[0-9a-f]{40}',pin): raise SystemExit('Invalid source pin')
+          r=subprocess.run(['gh','api','repos/cstroh01/Quant-ML-Bot/compare/'+pin+'...main'],capture_output=True,text=True,check=True)
+          if json.loads(r.stdout)['status'] not in ('ahead','identical'): raise SystemExit('Pin outside main')
+          PY
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: cstroh01/Quant-ML-Bot
+          ref: ${{ vars.QMB_FIDELITY_PIN }}
+          path: qmb
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ops-state
+          path: state
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.12"
+      - name: Install existing runtime and audited SDK lock without credentials
+        run: |
+          pip install -r qmb/requirements.txt
+          pip install --require-hashes --only-binary=:all: -r qmb/requirements-fidelity-host.txt
+      - name: Check authorized date, window, KILL and restored state
+        id: ready
+        working-directory: qmb
+        run: >-
+          python scripts/fidelity_preview_host.py --pin "$PIN" --authorized-session "$AUTHORIZED_SESSION"
+          --state "$QMB_STATE_DIR" --profiles "$RUNNER_TEMP/fidelity-profiles.json" --inputs "$RUNNER_TEMP/fidelity-inputs"
+      - name: Refresh completed bars without Fidelity credentials
+        working-directory: qmb
+        env:
+          APCA_API_KEY_ID: ${{ secrets.PAPER_SMALL_KEY_ID }}
+          APCA_API_SECRET_KEY: ${{ secrets.PAPER_SMALL_SECRET }}
+        run: >-
+          python scripts/fidelity_preview_host.py --mode inputs --pin "$PIN" --authorized-session "$AUTHORIZED_SESSION"
+          --state "$QMB_STATE_DIR" --profiles "$RUNNER_TEMP/fidelity-profiles.json" --inputs "$RUNNER_TEMP/fidelity-inputs"
+      - name: Preview only; recheck current window before launcher
+        working-directory: qmb
+        env:
+          QMB_FIDELITY_PROFILES_JSON: ${{ secrets.QMB_FIDELITY_PROFILES_JSON }}
+          FIDELITY_LIVE_USERNAME: ${{ secrets.FIDELITY_LIVE_USERNAME }}
+          FIDELITY_LIVE_PASSWORD: ${{ secrets.FIDELITY_LIVE_PASSWORD }}
+          FIDELITY_LIVE_TOTP: ${{ secrets.FIDELITY_LIVE_TOTP }}
+          FIDELITY_LIVE_ACCOUNT: ${{ secrets.FIDELITY_LIVE_ACCOUNT }}
+          FIDELITY_LIVE_FP_KEY: ${{ secrets.FIDELITY_LIVE_FP_KEY }}
+        run: |
+          umask 077
+          printf '%s' "$QMB_FIDELITY_PROFILES_JSON" > "$RUNNER_TEMP/fidelity-profiles.json"
+          python scripts/fidelity_preview_host.py --mode preview --pin "$PIN" --authorized-session "$AUTHORIZED_SESSION" \
+            --state "$QMB_STATE_DIR" --profiles "$RUNNER_TEMP/fidelity-profiles.json" --inputs "$RUNNER_TEMP/fidelity-inputs"
+      - name: Queue daily summary and deliver incidents
+        if: ${{ always() && steps.ready.outcome == 'success' }}
+        working-directory: qmb
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import os,sys
+          sys.path.insert(0,'scripts')
+          from ops_runtime import queue_outbox
+          queue_outbox(os.environ['QMB_STATE_DIR'],'fidelity-host-'+os.environ['GITHUB_RUN_ID'],kind='summary',title='fidelity-preview daily summary',body='Preview only. Outcome: '+os.environ['OUTCOME']+'. Run: '+os.environ['RUN_URL']+'. Inspect private state; no capital gate is automatically accepted.')
+          PY
+          python scripts/ops_deliver.py --repo "${{ github.repository }}" --state-dir "$QMB_STATE_DIR"
+      - name: Persist state even after preview or notification failure
+        if: ${{ always() && steps.ready.outcome == 'success' }}
+        working-directory: qmb
+        run: bash ops/persist_state.sh "$GITHUB_WORKSPACE/state" fidelity-preview
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: ${{ always() && steps.ready.outcome == 'success' }}
+        with:
+          name: fidelity-state-${{ github.run_id }}
+          path: state/live_fidelity
+          include-hidden-files: true
+          retention-days: 90
+      - name: Notify host failure; delivery remains an acceptance gate
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh issue create -R "${{ github.repository }}" --title "fidelity-preview failed"
+          --body "Preview only. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Inspect private state."
