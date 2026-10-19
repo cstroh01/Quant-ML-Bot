@@ -1,16 +1,11 @@
 # Private candidate inventory
-
-Offline data-collection screening only: no fetch, training, portfolio, broker or execution authority. Keep vendor data/inventories private until publication rights are verified.
-Reference CSV: `instrument_id,symbol,asset_type,exchange,listed_on,delisted_on,leveraged,inverse,observed_at,effective_date,source`.
-Use sourced immutable IDs, `common_stock`/`etf`, MIC exchanges, ISO dates, aware observations and explicit true/false flags. Observation means actual receipt; never backdate current snapshots. Blank delisting means no known delisting.
-Timestamp fields must be valid; other reference contents are validated only for versions visible at the as-of cutoff. Unknown visible classifications are not accepted.
-Raw bars CSV: `instrument_id,Date,Close,Volume`. Dates are naive midnight exchange sessions; close is nominal dollars and volume nominal shares. Never relabel adjusted volume as nominal.
-All supplied post-listing bars through as-of are validated, including old gaps/malformed rows; only the liquidity median uses the configured trailing window. This does not reconstruct history absent from the input.
-
-EXAMPLE — NOT A RESULT. Choose explicit thresholds for a preregistered future research family; these are not execution limits or proof that smaller stocks are executable:
+Offline data-collection screening: no fetch, training, portfolio, broker or execution authority. Keep vendor data/inventories private until publication rights are verified.
+Reference CSV: `instrument_id,symbol,asset_type,exchange,listed_on,delisted_on,leveraged,inverse,observed_at,effective_date,source`. Use sourced immutable IDs, `common_stock`/`etf`, MIC exchanges, ISO dates, aware receipt observations and explicit true/false flags; never backdate snapshots. Blank delisting means no known delisting. Timestamp fields must be valid; other contents are validated only for visible versions. Unknown visible classifications are excluded.
+Nasdaq listing segments XNGS/XNCM/XNMS use operating MIC XNAS ([ISO register](https://www.iso20022.org/sites/default/files/ISO10383_MIC/ISO10383_MIC.csv), retrieved 2026-10-18 New York; SHA256 `09a0d07b7b8348147453a2d8b18bc6638e3c5b16f749462582c9b1edf0fd0e38`). This fixed mapping is not historical membership or permission to admit other Nasdaq markets.
+Raw bars CSV: `instrument_id,Date,Close,Volume`; naive midnight exchange sessions, nominal dollar closes and nominal shares. Never relabel adjusted volume. Validate all supplied post-listing bars through as-of, including old gaps/malformed rows; only liquidity uses the trailing window. This cannot reconstruct missing history.
+EXAMPLE — NOT A RESULT. Set explicit thresholds for a preregistered research family; these are not execution limits or evidence of executability:
 ```text
 python scripts/research_universe.py --reference PRIVATE/reference.csv --bars PRIVATE/raw-bars.csv --as-of 2026-10-16 --price-basis raw --min-sessions 252 --min-price 2 --min-dollar-volume 1000000 --out PRIVATE/new-inventory
 ```
-Use a new, exclusive output path per run. Both files are staged beside it before publication; errors leave no inventory and existing targets are refused.
-`candidates.csv` retains each visible ID and exclusions. `receipt.json` binds input/output/implementation hashes, policy, run identity, generation date, counts and limitations; stdout repeats the full receipt and its path.
-Candidates still need complete OHLCV/actions, independent reconciliation, rights, research and broker acceptance. Current survivor snapshots do not reconstruct historical membership. No edge, promotion or LIVE permission is inferred. No dependency is added.
+Use a new, exclusive output path. CSV and receipt are staged together; errors leave no inventory and existing targets are refused. CSV retains visible IDs/exclusions; JSON and stdout bind input/output/implementation hashes, policy, run identity, generation date, counts and limitations.
+Candidates still require complete OHLCV/actions, independent reconciliation, rights, research and broker acceptance. Survivor snapshots cannot reconstruct historical members. No edge, promotion or LIVE permission is inferred. No dependency added.

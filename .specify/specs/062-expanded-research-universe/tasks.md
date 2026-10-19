@@ -13,13 +13,10 @@
 - [ ] T007 Account acceptance: PAPER sessions, Fidelity previews/holdings/cash,
   notification and host/scheduling verification, followed by Camden's LIVE gate.
 
-- [ ] T008 Review correction: prove eligibility and immutable-ID guards with semantic
-  mutants; publish CSV/receipt together without failed-write residue, expose
-  provenance on stdout, and replace unsupported acceptance claims. Offline only.
-
-- [ ] T009 Review acceptance: prove malformed-history validation and exclusion
-  with semantic mutants; correct audit provenance without changing account gates.
-
-- [ ] T010 Apply visibility before reference-content validation; validate all
-  supplied post-listing history, with only liquidity windowed. Red regressions
-  and semantic controls must cover both reviewed source defects. Offline only.
+- [ ] T008 Review correction: semantic eligibility/immutable-ID mutants, atomic
+  CSV/receipt publication, stdout provenance and supported claims. Offline only.
+- [ ] T009 Review acceptance: malformed-history validation/exclusion mutants and audit provenance; account gates unchanged.
+- [ ] T010 Apply visibility before content validation; validate all supplied post-listing
+  history, window only liquidity; red regressions and semantic controls for both defects. Offline only.
+- [ ] T011 Correct Nasdaq segment-MIC exclusions from official ISO mapping;
+  prove positive eligibility and semantic rejection controls. Offline only.

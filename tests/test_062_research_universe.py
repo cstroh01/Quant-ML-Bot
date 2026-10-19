@@ -42,9 +42,20 @@ def test_common_stocks_and_etfs_have_no_size_or_symbol_count_cutoff():
     assert set(result.asset_type) == {"common_stock", "etf"}
 
 
+@pytest.mark.parametrize("mic", ["XNAS", "XNGS", "XNCM", "XNMS"])
+def test_nasdaq_operating_and_segment_mics_are_eligible(mic):
+    assert screen([reference(exchange=mic)]).iloc[0].candidate
+
+
+@pytest.mark.parametrize("mic", ["XNGS", "XNCM", "XNMS"])
+def test_nasdaq_segment_mapping_has_semantic_red_controls(mic):
+    killed(ru, '"' + mic + '"', '"ZZZZ"', lambda: test_nasdaq_operating_and_segment_mics_are_eligible(mic))
+
+
 @pytest.mark.parametrize("change,reason", [
     ({"exchange": "OTC"}, "venue_not_permitted"),
     ({"exchange": "XLON"}, "venue_not_permitted"),
+    ({"exchange": "XNDQ"}, "venue_not_permitted"),
     ({"asset_type": "warrant"}, "security_type_not_permitted"),
     ({"leveraged": True}, "leveraged_or_inverse_or_unknown"),
     ({"inverse": True}, "leveraged_or_inverse_or_unknown"),

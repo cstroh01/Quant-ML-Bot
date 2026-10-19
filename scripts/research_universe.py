@@ -17,7 +17,7 @@ import pandas as pd
 from data import trading_days
 
 LABEL = "CANDIDATE INVENTORY — NOT TRAINING OR TRADING APPROVAL"
-US_EXCHANGES = frozenset({"XNYS", "XNAS", "ARCX", "BATS", "XASE", "IEXG"})
+US_EXCHANGES = frozenset({"XNYS", "XNAS", "XNGS", "XNCM", "XNMS", "ARCX", "BATS", "XASE", "IEXG"})
 REFERENCE_COLUMNS = ("instrument_id", "symbol", "asset_type", "exchange", "listed_on", "delisted_on",
                      "leveraged", "inverse", "observed_at", "effective_date", "source")
 OUTPUT_COLUMNS = ("instrument_id", "symbol", "asset_type", "candidate", "reasons", "as_of",
