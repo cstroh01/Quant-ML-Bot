@@ -67,6 +67,7 @@ def build_candidates(reference: pd.DataFrame, bars: pd.DataFrame, *, as_of: date
 
     Reference versions need both effective_date <= as_of and observed_at <= 16:00 New York.
     Prices join by immutable ID and are bounded by listing/as_of, never by ticker alone.
+    All supplied post-listing history is checked; only liquidity is windowed.
     Missing exchange sessions are not filled. Every visible ID gets explicit reasons.
     Thresholds screen data-collection candidates only; they are not SafetyConfig values.
     """
@@ -79,19 +80,17 @@ def build_candidates(reference: pd.DataFrame, bars: pd.DataFrame, *, as_of: date
         raise ValueError("reference columns missing")
     cutoff = datetime.combine(as_of, time(16), tzinfo=ZoneInfo("America/New_York"))
     ref = reference.copy()
-    for field in ("instrument_id", "symbol", "source"):
-        if ref[field].isna().any() or ref[field].astype(str).str.strip().eq("").any():
-            raise ValueError("reference identity, symbol and source must be present")
-    if not ref.instrument_id.map(lambda value: isinstance(value, str)).all():
-        raise ValueError("instrument IDs must be strings")
-    for field in ("symbol", "exchange"):
-        ref[field] = ref[field].str.strip().str.upper()
     observed = ref.observed_at.map(pd.Timestamp)
     if any(pd.isna(t) or t.tz is None for t in observed):
         raise ValueError("observed_at must be aware instants")
     ref["observed_at"] = pd.to_datetime(observed, utc=True)
     ref["effective_date"] = _labels(ref.effective_date)
     ref = ref.loc[(observed <= cutoff) & (ref.effective_date <= pd.Timestamp(as_of))]
+    for field in ("instrument_id", "symbol", "source"):
+        if not ref[field].map(lambda value: isinstance(value, str) and bool(value.strip())).all():
+            raise ValueError("visible reference identity, symbol and source must be nonempty strings")
+    for field in ("symbol", "exchange"):
+        ref[field] = ref[field].map(lambda value: value.strip().upper() if isinstance(value, str) else "")
     if ref.duplicated(["instrument_id", "effective_date", "observed_at"]).any():
         raise ValueError("duplicate reference version")
     ref = ref.sort_values(["instrument_id", "effective_date", "observed_at"]).drop_duplicates(
@@ -126,12 +125,11 @@ def build_candidates(reference: pd.DataFrame, bars: pd.DataFrame, *, as_of: date
         last_label = history.Date.iloc[-1].date() if len(history) else None
         if last_label != last:
             reasons.append("stale_bar")
-        tail = history.tail(max(policy.min_sessions, policy.liquidity_window))
-        if len(tail):
-            expected = trading_days(tail.Date.iloc[0].date(), last)
-            if tail.Date.dt.date.tolist() != expected:
+        if len(history):
+            expected = trading_days(history.Date.iloc[0].date(), last)
+            if history.Date.dt.date.tolist() != expected:
                 reasons.append("missing_sessions")
-        values = tail[["Close", "Volume"]].apply(pd.to_numeric, errors="coerce")
+        values = history[["Close", "Volume"]].apply(pd.to_numeric, errors="coerce")
         valid = bool(len(values) and np.isfinite(values.to_numpy()).all()
                      and (values.Close > 0).all() and (values.Volume >= 0).all())
         with np.errstate(over="ignore", invalid="ignore"):

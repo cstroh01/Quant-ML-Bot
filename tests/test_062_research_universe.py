@@ -68,6 +68,29 @@ def test_reference_changes_after_decision_and_future_bars_do_not_change_inventor
     assert screen([reference(), unseen]).instrument_id.tolist() == ["one"]
 
 
+def test_future_reference_contents_cannot_change_the_as_of_result():
+    late = reference(instrument_id=None, symbol="", source="", exchange=None,
+                     listed_on="malformed", observed_at="2026-10-16T20:00:01Z")
+    future = late | {"observed_at": "2026-06-30T12:00:00Z", "effective_date": "2026-10-19"}
+    pd.testing.assert_frame_equal(screen(), screen([reference(), late, future]))
+    assert screen([late, future]).empty
+
+
+@pytest.mark.parametrize("change", [{"symbol": None}, {"source": ""}, {"instrument_id": 1},
+                                    {"observed_at": "2026-10-16"}, {"effective_date": "malformed"}])
+def test_visible_reference_schema_is_still_enforced(change):
+    with pytest.raises(ValueError):
+        screen([reference(**change)])
+
+
+def test_visible_content_guard_has_a_semantic_red_control():
+    def oracle():
+        try: screen([reference(source="")])
+        except ValueError: return
+        raise AssertionError("visible reference without source accepted")
+    killed(ru, 'if not ref[field].map(lambda value: isinstance(value, str) and bool(value.strip())).all():', 'if False:', oracle)
+
+
 def test_observation_cutoff_and_delisting_boundaries():
     before = reference(delisted_on="2026-10-19", observed_at="2026-10-16T20:00:00Z", effective_date=str(DAY))
     assert screen([before]).iloc[0].candidate
@@ -108,11 +131,13 @@ def test_missing_or_bad_data_is_excluded(edit, reason):
 
 
 def test_invalid_bar_cannot_hide_outside_the_liquidity_tail():
-    for field, value in [("Volume", -1.), ("Close", -1.), ("Close", 0.), ("Close", float("nan"))]:
-        bad = bars("one")
-        bad.loc[bad.index[-25], field] = value
-        result = screen(prices=bad).iloc[0]
-        assert not result.candidate and "invalid_bars" in result.reasons.split(";")
+    for position in (-25, -31, -40):
+        for field, value in [("Volume", -1.), ("Close", -1.), ("Close", 0.), ("Close", float("nan"))]:
+            bad = bars("one")
+            bad.loc[bad.index[position], field] = value
+            result = screen(prices=bad).iloc[0]
+            assert not result.candidate and "invalid_bars" in result.reasons.split(";")
+        test_missing_or_bad_data_is_excluded(lambda f: f.drop(index=f.index[position]), "missing_sessions")
 
 
 def test_holiday_gap_is_not_a_missing_bar():
@@ -228,7 +253,7 @@ def test_cli_failed_publication_leaves_no_inventory(tmp_path, monkeypatch, failu
      lambda: test_exclusion_is_explicit({"delisted_on": str(DAY)}, "delisted")),
     ('if last_label != last:', 'if False:',
      lambda: test_missing_or_bad_data_is_excluded(lambda f: f.iloc[:-1], "stale_bar")),
-    ('if tail.Date.dt.date.tolist() != expected:', 'if False:',
+    ('if history.Date.dt.date.tolist() != expected:', 'if False:',
      lambda: test_missing_or_bad_data_is_excluded(lambda f: f.drop(index=len(f) - 5), "missing_sessions")),
     ('elif values.Close.iloc[-1] < policy.min_price:', 'elif False:',
      lambda: test_missing_or_bad_data_is_excluded(lambda f: f.assign(Close=1.), "price_below_floor")),
@@ -247,6 +272,8 @@ def test_cli_failed_publication_leaves_no_inventory(tmp_path, monkeypatch, failu
     ('valid = bool(len(values) and np.isfinite(values.to_numpy()).all()\n                     and (values.Close > 0).all() and (values.Volume >= 0).all())',
      'valid = bool(len(values))', test_invalid_bar_cannot_hide_outside_the_liquidity_tail),
     ('if not valid:', 'if False:', test_invalid_bar_cannot_hide_outside_the_liquidity_tail),
+    ('history.loc[history.Date >= listed].sort_values("Date")',
+     'history.loc[history.Date >= listed].sort_values("Date").tail(policy.min_sessions)', test_invalid_bar_cannot_hide_outside_the_liquidity_tail),
 ])
 def test_planted_defects(old, new, oracle):
     killed(ru, old, new, oracle)

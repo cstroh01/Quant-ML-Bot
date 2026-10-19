@@ -19,3 +19,7 @@
 
 - [ ] T009 Review acceptance: prove malformed-history validation and exclusion
   with semantic mutants; correct audit provenance without changing account gates.
+
+- [ ] T010 Apply visibility before reference-content validation; validate all
+  supplied post-listing history, with only liquidity windowed. Red regressions
+  and semantic controls must cover both reviewed source defects. Offline only.
