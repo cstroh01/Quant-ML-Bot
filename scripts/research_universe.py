@@ -17,6 +17,7 @@ import pandas as pd
 from data import trading_days
 
 LABEL = "CANDIDATE INVENTORY — NOT TRAINING OR TRADING APPROVAL"
+# Listing MICs: https://www.iso20022.org/sites/default/files/ISO10383_MIC/ISO10383_MIC.csv (2026-10-18).
 US_EXCHANGES = frozenset({"XNYS", "XNAS", "XNGS", "XNCM", "XNMS", "ARCX", "BATS", "XASE", "IEXG"})
 REFERENCE_COLUMNS = ("instrument_id", "symbol", "asset_type", "exchange", "listed_on", "delisted_on",
                      "leveraged", "inverse", "observed_at", "effective_date", "source")
@@ -74,6 +75,8 @@ def build_candidates(reference: pd.DataFrame, bars: pd.DataFrame, *, as_of: date
     policy = ScreenPolicy(**policy_values)
     if type(as_of) is not date:
         raise ValueError("as_of must be a date, not an instant")
+    if not trading_days(as_of, as_of):
+        raise ValueError("as_of must be an exchange session")
     if price_basis != "raw":
         raise ValueError("candidate liquidity requires raw prices and nominal volume")
     if not set(REFERENCE_COLUMNS) <= set(reference.columns):

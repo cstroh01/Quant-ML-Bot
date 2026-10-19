@@ -52,6 +52,21 @@ def test_nasdaq_segment_mapping_has_semantic_red_controls(mic):
     killed(ru, '"' + mic + '"', '"ZZZZ"', lambda: test_nasdaq_operating_and_segment_mics_are_eligible(mic))
 
 
+@pytest.mark.parametrize("day", [date(2026, 10, 17), date(2026, 9, 7)])
+def test_non_session_as_of_is_refused(day):
+    try:
+        ru.build_candidates(pd.DataFrame([reference()]), bars("one"), as_of=day, price_basis="raw", **POLICY)
+    except ValueError as error:
+        assert "session" in str(error)
+        return
+    raise AssertionError("non-session as_of accepted")
+
+
+def test_session_guard_has_a_semantic_red_control():
+    killed(ru, 'if not trading_days(as_of, as_of):', 'if False:',
+           lambda: test_non_session_as_of_is_refused(date(2026, 10, 17)))
+
+
 @pytest.mark.parametrize("change,reason", [
     ({"exchange": "OTC"}, "venue_not_permitted"),
     ({"exchange": "XLON"}, "venue_not_permitted"),
@@ -202,6 +217,13 @@ def cli_args(tmp_path):
             "--as-of", str(DAY), "--price-basis", "raw", "--min-sessions", "30",
             "--min-price", "2", "--min-dollar-volume", "1000"]
     return args
+
+
+@pytest.mark.parametrize("day", ["2026-10-17", "2026-09-07"])
+def test_non_session_cli_leaves_no_inventory(tmp_path, day):
+    args = cli_args(tmp_path)
+    args[args.index("--as-of") + 1] = day
+    assert ru.main(args) == 2 and not (tmp_path / "out").exists()
 
 
 def test_cli_writes_private_hash_bound_inventory_and_refuses_overwrite(tmp_path, capsys):

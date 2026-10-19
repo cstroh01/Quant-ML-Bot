@@ -4,8 +4,8 @@
 - [x] T002 Pure candidate builder and private CLI/receipts (FR-001..004).
 - [x] T003 Rule 12 proofs, full suite and unchanged production ledger.
   Historical implementation checkpoint; current-head acceptance requires the
-  SHA-bound PR checks linked in the integration audit, not a workspace-only count.
-- [x] T004 Integration audit and completion dependencies (FR-005).
+  SHA-bound [PR checks](https://github.com/cstroh01/Quant-ML-Bot/pull/256/checks), not a workspace-only count.
+- [ ] T004 Publish integration audit, usage and completion dependencies in the checkpoint unit (FR-005).
 - [ ] T005 Obtain dated reference snapshots and bounded free-source receipts;
   classify products from source evidence, never guess eligibility from symbols.
 - [ ] T006 Build the real candidate universe and independently reconcile its
@@ -20,3 +20,5 @@
   history, window only liquidity; red regressions and semantic controls for both defects. Offline only.
 - [ ] T011 Correct Nasdaq segment-MIC exclusions from official ISO mapping;
   prove positive eligibility and semantic rejection controls. Offline only.
+- [ ] T012 Refuse non-session as-of dates before screening/publication;
+  weekend/holiday regressions and a semantic guard control. Offline only.
