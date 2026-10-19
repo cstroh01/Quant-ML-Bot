@@ -70,3 +70,42 @@ a supervised preview-only session against his real account (no order); LIVE acti
 
 ### Fingerprint amendment (Camden, 2026-10-15, Task 8)
 Q135 supersedes the earlier four-name and plain-SHA fingerprint text: exactly FIDELITY_LIVE_USERNAME, FIDELITY_LIVE_PASSWORD, FIDELITY_LIVE_TOTP, FIDELITY_LIVE_ACCOUNT, FIDELITY_LIVE_FP_KEY; FP_KEY is exactly 64 lowercase hex characters and fingerprints are HMAC-SHA256 keyed by its 32 decoded bytes, never plain SHA-256.
+
+### PC-independent preview orchestration (Camden, 2026-10-19)
+Camden requires ordinary execution with his development PC powered off and asks
+to wire hosted Alpaca and Fidelity operation. A future Pi is optional. The
+existing Windows task does not satisfy this requirement. This extension admits
+offline implementation and a dormant private-host template, not broker access,
+credentials migration, scheduling, deployment-pin changes or LIVE activation.
+
+- **FR-009 Portable host.** Add `scripts/fidelity_preview_host.py` outside the
+  protected adapter. Python 3.12, no Windows paths/vault/sleep dependencies.
+  Default check-only; explicit input-refresh and preview modes. Fixed child
+  commands only; never accept submit, arming or arbitrary commands. Preserve
+  the existing allocation-aware `exec/live_loop.py` preview path and every
+  protected budget, account, ownership, cash and authentication guard.
+- **FR-010 Preflight.** Before each child, require an exact reviewed source pin,
+  an explicitly authorized current NYSE date, 09:35 inclusive to 12:00 exclusive
+  Eastern, initialized durable private state, and no KILL/HALTED. Recheck the
+  clock before login after input refresh. A missing state root is not an empty
+  account. Existing daily leases and durable pre-login persistence remain
+  authoritative; no automatic lease clearing or session retry.
+- **FR-011 Credential boundary.** Input-refresh children receive no Fidelity
+  credential references. Only the fixed preview launcher receives the five
+  references through its environment. No credential reads in check mode, no
+  parent environment mutation, no raw child output or exception payload in logs.
+- **FR-012 Private template.** `ops/workflows/fidelity-preview.yml` is a dormant
+  manual-only template for the private companion repository, never a public
+  self-hosted runner. Require private main, an explicit enable variable and
+  authorized session, immutable main-ancestor pin, shared state-write
+  concurrency, durable pre-login/final persistence, private backup and failure
+  notification. Credentials are step-scoped, never workflow inputs. Installation,
+  host/credential acceptance, notification receipt and real sessions remain
+  human gates. Templates and fake Windows-host tests prove neither Linux
+  execution nor ARM/Pi compatibility. Authentication challenges still halt.
+
+Acceptance: offline boundary/gap/DST and credential/command contracts, planted
+defects, full suite; then independent exact-head reviews. Human-reviewed private
+installation and separately authorized real previews follow. The existing five
+distinct-session/holdings and capital gates remain binding. PAPER schedule
+activation still follows 055 G16; this extension enables no schedule.
