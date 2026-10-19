@@ -1,8 +1,9 @@
 # STATE
 
-## Verified checkpoint — 2026-10-17 America/New_York
+## Verified checkpoint — 2026-10-19 America/New_York
 
-Public main audited: `c1dbc854b146095cd47283ef4cbc1b5838f20d94`.
+Public main audited: `98ab2f716f1c969e6a66032d658841b3a371365c` after #259.
+The merge retains #255 and adds exactly the three-file reviewed #259 delta.
 The previous version of this file described superseded drafts and a $100 cap.
 This checkpoint records merged code/evidence, not an observed running deployment.
 Camden owns the active spec and every human-gate decision.
@@ -38,7 +39,7 @@ test, a replay, a configured budget, an API key, a queue status or this file.
 Camden's 2026-10-17 chat choices: keep free data; expand research to US stocks
 and ETFs, excluding OTC, leveraged and inverse products. Spec 062 implements
 data-collection candidates for this request, separately from frozen trials
-and LIVE promotion. See its [audit](implementation/spec-062/integration-audit-20261017.md)
+and LIVE promotion. See its [audit](implementation/spec-062/integration-checkpoint-20261019.md)
 and [tasks](../.specify/specs/062-expanded-research-universe/tasks.md).
 New draft work is not deployed or accepted merely because it exists in a PR.
 
@@ -65,11 +66,55 @@ The legacy dashboard gate route is not the seven-item capital-gate checklist;
 it still has evidence-wiring work. Consult the checklist manifest and typed
 evidence, not the old dashboard wording, for the current gate inventory.
 
-Cloud audit: no root `.env*` file, no configured vendor secrets/runtime
-variables, and vendor hosts absent from the current allowlist. PC/private-repo
-keys and task installation were not independently inspected. The Windows
-preview input refresher needs Alpaca keys in its environment; it does not
-load `.env`. Fidelity uses the separate native-vault credential launcher.
+The earlier cloud-only audit did not inspect the local/private environment.
+The 2026-10-18 local reconciliation supersedes its inference that credentials
+or hosted infrastructure are absent. Credential values were not inspected;
+configured names do not establish authentication, entitlement or acceptance.
+The Windows preview input refresher needs Alpaca keys in its environment; it
+does not load `.env`. Fidelity uses the separate native-vault launcher.
+
+## Hosted PAPER and review checkpoint — 2026-10-18
+
+Private hosted infrastructure was reverified on 2026-10-19: the production
+workflow is manual-only, with no production runs and no production profile
+state namespace. Fixture drills are separate evidence. Source pin/tree and
+state matched the retained audit; this is not current account acceptance.
+Both-profile previews, broker-truth reconciliation, actual notification
+receipt and realized-versus-modeled fills remain unverified. Scheduling waits
+for G16 and a separate governance PR merged by Camden. No wake-up is implied.
+
+PR #255 was merged by Camden at `8b0916db3c7528b3dccd03d32875eca472807b2d`;
+the API-verified merge tree matches reviewed `ad60c5b053cf5ab3ffb97ffb3c8b5e71e8cf5753`.
+Its pre-existing D-3 absent-class validator/spec conflict remains separate.
+PR #256 at `67dfd7f68acc1e86b457f7ca07e7814f3966ef5e` is draft/held.
+T011 corrects Nasdaq segment MIC exclusions; T012 refuses non-session as-of
+dates. Its actual-root suite passed 2,613 tests, with 2 skipped and 12 xfailed;
+fresh Codex review at that head found no major issues. Independent Claude
+review is pending: the CLI was spend-limited, Camden reported no remaining
+Claude usage, and the existing GitHub Claude workflow is manually disabled.
+These facts do not establish dual-review acceptance. No billing, review routine
+or workflow setting was changed.
+
+Usage and integration-audit publication moved to this checkpoint unit to keep
+the code PR bounded. PR #257's 056 T010 correction is published at
+`6ee6aefe9161693d2b904752ecf160cab3c2bde2`: 32 focused tests and the actual
+branch suite passed (2,605 passed, 2 skipped, 12 xfailed); all 1,284 frozen files
+and ten protected hashes match. Fresh reviews remain pending; the authorized Codex review resumed on
+2026-10-19 after its usage reset. Claude remains unavailable. PR #259 was merged by Camden as
+`98ab2f716f1c969e6a66032d658841b3a371365c`, from reviewed head
+`69df117eb36ea5c97b8dd32edd38e206ef323d3b`. This does not update a deployed
+pin or accept a real Fidelity session.
+
+## Standing delegations retained (Camden, 2026-10-09)
+
+- G12: 044 T003/T004 reviews, Codex plus Claude.
+- G13: bounded fetches and the 044 T007 probe, Codex lane, without per-run go;
+  the current task's narrower authorization still governs a particular call.
+- G14: 040 T001 kickoff check, the lane.
+- G15: supervised PAPER drills, Codex, with schedules disabled.
+- G16: schedule enablement only after all drills, broker reconciliation and
+  notification delivery are verified; the governance PR needs Camden's merge.
+- G17 is not in force; constitution Rule 9b condition 3 governs decisions.
 
 ## Working rules
 
