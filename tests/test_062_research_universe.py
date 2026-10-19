@@ -2,6 +2,7 @@
 import hashlib
 import json
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -68,7 +69,7 @@ def test_reference_changes_after_decision_and_future_bars_do_not_change_inventor
 
 
 def test_observation_cutoff_and_delisting_boundaries():
-    before = reference(delisted_on="2026-10-19", observed_at="2026-10-16T20:00:00Z")
+    before = reference(delisted_on="2026-10-19", observed_at="2026-10-16T20:00:00Z", effective_date=str(DAY))
     assert screen([before]).iloc[0].candidate
     assert not screen([reference(observed_at="2026-10-16T20:00:01Z")]).shape[0]
 
@@ -128,10 +129,17 @@ def test_ambiguous_active_symbols_are_not_candidates():
 
 
 def test_reused_symbol_with_delisted_predecessor_has_independent_history():
-    result = screen([reference("old", symbol="ONE", delisted_on="2025-01-02"), reference()],
-                    bars("old", "one"))
+    result = screen([reference("old", symbol="ONE", delisted_on="2025-01-02"), reference(listed_on="2025-01-03")],
+                    pd.concat([bars("old").assign(Close=1.), bars("one")]))
     assert result.loc[result.instrument_id.eq("one"), "candidate"].item()
-    assert result.loc[result.instrument_id.eq("old"), "reasons"].item() == "delisted"
+    assert "delisted" in result.loc[result.instrument_id.eq("old"), "reasons"].item().split(";")
+
+
+def test_mature_successor_never_uses_predecessor_bars():
+    result = screen([reference("old", symbol="ONE", delisted_on="2025-01-02"),
+                     reference(listed_on="2025-01-03")], bars("old"))
+    assert not result.loc[result.instrument_id.eq("one"), "candidate"].item()
+    assert "insufficient_history" in result.loc[result.instrument_id.eq("one"), "reasons"].item()
 
 
 @pytest.mark.parametrize("change", [{"min_price": float("nan")}, {"min_sessions": 0},
@@ -141,7 +149,7 @@ def test_invalid_policy_is_refused(change):
         screen(**change)
 
 
-def test_cli_writes_private_hash_bound_inventory_and_refuses_overwrite(tmp_path, capsys):
+def cli_args(tmp_path):
     refs, prices = tmp_path / "reference.csv", tmp_path / "bars.csv"
     pd.DataFrame([reference()]).to_csv(refs, index=False)
     bars("one").to_csv(prices, index=False)
@@ -149,6 +157,12 @@ def test_cli_writes_private_hash_bound_inventory_and_refuses_overwrite(tmp_path,
     args = ["--reference", str(refs), "--bars", str(prices), "--out", str(out),
             "--as-of", str(DAY), "--price-basis", "raw", "--min-sessions", "30",
             "--min-price", "2", "--min-dollar-volume", "1000"]
+    return args
+
+
+def test_cli_writes_private_hash_bound_inventory_and_refuses_overwrite(tmp_path, capsys):
+    args = cli_args(tmp_path)
+    refs, prices, out = (tmp_path / name for name in ("reference.csv", "bars.csv", "out"))
     assert ru.main(args) == 0
     receipt = json.loads((out / "receipt.json").read_text())
     assert receipt["label"] == ru.LABEL
@@ -156,12 +170,33 @@ def test_cli_writes_private_hash_bound_inventory_and_refuses_overwrite(tmp_path,
     assert receipt["bars_sha256"] == hashlib.sha256(prices.read_bytes()).hexdigest()
     assert receipt["candidates_sha256"] == hashlib.sha256((out / "candidates.csv").read_bytes()).hexdigest()
     assert receipt["candidate_count"] == 1 and receipt["limitations"]
+    shown = json.loads(capsys.readouterr().out)
+    assert shown["receipt"] == str(out / "receipt.json")
+    assert {k: shown[k] for k in receipt} == receipt
+    saved = {p.name: p.read_bytes() for p in out.iterdir()}
     assert ru.main(args) != 0
+    assert {p.name: p.read_bytes() for p in out.iterdir()} == saved
     assert "refused" in capsys.readouterr().err.lower()
     broken_out = tmp_path / "broken"
     bars("one").assign(Date="not-a-date").to_csv(prices, index=False)
     args[args.index("--out") + 1] = str(broken_out)
     assert ru.main(args) != 0 and not broken_out.exists()
+
+
+@pytest.mark.parametrize("failure", ["csv", "receipt", "rename"])
+def test_cli_failed_publication_leaves_no_inventory(tmp_path, monkeypatch, failure):
+    args = cli_args(tmp_path)
+    before = {p: p.read_bytes() if p.is_file() else None for p in tmp_path.rglob("*")}
+    method = {"csv": "write_bytes", "receipt": "write_text", "rename": "rename"}[failure]
+    original = getattr(Path, method)
+    def fail(path, *a, **kw):
+        if (failure == "csv" and path.name == "candidates.csv") or (
+                failure == "receipt" and path.name == "receipt.json") or failure == "rename":
+            raise OSError("synthetic publication failure")
+        return original(path, *a, **kw)
+    monkeypatch.setattr(Path, method, fail)
+    assert ru.main(args) == 2
+    assert {p: p.read_bytes() if p.is_file() else None for p in tmp_path.rglob("*")} == before
 
 
 @pytest.mark.parametrize("old,new,oracle", [
@@ -175,6 +210,32 @@ def test_cli_writes_private_hash_bound_inventory_and_refuses_overwrite(tmp_path,
      lambda: test_exclusion_is_explicit({"inverse": True}, "leveraged_or_inverse_or_unknown")),
     ('if median is not None and not np.isfinite(median):', 'if False:',
      lambda: test_missing_or_bad_data_is_excluded(lambda f: f.assign(Close=1e154, Volume=1e154), "invalid_bars")),
-], ids=["future-reference", "future-bars", "OTC", "inverse", "dollar-overflow"])
+    ('ref.effective_date <= pd.Timestamp(as_of)', 'ref.effective_date <= ref.effective_date.max()',
+     test_reference_changes_after_decision_and_future_bars_do_not_change_inventory),
+    ('if item.asset_type not in {"common_stock", "etf"}:', 'if False:',
+     lambda: test_exclusion_is_explicit({"asset_type": "warrant"}, "security_type_not_permitted")),
+    ('if listed.date() > as_of:', 'if False:',
+     lambda: test_exclusion_is_explicit({"listed_on": "2026-10-19"}, "not_listed")),
+    ('if _labels(pd.Series([item.delisted_on])).iloc[0].date() <= as_of:', 'if False:',
+     lambda: test_exclusion_is_explicit({"delisted_on": str(DAY)}, "delisted")),
+    ('if last_label != last:', 'if False:',
+     lambda: test_missing_or_bad_data_is_excluded(lambda f: f.iloc[:-1], "stale_bar")),
+    ('if tail.Date.dt.date.tolist() != expected:', 'if False:',
+     lambda: test_missing_or_bad_data_is_excluded(lambda f: f.drop(index=len(f) - 5), "missing_sessions")),
+    ('elif values.Close.iloc[-1] < policy.min_price:', 'elif False:',
+     lambda: test_missing_or_bad_data_is_excluded(lambda f: f.assign(Close=1.), "price_below_floor")),
+    ('if median is None or median < policy.min_median_dollar_volume:', 'if False:',
+     lambda: test_missing_or_bad_data_is_excluded(lambda f: f.assign(Volume=1.), "illiquid")),
+    ('symbols.duplicated(keep=False)', 'symbols.duplicated(keep=False) & False',
+     test_ambiguous_active_symbols_are_not_candidates),
+    ('groups.get(item.instrument_id, panel.iloc[0:0])',
+     'groups.get(ref.drop_duplicates("symbol").set_index("symbol").instrument_id[item.symbol], panel.iloc[0:0])',
+     test_reused_symbol_with_delisted_predecessor_has_independent_history),
+    ('groups.get(item.instrument_id, panel.iloc[0:0])',
+     'groups.get(ref.drop_duplicates("symbol").set_index("symbol").instrument_id[item.symbol], panel.iloc[0:0])',
+     test_mature_successor_never_uses_predecessor_bars),
+    ('if len(history) < policy.min_sessions:', 'if False:',
+     test_identity_join_never_inherits_another_instruments_history),
+])
 def test_planted_defects(old, new, oracle):
     killed(ru, old, new, oracle)

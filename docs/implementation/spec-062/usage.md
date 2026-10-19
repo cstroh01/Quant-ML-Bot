@@ -26,3 +26,8 @@ The output directory must be new. `candidates.csv` retains every visible ID
 and named exclusion. `receipt.json` binds input/output and implementation
 hashes, policy, run identity, generation time and limitations. A candidate
 still needs full OHLCV/action checks, rights, research and broker acceptance.
+
+The CLI stages both files beside the new output directory before publishing it.
+Write/publication errors leave no candidate directory; existing targets are refused.
+Use an exclusive output path per run. Stdout repeats the complete receipt and path,
+including run/date/hash provenance and limitations. No dependency is added.

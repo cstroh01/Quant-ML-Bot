@@ -39,5 +39,5 @@ spec 061's execution allocation, any safety limit, or broker authorization.
 Tests cover listing/delisting/observation boundaries, future perturbations,
 missing bars/holidays, reused tickers, explicit flags and all venue/type
 exclusions. Rule 12 planted defects remove the time/venue/product screens.
-CLI integration proves hashes and refusal without output. Existing suites stay
+CLI integration proves hashes, stdout provenance and failed-write cleanup. Existing suites stay
 green; production ledger bytes remain unchanged. No dependency is added.

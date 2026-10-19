@@ -8,6 +8,7 @@ import hashlib
 import json
 from pathlib import Path
 import sys
+from tempfile import TemporaryDirectory
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -186,13 +187,21 @@ def main(argv=None):
         receipt["implementation_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
         receipt["run_id"] = hashlib.sha256(json.dumps(receipt, sort_keys=True).encode()).hexdigest()
         receipt["generated_at_utc"] = datetime.now(timezone.utc).isoformat()
-        args.out.mkdir(parents=True, exist_ok=False)
-        (args.out / "candidates.csv").write_bytes(output)
-        (args.out / "receipt.json").write_text(json.dumps(receipt, indent=2, allow_nan=False), encoding="utf-8")
+        target = args.out.absolute()
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.exists() or target.is_symlink():
+            raise FileExistsError(target)
+        with TemporaryDirectory(prefix=".qmb-inventory-", dir=target.parent) as temporary:
+            stage = Path(temporary)
+            (stage / "candidates.csv").write_bytes(output)
+            (stage / "receipt.json").write_text(json.dumps(receipt, indent=2, allow_nan=False), encoding="utf-8")
+            if target.exists() or target.is_symlink():
+                raise FileExistsError(target)
+            stage.rename(target)
     except (OSError, ValueError, KeyError, TypeError):
         print("Candidate inventory refused; inspect input schema, policy and output location.", file=sys.stderr)
         return 2
-    print(json.dumps({"label": LABEL, "candidate_count": receipt["candidate_count"]}))
+    print(json.dumps(receipt | {"receipt": str(args.out / "receipt.json")}))
     return 0
 
 
