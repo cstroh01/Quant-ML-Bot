@@ -3,6 +3,11 @@ from datetime import date, datetime, timezone
 import hashlib
 import json
 import socket
+from io import BytesIO
+from email.message import Message
+from urllib.error import HTTPError
+from urllib.request import HTTPSHandler, build_opener
+from urllib.response import addinfourl
 
 import pandas as pd
 import pytest
@@ -24,6 +29,7 @@ def no_network(monkeypatch):
     def refuse(*args, **kwargs):
         pytest.fail("EODHD tests must never access the network")
     monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
 
 
 def client(monkeypatch, *, dividends=None, splits=None, transport=None, now=NOW, quota=None):
@@ -111,8 +117,50 @@ def test_credentials_transport_and_parse_errors_are_redacted(monkeypatch):
         api.fetch("AAA.US", START, END)
 
 
-def test_redirects_cannot_forward_a_url_credential():
-    assert es._NoRedirect().redirect_request(None, None, 302, "", {}, "https://other.example") is None
+def test_redirects_cannot_forward_a_url_credential(monkeypatch):
+    seen = []
+    class FakeHTTPS(HTTPSHandler):
+        def https_open(self, request):
+            seen.append(request.full_url)
+            headers = Message()
+            headers["Location"] = "https://other.invalid/?api_token=synthetic"
+            response = addinfourl(BytesIO(b"synthetic"), headers, request.full_url,
+                                  302 if len(seen) == 1 else 200)
+            response.msg = "synthetic"
+            return response
+    monkeypatch.setattr(es, "build_opener", lambda *handlers: build_opener(FakeHTTPS(), *handlers))
+    try:
+        es._transport("GET", "https://source.invalid/?api_token=synthetic", {})
+    except HTTPError as error:
+        assert error.code == 302
+    else:
+        raise AssertionError("credential-bearing redirect followed")
+    assert seen == ["https://source.invalid/?api_token=synthetic"]
+
+
+def test_redirect_handler_wiring_has_a_semantic_red_proof(monkeypatch):
+    killed(es, 'build_opener(_NoRedirect())', 'build_opener()',
+           lambda: test_redirects_cannot_forward_a_url_credential(monkeypatch))
+
+
+@pytest.mark.parametrize("entry", ["create_connection", "connect"])
+def test_socket_guard_is_exercised_without_real_sockets(monkeypatch, entry):
+    def no_dns(*args, **kwargs):
+        raise AssertionError("guard bypass reached resolver")
+    monkeypatch.setattr(socket, "getaddrinfo", no_dns)
+    with pytest.raises(pytest.fail.Exception, match="EODHD tests must never access the network"):
+        if entry == "create_connection":
+            socket.create_connection(("synthetic.invalid", 443))
+        else:
+            socket.socket.connect(object(), ("127.0.0.1", 0))  # invalid receiver; never an OS socket
+
+
+@pytest.mark.parametrize("entry", ["create_connection", "connect"])
+def test_removed_socket_guard_has_a_safe_red_control(monkeypatch, entry):
+    target = socket if entry == "create_connection" else socket.socket
+    monkeypatch.setattr(target, entry, lambda *a, **kw: None)
+    with pytest.raises(pytest.fail.Exception, match="DID NOT RAISE"):
+        test_socket_guard_is_exercised_without_real_sockets(monkeypatch, entry)
 
 
 def test_shared_quota_counts_failures_and_rolls_after_24_hours(monkeypatch):
