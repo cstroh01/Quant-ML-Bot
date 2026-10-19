@@ -1,4 +1,4 @@
-# 057 T008: DORMANT TEMPLATE. Private companion main only; Camden installs.
+# 057 T009: DORMANT TEMPLATE. Private companion main only; Camden installs.
 # No schedule or submit/arming input. Requires separately authorized broker reads.
 name: fidelity-preview
 on: workflow_dispatch

@@ -1,4 +1,4 @@
-"""057 T007: portable orchestration for a reviewed, private, preview-only host.
+"""057 T008: portable orchestration for a reviewed, private, preview-only host.
 
 The workflow verifies the immutable main-ancestor source before invoking this
 helper. No credential access, command or broker activity occurs in check mode.

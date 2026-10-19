@@ -1,4 +1,4 @@
-# 057 T008: Python 3.12 Linux x86_64 wheels; optional private-host dependencies.
+# 057 T009: Python 3.12 Linux x86_64 wheels; optional private-host dependencies.
 # Rule 6: audited Fidelity SDK needs httpx and pydantic; stdlib has no compatible broker client/models.
 # Complete transitive hash lock; existing general runtime pins are retained. No Windows vault or CLI extras.
 annotated-types==0.8.0 --hash=sha256:f072f4d804ea359e4eaf198b1af7a8b0943881a87f31bb764f8bf219bb9419e0
