@@ -51,3 +51,47 @@ def test_immutable_supersession_reads_prior_counts_without_caller_reminder(tmp_p
     assert first.read_bytes() == original
     assert json.loads(second.read_bytes())["n_backfill"] == 128
     assert not list(tmp_path.rglob("*.jsonl")), "backfill must create no return sidecars"
+
+
+def test_t033_backfill_changes_count_without_inventing_return_evidence(tmp_path):
+    """EXAMPLE — NOT A RESULT. Two candidate starts; backfill 64 -> 128."""
+    import hashlib
+    from spec033_support import ledger, start, rows, META, CONFIG
+    from selection_bias import build_matrix, lifetime_count
+    from trial_backfill import write_backfill
+
+    log = ledger(tmp_path)
+    for seed in (1, 2):
+        identity = start(log, seed=seed)
+        log.finish(identity, "completed", returns=rows(), metadata=META)
+
+    def matrix():
+        trials = []
+        for event in log.verify()["events"]:
+            if event["event_type"] == "completed":
+                payload = (tmp_path / event["sidecar"]["path"]).read_bytes()
+                trials.append({**event, "returns": [json.loads(line) for line in payload.splitlines()]})
+        return build_matrix(trials, family={"id": "example", "alignment": "exact_intersection",
+                            "min_coverage": .95, "objective": "daily_sharpe", "risk_free": CONFIG["risk_free"]})
+
+    def sidecars():
+        return {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in (tmp_path / "docs/trials/returns").rglob("*") if p.is_file()}
+
+    first_path = write_backfill(tmp_path, manifest())
+    first_bytes = first_path.read_bytes()
+    first = json.loads(first_bytes)
+    before = lifetime_count(first, log)
+    original_matrix, original_sidecars, original_ledger = matrix(), sidecars(), log.path.read_bytes()
+    assert original_matrix["reason"] is None and len(original_matrix["columns"]) == 2, "T033 MATRIX control"
+    assert len(original_sidecars) == 2, "T033 RETURNS control"
+    assert (before["n_backfill"], before["n_post_ledger"], before["n_current"]) == (64, 2, 66), "T033 COUNT before"
+
+    updated = json.loads(write_backfill(tmp_path, manifest(), previous_counts=[128]).read_bytes())
+    after = lifetime_count(updated, log)
+    assert (after["n_backfill"], after["n_post_ledger"], after["n_current"]) == (128, 2, 130), "T033 COUNT after"
+    assert before["reason"] is None and after["reason"] is None
+    assert first_path.read_bytes() == first_bytes, "T033 IMMUTABLE prior backfill"
+    assert matrix() == original_matrix, "T033 MATRIX backfill invented return columns or changed identity"
+    assert sidecars() == original_sidecars, "T033 RETURNS backfill fabricated or changed a sidecar"
+    assert log.path.read_bytes() == original_ledger, "T033 LEDGER backfill changed selection history"

@@ -145,7 +145,7 @@ returns.
 - [x] T032 [US2] After approval, write a new immutable backfill artifact with
   formula, intermediate counts, author/approval, UTC date, and SHA-256; never
   overwrite or lower an earlier count.
-- [ ] T033 [US2] Make T025-T027 green and verify that backfilled trials change
+- [x] T033 [US2] Make T025-T027 green and verify that backfilled trials change
   `N_current` without creating return sidecars or matrix columns.
 
 **Checkpoint**: `N_backfill` is either approved and immutable or explicitly
@@ -303,7 +303,7 @@ defect and passing for a clean control through the real API path.
 - [ ] T074 Review the implementation in the three units proposed by `plan.md`:
   ledger/instrumentation, backfill/statistics, artifact/API. Record any unit too
   large for Camden to explain and split it before merge.
-- [ ] T075 Prepare Camden's Rule 9 explanation: what `N` counts, why backfill is
+- [x] T075 Prepare Camden's Rule 9 explanation: what `N` counts, why backfill is
   upper-biased, why `M != N`, how DSR and PBO use one matrix, why a new trial
   makes evidence stale, and exactly what the planted defect proves.
 
