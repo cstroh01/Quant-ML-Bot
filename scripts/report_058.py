@@ -22,7 +22,7 @@ import generate_gate3_evidence as gate3
 from disclosure import LIMITATIONS
 from run_058_t015 import RUN_ORDER
 from selection_bias import build_matrix, counted_dsr, hac_t_stat, matrix_pbo, trial_counts
-from trial_registry import ROOT, TrialLedger, verify_family
+from trial_registry import ROOT, TERMINALS, TrialLedger, verify_family
 
 FAMILY = "058-edge"
 DISCLOSURES = (
@@ -76,8 +76,8 @@ def collect(root: Path = ROOT) -> dict:
                               "std": statistics.stdev(seeds) if len(seeds) > 1 else None,
                               "max": max(seeds) if seeds else None}})
     bbh = next(e for e in completed if e["role"] == "buy_and_hold_baseline")
-    holdout = next((e for e in events if e["role"] == "holdout" and e["event_type"] != "started"), None)
-    spend = next((e for e in events if e["role"] == "holdout" and e["event_type"] == "started"), None)
+    holdout = next((e for e in events if e["role"] == "holdout" and e["event_type"] in TERMINALS), None)
+    spend = next((e for e in events if e["role"] == "holdout" and e["event_type"] in {"started", "holdout_spend"}), None)
     first = next(e for e in completed if e["role"] == "candidate")
     return {"policy": policy, "rows": rows, "bbh_sharpe": _sharpe(returns[bbh["trial_id"]], policy),
             "pbo": matrix_pbo(matrix), "counts": counts, "head": state["head"], "cv": first["config"]["cv"],
