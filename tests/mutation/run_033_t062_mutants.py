@@ -43,7 +43,7 @@ MUTANTS = (
 def main() -> int:
     base.GUARD, base.TEST, base.SOURCE = GUARD, TEST, DECLARATION
     base.COPIED, base.COLLECTED, base.MUTANTS = ("scripts", "reports", "tests/context.py", "tests/spec033_support.py",
-                                                  DECLARATION, TEST), 63, MUTANTS
+                                                  DECLARATION, TEST, "tests/fixtures/spec_033"), 97, MUTANTS
     return base.main()
 
 

@@ -22,14 +22,12 @@ import importlib
 import json
 import math
 import re
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 import pytest
 
 from spec033_support import CONFIG, GATE_FIELDS, LABEL, META, REASONS, SOURCE, api, ledger, rows, start
 
-ROUTE = pytest.mark.xfail(strict=True, raises=AssertionError,
-                          reason="spec 033 T063/T064 not implemented: the capital_gate route does not read evidence yet (queue Q33b)")
 PRODUCTION = "reports/artifacts/capital_gate/gate3/"
 UNKNOWN = {"evidence_missing", "evidence_corrupt", "ledger_invalid", "backfill_incomplete", "candidate_ineligible",
            "matrix_undefined", "dsr_undefined", "t_stat_undefined", "pbo_undefined"}
@@ -285,7 +283,6 @@ def gate_route(monkeypatch, root, now=None, *, discover=False):
     return {gate.gate_number: gate for gate in gates.get_capital_gate_status().gates}
 
 
-@ROUTE
 @pytest.mark.parametrize("dsr, now, status", [(.97, None, "passed"), (.50, None, "failed"), (.97, MOVED, "stale")])
 def test_route_serves_indexed_evidence_without_computing(tmp_path, monkeypatch, dsr, now, status):
     write(compose(real(dsr=.50 if dsr > .5 else .97) | {"generated_at_utc": "2026-10-10T00:00:00Z"}), tmp_path)
@@ -312,7 +309,6 @@ def test_route_stays_unknown_without_a_valid_indexed_artifact(tmp_path, monkeypa
         assert gate_route(monkeypatch, tmp_path)[3].evidence is None, planted
 
 
-@ROUTE
 def test_real_current_inputs_see_an_advanced_ledger_and_the_route_turns_stale(tmp_path, monkeypatch):
     """Only the ledger head is discovered for real: a synthetic root has no backfill or emitted matrix."""
     discover, assess = (api("generate_gate3_evidence", name) for name in ("current_inputs", "assess"))
@@ -378,7 +374,6 @@ def plant_artifact(root, name, raw):
     return json.dumps({"artifact_id": name, "path": PRODUCTION + name, "sha256": hashlib.sha256(raw).hexdigest()}).encode()
 
 
-@ROUTE
 @pytest.mark.parametrize("case", ["truncated row", "row not an object", "row without sha256", "artifact not json",
                                   "artifact wrong schema", "indexed file missing", "index not utf-8"])
 def test_route_fails_closed_on_malformed_index_or_artifact(tmp_path, monkeypatch, case):
@@ -402,13 +397,166 @@ def test_route_fails_closed_on_malformed_index_or_artifact(tmp_path, monkeypatch
     assert (gate.status, gate.evidence) == ("unknown", None), case
 
 
-@ROUTE
 def test_gate3_text_names_the_real_thresholds_and_diagnostic_pbo():
     text = {g.gate_number: g for g in importlib.import_module(GATE_ROUTE).get_capital_gate_status().gates}[3].description
     assert "remains positive" not in text, "T064: a positive probability is not the gate"
     assert re.search(r"DSR[^;,]{0,20}(≥|>=)\s*0\.95", text), "T064 DSR threshold"
     assert re.search(r"t[- ]stat\w*[^;,]{0,20}(≥|>=)\s*3(\.0)?\b", text), "T064 t-statistic threshold"
     assert "PBO" in text and "diagnostic" in text.lower(), "T064 PBO wording"
+
+
+@pytest.mark.parametrize("field,bad", [
+    ("schema_version", True), ("generated_at_utc", "2026-10-11T00:00:00"),
+    ("generated_at_utc", "2026-10-11T00:00:00-04:00"), ("selected_trial", None),
+    ("ledger_head_hash", "wrong"), ("n_current", 2), ("n_backfill", True),
+    ("matrix_rows", 15), ("date_range", ["2020-03-01", "2020-01-01"]),
+    ("cv", {"scheme": "purged_embargoed_walk_forward", "folds": 1, "purge": 0, "embargo": 0}),
+    ("costs", {}), ("source_identity", {}), ("family", "example"),
+    ("dsr", {"value": .97}),
+    ("dsr_lifetime", {"value": .97, "reason": None, "matrix_hash": "f" * 64, "inputs": {"n_current": 2}}),
+    ("t_stat", {"value": float("inf"), "threshold": 3., "hac_lags": 5}),
+    ("pbo", {"value": .25, "S": 8}), ("reason_codes", ["invented"]),
+    ("status", "stale"), ("status", "failed"),
+])
+def test_route_rejects_digest_valid_but_invalid_evidence(tmp_path, monkeypatch, field, bad):
+    art = compose(real())
+    path = write(art, tmp_path)
+    assert gate_route(monkeypatch, tmp_path)[3].status == "passed"
+    art[field] = bad
+    raw = json.dumps(art).encode()
+    (tmp_path / path).write_bytes(raw)
+    plant_row(tmp_path, json.dumps({"artifact_id": art["artifact_id"], "path": path,
+                                   "sha256": hashlib.sha256(raw).hexdigest()}).encode())
+    gate = gate_route(monkeypatch, tmp_path)[3]
+    assert (gate.status, gate.evidence) == ("unknown", None)
+
+
+@pytest.mark.parametrize("changes,reason", [({"matrix_hash": None}, "evidence_missing"),
+                                          ({"matrix_hash": "9" * 64}, "matrix_changed"),
+                                          ({"source_identity": {}}, "source_changed")])
+def test_route_preserves_currentness_reasons_and_evidence(tmp_path, monkeypatch, changes, reason):
+    art = compose(real())
+    path = write(art, tmp_path)
+    gate = gate_route(monkeypatch, tmp_path, current(art) | changes)[3]
+    assert gate.status == ("unknown" if reason == "evidence_missing" else "stale")
+    assert gate.evidence == path and gate.details == reason
+
+
+def test_route_serves_unknown_artifact_and_handles_currentness_failure(tmp_path, monkeypatch):
+    value = real()
+    value["pbo"]["S"] = 8
+    path = write(compose(value), tmp_path)
+    gate = gate_route(monkeypatch, tmp_path)[3]
+    assert gate.status == "unknown" and gate.evidence == path and gate.details == "pbo_undefined"
+    def broken(*args):
+        raise ValueError("invalid current ledger")
+    monkeypatch.setattr(importlib.import_module("generate_gate3_evidence"), "current_inputs", broken)
+    gate = gate_route(monkeypatch, tmp_path, discover=True)[3]
+    assert (gate.status, gate.evidence) == ("unknown", None)
+
+
+@pytest.mark.parametrize("dsr,t", [(.95, 3.), (.99, 3.5)])
+def test_route_accepts_inclusive_thresholds_and_family_provenance(tmp_path, monkeypatch, dsr, t):
+    value = real(dsr=.97, family_dsr=dsr, t=t)
+    value["cv"]["folds"] = 1  # valid evaluator boundary, not an invented two-fold minimum
+    path = write(compose(value), tmp_path)
+    gate = gate_route(monkeypatch, tmp_path)[3]
+    assert (gate.status, gate.evidence) == ("passed", path)
+
+
+@pytest.mark.parametrize("case", ["id", "path traversal", "absolute path", "duplicate key", "missing field"])
+def test_route_rejects_misbound_index_and_duplicate_json(tmp_path, monkeypatch, case):
+    art = compose(real())
+    path = write(art, tmp_path)
+    assert gate_route(monkeypatch, tmp_path)[3].status == "passed"
+    row = {"artifact_id": art["artifact_id"], "path": path,
+           "sha256": hashlib.sha256((tmp_path / path).read_bytes()).hexdigest()}
+    if case == "id":
+        row["artifact_id"] = "another"
+    elif case == "path traversal":
+        row["path"] = PRODUCTION + "../" + art["artifact_id"] + ".json"
+    elif case == "absolute path":
+        row["path"] = str(tmp_path / path)
+    else:
+        del art["costs"]
+        raw = json.dumps(art).encode()
+        if case == "duplicate key":
+            raw = raw[:-1] + b', "status": "failed", "costs": {}}'
+        (tmp_path / path).write_bytes(raw)
+        row["sha256"] = hashlib.sha256(raw).hexdigest()
+    plant_row(tmp_path, json.dumps(row).encode())
+    gate = gate_route(monkeypatch, tmp_path)[3]
+    assert (gate.status, gate.evidence) == ("unknown", None)
+
+
+def test_route_checks_digest_even_when_tampered_metadata_is_valid(tmp_path, monkeypatch):
+    art = compose(real())
+    path = write(art, tmp_path)
+    assert gate_route(monkeypatch, tmp_path)[3].status == "passed"
+    art["generated_at_utc"] = "2026-10-12T00:00:00Z"
+    (tmp_path / path).write_text(json.dumps(art))  # still valid evidence, wrong indexed digest
+    gate = gate_route(monkeypatch, tmp_path)[3]
+    assert (gate.status, gate.evidence) == ("unknown", None), f"T063 INDEX DIGEST: {gate}"
+
+
+@pytest.fixture(scope="module")
+def fixed_strategy():
+    """T065/T066: immutable non-history inputs, real matrix/DSR/HAC/PBO calculations.
+
+    The paper's moments are approximated by integer two-point observations; the
+    committed fixture states that approximation. PBO and HAC are computed, not stubbed.
+    """
+    import pandas as pd
+    import selection_bias as bias
+    from trial_registry import canonical_json
+    folder = Path(__file__).parent / "fixtures/spec_033"
+    fixture = json.loads((folder / "gate_strategy.json").read_text(encoding="utf-8"))
+    paper = json.loads((folder / "paper_inputs.json").read_text(encoding="utf-8"))
+    assert fixture["label"] == paper["label"] == LABEL
+    n, negative = fixture["observations"], fixture["negative_observations"]
+    p, sigma = negative / n, fixture["daily_sample_volatility"]
+    sharpe = paper["annualized_sharpe"] / math.sqrt(paper["days_per_year"])
+    dispersion = math.sqrt(paper["annualized_trial_sharpe_variance"] / paper["days_per_year"])
+    sessions = pd.bdate_range(fixture["first_session"], periods=n)
+    residuals = [(-math.sqrt((1-p)/p) if i * negative % n < negative else math.sqrt(p/(1-p)))
+                 * math.sqrt((n-1)/n) for i in range(n)]
+    trials = []
+    for name, sr in (("a", sharpe), ("b", sharpe + math.sqrt(2)*dispersion)):
+        series = [{"session": day.strftime("%Y-%m-%d"), "log_return": sigma * (sr + residual)}
+                  for day, residual in zip(sessions, residuals)]
+        payload = b"".join(canonical_json(row) + b"\n" for row in series)
+        trials.append({"trial_id": name, "family": "example", "role": "candidate", "event_type": "completed",
+                       "source": SOURCE, "config": copy.deepcopy(CONFIG), "returns": series,
+                       "sidecar": {"sha256": hashlib.sha256(payload).hexdigest(), "metadata": copy.deepcopy(META)}})
+    matrix = bias.build_matrix(trials, family={"id": "example", "alignment": "exact_intersection",
+                               "objective": "daily_sharpe", "min_coverage": 1., "risk_free": CONFIG["risk_free"]})
+    t_stat = bias.hac_t_stat([row[0] for row in matrix["values"]], lags=fixture["hac_lags"],
+                            horizon=fixture["horizon"], annual_risk_free=0.)
+    pbo = bias.matrix_pbo(matrix)
+    assert t_stat["value"] >= 3 and pbo["reason"] is None and pbo["S"] == 16
+    return matrix, t_stat, pbo
+
+
+@pytest.mark.parametrize("n,status,target", [(88, "failed", .910153014744707), (46, "passed", .9505)])
+def test_t065_t066_real_strategy_selection_history_gate(tmp_path, monkeypatch, fixed_strategy, n, status, target):
+    import selection_bias as bias
+    matrix, t_stat, pbo = copy.deepcopy(fixed_strategy)
+    value = real()
+    value.update(matrix=matrix, t_stat=t_stat, pbo=pbo)
+    value["counts"].update(n_backfill=n-2, n_post_ledger=2, n_current=n)
+    value["dsr"] = bias.counted_dsr(matrix, selected_trial="a", counts=value["counts"])
+    dsr = value["dsr"]["lifetime"]
+    assert dsr["inputs"]["n_current"] == n, f"T068 LIFETIME COUNT: {dsr['inputs']}"
+    assert dsr["value"] == pytest.approx(target, abs=.00002), f"T065 PAPER TARGET: {dsr}"
+    artifact = compose(value)
+    reasons = ["dsr_below_threshold"] if n == 88 else []
+    assert (artifact["status"], artifact["reason_codes"]) == (status, reasons), \
+        f"T065 HISTORY GATE: N={n}, {artifact['status']}, {artifact['reason_codes']}"
+    path = write(artifact, tmp_path)
+    gate = gate_route(monkeypatch, tmp_path)[3]
+    assert (gate.status, gate.evidence) == (status, path), f"T065 REAL ROUTE: {gate}"
+    if reasons:
+        assert reasons[0] in gate.details, f"T065 ROUTE REASON: {gate.details}"
 
 
 # T060 — the offline command.

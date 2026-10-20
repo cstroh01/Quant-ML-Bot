@@ -1,0 +1,12 @@
+{
+  "label": "EXAMPLE — NOT A RESULT",
+  "description": "Fixed synthetic funded daily returns after recorded costs; a two-point non-normal strategy, not market evidence.",
+  "observations": 1250,
+  "negative_observations": 105,
+  "daily_sample_volatility": 0.01,
+  "first_session": "2020-01-02",
+  "source": "paper_inputs.json: Sharpe 2.5/sqrt(250), trial Sharpe dispersion sqrt(0.5/250), N=88 and N=46.",
+  "discretization": "105/1250 negative observations give skew=-2.999410769 and kurtosis=9.996464962; DSR at N=88 is 0.910161208, within 0.00002 of the paper-input target 0.910153015. No exact paper-moment claim.",
+  "hac_lags": 0,
+  "horizon": 1
+}

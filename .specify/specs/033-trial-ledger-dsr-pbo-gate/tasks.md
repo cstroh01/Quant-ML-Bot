@@ -263,24 +263,24 @@ when evidence is absent or stale.
 - [x] T062 [US4] Implement `scripts/generate_gate3_evidence.py` to verify all
   inputs, calculate once offline, write a new immutable artifact, append its
   index record, and never overwrite prior evidence.
-- [ ] T063 [US4] Update `reports/api/routes/capital_gate.py` to validate/read the
+- [x] T063 [US4] Update `reports/api/routes/capital_gate.py` to validate/read the
   indexed artifact, map currentness and decision reasons, attach evidence, and
   perform no statistics during the request.
-- [ ] T064 [US4] Replace Gate 3's “remains positive” description with the actual
+- [x] T064 [US4] Replace Gate 3's “remains positive” description with the actual
   inclusive DSR/t-stat thresholds and mandatory diagnostic PBO wording.
-- [ ] T065 [US4] Create the Rule 12 planted strategy fixture: fixed candidate
+- [x] T065 [US4] Create the Rule 12 planted strategy fixture: fixed candidate
   returns, costs, dates, valid PBO, and t-stat `>= 3`, with source-example
   selection history `N = 88`; assert the real evaluator and route return
   `failed`, `dsr_below_threshold`, and the evidence path.
-- [ ] T066 [US4] Create the clean control with the same non-history inputs and
+- [x] T066 [US4] Create the clean control with the same non-history inputs and
   source-example `N = 46`; assert the real evaluator and route return `passed`.
-- [ ] T067 [US4] Implement `tests/mutation/run_spec_033_gate_mutants.py` with an
+- [x] T067 [US4] Implement `tests/mutation/run_spec_033_gate_mutants.py` with an
   unmodified copied-module control, then mutate `DSR >= 0.95` to `DSR > 0` in
   isolation; prove T065 catches it and repository hashes are unchanged.
-- [ ] T068 [US4] Add the isolated mutation replacing `N_current` with eligible
+- [x] T068 [US4] Add the isolated mutation replacing `N_current` with eligible
   matrix-column count; prove a backfill fixture catches it with a specific
   failure while the clean copied-module control remains green.
-- [ ] T069 [US4] Run all spec-033 focused tests plus the mutation driver; record
+- [x] T069 [US4] Run all spec-033 focused tests plus the mutation driver; record
   control result, mutant-by-mutant catching test, specific reason, and pre/post
   source SHA-256.
 
@@ -289,15 +289,15 @@ defect and passing for a clean control through the real API path.
 
 ## Phase 10 — Full verification and documentation
 
-- [ ] T070 Update audit/remediation and project-context references that still
+- [x] T070 Update audit/remediation and project-context references that still
   assign this work to spec 035; do not alter audit findings or historical raw
   evidence.
-- [ ] T071 Verify no production status or example fixture can be mistaken for a
+- [x] T071 Verify no production status or example fixture can be mistaken for a
   real result; every rendered numeric field names its artifact, source hash,
   and date under Rule 11.
-- [ ] T072 Verify no new dependency, network access, `git` invocation, `exec/`
+- [x] T072 Verify no new dependency, network access, `git` invocation, `exec/`
   change, strategy change, or uninstrumented production backtest path exists.
-- [ ] T073 Run `python -m pytest tests`; compare to T001, report every new or
+- [x] T073 Run `python -m pytest tests`; compare to T001, report every new or
   pre-existing failure honestly, and do not mark implementation complete while
   the constitution's required full-suite gate is red.
 - [ ] T074 Review the implementation in the three units proposed by `plan.md`:
