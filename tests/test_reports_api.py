@@ -182,12 +182,15 @@ class TestReportsApi(unittest.TestCase):
         self.assert_unavailable(self.client.get("/api/backtest/tearsheet?ticker=../x"), "ticker")
 
     def test_capital_gate_status(self):
-        response = self.client.get("/api/capital_gate/status")
+        # Test the no-evidence contract independently of historical repository artifacts.
+        with tempfile.TemporaryDirectory() as empty, patch(
+                "reports.api.routes.capital_gate.ARTIFACT_ROOT", Path(empty)):
+            response = self.client.get("/api/capital_gate/status")
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(len(data["gates"]), 5)
         # Spec 018, finding 47: this test asserted Gate 1's literal pass. No
-        # verification artifact is read, so every gate is unknown, without evidence.
+        # evidence exists in this injected root, so every gate is unknown, without evidence.
         for gate in data["gates"]:
             self.assertEqual(gate["status"], "unknown")
             self.assertIsNone(gate["evidence"])
