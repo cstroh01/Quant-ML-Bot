@@ -475,40 +475,40 @@ def nested_walk_forward(
                 scale=scale,
             )
 
-        model = build_estimator(
-            name, task=task, params=params, random_state=random_state, scale=scale
-        )
-        train_labels = frame.iloc[train_indices][label_column]
-        if task == CLASSIFICATION:
-            train_labels = train_labels.astype(int)
-        model.fit(frame.iloc[train_indices][feature_columns], train_labels)
-        predictions.iloc[test_indices] = model.predict(
-            frame.iloc[test_indices][feature_columns]
-        )
-
-        covered.append(np.asarray(test_indices))
-        if inner_scores.empty:
-            inner_fold_count = 0
-            best_score = float("nan")
-        else:
-            inner_fold_count = int(inner_scores["Inner_Fold"].max())
-            best_score = float(
-                inner_scores.groupby("Grid_Point")["Score"].mean().min()
+            model = build_estimator(
+                name, task=task, params=params, random_state=random_state, scale=scale
             )
-        fold_rows.append(
-            {
-                "Fold": fold,
-                "Train_Rows": len(train_indices),
-                "Test_Rows": len(test_indices),
-                "Train_End": train_dates.max(),
-                "Test_Start": test_dates.min(),
-                "Params": params,
-                "Tuned": tuned,
-                "Inner_Folds": inner_fold_count,
-                "Grid_Points": grid_size,
-                "Inner_Best_Score": best_score,
-            }
-        )
+            train_labels = frame.iloc[train_indices][label_column]
+            if task == CLASSIFICATION:
+                train_labels = train_labels.astype(int)
+            model.fit(frame.iloc[train_indices][feature_columns], train_labels)
+            predictions.iloc[test_indices] = model.predict(
+                frame.iloc[test_indices][feature_columns]
+            )
+
+            covered.append(np.asarray(test_indices))
+            if inner_scores.empty:
+                inner_fold_count = 0
+                best_score = float("nan")
+            else:
+                inner_fold_count = int(inner_scores["Inner_Fold"].max())
+                best_score = float(
+                    inner_scores.groupby("Grid_Point")["Score"].mean().min()
+                )
+            fold_rows.append(
+                {
+                    "Fold": fold,
+                    "Train_Rows": len(train_indices),
+                    "Test_Rows": len(test_indices),
+                    "Train_End": train_dates.max(),
+                    "Test_Start": test_dates.min(),
+                    "Params": params,
+                    "Tuned": tuned,
+                    "Inner_Folds": inner_fold_count,
+                    "Grid_Points": grid_size,
+                    "Inner_Best_Score": best_score,
+                }
+            )
 
     if not fold_rows:
         raise RuntimeError(

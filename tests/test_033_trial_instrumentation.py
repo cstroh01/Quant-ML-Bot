@@ -6,7 +6,7 @@ from context import SCRIPTS_DIR
 
 ROOT = SCRIPTS_DIR.parent
 INTERNAL = {"scripts/trial_runner.py", "scripts/trial_registry.py"}
-PRIMITIVES = {"run_backtest", "nested_walk_forward", "fit_predict_walk_forward", "evaluate_walk_forward", "tune_on_fold", "score_fold"}
+PRIMITIVES = {"run_backtest", "nested_walk_forward", "fit_predict_walk_forward", "evaluate_walk_forward", "tune_on_fold", "score_fold", "build_ml_signal"}
 
 def callee(node, aliases):
     """Primitive a callee expression names: a name, an attribute, or getattr(x, "name")."""
@@ -174,3 +174,12 @@ def test_t014_internal_module_exemption_is_exact_canonical_path_only(tmp_path):
     found = bypasses(tmp_path)
     assert found == ["scripts/sub/trial_runner.py:1 run_backtest", "tools/trial_registry.py:1 run_backtest",
                      "tools/trial_runner.py:1 run_backtest"], f"T014 BASENAME: {found}"
+
+
+def test_guard_catches_signal_refit_before_receipt(tmp_path):
+    (tmp_path / "scripts").mkdir()
+    path = tmp_path / "scripts/refit.py"
+    path.write_text("build_ml_signal(features)\n", encoding="utf-8")
+    assert bypasses(tmp_path) == ["scripts/refit.py:1 build_ml_signal"]
+    path.write_text("with research_attempt(config):\n    build_ml_signal(features)\n", encoding="utf-8")
+    assert bypasses(tmp_path) == []

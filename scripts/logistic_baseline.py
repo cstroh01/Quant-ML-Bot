@@ -330,15 +330,15 @@ def _run_main() -> None:
     results.to_csv(output_path, index=False)
     print(f"Saved fold results to {output_path}")
 
-    signalled, first_covered_pos = build_ml_signal(features)
-    live = signalled.iloc[first_covered_pos:].reset_index(drop=True)
-
     costs = {
         "commission_per_trade": COMMISSION_PER_TRADE,
         "slippage_bps": SLIPPAGE_BPS,
     }
     account = {"starting_capital": STARTING_CAPITAL, "liquidate": LIQUIDATE_AT_END}
     with research_attempt(research_config("scripts/logistic_baseline.py:run_backtest", locals()), role="candidate") as attempt:
+        signalled, first_covered_pos = build_ml_signal(features)
+        live = signalled.iloc[first_covered_pos:].reset_index(drop=True)
+
         trade_log = run_backtest(live, **costs, **account)
         attempt.account(trade_log)
     trade_log.to_csv(cache_path("phase2_logistic_baseline_trades.csv"), index=False)
