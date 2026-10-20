@@ -1,0 +1,274 @@
+"""EXAMPLE — NOT A RESULT. Synthetic EODHD actions; no vendor network access."""
+from datetime import date, datetime, timezone
+import hashlib
+import json
+import socket
+from io import BytesIO
+from email.message import Message
+from urllib.error import HTTPError
+from urllib.request import HTTPSHandler, build_opener
+from urllib.response import addinfourl
+
+import pandas as pd
+import pytest
+
+import context  # noqa: F401
+import eodhd_source as es
+from corporate_actions import reconcile_dividends
+from data_sources import SourceFetchError
+from mutation_support_019 import killed
+
+NOW = datetime(2026, 10, 17, 12, tzinfo=timezone.utc)
+START, END = date(2025, 10, 17), date(2026, 10, 16)
+DIV = dict(date="2026-08-10", value=.25, unadjustedValue=1., currency="USD", paymentDate=None)
+SPLIT = dict(date="2026-09-01", split="4.000000/1.000000")
+
+
+@pytest.fixture(autouse=True)
+def no_network(monkeypatch):
+    def refuse(*args, **kwargs):
+        pytest.fail("EODHD tests must never access the network")
+    monkeypatch.setattr(socket.socket, "connect", refuse)
+    monkeypatch.setattr(socket, "create_connection", refuse)
+
+
+def client(monkeypatch, *, dividends=None, splits=None, transport=None, now=NOW, quota=None):
+    monkeypatch.setenv("EODHD_API_KEY", "synthetic-do-not-log")
+    calls = []
+    bodies = {"div": [DIV] if dividends is None else dividends,
+              "splits": [SPLIT] if splits is None else splits}
+    def fake(method, url, headers, body):
+        calls.append(url)
+        return json.dumps(bodies["splits" if "/splits/" in url else "div"]).encode()
+    return es.EodhdActions(transport=transport or fake, now=lambda: now,
+                           quota=quota or es.RequestBudget(), rate=es.RateLimit(0)), calls, bodies
+
+
+def test_nominal_cash_split_ratio_and_manifest_hashes(monkeypatch):
+    api, calls, bodies = client(monkeypatch)
+    result = api.fetch("AAA.US", START, END)
+    assert len(calls) == 2 and all("fmt=json" in c and "api_token=" in c for c in calls)
+    assert result.coverage == (pd.Timestamp(START), pd.Timestamp(END))
+    dividend = result.actions.loc[result.actions.Action_Type.eq("dividend")].iloc[0]
+    split = result.actions.loc[result.actions.Action_Type.eq("split")].iloc[0]
+    assert dividend.Value == 1. and dividend.Amount_Basis == "per_share"
+    assert pd.isna(dividend.Payment_Date)  # never synthesize a payment date
+    assert split.Value == 4.
+    assert result.actions.Date.dt.tz is None
+    for manifest, kind in zip(result.manifests, ("div", "splits")):
+        assert manifest.sha256 == hashlib.sha256(json.dumps(bodies[kind]).encode()).hexdigest()
+        assert "api_token" not in manifest.endpoint and "synthetic-do-not-log" not in str(manifest)
+        assert manifest.row_count == 1 and manifest.label_calendar == "calendar_date"
+
+
+@pytest.mark.parametrize("change", [{"unadjustedValue": None}, {"currency": "EUR"}])
+def test_unknown_nominal_basis_cannot_reconcile_as_dollars(monkeypatch, change):
+    api, _, _ = client(monkeypatch, dividends=[DIV | change])
+    result = api.fetch("AAA.US", START, END)
+    primary = pd.DataFrame([dict(Date=pd.Timestamp(DIV["date"]), Action_Type="dividend",
+                                 Value=1., Amount_Basis="per_share")])
+    checked = reconcile_dividends(primary, result.actions, result.coverage,
+                                 amount_tolerance=.0001, amount_basis="per_share")
+    assert checked.Reconciliation_Status.tolist() == ["unreconciled"]
+
+
+def test_real_reconciler_reports_mismatch_and_partial_coverage(monkeypatch):
+    api, _, _ = client(monkeypatch)
+    result = api.fetch("AAA.US", START, END)
+    primary = pd.DataFrame([dict(Ticker="AAA", Date=pd.Timestamp(d), Action_Type="dividend", Value=v,
+                                 Amount_Basis="per_share") for d, v in
+                            [("2024-08-10", 1.), (DIV["date"], .25)]])
+    checked = result.reconcile(primary)
+    assert checked.Reconciliation_Status.tolist() == ["unreconciled", "mismatch"]
+    primary.loc[1, "Value"] = 1.
+    assert result.reconcile(primary).Reconciliation_Status.tolist() == ["unreconciled", "reconciled"]
+    with pytest.raises(ValueError, match="single US instrument"):
+        result.reconcile(primary.assign(Ticker="OTHER"))
+
+
+@pytest.mark.parametrize("start,end", [(date(2025, 10, 16), END), (START, date(2026, 10, 18)),
+                                        (END, START)])
+def test_out_of_plan_or_future_requests_refuse_before_transport(monkeypatch, start, end):
+    api, calls, _ = client(monkeypatch)
+    with pytest.raises(SourceFetchError):
+        api.fetch("AAA.US", start, end)
+    assert not calls
+
+
+@pytest.mark.parametrize("dividends,splits", [({"error": "forbidden"}, []),
+    ([DIV | {"date": "2026-10-17"}], []), ([DIV, DIV], []),
+    ([], [SPLIT | {"split": "-4/-1"}]), ([], [SPLIT | {"split": "1/0"}]),
+    ([DIV | {"unadjustedValue": float("inf")}], [])])
+def test_bad_or_truncated_payloads_refuse(monkeypatch, dividends, splits):
+    api, _, _ = client(monkeypatch, dividends=dividends, splits=splits)
+    with pytest.raises(SourceFetchError):
+        api.fetch("AAA.US", START, END)
+
+
+def test_credentials_transport_and_parse_errors_are_redacted(monkeypatch):
+    def broken(*args):
+        raise RuntimeError("synthetic-do-not-log")
+    api, _, _ = client(monkeypatch, transport=broken)
+    with pytest.raises(SourceFetchError) as caught:
+        api.fetch("AAA.US", START, END)
+    assert "synthetic-do-not-log" not in str(caught.value)
+    monkeypatch.delenv("EODHD_API_KEY")
+    with pytest.raises(SourceFetchError, match="not set"):
+        api.fetch("AAA.US", START, END)
+
+
+def test_redirects_cannot_forward_a_url_credential(monkeypatch):
+    seen = []
+    class FakeHTTPS(HTTPSHandler):
+        def https_open(self, request):
+            seen.append(request.full_url)
+            headers = Message()
+            headers["Location"] = "https://other.invalid/?api_token=synthetic"
+            response = addinfourl(BytesIO(b"synthetic"), headers, request.full_url,
+                                  302 if len(seen) == 1 else 200)
+            response.msg = "synthetic"
+            return response
+    monkeypatch.setattr(es, "build_opener", lambda *handlers: build_opener(FakeHTTPS(), *handlers))
+    try:
+        es._transport("GET", "https://source.invalid/?api_token=synthetic", {})
+    except HTTPError as error:
+        assert error.code == 302
+    else:
+        raise AssertionError("credential-bearing redirect followed")
+    assert seen == ["https://source.invalid/?api_token=synthetic"]
+
+
+def test_redirect_handler_wiring_has_a_semantic_red_proof(monkeypatch):
+    killed(es, 'build_opener(_NoRedirect())', 'build_opener()',
+           lambda: test_redirects_cannot_forward_a_url_credential(monkeypatch))
+
+
+@pytest.mark.parametrize("entry", ["create_connection", "connect"])
+def test_socket_guard_is_exercised_without_real_sockets(monkeypatch, entry):
+    def no_dns(*args, **kwargs):
+        raise AssertionError("guard bypass reached resolver")
+    monkeypatch.setattr(socket, "getaddrinfo", no_dns)
+    with pytest.raises(pytest.fail.Exception, match="EODHD tests must never access the network"):
+        if entry == "create_connection":
+            socket.create_connection(("synthetic.invalid", 443))
+        else:
+            socket.socket.connect(object(), ("127.0.0.1", 0))  # invalid receiver; never an OS socket
+
+
+@pytest.mark.parametrize("entry", ["create_connection", "connect"])
+def test_removed_socket_guard_has_a_safe_red_control(monkeypatch, entry):
+    target = socket if entry == "create_connection" else socket.socket
+    monkeypatch.setattr(target, entry, lambda *a, **kw: None)
+    with pytest.raises(pytest.fail.Exception, match="DID NOT RAISE"):
+        test_socket_guard_is_exercised_without_real_sockets(monkeypatch, entry)
+
+
+def test_shared_quota_counts_failures_and_rolls_after_24_hours(monkeypatch):
+    quota = es.RequestBudget()
+    api, calls, _ = client(monkeypatch, dividends=[], splits=[], quota=quota)
+    for _ in range(10):
+        api.fetch("AAA.US", START, END)
+    with pytest.raises(SourceFetchError, match="budget"):
+        api.fetch("AAA.US", START, END)
+    assert len(calls) == 20
+    later, later_calls, _ = client(monkeypatch, quota=quota, now=NOW + pd.Timedelta(days=1),
+                                   dividends=[], splits=[])
+    later.fetch("AAA.US", START + pd.Timedelta(days=1), END)
+    assert len(later_calls) == 2
+
+
+def test_failed_transport_spends_its_reserved_allowance(monkeypatch):
+    quota = es.RequestBudget()
+    def broken(*args):
+        raise OSError("synthetic transport failure")
+    api, _, _ = client(monkeypatch, transport=broken, quota=quota)
+    with pytest.raises(SourceFetchError):
+        api.fetch("AAA.US", START, END)
+    assert len(quota.calls) == 2
+
+
+@pytest.mark.parametrize("old,new,case", [
+    ('row.get("unadjustedValue")', 'row.get("value")', "nominal"),
+    ('new / old', 'old / new', "ratio"),
+    ('start < earliest', 'False', "history"),
+    ('len(self.calls) + 2 > 20', 'len(self.calls) + 2 > 200', "quota"),
+    ('currency == "USD" and value is not None', 'value is not None', "currency"),
+], ids=["adjusted-cash", "inverted-split", "free-history", "quota", "currency"])
+def test_planted_defects(monkeypatch, old, new, case):
+    def oracle():
+        if case == "history":
+            api, _, _ = client(monkeypatch)
+            try:
+                api.fetch("AAA.US", date(2025, 10, 16), END)
+            except SourceFetchError:
+                return
+            raise AssertionError("older than free history accepted")
+        if case == "quota":
+            quota = es.RequestBudget()
+            for _ in range(10):
+                quota.reserve(NOW)
+            try:
+                quota.reserve(NOW)
+            except SourceFetchError:
+                return
+            raise AssertionError("free request budget exceeded")
+        if case == "currency":
+            test_unknown_nominal_basis_cannot_reconcile_as_dollars(monkeypatch, {"currency": "EUR"})
+            return
+        test_nominal_cash_split_ratio_and_manifest_hashes(monkeypatch)
+    killed(es, old, new, oracle)
+
+
+def test_dividend_reconciliation_cannot_silently_accept_unchecked_splits(monkeypatch):
+    api, _, _ = client(monkeypatch)
+    result = api.fetch("AAA.US", START, END)
+    primary = pd.DataFrame([dict(Ticker="AAA", Date=pd.Timestamp(SPLIT["date"]),
+                                 Action_Type="split", Value=2.)])
+    with pytest.raises(ValueError, match="dividends only"):
+        result.reconcile(primary)
+
+
+def test_existing_local_token_name_is_explicitly_configurable(monkeypatch):
+    api, calls, _ = client(monkeypatch)
+    monkeypatch.delenv("EODHD_API_KEY")
+    monkeypatch.setenv("EODHD_API_TOKEN", "synthetic-local-name")
+    api.key_env = "EODHD_API_TOKEN"
+    assert len(api.fetch("AAA.US", START, END).manifests) == 2
+    assert len(calls) == 2
+
+
+def test_unchecked_split_refusal_has_a_semantic_red_proof(monkeypatch):
+    def oracle():
+        api, _, _ = client(monkeypatch)
+        primary = pd.DataFrame([dict(Ticker="AAA", Date=pd.Timestamp(SPLIT["date"]),
+                                     Action_Type="split", Value=2.)])
+        try:
+            api.fetch("AAA.US", START, END).reconcile(primary)
+        except ValueError as exc:
+            assert "dividends only" in str(exc)
+            return
+        raise AssertionError("unchecked split silently accepted")
+    killed(es, '"Action_Type" not in primary or primary.Action_Type.isna().any() or not primary.Action_Type.eq("dividend").all()',
+           'False', oracle)
+
+
+def test_nullable_unknown_action_type_is_not_a_dividend(monkeypatch):
+    api, _, _ = client(monkeypatch)
+    primary = pd.DataFrame([dict(Ticker="AAA", Date=pd.Timestamp(SPLIT["date"]), Value=2.)])
+    primary["Action_Type"] = pd.Series([pd.NA], dtype="string")
+    with pytest.raises(ValueError, match="dividends only"):
+        api.fetch("AAA.US", START, END).reconcile(primary)
+
+
+def test_nullable_action_type_refusal_has_a_semantic_red_proof(monkeypatch):
+    def oracle():
+        api, _, _ = client(monkeypatch)
+        primary = pd.DataFrame([dict(Ticker="AAA", Date=pd.Timestamp(SPLIT["date"]), Value=2.)])
+        primary["Action_Type"] = pd.Series([pd.NA], dtype="string")
+        try:
+            api.fetch("AAA.US", START, END).reconcile(primary)
+        except ValueError as exc:
+            assert "dividends only" in str(exc)
+            return
+        raise AssertionError("nullable unknown action type silently accepted")
+    killed(es, "primary.Action_Type.isna().any() or ", "", oracle)
