@@ -124,3 +124,37 @@ Time contracts include UTC midnight, session-naive labels, naive clock refusal, 
 ## Close-out and known limits
 
 FR-001–FR-005 runtime coverage, static disposition coverage, full suite and exact red/restored-green controls are separate evidence rows. Hash every docs/trials file before/after, not only trials.jsonl, and preserve absent returns/. Record source hashes for shared/pinned-fingerprint callers and leave 021 close-out unresolved where hashes changed. No human decision, missing source, unsupported render gate or pinned task becomes done merely because this plan exists. Add no result figure and no dependency without Rule 6 justification and the selected human authorization.
+
+
+## T062 D3 subdivision — 2026-10-20
+
+T062's registered PROJECT_CONTEXT strikes are delivered in three separately
+admitted implementation units. Each remains at most 300 added-plus-removed
+lines, including tests, evidence and tracker updates; no threshold or test is
+relaxed. Parent T062 stays open until all three are accepted. This is a scope
+subdivision, not a new D-decision or authority to regenerate absent evidence.
+
+- **T062-D3a:** the spec017 classifier/Kelly and overlap/gross quotations and
+  spec015 timing/equivalence/p-value outcome table, re-anchored by their section
+  headings. Preserve sizing formulas, risk limits, feature definitions and the
+  operative parallel-comparison requirements; strike only absent-source outcomes.
+- **T062-D3b:** spec014 measured conditioning/near-miss and prediction-quality
+  comparisons, including their duplicate Phase 3 screening quotation. Keep
+  feature definitions, CV/cost declarations and the p < 0.10 screening requirement.
+- **T062-D3c:** spec005 quoted AAPL accuracy/P&L; the old uncosted SMA outcome;
+  return-statistic/volatility/drawdown result blocks; replace the trusted-Sharpe
+  claim with the binding Rule 15 provisional/undeflated requirement. Preserve
+  mechanics, formulas and configuration declarations; generate no replacement.
+
+Each unit owns only `docs/PROJECT_CONTEXT.md`, `tests/test_038_static_guard.py`,
+`tests/mutation/run_038_static_mutants.py`, its scoped checkpoint in
+`.specify/specs/038-disclosure-sweep/tasks.md`, and one evidence note named
+`docs/implementation/spec-038/T062-D3a-project-context-20261020.md`,
+`T062-D3b-project-context-20261020.md` or `T062-D3c-project-context-20261020.md`.
+Re-read every exact block before that unit. Keep count/archive context separate
+from results provenance. Actual-document contracts go red first, restored figures
+and lost pointers fail the same consuming guard, and D3c additionally restores
+the trusted-Sharpe sentence. Retain clean controls and prior mutants. Capture
+full/source/ledger receipts per unit. Publish sequentially after T061, because
+all units share the guard/driver/tracker. Stop for another plan subdivision if
+any complete unit exceeds 300 lines; do not compress code or drop tests.
