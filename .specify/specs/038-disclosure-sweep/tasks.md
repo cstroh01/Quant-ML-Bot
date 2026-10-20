@@ -134,7 +134,7 @@ D-1–D-5 stay open, and a task that consumes one waits for the human decision r
 - [x] T031 P2. Files: `scripts/autocorrelation_check.py`, `scripts/stationarity_check.py`,
   `tests/test_038_panels_p2.py`. Panel stamp/register only; plots move in T040. Red: stdout lacks stamp.
   Mutant: stamp printed after first figure. Control: stamped stdout.
-- [ ] T032 P3. Files: `scripts/scratch_aapl_correlations.py`, `scripts/scratch_multiticker_collinearity.py`,
+- [x] T032 P3. Files: `scripts/scratch_aapl_correlations.py`, `scripts/scratch_multiticker_collinearity.py`,
   `tests/test_038_panels_p3.py`. Input filename, SHA-256 and run time (`scripts/scratch_aapl_correlations.py:12`; `scripts/scratch_multiticker_collinearity.py:126`). Synthetic
   CSV fixture. Mutant: hash of a different file. Control: hash of the read file.
 - [ ] T033 P4. Files: `scripts/ma_crossover_backtest.py` (`main` and `format_comparison` `:183`),
