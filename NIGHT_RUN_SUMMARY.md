@@ -174,8 +174,8 @@ anything downstream depends on._
 10. **CLAUDE.md's module table** doesn't list `portfolio_risk.py`. Worth a row ("owns sizing, correlation budget, entry halts / must not know fills, P&L, signal origin"). Left for you.
 11. **A dust-size position halves its correlated neighbours.** _(Added on resumption; from `docs/audit-2026-09-12` probe `tiny_correlated_position`, reproduced.)*
     - Overlap counts a held name by *presence*, not size.
-    - Name A at 0.25 beside name B at 1e-12, ρ = 1: A becomes **0.125**. With B at exactly 0, A stays **0.25**.
-    - So one name's confidence moving from 0 to 1e-9 can halve another name's position. That discontinuity is turnover Rule 3 will charge for once costs exist.
+    - **EXAMPLE — NOT A RESULT:** Name A at 0.25 beside name B at 1e-12, ρ = 1: A becomes **0.125**. With B at exactly 0, A stays **0.25**.
+    - **EXAMPLE — NOT A RESULT:** So one name's confidence moving from 0 to 1e-9 can halve another name's position. That discontinuity is turnover Rule 3 will charge for once costs exist.
     - This is FR-005 working as written, not an implementation bug. Fixing it — a size-aware overlap, or a minimum weight before a name counts as held — changes the spec, the SC-004/SC-005 arithmetic, and several mutants. Your call; best settled alongside item 4.
 12. **The weekly halt latch lives only in memory.** _(Added on resumption; from probe `restart_resets_loss_latch`, reproduced.)_
     - A guard latched on Tuesday, replaced by a freshly constructed guard on Wednesday, reports **not halted**.

@@ -194,7 +194,7 @@ come after all three.
   - Gross cap never bound (0 sessions): the overlap step alone keeps a full-conviction book well under 1.0.
   - Last session (2026-09-04): median pairwise correlation 0.15 — a low-correlation regime. Targets AAPL 0.218, NVDA 0.177, MSFT 0.117, GOOGL 0.115, AMZN 0.099; gross 0.73.
   - **Flag, not a fix:** removing a median 69% of full-conviction exposure is aggressive. It is what the rule says (five names behaving like ~1.5 independent bets), but whether overlap division should be softened — e.g. toward portfolio-vol scaling — is Camden's call once a costed backtest exists. Recorded as an open question.
-- [X] T032 Run quickstart §3 (the halt example) and confirm its stated output — **Matches:** 09-09 halted (daily −3.54%, weekly −4.5%); 09-10 and 09-11 recover and stay halted on the weekly latch.
+- [X] T032 Run quickstart §3 (the halt example) and confirm its stated output — **EXAMPLE — NOT A RESULT:** **Matches:** 09-09 halted (daily −3.54%, weekly −4.5%); 09-10 and 09-11 recover and stay halted on the weekly latch.
 - [X] T033 [P] Add a spec 017 section to `docs/PROJECT_CONTEXT.md` — **Written in the night run** (top of the file, above spec 015); ticked on resumption. Two flags added on resumption (T035).
 - [X] T034 [P] Write `NIGHT_RUN_SUMMARY.md` at the repo root: what was built, open questions, final test count — **Written in the night run**; the run ended right after writing it, before ticking T033/T034. A *Resumption* section was added on 2026-09-12.
 - [X] T035 Resumption re-verification (added 2026-09-12, second session; no `git`)

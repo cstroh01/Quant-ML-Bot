@@ -117,13 +117,13 @@ existing pytest location was appended for the final venv-interpreter run:
 venv/Scripts/python.exe -B -c "import sys; sys.path.append(r'C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages'); import pytest; raise SystemExit(pytest.main(['-p','no:cacheprovider','tests/test_019_ledger.py','tests/test_019_metrics.py','tests/test_019_targets.py','tests/test_019_calendar.py','tests/test_019_prices.py','tests/test_019_conventions.py','-q']))"
 ```
 
-Synthetic baseline fixture: 2026-08-24 through 2026-09-02, 8 identical sessions,
-$100 capital, $1 per fill, 5 bps slippage, explicit terminal liquidation.
+**EXAMPLE — NOT A RESULT:** Synthetic baseline fixture: 2026-08-24 through 2026-09-02, 8 identical sessions,
+**EXAMPLE — NOT A RESULT:** $100 capital, $1 per fill, 5 bps slippage, explicit terminal liquidation.
 Predetermined policy and every random seed make one two-session round trip;
 buy-and-hold enters the next open and liquidates at the final close. No model
-fit: fold count 0; purge/embargo not applicable to fixed fixture decisions.
-Policy net P&L **-$0.0220**; buy-and-hold **$4.1759**; random across seeds 0–19
-mean **-$0.0248**, sample SD **$0.00123969436**. These are mechanical oracles,
+**EXAMPLE — NOT A RESULT:** fit: fold count 0; purge/embargo not applicable to fixed fixture decisions.
+**EXAMPLE — NOT A RESULT:** Policy net P&L **-$0.0220**; buy-and-hold **$4.1759**; random across seeds 0–19
+**EXAMPLE — NOT A RESULT:** mean **-$0.0248**, sample SD **$0.00123969436**. These are mechanical oracles,
 not historical strategy results, alpha claims, or a substitute for Rule 4's
 real experiment before promoting a trading policy.
 
