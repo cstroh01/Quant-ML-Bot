@@ -8,9 +8,9 @@ claims nothing about any gate but Gate 3.
 
 `gather` is the only function that reads the ledger and computes: it needs the family's
 preregistered matrix policy and HAC bandwidth (a `gate3` block in the family declaration) and
-refuses without one. Matrix currentness has no stored emitted matrix to compare against yet
-(FR-022 names no location), so `current_inputs` reports the matrix as unknown and an artifact can
-never assess as current until that is decided.
+refuses without one. Per the 2026-10-12 amendment (Q124), currentness rebuilds the matrix from a
+verified ledger snapshot and the immutable family policy. It calculates no DSR, HAC or PBO and
+stores no emitted matrix next to the ledger.
 """
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from selection_bias import build_matrix, counted_dsr, hac_t_stat, matrix_pbo
-from trial_registry import ROOT, TrialLedger, source_identity, trial_counts, verify_family
+from trial_registry import ROOT, TrialLedger, digest, source_identity, trial_counts, verify_family
 
 SCHEMA_VERSION = 1
 GATE3_DIR = "reports/artifacts/capital_gate/gate3/"
@@ -183,12 +183,47 @@ def _current_backfill(root: Path) -> dict | None:
 
 
 def current_inputs(artifact: dict, root: Path = ROOT) -> dict:
-    """Today's ledger head, backfill hash and source identity under `root`; the matrix is unknown (None)."""
+    """Today's input identities; unavailable/invalid matrix policy or candidate yields None.
+
+    Matrix alignment/hashing is deterministic currentness verification, not a new evaluation.
+    All return sidecars belong to one verified head; artifact-supplied hashes are never echoed.
+    """
+    state = _ledger(root).verify()
     backfill = _current_backfill(root)
-    return {"ledger_head_hash": _ledger(root).verify()["head"],
-            "backfill_hash": backfill.get("sha256") if backfill else None,
-            "matrix_hash": None,  # FR-022 names no stored emitted matrix yet; see the module docstring
+    valid_backfill = (isinstance(backfill, dict) and backfill.get("status") == "complete"
+                      and type(backfill.get("n_backfill")) is int and backfill["n_backfill"] >= 0
+                      and backfill.get("sha256") == digest({k: v for k, v in backfill.items() if k != "sha256"}))
+    return {"ledger_head_hash": state["head"],
+            "backfill_hash": backfill["sha256"] if valid_backfill else None,
+            "matrix_hash": _current_matrix_hash(artifact, state, root),
             "source_identity": source_identity(root)}
+
+
+def _current_matrix_hash(artifact: dict, state: dict, root: Path) -> str | None:
+    """Rebuild from verified completions and a verified declaration; never trust artifact policy."""
+    try:
+        candidate = artifact.get("selected_trial")
+        selected = next((e for e in state["events"] if e["trial_id"] == candidate
+                         and e["event_type"] == "started" and e["role"] == "candidate"), None)
+        if selected is None:
+            return None
+        family = selected["family"]
+        recorded_family = artifact.get("family")
+        if recorded_family is not None and recorded_family.get("family") != family:
+            return None
+        policy = verify_family(family, root=root)["declaration"]["gate3"]
+        trials = []
+        for event in state["events"]:
+            if event["event_type"] == "completed" and event.get("sidecar"):
+                raw = (Path(root) / event["sidecar"]["path"]).read_bytes()
+                trials.append({**event, "returns": [json.loads(line) for line in raw.splitlines()]})
+        matrix = build_matrix(trials, family={"id": family, **{k: policy[k] for k in
+                                              ("alignment", "min_coverage", "objective", "risk_free")}})
+        if matrix.get("reason") or candidate not in matrix.get("columns", []):
+            return None
+        return matrix["matrix_hash"]
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        return None
 
 
 def gather(*, candidate: str, family: str, root: Path = ROOT) -> dict:
