@@ -213,8 +213,9 @@ result.
 ### Measurable Outcomes
 
 - **SC-001**: Zero-cost defaults reproduce today's exact SMA crossover
-  numbers (8 trades, 50% win rate, ~$33 total P&L) — a regression test pins
+  behavior ([struck]; original result artifact unavailable) — a regression test pins
   this so the cost change cannot silently alter existing behavior.
+  Historical-count context: [backfill record](../../../docs/trials/backfill/manifest.json) (counts only, not returns); archival discussion: [audit](../../../docs/audit-2026-09-12/AUDIT.md) (not results provenance).
 - **SC-002**: A hand-computed cost example (fixed commission + slippage on a
   2-trade log) matches `run_backtest`'s output exactly.
 - **SC-003**: `random_signal(seed=0)` called twice produces identical trade

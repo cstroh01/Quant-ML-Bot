@@ -85,12 +85,12 @@ substance — every function here takes a prediction *series* and never asks
 what produced it — and this note pins that as a requirement (FR-012) so no
 implementation narrows it.
 
-The context: 014's T032 comparison run met its screening bar on
-`logistic`/classification (p = 0.0122) and `ridge`/regression (p = 0.0313),
-while both `hgb` entries did not clear (p = 0.433 and p = 0.263). That is a
-one-ticker result on AAPL. Spec 013's multi-ticker expansion may surface
-`hgb` clearing elsewhere, and scoping the entry rule to tonight's two
-winners would only mean rebuilding it when 013 reports.
+The historical screening outcomes quoted here from 014's T032 comparison
+are [struck]; original result artifacts are unavailable.
+Historical-count context: [backfill record](../../../docs/trials/backfill/manifest.json) (counts only, not returns); archival discussion: [audit](../../../docs/audit-2026-09-12/AUDIT.md) (not results provenance).
+The entry rule remains estimator-agnostic: spec 013's multi-ticker expansion
+may change which estimators qualify, so hard-coding a historical winner list
+would require rebuilding the rule when that list changes.
 
 ---
 

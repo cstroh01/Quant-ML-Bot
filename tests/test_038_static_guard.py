@@ -193,3 +193,62 @@ def test_T063_broken_coverage_link_is_caught(which):
                              before + "(coverage.json)" + after.replace("(coverage.json)", "(coverage.csv)", 1))
     expected = f"{T063_AUDIT}: T063 coverage links must name committed coverage.json"
     assert expected in T063_violations(documents), "T063 COVERAGE-LINK MUTANT"
+
+
+# T061 D2a only: historical-count metadata is not recovered returns or result provenance.
+D2A_COUNT_POINTER = "docs/trials/backfill/manifest.json"
+D2A_ARCHIVE_POINTER = "docs/audit-2026-09-12/AUDIT.md"
+D2A_ROWS = {
+    ".specify/specs/002-backtest-costs-baselines/spec.md":
+        (r"8 trades|50% win rate|\$33", "8 trades, 50% win rate, ~$33 total P&L"),
+    ".specify/specs/002-backtest-costs-baselines/plan.md":
+        (r"8 trades|50% win rate|\$33", "8 trades, 50% win rate, ~$33 P&L"),
+    ".specify/specs/006-embargo-window-semantics/spec.md":
+        (r"0\.519|0\.542|47\.25|126\.71|74\.26|19\.00", "accuracy 0.519 against 0.542; P&L $47.25"),
+    ".specify/specs/009-selectable-target/spec.md":
+        (r"0\.519|0\.542", "AAPL accuracy 0.519 against 0.542"),
+    ".specify/specs/012-cost-aware-entry-rule/spec.md":
+        (r"0\.0122|0\.0313|0\.433|0\.263", "p = 0.0122 / 0.0313 / 0.433 / 0.263"),
+}
+
+
+def D2a_violations(documents):
+    found = []
+    for path, (pattern, _) in D2A_ROWS.items():
+        body = documents[path]
+        if re.search(pattern, body):
+            found.append(f"{path}: D2a unsupported historical figure restored")
+        if (STRUCK not in body or D2A_COUNT_POINTER not in body or D2A_ARCHIVE_POINTER not in body
+                or "counts only, not returns" not in body or "not results provenance" not in body):
+            found.append(f"{path}: D2a strike or count/archive context missing")
+    return found
+
+
+def D2a_documents():
+    return {p: text(p) for p in D2A_ROWS}
+
+
+@pytest.mark.parametrize("path", list(D2A_ROWS))
+def test_D2a_actual_closed_spec_figures_are_struck_with_honest_pointers(path):
+    problems = [v for v in D2a_violations(D2a_documents()) if v.startswith(path + ":")]
+    assert problems == [], "D2a STATIC DISPOSITION: " + repr(problems)
+
+
+@pytest.mark.parametrize("path", list(D2A_ROWS))
+def test_D2a_restored_figure_is_caught_by_the_actual_guard(path):
+    """EXAMPLE — NOT A RESULT. One old unsupported figure restored in a copy."""
+    documents = D2a_documents()
+    assert D2a_violations(documents) == [], "D2a clean control"
+    documents[path] = documents[path].replace(STRUCK, D2A_ROWS[path][1], 1)
+    expected = f"{path}: D2a unsupported historical figure restored"
+    assert expected in D2a_violations(documents), "D2a RESTORED-FIGURE MUTANT"
+
+
+@pytest.mark.parametrize("path", list(D2A_ROWS))
+def test_D2a_dropped_historical_count_pointer_is_caught(path):
+    """EXAMPLE — NOT A RESULT. A copied strike loses its count-record pointer."""
+    documents = D2a_documents()
+    assert D2a_violations(documents) == [], "D2a clean control"
+    documents[path] = documents[path].replace(D2A_COUNT_POINTER, "history-unavailable")
+    expected = f"{path}: D2a strike or count/archive context missing"
+    assert expected in D2a_violations(documents), "D2a POINTER-DROPPED MUTANT"
