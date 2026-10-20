@@ -64,6 +64,18 @@ result appears (constitution Rule 16):
 | Daily bars | No intraday behavior, microstructure, or order-book information. |
 | Costs are modeled, never calibrated against real fills | Half-spread plus square-root impact estimated from daily OHLC is an estimate. |
 
+The complete SCOPE §6 register follows; the additional allocation and replay
+limitations in the table above remain applicable. Current implementation and
+acceptance are tracked in [STATE](docs/STATE.md).
+
+- Survivorship bias. Research uses a fixed 25-ETF universe chosen as of 2026 (spec 058). ETFs that have closed are absent. The 5-ticker mega-cap panel (AAPL/MSFT/GOOGL/NVDA/AMZN) remains a machinery smoke test, not evidence of generalizable alpha. No delisted names in either.
+- Corporate-action data is free-tier and only partially reconciled. yfinance has documented split/dividend/100× pricing defects, and the only free second source covers one year of history, so older actions are unreconciled by construction and labelled as such.
+- Dividend payment dates are a declared conservative bound, not observed data. No free source provides them historically. Dividend cash is credited no earlier than it could have arrived, so the ledger is never optimistic.
+- No point-in-time fundamentals. Nothing knowable-on-date beyond price and volume.
+- Daily bars only. No intraday, no microstructure, no order-book data.
+- Costs are modeled, not calibrated. Rule 13's half-spread plus square-root impact is an estimate from daily OHLC, never validated against real fills.
+- No real capital has ever been deployed, and none will be before the §11.3 capital gate passes (docs/SCOPE-V1.md §11.3 supersedes §5).
+
 ## Architecture
 
 Three layers, independently correct and independently testable. The harness

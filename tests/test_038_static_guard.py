@@ -89,3 +89,31 @@ def test_planted_defects_turn_the_guard_red(path, edit, message):
     documents[path] = edit(documents[path])
     assert documents[path] != text(path), "the planted edit must change the copy"
     assert any(v.startswith(f"{path}: {message}") for v in violations(documents)), violations(documents)
+
+
+
+# T064 / M1b: use the shared register already checked against actual SCOPE §6.
+def readme_violations(documents):
+    from disclosure import LIMITATIONS
+    found = []
+    for path, body in documents.items():
+        normalized = re.sub(r"\s+", " ", body.replace("**", "")).strip()
+        for item in LIMITATIONS:
+            if item not in normalized:
+                found.append(f"{path}: missing limitation: {item}")
+    return found
+
+
+def test_T064_root_and_web_readmes_carry_the_full_limitations_register():
+    documents = {p: text(p) for p in ("README.md", "reports/web/README.md")}
+    assert readme_violations(documents) == [], "T064 README REGISTER"
+
+
+@pytest.mark.parametrize("path", ["README.md", "reports/web/README.md"])
+def test_T064_dropped_limitation_is_caught_with_a_clean_control(path):
+    from disclosure import LIMITATIONS
+    documents = {p: text(p) for p in ("README.md", "reports/web/README.md")}
+    assert readme_violations(documents) == [], "T064 clean control"
+    missing = LIMITATIONS[2]
+    documents[path] = documents[path].replace("- " + missing + "\n", "")
+    assert f"{path}: missing limitation: {missing}" in readme_violations(documents), "T064 M1b dropped register item"
