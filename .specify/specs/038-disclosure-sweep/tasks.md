@@ -237,7 +237,7 @@ One guard file serves all D units: `tests/test_038_static_guard.py`, with driver
   (`:11`, `:245` relinked to `docs/audit-2026-09-12/coverage.json`), `tests/test_038_static_guard.py`,
   `tests/mutation/run_038_static_mutants.py`. Values unchanged. Mutant: one label moved off its figure's line.
   Control: labelled lines. `.specify/specs/017-position-sizing-risk/quickstart.md:79-80` waits for its plan.md row.
-- [ ] T064 D5. Files: `README.md` (register from T021), `reports/web/README.md`,
+- [x] T064 D5. Files: `README.md` (register from T021), `reports/web/README.md`,
   `tests/test_038_static_guard.py`, `tests/mutation/run_038_static_mutants.py`. Mutant M1b (one item
   dropped). Control: full README. Depends T002, T021.
 - [ ] T065 X quotations per T005. Files: the Q-pending-D-5 register rows' paths, as T005's choice fixes
