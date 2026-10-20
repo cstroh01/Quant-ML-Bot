@@ -231,7 +231,7 @@ One guard file serves all D units: `tests/test_038_static_guard.py`, with driver
   `tests/mutation/run_038_static_mutants.py`. Strikes per register; `:826-828` replaced by the Rule 15
   requirement. Split by block if over the cap. Same red/mutant/control shape as T061; the extra mutant
   restores "Sharpe ratio output now trusted".
-- [ ] T063 D4 labels. Files: `NIGHT_RUN_SUMMARY.md` (`:176`), `.specify/specs/017-position-sizing-risk/tasks.md`
+- [x] T063 D4 labels. Files: `NIGHT_RUN_SUMMARY.md` (`:176`), `.specify/specs/017-position-sizing-risk/tasks.md`
   (`:197`), `.specify/specs/020-unadjusted-price-data/spec.md` (`:111`), `docs/audit-2026-09-12/CODEX_LANE_HANDOFF.md` (`:120-128`),
   `docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md` (`:14-15`, `:20`, `:27`), `docs/audit-2026-09-12/AUDIT.md`
   (`:11`, `:245` relinked to `docs/audit-2026-09-12/coverage.json`), `tests/test_038_static_guard.py`,

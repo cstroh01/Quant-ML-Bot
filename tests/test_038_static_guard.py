@@ -117,3 +117,79 @@ def test_T064_dropped_limitation_is_caught_with_a_clean_control(path):
     missing = LIMITATIONS[2]
     documents[path] = documents[path].replace("- " + missing + "\n", "")
     assert f"{path}: missing limitation: {missing}" in readme_violations(documents), "T064 M1b dropped register item"
+
+
+# T063 D4: each listed example keeps its label on its actual numeric line.
+EXAMPLE_LABEL = "EXAMPLE — NOT A RESULT"
+T063_ROWS = {
+    "NIGHT_RUN_SUMMARY.md": (
+        "Name A at 0.25 beside name B", "one name's confidence moving from 0 to 1e-9"),
+    ".specify/specs/017-position-sizing-risk/tasks.md": ("**Matches:** 09-09 halted",),
+    ".specify/specs/020-unadjusted-price-data/spec.md": ("**Historical Price Level Assertion**",),
+    "docs/audit-2026-09-12/CODEX_LANE_HANDOFF.md": (
+        "2026-08-24 through 2026-09-02", "$100 capital, $1 per fill", "fit: fold count 0;",
+        "Policy net P&L **-$0.0220**;", "mean **-$0.0248**,"),
+    "docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md": (
+        "the paper specifies annualized Sharpe 2.5", "trial-Sharpe variance 0.5, 1,250 observations",
+        "−3, and Pearson kurtosis 10", "Its N=46 control reports 0.9505.",
+        "the moments to normal returns (skewness 0, kurtosis 3)",
+        "using N=88 gives 0.910153014744707", "calculation agree. This still fails the unchanged 0.95 threshold",
+        "unchanged N=46 control passes.", "change the asserted N=88 DSR target from 0.905"),
+}
+T063_AUDIT = "docs/audit-2026-09-12/AUDIT.md"
+
+
+def T063_violations(documents):
+    found = []
+    for path, anchors in T063_ROWS.items():
+        for anchor in anchors:
+            rows = [line for line in documents[path].splitlines() if anchor in line]
+            if len(rows) != 1:
+                found.append(f"{path}: T063 expected one example row: {anchor}")
+            elif EXAMPLE_LABEL not in rows[0]:
+                found.append(f"{path}: T063 example label missing on numeric line: {anchor}")
+    audit = documents[T063_AUDIT]
+    if "(coverage.csv)" in audit or audit.count("(coverage.json)") != 2:
+        found.append(f"{T063_AUDIT}: T063 coverage links must name committed coverage.json")
+    return found
+
+
+def T063_documents():
+    return {p: text(p) for p in (*T063_ROWS, T063_AUDIT)}
+
+
+@pytest.mark.parametrize("path", list(T063_ROWS))
+def test_T063_numeric_example_lines_carry_their_own_label(path):
+    documents = T063_documents()
+    problems = [p for p in T063_violations(documents) if p.startswith(path + ":")]
+    assert problems == [], "T063 SAME-LINE EXAMPLE LABEL: " + repr(problems)
+
+
+def test_T063_coverage_links_resolve_to_the_committed_inventory():
+    documents = T063_documents()
+    problems = [p for p in T063_violations(documents) if p.startswith(T063_AUDIT + ":")]
+    assert problems == [] and (ROOT / "docs/audit-2026-09-12/coverage.json").is_file(), "T063 COVERAGE LINK"
+
+
+@pytest.mark.parametrize("path,anchor", [(p, a) for p, anchors in T063_ROWS.items() for a in anchors])
+def test_T063_label_moved_off_numeric_line_is_caught(path, anchor):
+    documents = T063_documents()
+    assert T063_violations(documents) == [], "T063 clean control"
+    lines = documents[path].splitlines()
+    row = next(i for i, line in enumerate(lines) if anchor in line)
+    lines[row] = lines[row].replace(EXAMPLE_LABEL, "illustration")
+    lines.insert(row, "**" + EXAMPLE_LABEL + "**")
+    documents[path] = "\n".join(lines)
+    expected = f"{path}: T063 example label missing on numeric line: {anchor}"
+    assert expected in T063_violations(documents), "T063 MOVED-LABEL MUTANT: " + expected
+
+
+@pytest.mark.parametrize("which", [0, 1])
+def test_T063_broken_coverage_link_is_caught(which):
+    documents = T063_documents()
+    assert T063_violations(documents) == [], "T063 clean control"
+    before, after = documents[T063_AUDIT].split("(coverage.json)", 1)
+    documents[T063_AUDIT] = (before + "(coverage.csv)" + after if which == 0 else
+                             before + "(coverage.json)" + after.replace("(coverage.json)", "(coverage.csv)", 1))
+    expected = f"{T063_AUDIT}: T063 coverage links must name committed coverage.json"
+    assert expected in T063_violations(documents), "T063 COVERAGE-LINK MUTANT"

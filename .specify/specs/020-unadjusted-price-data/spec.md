@@ -108,7 +108,7 @@ data/cache/
 Because pandas DataFrame `attrs` are not preserved across CSV serialization, `attrs["price_basis"] = "unadjusted_dollars"` must be applied at load time. To ensure an adjusted frame can **never be forged** onto an unadjusted basis:
 
 1. **Cryptographic Checksum Gate**: The loader checks SHA-256 hashes of CSV files against the locked manifest.
-2. **Historical Price Level Assertion**: Historical nominal baselines are enforced (e.g., AAPL traded at $\sim\$105$ in September 2016, whereas adjusted AAPL is $\sim\$25$; the loader asserts pre-2020 AAPL close $> \$80.00$).
+2. **EXAMPLE — NOT A RESULT:** **Historical Price Level Assertion**: Historical nominal baselines are enforced (e.g., AAPL traded at $\sim\$105$ in September 2016, whereas adjusted AAPL is $\sim\$25$; the loader asserts pre-2020 AAPL close $> \$80.00$).
 3. **Split Discontinuity Oracle**: In unadjusted data, a stock split of ratio $S$ creates a discrete nominal jump across the ex-date:
    $$\frac{\text{Close}[t-1]}{\text{Open}[t]} \approx S$$
    In adjusted data, this ratio is smoothed to $\approx 1.0$. The loader checks known splits (e.g., AAPL 4:1 on 2020-08-31; NVDA 10:1 on 2024-06-10; GOOGL 20:1 on 2022-07-18; AMZN 20:1 on 2022-06-06). If the ratio across the split date fails to match the split ratio within $\pm 15\%$ market drift, the loader rejects the frame with `ValueError("Adjusted data detected: split step discontinuity absent")`.
