@@ -1,0 +1,43 @@
+# Integration audit — 2026-10-19 America/New_York
+Source baseline: public main `98ab2f716f1c969e6a66032d658841b3a371365c` after Camden merged #255 and #259; candidate software checkpoint #256 `67dfd7f68acc1e86b457f7ca07e7814f3966ef5e`, still draft/held. Operational findings below come from the retained 2026-10-18 inspection and are not fresh account proof.
+Camden chose free data, US stocks/ETFs, and no OTC, leveraged or inverse products.
+
+| Area | Existing evidence | Remaining acceptance |
+|---|---|---|
+| Fidelity | LIVE adapter and guarded loop exist; the PR263 hosted-preview template is dormant and not installed privately. Public LIVE cap is $200 (`scripts/mode_config.py` at baseline); inspection did not establish arming acceptance. Unexpected challenges need intervention. | PAPER sessions, previews/holdings, settled cash/budget evidence, final arming SHA and unattended-operation proof. |
+| Host | Hosted fixture reports do not establish production PAPER operation. Inspected Windows PAPER task was disabled after an unsuccessful run; configured paths lacked current Fidelity task/preview/holdings evidence, though older private holdings exist. | Account/host acceptance, notifications and dedicated-host compatibility; activity elsewhere is not ruled out. |
+| Alpaca/Tiingo | `data_sources.load_058_panel`, `paper_loop.fetch_sleeve_closes`, `fidelity_inputs.build_bundle` and recorded research consume them. | Fresh entitlement, breadth, independent actions and nominal-data acceptance remain dataset-specific. |
+| EODHD | Private generic fetching and saved observations predate #257's bounded adapter; its T009 follow-up refuses unchecked splits/unknown labels. | No credentialed acceptance here. Spec 044 owns splits; configure `key_env="EODHD_API_TOKEN"` explicitly for the local name. |
+| Massive | Offline proposal #198 stays held, absent from main. | Contract/terms, endpoint migration, coverage and reconciliation; entitlement is unverified. |
+| Other sources | SEC as-of helpers, FRED/ALFRED vintage joins, French attribution and OpenFIGI mapping exist. | Presence establishes neither trained features nor complete historical membership or Nasdaq/Treasury/Cboe/Stooq datasets. |
+
+Local credential names existed, without values printed/loaded or vault reads; presence proves no validity/entitlement. The cloud-only absence claim does not apply locally. Retained private manifests describe historical observations, not fresh availability.
+Spec 058 T009 reports EXCLUSIONS with single-source limits ([tasks](../../../.specify/specs/058-edge-research-program/tasks.md) at baseline); inspected Fidelity inputs did not establish spec 061 allocation binding.
+Spec 058 research remains FAIL ([results](../spec-058/results-20261016.md) at baseline). Spec 061's buffered ETF allocation is not a fitted stock-selection model and claims no edge. Spec 060's final ETF CSV is unpublished; merged #255 fixes class reservation. The separate absent-class validation/spec discrepancy is unresolved.
+Spec 062 produces data-collection candidates, not approved training/trading instruments. Next: reviewed delivery, dated classifications, licensed raw bars, independent OHLCV/actions, preregistered costed research with purged/embargoed CV and fresh prospective validation, then account evidence and Camden's LIVE gate.
+Static survivor snapshots cannot reconstruct historical members/delisting returns. Old queue labels need individual reconciliation. Spec 063 is a separate protected draft; deposits do not automatically raise authority.
+Current-head acceptance requires [PR #256 checks](https://github.com/cstroh01/Quant-ML-Bot/pull/256/checks); reproduce contracts with `python -m pytest tests/test_062_research_universe.py`.
+
+
+The candidate checkpoint passed its actual-root offline suite (2,613 passed,
+2 skipped, 12 xfailed) and fresh exact-head Codex review. Independent Claude
+review remains pending because usage is unavailable. Software tests and review
+are separate from real-source, broker and operational acceptance. The private
+prospective combined-copy run is not main acceptance: its original full result
+had temporary-root destination-guard failures, preserved with the separate
+location-correction evidence. It does not support a green full-integration claim.
+
+The Oct19 first-run window expired without a production dispatch. Current hosted verification still shows manual-only operation, zero production runs and no production profile namespaces. The next supervised window requires a reviewed workflow date change and matching human authorization; this audit grants neither.
+
+
+## October20 operational supersession
+The zero-production-run paragraph above is a dated October19 observation.
+GitHub GET verification at 2026-10-20T14:34Z found two attempt-one previews:
+small run39419036470 succeeded with capacity exclusions; large run39419874952
+failed at MARKET_DATA_READ / HTTPError, with no retained HTTP status. Cause is
+unknown. Ops-state is 2a4a470bf446db0e4ff190e5cb5172773f17af97. The sequence
+is closed after failure and contributes zero completed/reconciled trading sessions.
+See current [STATE](../../STATE.md) for source/run references. No retry, submission,
+deployment repin or scheduling is authorized here. The private workflow stays
+manual-only; no Fidelity workflow is installed. Camden's October20 Codex-review
+exception requires its dedicated constitution merge; check current governance.

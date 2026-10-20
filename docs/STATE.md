@@ -1,140 +1,127 @@
 # STATE
 
-## 2026-10-17 buffered-allocation adoption draft
+## Verified checkpoint — 2026-10-20 America/New_York
 
-Camden chose a fresh costed equal-weight allocation with a 7% target reserve,
-after seeing T004; historical A1/B-BH remain untraded research results. New
-spec 061 T005 is verified: candidate `8d4dfeda-10ef-4951-bf0e-147090ea9731`,
-22/22 series completed, ledger 898 lines, head `c510408010dd8af4e1cdbeeb2c686706a8f33b0aa052272c2353e840ebcc17cc`.
-See `docs/implementation/spec-061/trial-report-20261017.md` for costed figures,
-post-hoc selection and limitations. This is not an edge claim or deployment.
+Public main audited: `98ab2f716f1c969e6a66032d658841b3a371365c` after #259.
+The merge retains #255 and adds exactly the three-file reviewed #259 delta.
+The previous version of this file described superseded drafts and a $100 cap.
+This checkpoint records merged code/evidence, not an observed running deployment.
+Camden owns the active spec and every human-gate decision.
 
-T006 shared-planner/PAPER/input-bundle adoption is a local review draft. New
-replays pass both stress windows at both PAPER budgets, but publication commit
-fields deliberately remain unresolved in the gate manifest. Old A1 evidence
-does not accept the new policy. LIVE budget remains $100 until the separate
-protected $200 change is reviewed and merged; profiles.json is unchanged.
-Fidelity fractional sizing requires its own protected 0.001-share precision fix.
-Input refresh to 2026-10-16 is blocked: approved Alpaca environment keys absent.
-No arming, broker orders, production pin or schedule change. All runtime gates
-remain. The older checkpoint below is historical and has not been re-audited here.
+**The project is unfinished. LIVE is NOT ARMABLE.** The read-only command
+`python scripts/gate_checklist.py docs/implementation/spec-059/gate-manifest.json`
+reports missing items 4, 6 and 7. Do not infer authorization from a passing
+test, a replay, a configured budget, an API key, a queue status or this file.
 
-The loop's working memory, and the one place to see where the repo stands.
-**Camden owns** the active spec and every human-gate decision. **A loop PR
-updates** Next, Blockers, Expected red, and Lane status in the same PR as its
-work. Spec files stay the authority on their own tasks; this file points at them.
+## Allocation and research
 
-_Seeded 2026-09-30 by spec 045 from the tree at `e19d57c`. Camden confirms
-the active spec (spec 045 D-5)._
+- Spec 061 buffered equal weight is implemented in the shared planner and
+  PAPER/preview input path. It targets a 7% pre-cost reserve at monthly
+  decisions across eight sleeves, with next-session execution. Its reserve
+  is not a guaranteed daily cash floor.
+- The protected LIVE cap is **$200 of settled cash**, never increased by
+  deposits. `SafetyConfig` has percentage limits, not a dollar-budget field.
+  All account-specific fractional eligibilities remain unverified here.
+- Spec 058 remains the recorded active research spec (G11). Its preregistered
+  25-ETF family and spent holdout are unchanged. Its published verdict is
+  **FAIL**; see [results](implementation/spec-058/results-20261016.md).
+- Spec 061 is an allocation with **NO EDGE CLAIMED**, not an ML stock picker
+  or a passing replacement for the failed edge research. Its recorded report
+  and costed replay are in [spec-061](implementation/spec-061/).
+- Ledger: `docs/trials/trials.jsonl`, 898 lines, SHA-256
+  `6c3c416edba3ea9b52d05ea59967d20be7b755204787312d731250fc53e7e65e`;
+  anchor SHA-256 `8bec008c52f463c6eaf802b9852e2af4b5969370204b4c59e0261766eeac5a8d`.
+  These artifacts exist at the checkpoint. Never rerun a recorded family or
+  rewrite its ledger to resume work.
 
-_Refreshed 2026-10-15 ~20:45 CT by Claude (chat) from the tree at `2f53cd0` (#222 merged). Queue
-item status lives in `docs/autonomy/queue.json`; this file summarizes it._
+## Current completion request
 
-## Active spec
+Camden's 2026-10-17 chat choices: keep free data; expand research to US stocks
+and ETFs, excluding OTC, leveraged and inverse products. Spec 062 implements
+data-collection candidates for this request, separately from frozen trials
+and LIVE promotion. See its [audit](implementation/spec-062/integration-checkpoint-20261019.md)
+and [tasks](../.specify/specs/062-expanded-research-universe/tasks.md).
+New draft work is not deployed or accepted merely because it exists in a PR.
 
-**058 — preregistered multi-asset edge research program**
-([spec](../.specify/specs/058-edge-research-program/spec.md),
-[tasks](../.specify/specs/058-edge-research-program/tasks.md)). Camden confirmed it on 2026-10-09
-(gate G11). Since 2026-10-12 the target release is **v1.2** (`docs/SCOPE-V1.md` §11): specs 059
-(preregistered LIVE allocation, no edge claimed) and 060 (ETF universe and free-data additions)
-were adopted in #174, and §11.3 replaces §5 as the capital gate while §11 is in force.
+The current deployment input path uses Alpaca; recorded research uses Tiingo
+with Alpaca checks/exclusions. EDGAR/ALFRED adapters are not automatically
+features. Supplemental EODHD implementation still needs real first-fetch
+acceptance. Massive #198 remains held; its deprecated endpoint assumptions
+and use entitlement need resolution. A source key does not prove training use.
 
-## Operating model (2026-10-12, v1.2 acceleration)
+## Remaining acceptance and software work
 
-- **Lanes.** Parallel Claude cloud lanes split by module ownership
-  (`docs/autonomy/routine-prompt.md` v11): A research and gates, B data, C disclosure/reports/costs,
-  D operations and PAPER. Any number of open PRs, no two sharing a file; units up to 600 lines.
-- **Codex.** Exact-head reviews, Windows verification, bounded fetches (G13).
-- **Merges.** Constitution Rule 9b (until v1.2 is tagged or 2026-12-31): agents merge a PR after
-  CI, two independent exact-head reviews and the other Rule 9b conditions; Camden reads a daily
-  digest. The LIVE money path, `SafetyConfig` values, governance paths and ledger writes stay
-  Camden's.
-- **PAPER `exec/`.** Agent-built and agent-merged under Rule 7a, keeping the refuses-LIVE test.
-
-## Spec progress (ticked / total boxes in each `tasks.md`, at `2f53cd0` plus this sync)
-
-| Spec | Boxes | Note |
-|---|---|---|
-| 033 trial ledger, DSR, PBO | 60/75 | Q33b route wiring is a Camden-authorized unit |
-| 035 free unadjusted bundle | 7/24 | |
-| 038 disclosure sweep | 15/39 | Lane C items ready |
-| 044 nominal price reconstruction | 4/36 | Waits on 044 T007/T008 |
-| 046 Rule 13 cost model | 7/15 | |
-| 047 tearsheet correctness | 8/16 | Q67 blocked on the #158 revision |
-| 049 / 051 / 055 PAPER operations | 7/13, 6/9, 5/7 | |
-| 057 Fidelity LIVE adapter | 4/6 | Setup done 2026-10-15; preview session 1 on 2026-10-16 |
-| 058 edge research | 11/19 | T015 run command merged (#222); T014 part 1 (#189) left open |
-| 059 LIVE allocation | 6/10 | T007 harness merged (#207); its real-data run found gross-cap denials, fix in #223 |
-| 060 universe and data | 0/8 | Lane B items ready |
-
-## Next unblocked work
-
-| Who | Items |
+| Area | Required next evidence/work |
 |---|---|
-| Camden | 058 T015 `--record-trial` (dry-run passed on the real panel 2026-10-15, panel hash `3b80b330…`); merge #223; Fidelity preview sessions; PAPER sessions |
-| Lane A | Q35, Q98, Q121, Q122, Q124 |
-| Lane B | Q73–Q81, Q123, Q125 |
-| Lane C | Q49–Q61, Q64, Q68, Q70, Q72, Q92, Q93, Q116, Q119, Q126, Q129, Q130 |
-| Lane D | Q128 |
+| Capital item 1 | Refresh the full and mutation checks at the exact future arming revision. |
+| Capital item 4 | Required reconciled PAPER submit sessions on each profile, with per-order modeled/realized costs. |
+| Capital item 6 | Distinct clean Fidelity previews and latest-session dedicated-account holdings CSV match. |
+| Capital item 7 | Settled cash and restricted-budget evidence; then Camden's own arming decision. |
+| Operations | Real fills/reconciliation, notification delivery, host/task and scheduling acceptance. No production scheduling is established by this audit. |
+| Data | 044 probe/selections and 035 nominal bundle chain; source entitlement/coverage/rights; independent action/price reconciliation; real expanded-universe receipts. |
+| Research | New preregistration and prospective validation for stocks/ETFs; no reuse of the spent 058 holdout. |
+| Reporting | 033 matrix currentness/Gate 3 API, 046 cost reporting, 047 tearsheet work and 038 disclosure/UI work remain. |
 
-## Expected red on `main`
+The legacy dashboard gate route is not the seven-item capital-gate checklist;
+it still has evidence-wiring work. Consult the checklist manifest and typed
+evidence, not the old dashboard wording, for the current gate inventory.
 
-None. Check runs on `25577e9` all succeeded; full Linux suite in the cloud on `25577e9`:
-2427 passed, 12 xfailed, 1386 subtests passed (Python 3.13.16).
+The earlier cloud-only audit did not inspect the local/private environment.
+The 2026-10-18 local reconciliation supersedes its inference that credentials
+or hosted infrastructure are absent. Credential values were not inspected;
+configured names do not establish authentication, entitlement or acceptance.
+The Windows preview input refresher needs Alpaca keys in its environment; it
+does not load `.env`. Fidelity uses the separate native-vault launcher.
 
-Ledger: `docs/trials/trials.jsonl` 174 lines, SHA-256
-`1bb5dbfe90c9df370c65910650ade15dd9d0e0366d011e09baf303975275f30f`; `trials.head.json` SHA-256
-`f83b1b9be5a608d444d61496899d25139eb56184fd924acd030e61347d22d764`. Family declarations
-`058-edge` (+ amendment 1) and `059-allocation` verify.
+## Hosted PAPER and delivery checkpoint — 2026-10-20
 
-## Blockers (human gate reached)
+GitHub GET evidence at 14:34 UTC: private main remains
+`ed4afb5e208c07b83c1a26e4779fcb85b792a03f`; paper-loop is manual-only with no
+schedule. Exactly two production runs exist, each attempt one: small preview
+[39419036470](https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/39419036470)
+succeeded; large preview
+[39419874952](https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/39419874952)
+failed. Retained sanitized inspection records classify the latter as
+MARKET_DATA_READ / HTTPError; HTTP status was not retained and cause is unknown.
+Small acceptance had capacity exclusions. Neither is a completed/reconciled
+trading session. The authorized sequence is closed after failure; no retry,
+orders, workflow/pin/profile changes or schedule authority follows.
 
-| Where | Gate | Waiting on |
-|---|---|---|
-| 058 T015, T016 | Ledger-writing research and holdout runs | Camden runs them (T015 command in `docs/implementation/spec-058/T015-run-command.md`) |
-| §11.3 item 5 | Replay on real data fails on `main` (2020 TLT gross-cap denials) | Camden merges #223 (touches the LIVE planner) |
-| 033 Q33b (T063, T064) | `reports/api/routes/capital_gate.py` route reads the Gate 3 artifact | A Camden-authorized unit |
-| 044 T003, T004, T007 | Probe reviews and live probe | G12/G13 delegations (Codex lane) |
-| 047 Q67 (T010, T011) | Spec text and Q67 `allowed_paths` must be revised for the recorded-payload route, with an explicit as-of session (#158) | A spec 047 revision PR; then Q67 back to `ready` |
-| 055 paper-loop `kill` input | Per-profile kill wiring in `ops/workflows/paper-loop.yml` (#168 proposal) | Camden's decision on #168 blocker 1 |
-| §11.3 items 6–7 | Fidelity preview sessions; arming LIVE with the $100 budget | Camden |
-| LIVE `exec/` (`fidelity_live.py`, `fidelity_reconcile.py`) | Rule 7a line-by-line review | Camden |
+Final ops-state is `2a4a470bf446db0e4ff190e5cb5172773f17af97`; the failure
+commit preserves small-profile state. The PAPER public-code pin remains
+`c1dbc854b146095cd47283ef4cbc1b5838f20d94`. Broker-truth reconciliation,
+per-order realized/modelled costs and actual notification receipt remain gates.
+The Fidelity host template in PR263 is dormant and not installed privately.
+Scheduling waits for G16 and Camden's separate workflow merge.
 
-## Disagreements between this file's previous text and the tree
+PR255 and PR259 are merged. The current candidate/EODHD/checkpoint stack is
+PR256 -> PR257 -> PR258; Codex markers at heads `67dfd7f`, `6ee6aef`,
+`5fdcbe7` report no unresolved findings. Q124/report fix PR264 at `010f2616`
+and T023 lifecycle PR265 at `7f0ab77` have completed clean Codex markers.
+Separate reader and T033/T075 packets remain offline proposals. Saved composed
+receipts do not certify merged main or deployed broker code.
 
-- The previous refresh (2026-10-09) described Rule 9a merges and Track A/B; Rule 9b and lanes A–D
-  replaced them on 2026-10-12 (#175).
-- Spec 058/059 `tasks.md` boxes and `queue.json` lagged merged PRs; synced 2026-10-15 (this PR).
+Camden's October20 completion instruction waives Claude reviews and requires
+recorded Codex second looks for existing/future changes. Adoption is through a
+constitution-only human merge; do not infer a merge from this checkpoint.
+Check the constitution and current exact-head evidence before delivery. This
+documentation grants no new broker, schedule, capital or protected-path authority.
 
-## Delegations (Camden, 2026-10-09 (delegation answers G12–G16 in chat; recorded by Claude))
+## Standing delegations retained (Camden, 2026-10-09)
 
-- **G12.** 044 T003/T004 reviews: Codex plus Claude.
-- **G13.** Bounded fetches and the 044 T007 probe: the Codex lane, without a per-run "go".
-- **G14.** The 040 T001 kickoff check: the lane.
-- **G15.** PAPER drills: Codex.
-- **G16.** Enabling the PAPER schedule after all drills pass. The `.github/` PR for it still needs
-  Camden's merge.
-- **G17 is not in force.** It was written against Rule 9a; Rule 9b condition 3 now governs
-  decision PRs (a quoted, dated Camden statement confirmed by a reviewer).
+- G12: 044 T003/T004 reviews, Codex plus Claude.
+- G13: bounded fetches and the 044 T007 probe, Codex lane, without per-run go;
+  the current task's narrower authorization still governs a particular call.
+- G14: 040 T001 kickoff check, the lane.
+- G15: supervised PAPER drills, Codex, with schedules disabled.
+- G16: schedule enablement only after all drills, broker reconciliation and
+  notification delivery are verified; the governance PR needs Camden's merge.
+- G17 is not in force; constitution Rule 9b condition 3 governs decisions.
 
-## Human gates (standing list)
+## Working rules
 
-The loop never crosses these. Reaching one means: write the blocker above, stop.
-
-- **Merge.** Only as constitution Rule 9b permits while it is in force; every other merge is
-  Camden's (Rule 9).
-- **D-decisions.** Any spec decision marked open, gated, or "Camden", unless Rule 9b condition 3's
-  quoted-and-confirmed exception applies.
-- **Live network probes.** Any market-data fetch, vendor API call, or other
-  external network use outside pytest's fakes. Exception: bounded fetches in the Codex lane per G13.
-- **Capital gate.** `docs/SCOPE-V1.md` §11.3 (and §5 when §11 lapses), any `SafetyConfig` value,
-  the LIVE money path in `exec/` (Rule 7a), LIVE arming and budget.
-- **Governance text.** The constitution, `docs/SCOPE-V1.md` §5 and §11.3, `docs/autonomy/`
-  other than `queue.json` (a lane D sync PR may edit it), `.github/`
-  and `.claude/`: changed only on Camden's explicit instruction in chat (Rule 10). Rule 9b
-  condition 2 additionally bars agent merges of `docs/autonomy/routine-prompt.md`,
-  `docs/autonomy/review-prompt.md`, `.github/workflows/`, `.github/scripts/merge_gate.py`.
-- **The ledger.** Any write to `docs/trials/`.
-- **Pinned 019 files.** `scripts/feature_set_comparison.py`,
-  `scripts/multi_ticker_comparison.py`, `scripts/logistic_baseline.py`.
-- **Any task whose text names Camden** as the one who runs, reviews or decides it.
+Read `AGENTS.md`, the constitution, `CLAUDE.md`, SCOPE and the numbered spec.
+Use `docs/autonomy/queue.json` as a work map, then verify its dependencies:
+some ready/blocked labels lag merged work. Keep protected source/pins, trial
+bytes, KILL/HALTED and human gates intact. New source acceptance and any LIVE
+change must earn their actual evidence; this checkpoint authorizes neither.
