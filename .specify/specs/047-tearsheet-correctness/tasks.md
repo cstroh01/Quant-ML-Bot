@@ -103,7 +103,7 @@ since the plan's `2942240`, so the plan's line numbers still hold.
 
 ## U1a — friction recorded where it is charged (≤300 lines; plan U1a)
 
-- [ ] T006 Write contracts first. Files: `tests/test_047_friction.py`. **Acceptance:** red, for the
+- [x] T006 Write contracts first. Files: `tests/test_047_friction.py`. **Acceptance:** red, for the
   missing attrs and fields, on: `trade_log.attrs` carries `commission_total` and `slippage_total`;
   no trades gives both `0.0`, present and not null; one closed trade with `slippage_bps=5` gives
   slippage `shares*Open*rate + qty*quote*rate` and commission `2*c`, by hand at `1e-9`;
@@ -121,7 +121,7 @@ since the plan's `2942240`, so the plan's line numbers still hold.
   controls through `survives()`: M1 with `slippage_bps=0`, M1b and M2 with `liquidate=True`, M3
   with no split. **Depends on:** T004.
 
-- [ ] T007 Implement U1a. Files: `scripts/backtest_harness.py` (`record()` gains `slippage=0.`;
+- [x] T007 Implement U1a. Files: `scripts/backtest_harness.py` (`record()` gains `slippage=0.`;
   buy `shares*(fill-row.Open)`, sell and liquidation `quantity*(quote-fill)`; attrs sum `Fee` and
   `Slippage` over `buy`, `sell`, `liquidation` only, one separate expression per total so M1b and
   M2 each hit one site; exit slippage is computed in `sell()` before `quantity` and `entry` are
