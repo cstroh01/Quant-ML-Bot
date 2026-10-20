@@ -256,6 +256,23 @@ check):
      re-earned on the new head, or when an independent reviewer run (not the PR's
      author) shows, with a reproduced input, that the finding does not hold, and
      says so in the thread.
+   **Temporary Codex-only completion exception (Camden, 2026-10-20).**
+   Camden instructed: "No Claude reviews are needed for any existing PRs and new
+   ones to come" and "rereview all your own PRs, code, and any changes you make so
+   that everything is given a second look." During this project-completion effort,
+   Claude review in condition 6 is waived for existing and future PRs. Instead,
+   Codex records two review passes on the exact source/head: the implementation or
+   initial review pass, then a separate correctness/security/boundary review with
+   any P0/P1 fixed and relevant tests/mutation evidence re-earned after changes.
+   Same-author second looks must be labelled as such, never called independent
+   reviews. A completed clean GitHub Codex review may supply one pass. A new head
+   voids prior-head acceptance; both passes and unresolved findings are recorded.
+   The exception applies through completion of this effort, including readiness
+   for qualifying PAPER operation and its remaining time-dependent acceptance.
+   No Claude call or billing change is required. Every other condition of this
+   rule, protected path, hold, human merge/arming gate and Rule10 lane restriction
+   remains unchanged. Only Camden merges this constitution-only amendment.
+
 7. **Ledger.** The PR body states the ledger hashes before and after, unchanged.
 8. **No hold.** Camden has not applied the label `hold`, and no comment from
    Camden asks to wait.
