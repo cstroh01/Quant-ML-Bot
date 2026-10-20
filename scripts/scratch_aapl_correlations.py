@@ -1,12 +1,16 @@
-"""Resolve discrepancy between AAPL r(SMA_Spread, Close_To_Short) = 0.319 and '0.998 -> 0.527'.
+"""Describe pairwise AAPL feature correlations from the named input artifact.
 
 Prints full pairwise correlation matrix for AAPL across scale-free features:
 Log_Return, Rolling_Volatility, SMA_Spread, Close_To_Short, Rel_Volume.
 """
 
 from pathlib import Path
+from datetime import datetime, timezone
+from io import BytesIO
+import hashlib
 import numpy as np
 import pandas as pd
+from disclosure import provenance_stamp
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CSV_PATH = PROJECT_ROOT / "data" / "cache" / "AAPL-AMZN-GOOGL-MSFT-NVDA_10y.csv"
@@ -33,8 +37,8 @@ VOLATILITY_WINDOW = 10
 VOLUME_WINDOW = 30
 
 
-def build_aapl_frame():
-    df = pd.read_csv(CSV_PATH)
+def build_aapl_frame(prices=None):
+    df = pd.read_csv(CSV_PATH) if prices is None else prices
     aapl = df[df["Ticker"] == "AAPL"].copy().sort_values("Date").reset_index(drop=True)
 
     # SMAs
@@ -62,8 +66,15 @@ def build_aapl_frame():
     return cleaned
 
 
-def main():
-    df = build_aapl_frame()
+def main(*, clock=lambda: datetime.now(timezone.utc), root=PROJECT_ROOT):
+    raw = CSV_PATH.read_bytes()
+    stamp = provenance_stamp(CSV_PATH, root=root, clock=clock)
+    if not stamp[0].endswith("sha256=" + hashlib.sha256(raw).hexdigest()):
+        raise ValueError("input changed during provenance verification")
+    df = build_aapl_frame(pd.read_csv(BytesIO(raw)))
+    for line in stamp:
+        print(line)
+    print("Limitations (Rule 16): docs/SCOPE-V1.md §6; descriptive correlation, not an investment result.")
     print("=" * 80)
     print(f"AAPL CORRELATION AUDIT ({len(df)} sessions)")
     print("=" * 80)

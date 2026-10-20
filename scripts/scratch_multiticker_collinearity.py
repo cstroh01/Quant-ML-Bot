@@ -14,8 +14,12 @@ For each ticker, it computes:
 """
 
 from pathlib import Path
+from datetime import datetime, timezone
+from io import BytesIO
+import hashlib
 import numpy as np
 import pandas as pd
+from disclosure import provenance_stamp
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 CSV_PATH = PROJECT_ROOT / "data" / "cache" / "AAPL-AMZN-GOOGL-MSFT-NVDA_10y.csv"
@@ -120,13 +124,20 @@ def variance_inflation_factors(
     return pd.Series(np.diag(inv), index=columns, name="VIF")
 
 
-def run_analysis():
+def run_analysis(*, clock=lambda: datetime.now(timezone.utc), root=PROJECT_ROOT):
+    raw = CSV_PATH.read_bytes()
+    stamp = provenance_stamp(CSV_PATH, root=root, clock=clock)
+    if not stamp[0].endswith("sha256=" + hashlib.sha256(raw).hexdigest()):
+        raise ValueError("input changed during provenance verification")
+    raw_data = pd.read_csv(BytesIO(raw))
+    for line in stamp:
+        print(line)
+    print("Limitations (Rule 16): docs/SCOPE-V1.md §6; descriptive collinearity, not an investment result.")
     print("=" * 80)
     print("SPEC 014 MULTI-TICKER COLLINEARITY INDEPENDENT VERIFICATION")
     print(f"Data source: {CSV_PATH}")
     print("=" * 80)
 
-    raw_data = pd.read_csv(CSV_PATH)
     tickers = sorted(raw_data["Ticker"].unique())
     print(f"Tickers found: {tickers}")
     print(f"Total rows in cache: {len(raw_data)}\n")
