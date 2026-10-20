@@ -186,7 +186,7 @@ def get_capital_gate_status() -> CapitalGateStatusResponse:
     ]
 
     return CapitalGateStatusResponse(
-        overall_readiness="Phase 3: Quantitative Model Calibration & Feature Refinement",
+        overall_readiness="Verification evidence only; this historical five-gate dashboard does not establish overall capital readiness. Consult SCOPE-V1 section 11.3 for the seven-item capital checklist.",
         test_run=NotComputed(
             reason="The API reads no CI result, so the terminal reports no test count or pass state."
         ),
