@@ -4,7 +4,7 @@ Camden chose free data, US stocks/ETFs, and no OTC, leveraged or inverse product
 
 | Area | Existing evidence | Remaining acceptance |
 |---|---|---|
-| Fidelity | LIVE adapter, guarded loop and private dispatch exist. Public LIVE cap is $200 (`scripts/mode_config.py` at baseline); inspection did not establish arming acceptance. Unexpected challenges need intervention. | PAPER sessions, previews/holdings, settled cash/budget evidence, final arming SHA and unattended-operation proof. |
+| Fidelity | LIVE adapter and guarded loop exist; the PR263 hosted-preview template is dormant and not installed privately. Public LIVE cap is $200 (`scripts/mode_config.py` at baseline); inspection did not establish arming acceptance. Unexpected challenges need intervention. | PAPER sessions, previews/holdings, settled cash/budget evidence, final arming SHA and unattended-operation proof. |
 | Host | Hosted fixture reports do not establish production PAPER operation. Inspected Windows PAPER task was disabled after an unsuccessful run; configured paths lacked current Fidelity task/preview/holdings evidence, though older private holdings exist. | Account/host acceptance, notifications and dedicated-host compatibility; activity elsewhere is not ruled out. |
 | Alpaca/Tiingo | `data_sources.load_058_panel`, `paper_loop.fetch_sleeve_closes`, `fidelity_inputs.build_bundle` and recorded research consume them. | Fresh entitlement, breadth, independent actions and nominal-data acceptance remain dataset-specific. |
 | EODHD | Private generic fetching and saved observations predate #257's bounded adapter; its T009 follow-up refuses unchecked splits/unknown labels. | No credentialed acceptance here. Spec 044 owns splits; configure `key_env="EODHD_API_TOKEN"` explicitly for the local name. |
@@ -28,3 +28,16 @@ had temporary-root destination-guard failures, preserved with the separate
 location-correction evidence. It does not support a green full-integration claim.
 
 The Oct19 first-run window expired without a production dispatch. Current hosted verification still shows manual-only operation, zero production runs and no production profile namespaces. The next supervised window requires a reviewed workflow date change and matching human authorization; this audit grants neither.
+
+
+## October20 operational supersession
+The zero-production-run paragraph above is a dated October19 observation.
+GitHub GET verification at 2026-10-20T14:34Z found two attempt-one previews:
+small run39419036470 succeeded with capacity exclusions; large run39419874952
+failed at MARKET_DATA_READ / HTTPError, with no retained HTTP status. Cause is
+unknown. Ops-state is 2a4a470bf446db0e4ff190e5cb5172773f17af97. The sequence
+is closed after failure and contributes zero completed/reconciled trading sessions.
+See current [STATE](../../STATE.md) for source/run references. No retry, submission,
+deployment repin or scheduling is authorized here. The private workflow stays
+manual-only; no Fidelity workflow is installed. Camden's October20 Codex-review
+exception requires its dedicated constitution merge; check current governance.

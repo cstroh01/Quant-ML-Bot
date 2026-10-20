@@ -1,6 +1,6 @@
 # STATE
 
-## Verified checkpoint — 2026-10-19 America/New_York
+## Verified checkpoint — 2026-10-20 America/New_York
 
 Public main audited: `98ab2f716f1c969e6a66032d658841b3a371365c` after #259.
 The merge retains #255 and adds exactly the three-file reviewed #259 delta.
@@ -73,37 +73,39 @@ configured names do not establish authentication, entitlement or acceptance.
 The Windows preview input refresher needs Alpaca keys in its environment; it
 does not load `.env`. Fidelity uses the separate native-vault launcher.
 
-## Hosted PAPER and review checkpoint — 2026-10-18
+## Hosted PAPER and delivery checkpoint — 2026-10-20
 
-Private hosted infrastructure was reverified on 2026-10-19: the production
-workflow is manual-only, with no production runs and no production profile
-state namespace. Fixture drills are separate evidence. Source pin/tree and
-state matched the retained audit; this is not current account acceptance.
-Both-profile previews, broker-truth reconciliation, actual notification
-receipt and realized-versus-modeled fills remain unverified. Scheduling waits
-for G16 and a separate governance PR merged by Camden. No wake-up is implied.
+GitHub GET evidence at 14:34 UTC: private main remains
+`ed4afb5e208c07b83c1a26e4779fcb85b792a03f`; paper-loop is manual-only with no
+schedule. Exactly two production runs exist, each attempt one: small preview
+[39419036470](https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/39419036470)
+succeeded; large preview
+[39419874952](https://github.com/cstroh01/Quant-ML-Bot-private/actions/runs/39419874952)
+failed. Retained sanitized inspection records classify the latter as
+MARKET_DATA_READ / HTTPError; HTTP status was not retained and cause is unknown.
+Small acceptance had capacity exclusions. Neither is a completed/reconciled
+trading session. The authorized sequence is closed after failure; no retry,
+orders, workflow/pin/profile changes or schedule authority follows.
 
-PR #255 was merged by Camden at `8b0916db3c7528b3dccd03d32875eca472807b2d`;
-the API-verified merge tree matches reviewed `ad60c5b053cf5ab3ffb97ffb3c8b5e71e8cf5753`.
-Its pre-existing D-3 absent-class validator/spec conflict remains separate.
-PR #256 at `67dfd7f68acc1e86b457f7ca07e7814f3966ef5e` is draft/held.
-T011 corrects Nasdaq segment MIC exclusions; T012 refuses non-session as-of
-dates. Its actual-root suite passed 2,613 tests, with 2 skipped and 12 xfailed;
-fresh Codex review at that head found no major issues. Independent Claude
-review is pending: the CLI was spend-limited, Camden reported no remaining
-Claude usage, and the existing GitHub Claude workflow is manually disabled.
-These facts do not establish dual-review acceptance. No billing, review routine
-or workflow setting was changed.
+Final ops-state is `2a4a470bf446db0e4ff190e5cb5172773f17af97`; the failure
+commit preserves small-profile state. The PAPER public-code pin remains
+`c1dbc854b146095cd47283ef4cbc1b5838f20d94`. Broker-truth reconciliation,
+per-order realized/modelled costs and actual notification receipt remain gates.
+The Fidelity host template in PR263 is dormant and not installed privately.
+Scheduling waits for G16 and Camden's separate workflow merge.
 
-Usage and integration-audit publication moved to this checkpoint unit to keep
-the code PR bounded. PR #257's 056 T010 correction is published at
-`6ee6aefe9161693d2b904752ecf160cab3c2bde2`: 32 focused tests and the actual
-branch suite passed (2,605 passed, 2 skipped, 12 xfailed); all 1,284 frozen files
-and ten protected hashes match. Fresh reviews remain pending; the authorized Codex review resumed on
-2026-10-19 after its usage reset. Claude remains unavailable. PR #259 was merged by Camden as
-`98ab2f716f1c969e6a66032d658841b3a371365c`, from reviewed head
-`69df117eb36ea5c97b8dd32edd38e206ef323d3b`. This does not update a deployed
-pin or accept a real Fidelity session.
+PR255 and PR259 are merged. The current candidate/EODHD/checkpoint stack is
+PR256 -> PR257 -> PR258; Codex markers at heads `67dfd7f`, `6ee6aef`,
+`5fdcbe7` report no unresolved findings. Q124/report fix PR264 at `010f2616`
+and T023 lifecycle PR265 at `7f0ab77` have completed clean Codex markers.
+Separate reader and T033/T075 packets remain offline proposals. Saved composed
+receipts do not certify merged main or deployed broker code.
+
+Camden's October20 completion instruction waives Claude reviews and requires
+recorded Codex second looks for existing/future changes. Adoption is through a
+constitution-only human merge; do not infer a merge from this checkpoint.
+Check the constitution and current exact-head evidence before delivery. This
+documentation grants no new broker, schedule, capital or protected-path authority.
 
 ## Standing delegations retained (Camden, 2026-10-09)
 
