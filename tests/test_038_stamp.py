@@ -107,7 +107,7 @@ def test_run_date_is_the_utc_date_either_side_of_midnight(tmp_path, clock, expec
 @pytest.fixture
 def new_york(monkeypatch):
     if not hasattr(time, "tzset"):
-        pytest.skip("time.tzset is unavailable on Windows; test_offset_clock_is_converted_to_utc_date covers the conversion")
+        pytest.skip("time.tzset is unavailable on Windows; test_run_date_is_the_utc_date_either_side_of_midnight covers the conversion")
     monkeypatch.setenv("TZ", "America/New_York")
     time.tzset()
     yield
