@@ -20,3 +20,14 @@
 
 - [ ] T010 Review safety proofs: exercise the configured redirect opener with
   synthetic responses and prove both socket guards go red when removed. No real sockets.
+
+## Completion diagnostic extension — Camden, 2026-10-20
+- [x] T011 Preserve a controlled transport exception category and validated numeric
+  HTTP status in SourceFetchError without messages, URLs, headers, bodies or credentials.
+  Use injected fake failures, sentinel redaction, status-dropping/leaking mutants
+  and clean controls. No retries, broker calls, new dependency, deployment or arming.
+  This closes diagnostic software only, not T006 or the failed preview's root cause.
+
+The PAPER adapter refuses redirects through its configured opener before any
+header can be forwarded. A synthetic HTTPS redirect test and guard-removal mutant
+exercise that actual opener without DNS or sockets; no raw error output is kept.

@@ -35,3 +35,10 @@
 Codex review on PR #35: four P1s and one P2, fixed in PR #36 with tests written red first. On Camden's instruction (2026-10-04), the `exec/` fixes were written in the interactive session; Camden reviews them line by line before merge (Rule 7). Linux, Py 3.13, full suite: 1165 passed, 4 xfailed.
 
 2026-10-05: the first unattended `--submit` run at 08:45 ET submitted 4 `opg` orders. Alpaca paper expired all four unfilled. On Camden's instruction, `time_in_force` changed from `opg` to `day` (exec/alpaca_paper.py), and `test_submit_is_market_on_open_with_client_id` now pins `day`. M14, reverting to `opg`, is killed by that test.
+
+
+## Completion diagnostic extension — Camden, 2026-10-20
+- [x] T014 Wire the separately tested 056 T011 diagnostic adapter into the PAPER
+  default bar-fetch path, preserving the original historical data adapter and
+  spec061 declaration bytes. Fake HTTP failures must reach RunAborted with only
+  bounded category/status; no retries, LIVE path, limits, profiles or deployment.

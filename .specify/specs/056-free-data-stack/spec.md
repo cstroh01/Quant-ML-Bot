@@ -47,3 +47,13 @@ filed date; cross-source mismatch silently averaged; credential appears in a man
 ## 5. Acceptance
 Verification records for every adopted source; manifests and cross-checks implemented offline with
 fixtures; one human-authorized fetch per source produces hashed manifests.
+
+## Safe failure diagnostics — T011, 2026-10-20 completion instruction
+FR-008: transport errors retain only an allowlisted category and an integer
+HTTP status in 100–599, otherwise explicit unknown. No exception message,
+arbitrary class name, URL, headers or body may reach SourceFetchError output.
+No retry/fallback or automatic account acceptance follows from a diagnostic.
+
+The PAPER adapter refuses redirects through its configured opener before any
+header can be forwarded. A synthetic HTTPS redirect test and guard-removal mutant
+exercise that actual opener without DNS or sockets; no raw error output is kept.

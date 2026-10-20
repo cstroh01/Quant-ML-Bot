@@ -46,7 +46,8 @@ for _p in (ROOT / "scripts", ROOT / "exec"):
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-from data_sources import AlpacaDailyBars, SourceFetchError  # noqa: E402
+from data_sources import SourceFetchError  # noqa: E402
+from source_diagnostics import DiagnosticAlpacaDailyBars as AlpacaDailyBars  # noqa: E402
 from allocation_policy import DISCLOSURE as ALLOCATION_DISCLOSURE, policy_evidence  # noqa: E402
 from alpaca_paper import (  # noqa: E402
     TERMINAL_STATUSES,
