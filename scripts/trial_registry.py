@@ -24,6 +24,9 @@ DEFAULT_TRIALS_PATH = ROOT / "docs/trials/trials.jsonl"
 ROLES = {"candidate", "buy_and_hold_baseline", "random_signal_baseline", "synthetic_test", "holdout"}
 # 058 D-7: a `holdout` start is the family's holdout-spend record. It never counts toward N or enters a
 # research matrix (not a candidate), and a second `holdout` start in the same family is refused.
+# Q124 also verifies explicit `holdout_spend` audit records. They must bind an already completed
+# selected candidate; both representations share the same one-spend-per-family guard. No new
+# production writer or holdout-opening permission is provided here.
 TERMINALS = {"completed", "rejected", "errored", "abandoned"}
 CONFIG_FIELDS = set("data universe date_range features transforms target model cv seed initial_capital commission slippage liquidation risk_free".split())
 ZERO = "0" * 64
@@ -520,6 +523,7 @@ class TrialLedger:
         raw = self.path.read_bytes()
         if raw and not raw.endswith(b"\n"): raise ValueError("partial final record; explicit recovery required")
         events, starts, terminal, ids = [], {}, set(), set()
+        completed, spent_families = set(), set()
         head = ZERO
         for index, line in enumerate(raw.splitlines(), 1):
             try:
@@ -534,17 +538,28 @@ class TrialLedger:
                 if event["schema_version"] != 1 or event["role"] not in ROLES: raise ValueError("event schema")
                 if digest(event["config"]) != event["config_hash"]: raise ValueError("config hash")
                 trial = event["trial_id"]
-                if event["event_type"] == "started":
+                if event["event_type"] in {"started", "holdout_spend"}:
                     if trial in starts: raise ValueError("duplicate start")
-                    if event["role"] == "holdout" and any(s["role"] == "holdout" and s["family"] == event["family"]
-                                                          for s in starts.values()):
-                        raise ValueError("second holdout start in one family (058 D-7)")
+                    if event["event_type"] == "holdout_spend":
+                        selection = event["config"].get("holdout", {})
+                        chosen = starts.get(selection.get("selected_trial_id"))
+                        if (event["role"] != "holdout" or event.get("sidecar")
+                                or not chosen or chosen["trial_id"] not in completed
+                                or chosen["role"] != "candidate" or chosen["family"] != event["family"]
+                                or selection.get("family") != event["family"]
+                                or selection.get("selected_config_hash") != chosen["config_hash"]):
+                            raise ValueError("holdout spend selection binding is invalid")
+                    if event["role"] == "holdout":
+                        if event["family"] in spent_families:
+                            raise ValueError("second holdout spend in one family (058 D-7)")
+                        spent_families.add(event["family"])
                     starts[trial] = event
                 else:
                     if event["event_type"] not in TERMINALS or trial not in starts or trial in terminal: raise ValueError("invalid terminal lifecycle")
                     for key in ("role", "family", "runner", "config", "config_hash", "source"):
                         if event[key] != starts[trial][key]: raise ValueError("terminal start mismatch")
                     terminal.add(trial)
+                    if event["event_type"] == "completed": completed.add(trial)
                     if event["event_type"] == "completed" and not event.get("sidecar"): raise ValueError("completed return sidecar missing")
                     if event.get("sidecar"):
                         side = event["sidecar"]
@@ -580,7 +595,7 @@ class TrialLedger:
         self._warm_cache()
         with serialized(self.path):
             state = self.verify()
-            if role == "holdout" and any(e["event_type"] == "started" and e["role"] == "holdout" and e["family"] == family
+            if role == "holdout" and any(e["role"] == "holdout" and e["family"] == family
                                          for e in state["events"]):
                 raise ValueError(f"holdout already spent for family {family!r}; a second opening is refused (058 D-7)")
             event = self._append({"trial_id": str(uuid.uuid4()), "event_type": "started", "role": role, "family": family, "runner": runner, "config": normalized, "config_hash": hashed, "source": source or source_identity()}, state["head"], len(state["events"]))
