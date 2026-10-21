@@ -380,3 +380,84 @@ def test_D2c_dropped_count_pointer_is_caught(path):
     documents[path] = documents[path].replace(D2A_COUNT_POINTER, "history-unavailable")
     expected = f"{path}: D2c strike or count/archive context missing"
     assert expected in D2c_violations(documents), "D2c POINTER-DROPPED MUTANT"
+
+
+
+# T062-D3a: bounded historical outcomes; operative requirements are controls.
+D3A_PATH = "docs/PROJECT_CONTEXT.md"
+D3A_CONTEXT = ("[struck]", "trials/backfill/manifest.json", "audit-2026-09-12/AUDIT.md",
+               "counts only, not returns", "not results provenance")
+D3A_ROWS = {
+    "017": ("## Spec 017 —", "## Spec 015 —",
+            r"52\.99%|1\.65[×x]|3\.24|1\.22|0\.38|69%|≈ 1\.5",
+            "52.99%", ("confidence × 10% / realized vol", "25% per name", "No Kelly path.",
+                        "each held weight ÷ its *overlap*", "Daily −2%", "Weekly −4%", "−5%")),
+    "015": ("## Spec 015 —", "## Spec 012 —",
+            r"4\.68[×x]|5394\.82|1153\.66|0\.4329|0\.2633|0\.0122|0\.0313|\bconfirmed\b",
+            "4.68x", ("≥3.0x", "default output bit-identical to serial",
+                       "p-values match known-good AAPL values")),
+}
+
+
+def D3a_block(body, block):
+    start, end = D3A_ROWS[block][:2]
+    if body.count(start) != 1 or body.count(end) != 1:
+        return None
+    return body.partition(start)[2].partition(end)[0] if body.index(start) < body.index(end) else None
+
+
+def D3a_violations(body):
+    found = []
+    for block, (_, _, pattern, _, required) in D3A_ROWS.items():
+        selected = D3a_block(body, block)
+        if selected is None:
+            found.append(f"D3a {block}: unique ordered section anchors missing")
+            continue
+        if re.search(pattern, selected):
+            found.append(f"D3a {block}: unsupported historical outcome restored")
+        if any(token not in selected for token in D3A_CONTEXT):
+            found.append(f"D3a {block}: strike or count/archive context missing")
+        if any(token not in selected for token in required):
+            found.append(f"D3a {block}: operative requirement missing")
+    return found
+
+
+@pytest.mark.parametrize("block", list(D3A_ROWS))
+def test_D3a_actual_registered_outcomes_are_struck(block):
+    problems = [p for p in D3a_violations(text(D3A_PATH)) if p.startswith(f"D3a {block}:")]
+    assert problems == [], "D3a STATIC DISPOSITION: " + repr(problems)
+
+
+def D3a_mutated(body, block, defect):
+    """EXAMPLE — NOT A RESULT. Mutate only a copy of an actual bounded block."""
+    start, _, _, restored, required = D3A_ROWS[block]
+    if defect == "anchor":
+        return body.replace(start, "## Historical section —", 1)
+    selected = D3a_block(body, block)
+    old, new = {"figure": (STRUCK, restored), "context": (D3A_CONTEXT[1], "history-unavailable"),
+                "requirement": (required[0], "requirement-unavailable"),
+                "equivalence": ("| default output bit-identical to serial | [struck] |",
+                                "| default output bit-identical to serial | confirmed |")}[defect]
+    return body.replace(selected, selected.replace(old, new, 1), 1)
+
+
+@pytest.mark.parametrize("block", list(D3A_ROWS))
+@pytest.mark.parametrize("defect,reason", [("figure", "unsupported historical outcome restored"),
+    ("context", "strike or count/archive context missing"), ("requirement", "operative requirement missing"),
+    ("anchor", "unique ordered section anchors missing")])
+def test_D3a_planted_defects_are_caught(block, defect, reason):
+    original = text(D3A_PATH)
+    assert D3a_violations(original) == [], "D3a clean control"
+    changed = D3a_mutated(original, block, defect)
+    assert changed != original, "D3a defect was not planted"
+    assert f"D3a {block}: {reason}" in D3a_violations(changed), "D3a MUTANT: " + defect
+
+
+
+def test_D3a_unformatted_equivalence_claim_is_caught():
+    """EXAMPLE — NOT A RESULT. Restore a plain-text historical outcome cell."""
+    original = text(D3A_PATH)
+    assert D3a_violations(original) == [], "D3a clean control"
+    changed = D3a_mutated(original, "015", "equivalence")
+    assert changed != original, "D3a equivalence defect was not planted"
+    assert "D3a 015: unsupported historical outcome restored" in D3a_violations(changed), "D3a EQUIVALENCE MUTANT"
