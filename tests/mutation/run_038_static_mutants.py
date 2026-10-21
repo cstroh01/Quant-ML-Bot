@@ -90,6 +90,23 @@ def main():
                 expected = f"{path}: D2c strike or count/archive context missing"
             results.append(dict(path=path, mutant="D2c-" + defect,
                                 killed=expected in guard.D2c_violations(copy)))
+    d3a = guard.text(guard.D3A_PATH)
+    original[guard.D3A_PATH] = hashlib.sha256((ROOT / guard.D3A_PATH).read_bytes()).hexdigest()
+    if guard.D3a_violations(d3a):
+        raise RuntimeError("D3a clean control failed")
+    for block in guard.D3A_ROWS:
+        for defect, reason in (("figure", "unsupported historical outcome restored"),
+                ("context", "strike or count/archive context missing"),
+                ("requirement", "operative requirement missing"),
+                ("anchor", "unique ordered section anchors missing")):
+            changed = guard.D3a_mutated(d3a, block, defect)
+            expected = f"D3a {block}: {reason}"
+            results.append(dict(path=guard.D3A_PATH, block=block, mutant="D3a-" + defect,
+                                killed=changed != d3a and expected in guard.D3a_violations(changed)))
+    changed = guard.D3a_mutated(d3a, "015", "equivalence")
+    results.append(dict(path=guard.D3A_PATH, block="015", mutant="D3a-unformatted-equivalence",
+                        killed=changed != d3a and "D3a 015: unsupported historical outcome restored"
+                        in guard.D3a_violations(changed)))
     unchanged = all(hashlib.sha256((ROOT / p).read_bytes()).hexdigest() == sha for p, sha in original.items())
     print(json.dumps(dict(control="PASS", results=results, mutants=len(results),
                          killed=sum(r["killed"] for r in results), documents_unchanged=unchanged), indent=2))

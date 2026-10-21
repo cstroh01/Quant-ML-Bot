@@ -238,9 +238,8 @@ that spec 012 named as the follow-up to its one-share root cause. Night run,
 agent lane; details in `NIGHT_RUN_SUMMARY.md`.
 
 - **Sizing:** volatility targeting — `confidence × 10% / realized vol`, capped
-  at 25% per name. **No Kelly path.** On spec 014's best AAPL classifier
-  (52.99%), half Kelly is 1.65× leverage from an unvalidated edge (spec
-  Clarifications Q1).
+  at 25% per name. **No Kelly path.** Historical classifier accuracy and
+  derived Kelly leverage are [struck] (spec Clarifications Q1).
 - **Correlation:** each held weight ÷ its *overlap* (its non-negative
   correlations with every held name, summed). Three identical names = one
   bet; an uncorrelated name is untouched. The per-name cap runs *before* this
@@ -254,15 +253,11 @@ agent lane; details in `NIGHT_RUN_SUMMARY.md`.
 - **Boundary:** reads equity and holdings, imports no signal, accounting, or
   data module (AST test). No harness wiring, no P&L — a weight-based
   execution path is its own spec.
-- **Real 10y cache, full conviction, no P&L:**
+- **Historical sizing diagnostic:** overlap, gross-exposure and exposure-
+  reduction outcomes are [struck]. Full-conviction/no-P&L setup is retained.
 
-  | | median |
-  |---|---|
-  | overlap per held name | 3.24 (five names ≈ 1.5 independent bets) |
-  | gross before → after overlap step | 1.22 → 0.38 |
-  | exposure the overlap step removes | 69% |
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
 
-  Overlap peaked March–May 2020 — the sell-off correlation spike, visible.
 - **Mutation-tested:** 21 of 21 injected defects caught; 8 by exactly one
   test.
 - **Full suite: 541 passed** (416 → 541). No network, no new dependency.
@@ -281,17 +276,18 @@ agent lane; details in `NIGHT_RUN_SUMMARY.md`.
   - Both re-verified on resumption 2026-09-12: 541 tests OK; mutation check
     rebuilt and re-run, 21 of 21 caught.
 
-## Spec 015 — Parallel comparison (T011/T012): DONE — all success criteria met
+## Spec 015 — Parallel comparison (T011/T012): historical implementation; outcomes unavailable
 
-`feature_set_comparison.py` now supports `--workers`, verified against all
-three success criteria on real cached 10y AAPL data, serial vs. default
-(all-core):
+`feature_set_comparison.py` supports `--workers`. The operative requirements
+below remain; the historical serial/default (all-core) outcome claims are [struck].
 
-| criterion | requirement | result |
+| criterion | requirement | historical outcome |
 |---|---|---|
-| SC-001 (speedup) | ≥3.0x, serial vs. default | **4.68x** (5394.82s → 1153.66s) |
-| SC-002 (equivalence) | default output bit-identical to serial | **confirmed** — identical JSON, byte for byte |
-| SC-003 (correctness) | p-values match known-good AAPL values | **confirmed** — hgb/classification 0.4329, hgb/regression 0.2633, logistic/classification 0.0122, ridge/regression 0.0313, all exact |
+| SC-001 (speedup) | ≥3.0x, serial vs. default | [struck] |
+| SC-002 (equivalence) | default output bit-identical to serial | [struck] |
+| SC-003 (correctness) | p-values match known-good AAPL values | [struck] |
+
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
 
 The serial rerun needed to establish this (2026-09-11) took 89.9 minutes of
 real, legitimate compute — not a hang — after the prior attempt died
