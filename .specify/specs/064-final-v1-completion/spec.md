@@ -73,9 +73,12 @@ Pure functions accept an existing serializable journal, validated events,
 expected account, explicit approved source identities and aware as_of; return a new journal, newly attributable signed
 flow and bounded quarantine reasons. No broker/network/file I/O or wall clock.
 Only explicitly settled transfers effective by as_of qualify. Pending transfers
-may settle later under the same identity with unchanged immutable attributes.
+with a future effective_at remain persisted but ineligible; this normal settlement
+wait is not a quarantine or halt. They may settle later under the same identity
+with unchanged immutable attributes. An observed_at after as_of, or a settled
+transfer effective after as_of, quarantines rather than receiving early credit.
 Repeated/reordered input and serialized restart never apply a transfer twice.
-Conflicting identity/payload, wrong account/source, future dates, missing identity
+Conflicting identity/payload, wrong account/source, invalid future dates, missing identity
 or provenance, invalid amounts and ambiguous/unidentified movements quarantine;
 do not silently discard a conflict because its identity was seen previously.
 
