@@ -233,14 +233,16 @@ One guard file serves all D units: `tests/test_038_static_guard.py`, with driver
     requirements, bounds and historic task states.
   - [x] T061-D2c: the three admitted spec017 paths are struck; operating risk
     rules and the T063 halt example are unchanged. All three D2 groups are covered.
-- [ ] T062 D3. Files: `docs/PROJECT_CONTEXT.md`, `tests/test_038_static_guard.py`,
+- [x] T062 D3. Files: `docs/PROJECT_CONTEXT.md`, `tests/test_038_static_guard.py`,
   `tests/mutation/run_038_static_mutants.py`. Strikes per register; `:826-828` replaced by the Rule 15
   requirement. Split by block if over the cap. Same red/mutant/control shape as T061; the extra mutant
   restores "Sharpe ratio output now trusted".
   - [x] T062-D3a: registered spec017 sizing and spec015 parallel-comparison outcomes
     are struck; requirements preserved.
   - [x] T062-D3b: registered spec014 outcomes and their Phase3 duplicate are
-    struck; definitions/declarations retained. D3c and parent T062 remain open.
+    struck; definitions/declarations retained.
+  - [x] T062-D3c: remaining registered outcomes are struck; Rule15 replaces the
+    trusted-Sharpe claim. All three separately admitted T062 groups are covered.
 - [x] T063 D4 labels. Files: `NIGHT_RUN_SUMMARY.md` (`:176`), `.specify/specs/017-position-sizing-risk/tasks.md`
   (`:197`), `.specify/specs/020-unadjusted-price-data/spec.md` (`:111`), `docs/audit-2026-09-12/CODEX_LANE_HANDOFF.md` (`:120-128`),
   `docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md` (`:14-15`, `:20`, `:27`), `docs/audit-2026-09-12/AUDIT.md`

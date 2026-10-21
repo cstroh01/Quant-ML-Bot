@@ -118,6 +118,22 @@ def main():
             changed = guard.D3b_mutated(d3b, block, defect)
             results.append(dict(path=guard.D3A_PATH, block=block, mutant="D3b-" + defect,
                 killed=changed != d3b and f"D3b {block}: {reason}" in guard.D3b_violations(changed)))
+    d3c = guard.text(guard.D3A_PATH)
+    if guard.D3c_violations(d3c):
+        raise RuntimeError("D3c clean control failed")
+    for block in guard.D3C_ROWS:
+        for defect, reason in (("figure", "unsupported historical outcome restored"),
+                ("context", "strike or count/archive context missing"),
+                ("requirement", "operative requirement missing"),
+                ("anchor", "unique ordered section anchors missing")):
+            changed = guard.D3c_mutated(d3c, block, defect)
+            results.append(dict(path=guard.D3A_PATH, block=block, mutant="D3c-" + defect,
+                killed=changed != d3c and f"D3c {block}: {reason}" in guard.D3c_violations(changed)))
+    for token in guard.D3C_RULE15:
+        selected = guard.D3c_block(d3c, "sharpe")
+        changed = d3c.replace(selected, selected.replace(token, "status-unavailable"), 1)
+        results.append(dict(path=guard.D3A_PATH, block="sharpe", mutant="D3c-rule15-" + token,
+            killed=changed != d3c and "D3c sharpe: operative requirement missing" in guard.D3c_violations(changed)))
     unchanged = all(hashlib.sha256((ROOT / p).read_bytes()).hexdigest() == sha for p, sha in original.items())
     print(json.dumps(dict(control="PASS", results=results, mutants=len(results),
                          killed=sum(r["killed"] for r in results), documents_unchanged=unchanged), indent=2))

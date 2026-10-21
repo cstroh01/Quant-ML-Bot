@@ -528,3 +528,88 @@ def test_D3b_planted_defects_are_caught(block, defect, reason):
     changed = D3b_mutated(original, block, defect)
     assert changed != original, "D3b defect was not planted"
     assert f"D3b {block}: {reason}" in D3b_violations(changed), "D3b MUTANT: " + defect
+
+
+
+# T062-D3c: historical outcomes and the explicit Rule15 replacement.
+D3C_ROWS = {
+    "accuracy": ("## Spec 005 —", "## Spec 003 —",
+        r"0\.519|0\.542|47\.25|126\.71|74\.26|19\.00", "accuracy 0.519",
+        ("label_horizon=1, embargo_bars=1", "Buy_Next_Open", "Sell_Next_Open", "$1.00/5bps")),
+    "sma": ("- SMA crossover baseline (", "- **Spec 002 (backtest costs & baselines) implemented.**",
+        r"8 trades|50% win|\+?\$33", "8 trades, 50% win rate, +$33",
+        ("lookahead-free", "uncosted", "superseded")),
+    "stats": ("- Return statistics (", "- **Risk-free-rate fix:",
+        r"28\.7%|28\.6%|31\.7%|0\.26|0\.87|10\.30|12\.11|3\.19|10% to 58%|4/9/2025",
+        "annual volatility 28.7%", ("21-day", "Deferred as a standalone script")),
+    "sharpe": ("- **Risk-free-rate fix:", "- **Max drawdown:",
+        r"Sharpe ratio output now trusted", "Sharpe ratio output now trusted.",
+        ("RISK_FREE_RATE_ANNUAL = 0.0378", "provisional, undeflated (Rule 15)", "DSR ≥ 0.95")),
+    "drawdown": ("- **Max drawdown:", "### Housekeeping — Confirm First",
+        r"33\.36%|29\.81%|34\.50%|2024-12-26|2025-02-04|2025-10-28|2026-06-25|2025-04-08",
+        "AAPL -33.36%", ("np.exp(returns.cumsum())", "running max", "-20%/-35%")),
+}
+D3C_RULE15 = ("provisional, undeflated (Rule 15)", "DSR ≥ 0.95")
+
+
+def D3c_block(body, block):
+    start, end = D3C_ROWS[block][:2]
+    if body.count(start) != 1 or body.count(end) != 1:
+        return None
+    return body.partition(start)[2].partition(end)[0] if body.index(start) < body.index(end) else None
+
+
+def D3c_violations(body):
+    found = []
+    for block, (_, _, pattern, _, required) in D3C_ROWS.items():
+        selected = D3c_block(body, block)
+        if selected is None:
+            found.append(f"D3c {block}: unique ordered section anchors missing")
+            continue
+        if re.search(pattern, selected, re.IGNORECASE):
+            found.append(f"D3c {block}: unsupported historical outcome restored")
+        if any(token not in selected for token in D3A_CONTEXT):
+            found.append(f"D3c {block}: strike or count/archive context missing")
+        if any(token not in selected for token in required):
+            found.append(f"D3c {block}: operative requirement missing")
+    return found
+
+
+@pytest.mark.parametrize("block", list(D3C_ROWS))
+def test_D3c_actual_registered_outcomes_are_struck(block):
+    problems = [p for p in D3c_violations(text(D3A_PATH)) if p.startswith(f"D3c {block}:")]
+    assert problems == [], "D3c STATIC DISPOSITION: " + repr(problems)
+
+
+def D3c_mutated(body, block, defect):
+    """EXAMPLE — NOT A RESULT. Restore a selected outcome in a copied document."""
+    start, _, _, figure, required = D3C_ROWS[block]
+    if defect == "anchor":
+        return body.replace(start, "## Historical section —", 1)
+    selected = D3c_block(body, block)
+    old, new = {"figure": (STRUCK, figure), "context": (D3A_CONTEXT[1], "history-unavailable"),
+                "requirement": (required[0], "requirement-unavailable")}[defect]
+    return body.replace(selected, selected.replace(old, new, 1), 1)
+
+
+@pytest.mark.parametrize("block", list(D3C_ROWS))
+@pytest.mark.parametrize("defect,reason", [("figure", "unsupported historical outcome restored"),
+    ("context", "strike or count/archive context missing"), ("requirement", "operative requirement missing"),
+    ("anchor", "unique ordered section anchors missing")])
+def test_D3c_planted_defects_are_caught(block, defect, reason):
+    original = text(D3A_PATH)
+    assert D3c_violations(original) == [], "D3c clean control"
+    changed = D3c_mutated(original, block, defect)
+    assert changed != original, "D3c defect was not planted"
+    assert f"D3c {block}: {reason}" in D3c_violations(changed), "D3c MUTANT: " + defect
+
+
+@pytest.mark.parametrize("token", D3C_RULE15)
+def test_D3c_rule15_controls_are_required(token):
+    """EXAMPLE — NOT A RESULT. Remove the status or evidence threshold in a copy."""
+    original = text(D3A_PATH)
+    assert D3c_violations(original) == [], "D3c clean control"
+    selected = D3c_block(original, "sharpe")
+    changed = original.replace(selected, selected.replace(token, "status-unavailable"), 1)
+    assert changed != original, "D3c Rule15 defect was not planted"
+    assert "D3c sharpe: operative requirement missing" in D3c_violations(changed), "D3c RULE15 MUTANT"

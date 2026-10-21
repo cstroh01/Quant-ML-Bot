@@ -570,16 +570,13 @@ spec 003's purge/embargo fix rather than just score it.
   manually replicated fold loop, transition/shift logic (tested directly,
   independent of any model fit), and an end-to-end smoke test. Full suite:
   117 passed.
-- **Real AAPL run (2y, live window 2025-04-16 to 2026-09-02):** overall
-  walk-forward accuracy 0.519 vs. a 0.542 majority-class baseline — the
-  model is *not* beating "always guess up." Strategy P&L $47.25 vs.
-  buy-and-hold $126.71 vs. random baseline mean $74.26 ± $19.00 (20 seeds,
-  same cost model). The strategy underperforms both baselines. This is the
-  expected, honest result for a 5-feature logistic model on daily
-  single-stock direction (SC-004) — not a bug, and not grounds to tune the
-  model within this spec's scope. It is real evidence the pipeline is
-  correct: a reliably-better-than-random model on a dataset this weak
-  would be the "too good" result CLAUDE.md says to distrust first.
+- **Historical AAPL run:** accuracy and strategy/baseline P&L outcomes are
+  [struck]. Retained declared setup: AAPL, two-year input, post-warm-up
+  window 2025-04-16 to 2026-09-02 and 20 seeds for the random baseline.
+  The absent outcomes cannot establish pipeline correctness or an edge.
+
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
+
 - Reused (imported, not modified) `ma_crossover_backtest.baseline_results`
   and `.mean_holding_bars`; wrote a local `_format_ml_comparison` rather
   than reusing `.format_comparison`, which hardcodes the SMA strategy's
@@ -740,10 +737,12 @@ menu, never an open-ended question.
   Good Friday and adds Columbus and Veterans Day, when the market is
   open.
 - SMA crossover baseline (`scripts/ma_crossover_backtest.py`) is
-  reviewed and verified lookahead-free. Last *uncosted* real result:
-  8 trades, 50% win rate, about +$33 total per share. That figure is
-  now superseded — see spec 002 below, which makes every reported
-  number net of costs.
+  reviewed and verified lookahead-free. Its earlier uncosted trade count,
+  win rate and per-share P&L are [struck]. That outcome is superseded;
+  spec002 below requires every reported result to include costs.
+
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
+
 - **Spec 002 (backtest costs & baselines) implemented.** Rule 3 and
   Rule 4 are closed, and 36 tests were added (67 → 103). What is
   worth knowing:
@@ -784,40 +783,33 @@ menu, never an open-ended question.
     the three-way comparison has only been exercised on synthetic
     prices. Run `scripts/ma_crossover_backtest.py` locally to fill in
     the real figures.
-- Return statistics (`scripts/return_stats.py`) are built and run on
-  two years of real AAPL/MSFT/GOOGL data:
+- Return statistics (`scripts/return_stats.py`): historical volatility,
+  skew/kurtosis and event-trace outcomes for the declared two-year
+  AAPL/MSFT/GOOGL sample are [struck]. The 21-day rolling-volatility
+  window is retained; its measured range is [struck].
+  **Deferred as a standalone script** remains the historical sequencing
+  decision; this edit neither reopens it nor supplies the absent evidence.
 
-  | Ticker | Ann. Vol | Skew | Excess Kurtosis |
-  |---|---|---|---|
-  | AAPL | 28.7% | 0.26 | 10.30 |
-  | MSFT | 28.6% | 0.87 | 12.11 |
-  | GOOGL | 31.7% | 0.26 | 3.19 |
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
 
-- MSFT's largest single-day moves traced to real dates: mostly
-  quarterly earnings, one market-wide macro day (4/9/2025 tariff-
-  pause rally).
-- 21-day rolling volatility on MSFT ranged 10% to 58% — volatility
-  clustering confirmed on real data, tied to earnings dates.
-  **Deferred as a standalone script** — already explored, no new
-  insight left, lower value than drawdown was. Do not re-raise
-  unless something changes.
 - **Risk-free-rate fix: DONE.** `RISK_FREE_RATE_ANNUAL = 0.0378`
-  (real 3-month T-bill rate) is live in `scripts/return_stats.py`,
-  replacing the old 0% placeholder. Sharpe ratio output now trusted.
+  is retained as the historical rate-configuration declaration, replacing
+  the old 0% placeholder. The trusted-output claim is [struck].
+  Sharpe output remains **provisional, undeflated (Rule 15)**; current
+  eligible-series evidence of DSR ≥ 0.95 is required before that status
+  can be removed. A rate fix alone supplies no statistical evidence of edge.
+
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
+
 - **Max drawdown: DONE.** Added to `scripts/return_stats.py` as new
   summary columns (Max Drawdown, Peak Date, Trough Date), built from
   a cumulative price index reconstructed via `np.exp(returns.cumsum())`
-  and a running max — descriptive stat, no lookahead risk. Verified
-  against real 2yr data:
+  and a running max — descriptive stat, no lookahead risk. Historical
+  drawdowns and peak/trough dates are [struck]. The historical -20%/-35%
+  rule-of-thumb check for two-year tech-stock drawdowns is retained as a
+  check declaration; the claimed validation outcome is [struck].
 
-  | Ticker | Max DD | Peak → Trough |
-  |---|---|---|
-  | AAPL | -33.36% | 2024-12-26 → 2025-04-08 |
-  | GOOGL | -29.81% | 2025-02-04 → 2025-04-08 |
-  | MSFT | -34.50% | 2025-10-28 → 2026-06-25 |
-
-  All three sanity-checked against a -20%/-35% rule of thumb for
-  2yr tech-stock drawdowns — passed.
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
 
 ### Housekeeping — Confirm First
 
