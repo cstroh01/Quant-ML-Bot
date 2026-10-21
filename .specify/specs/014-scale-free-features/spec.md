@@ -1,23 +1,23 @@
 # Feature Specification: Scale-Free Features and Fold-Fit Standardization
 
+Historical figures are [struck]; their original result artifacts are unavailable. [Backfill record](../../../docs/trials/backfill/manifest.json) provides counts only, not returns; [archival audit](../../../docs/audit-2026-09-12/AUDIT.md) is not results provenance. Operating requirements and historical task states below are preserved.
+
 **Feature Branch**: `014-scale-free-features`
 
 **Created**: 2026-09-06
 
 **Status**: Draft
 
-**Input**: Phase 3 produced a hard negative result: no registered model beats
-its baseline, and ridge is ill-conditioned. Two earlier places in this
-repository named the cause in advance and deferred it — `features.py:25-28`
+**Input**: The quoted Phase 3 outcomes are [struck]; original result artifacts
+are unavailable. Two earlier places in this repository described the feature-design
+concern and deferred it — `features.py:25-28`
 ("These are price *levels*, not ratios, which is a real weakness for a linear
 model and a blocker for any pooled cross-sectional model") and
 `.specify/specs/009-selectable-target/spec.md:238-242`, which called it "a
 separate change with its own effect on results" that "does not belong in the
 same PR as a new target". That change is this spec. It is sequenced ahead of
 012 and 013, both of which are on hold: a cost-aware entry rule built on
-these predictions, or a five-ticker table comparing four flavours of "does
-not beat baseline", would spend real work on a design matrix already known to
-be broken.
+these predictions, or a five-ticker table comparing four flavours of unverified outcomes, would spend real work on a design matrix requiring a separate conditioning check.
 
 **Owns / must not know about** (per CLAUDE.md's module table): `features.py`
 keeps owning feature construction and gains a feature-set selector;
@@ -44,12 +44,10 @@ first by construction. No amount of standardization helps: a scaler fitted on
 the training rows maps the *test* rows to z-scores far outside the range the
 model ever saw, which is the same extrapolation wearing different units.
 
-**Defect 2 — collinearity.** `Short_SMA` and `Long_SMA` correlate 0.998 on
-ten years of AAPL. This is what makes ridge ill-conditioned, and it is
-**scale-invariant**: standardization is a diagonal transform and a diagonal
-transform cannot change a correlation. Measured on that data, the level set's
-standardized condition number is 36.2 — above the conventional 30 line — with
-a maximum VIF of 268.
+**Defect 2 — collinearity.** Historical AAPL correlation, condition-number
+and VIF figures are [struck]. The mechanical concern is **scale-invariant**:
+standardization is a diagonal transform and cannot change a correlation.
+The conventional condition-number reference of 30 is not an observed result.
 
 Only a change of *feature* fixes either one. The scaler is still worth having,
 for a third and smaller reason: `Log_Return` (~0.01) and `Volume` (~10⁷) differ
@@ -69,8 +67,8 @@ still collinear, because the two averages remain nearly the same series.
 The less obvious trap is subtler, and this spec fell into it during
 implementation before the tests caught it. Replacing the pair with
 "crossover spread" plus "price against the long trend" —
-`Short/Long - 1` and `Close/Long - 1` — *looks* decorrelated and is not: it
-measured 0.865, because
+`Short/Long - 1` and `Close/Long - 1` — can remain collinear; its historical measured
+correlation is [struck]. The algebraic dependence is
 
 ```
 Close/Long  ==  (Close/Short) * (Short/Long)
@@ -82,8 +80,8 @@ and something else. Including it alongside the spread re-measures the spread.
 The correct split is the two legs of that identity: a **fast** leg
 (`Close/Short - 1`, price against its short average) and a **slow** leg
 (`Short/Long - 1`, short average against long). Their product recovers the
-long-trend quantity exactly, so nothing is lost, and on the same fixture they
-correlate 0.325 instead of 0.865.
+long-trend quantity exactly, so nothing is lost. The historical fixture
+correlations are [struck]; FR-005 and SC-002 still define the required bounds.
 
 This is why FR-005 is stated pairwise and asserted pairwise. A whole-matrix
 condition number improves under the wrong split too — the units get fixed
@@ -257,16 +255,16 @@ feature sets and all four p-values are reported, whatever they say.
   count, purge length, embargo length — that CLAUDE.md requires of any
   reported metric.
 - **SC-008** *(mutation check)*: each of these six injected defects MUST fail
-  the suite. All six were run and all six fail:
+  the suite. Historical run outcomes and failure counts are [struck]:
 
   | # | Injected defect | Failures |
   |---|---|---|
-  | 1 | drop the `- 1` from `SMA_Spread` | 2 |
-  | 2 | define `Close_To_Short` against `Long_SMA` (the 0.865 trap) | 6 |
-  | 3 | shift `Rel_Volume`'s trailing window forward one bar | 1 |
-  | 4 | default `feature_set` back to `"levels"` | 3 |
-  | 5 | fit the model on the whole frame instead of the fold (so the scaler is fitted on it too) | 1 |
-  | 6 | forward `scale` to the outer fit but not the tuner | 2 |
+  | 1 | drop the `- 1` from `SMA_Spread` | [struck] |
+  | 2 | define `Close_To_Short` against `Long_SMA` (the long-average collinearity trap) | [struck] |
+  | 3 | shift `Rel_Volume`'s trailing window forward one bar | [struck] |
+  | 4 | default `feature_set` back to `"levels"` | [struck] |
+  | 5 | fit the model on the whole frame instead of the fold (so the scaler is fitted on it too) | [struck] |
+  | 6 | forward `scale` to the outer fit but not the tuner | [struck] |
 
   Defect 6 initially passed. The gap was real, not a mutation-harness
   artifact: no test compared what the tuner built against what the outer
@@ -299,12 +297,9 @@ feature sets and all four p-values are reported, whatever they say.
   the committed AAPL result was computed on and what spec 013's comparison
   will report against. It is not an option a caller should reach for
   otherwise.
-- **`Log_Return` and `Close_To_Short` correlate ~0.53** on both the fixture
-  and real AAPL — a one-day return and a ten-day deviation share their most
-  recent bar. That is well inside the FR-005 bound, is not between the two
-  columns FR-005 governs, and is not treated as a defect. Naming it here
-  means the next reader of the correlation matrix does not rediscover it as a
-  surprise.
+- **`Log_Return` and `Close_To_Short` share their most recent bar.** Their
+  quoted historical correlation is [struck]. FR-005 still governs its named
+  feature pair; the requirement is not weakened by removing an unsourced figure.
 - **The screening threshold is not a significance claim about the strategy.**
   See FR-013. Four comparisons on one ticker at p < 0.10 is a screen; the
   deflated Sharpe step is the bar that matters, and it is not this spec.

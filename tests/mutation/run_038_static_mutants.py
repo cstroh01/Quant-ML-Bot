@@ -1,4 +1,4 @@
-"""EXAMPLE — NOT A RESULT. 038 T063 and T061 D2a only: mutate document copies against their actual guards."""
+"""EXAMPLE — NOT A RESULT. 038 T063 and T061 D2a/D2b only: mutate document copies against their actual guards."""
 from pathlib import Path
 import hashlib
 import json
@@ -50,6 +50,27 @@ def main():
                 expected = f"{path}: D2a strike or count/archive context missing"
             results.append(dict(path=path, mutant=defect,
                                 killed=expected in guard.D2a_violations(copy)))
+    d2b = guard.D2b_documents()
+    original.update({p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in d2b})
+    if guard.D2b_violations(d2b):
+        raise RuntimeError("D2b clean control failed")
+    for path in guard.D2B_PATHS:
+        for defect in ("restored-figure", "missing-count-pointer"):
+            copy = dict(d2b)
+            if defect == "restored-figure":
+                copy[path] = copy[path].replace(guard.STRUCK, "0.998", 1)
+                expected = f"{path}: D2b unsupported historical figure restored"
+            else:
+                copy[path] = copy[path].replace(guard.D2A_COUNT_POINTER, "history-unavailable")
+                expected = f"{path}: D2b strike or count/archive context missing"
+            results.append(dict(path=path, mutant="D2b-" + defect,
+                                killed=expected in guard.D2b_violations(copy)))
+    for path, restored in guard.D2B_VERIFICATION_MUTANTS:
+        copy = dict(d2b)
+        copy[path] += "\n" + restored + "\n"
+        expected = f"{path}: D2b unsupported historical figure restored"
+        results.append(dict(path=path, mutant="D2b-old-verification-count",
+                            killed=expected in guard.D2b_violations(copy)))
     unchanged = all(hashlib.sha256((ROOT / p).read_bytes()).hexdigest() == sha for p, sha in original.items())
     print(json.dumps(dict(control="PASS", results=results, mutants=len(results),
                          killed=sum(r["killed"] for r in results), documents_unchanged=unchanged), indent=2))

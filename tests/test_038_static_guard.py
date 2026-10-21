@@ -252,3 +252,70 @@ def test_D2a_dropped_historical_count_pointer_is_caught(path):
     documents[path] = documents[path].replace(D2A_COUNT_POINTER, "history-unavailable")
     expected = f"{path}: D2a strike or count/archive context missing"
     assert expected in D2a_violations(documents), "D2a POINTER-DROPPED MUTANT"
+
+
+# T061 D2b: only the three spec014 documents; normative bounds are untouched.
+D2B_PATHS = tuple(".specify/specs/014-scale-free-features/" + p for p in ("spec.md", "plan.md", "tasks.md"))
+D2B_FIGURES = (r"0\.998|36\.2\b|\b268\b|0\.865|0\.325|~0\.53|36\.17|2\.15|268\.31|1\.60|0\.527|"
+               r"0\.5078|0\.5299|0\.00035600|0\.00035570|0\.00036282|0\.00036111|"
+               r"0\.5155|0\.5180|0\.0122|0\.0313|0\.2633|0\.4329|improved 9x|Screening bar MET")
+
+
+def D2b_documents():
+    return {p: text(p) for p in D2B_PATHS}
+
+
+def D2b_violations(documents):
+    problems = []
+    for path in D2B_PATHS:
+        body = documents[path]
+        old_counts = re.search(r"(?m)^  \| [1-6] \| .* \| \d+ \|\s*$|45 new tests|256\s*→\s*301|\b2 failures\b", body)
+        if re.search(D2B_FIGURES, body) or old_counts:
+            problems.append(f"{path}: D2b unsupported historical figure restored")
+        if (STRUCK not in body or D2A_COUNT_POINTER not in body or D2A_ARCHIVE_POINTER not in body
+                or "counts only, not returns" not in body or "not results provenance" not in body):
+            problems.append(f"{path}: D2b strike or count/archive context missing")
+    return problems
+
+
+@pytest.mark.parametrize("path", D2B_PATHS)
+def test_D2b_actual_closed_spec_figures_are_struck_with_honest_pointers(path):
+    problems = [v for v in D2b_violations(D2b_documents()) if v.startswith(path + ":")]
+    assert problems == [], "D2b STATIC DISPOSITION: " + repr(problems)
+
+
+@pytest.mark.parametrize("path", D2B_PATHS)
+def test_D2b_restored_figure_is_caught_by_actual_guard(path):
+    """EXAMPLE — NOT A RESULT. Restore an old correlation to a copied document."""
+    documents = D2b_documents()
+    assert D2b_violations(documents) == [], "D2b clean control"
+    documents[path] = documents[path].replace(STRUCK, "0.998", 1)
+    expected = f"{path}: D2b unsupported historical figure restored"
+    assert expected in D2b_violations(documents), "D2b RESTORED-FIGURE MUTANT"
+
+
+@pytest.mark.parametrize("path", D2B_PATHS)
+def test_D2b_dropped_count_pointer_is_caught(path):
+    """EXAMPLE — NOT A RESULT. Remove a copied historical-count link."""
+    documents = D2b_documents()
+    assert D2b_violations(documents) == [], "D2b clean control"
+    documents[path] = documents[path].replace(D2A_COUNT_POINTER, "history-unavailable")
+    expected = f"{path}: D2b strike or count/archive context missing"
+    assert expected in D2b_violations(documents), "D2b POINTER-DROPPED MUTANT"
+
+
+D2B_VERIFICATION_MUTANTS = (
+    (D2B_PATHS[0], "  | 1 | drop the `- 1` from `SMA_Spread` | 2 |"),
+    (D2B_PATHS[1], "| 5 — Tests | 45 new tests; the suite goes 256 → 301, all passing. |"),
+    (D2B_PATHS[2], "Historical mutation check: 2 failures."),
+)
+
+
+@pytest.mark.parametrize("path,restored", D2B_VERIFICATION_MUTANTS)
+def test_D2b_restored_historical_verification_counts_are_caught(path, restored):
+    """EXAMPLE — NOT A RESULT. Restore one historical verification-result row."""
+    documents = D2b_documents()
+    assert D2b_violations(documents) == [], "D2b clean control"
+    documents[path] += "\n" + restored + "\n"
+    expected = f"{path}: D2b unsupported historical figure restored"
+    assert expected in D2b_violations(documents), "D2b OLD-COUNT MUTANT"
