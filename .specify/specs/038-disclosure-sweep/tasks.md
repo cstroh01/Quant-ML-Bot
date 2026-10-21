@@ -227,6 +227,8 @@ One guard file serves all D units: `tests/test_038_static_guard.py`, with driver
   pointer to a ledger entry if one exists, else to the quotation document. A pointer to a pending
   quotation is not results provenance. Red: struck figure still present. Mutant: one figure restored in
   a copy. Control: pointer line present, figure absent. Each sub-unit separately admitted.
+  - [x] T061-D2a: the five admitted paths are struck; count/archive pointers are
+    explicitly not results provenance. D2b/D2c and parent T061 remain open.
 - [ ] T062 D3. Files: `docs/PROJECT_CONTEXT.md`, `tests/test_038_static_guard.py`,
   `tests/mutation/run_038_static_mutants.py`. Strikes per register; `:826-828` replaced by the Rule 15
   requirement. Split by block if over the cap. Same red/mutant/control shape as T061; the extra mutant

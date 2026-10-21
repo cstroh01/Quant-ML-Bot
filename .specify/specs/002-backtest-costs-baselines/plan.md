@@ -121,7 +121,7 @@ downstream.
 
 | Case | Test |
 |---|---|
-| Zero-cost regression | `run_backtest` with defaults on the real SMA crossover data reproduces today's exact numbers (8 trades, 50% win rate, ~$33 P&L) — pins SC-001. |
+| Zero-cost regression | `run_backtest` with defaults on the real SMA crossover data reproduces today's exact behavior ([struck]; original result artifact unavailable) — pins SC-001. Historical-count context: [backfill record](../../../docs/trials/backfill/manifest.json) (counts only, not returns); archival discussion: [audit](../../../docs/audit-2026-09-12/AUDIT.md) (not results provenance). |
 | Cost math | A small hand-built 2-trade log, non-zero commission and slippage, output matches a hand-computed expected value exactly. |
 | Slippage direction | A winning trade becomes a loss under high enough `slippage_bps` — proves slippage is applied against the trade, not with it. |
 | Buy-and-hold | Exactly one trade, entered row 1, exited at the final row's close; single-row frame doesn't crash (edge case). |

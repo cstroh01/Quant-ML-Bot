@@ -1,4 +1,4 @@
-"""EXAMPLE — NOT A RESULT. 038 T063: mutate document copies against the actual guard."""
+"""EXAMPLE — NOT A RESULT. 038 T063 and T061 D2a only: mutate document copies against their actual guards."""
 from pathlib import Path
 import hashlib
 import json
@@ -35,6 +35,21 @@ def main():
         expected = f"{guard.T063_AUDIT}: T063 coverage links must name committed coverage.json"
         results.append(dict(path=guard.T063_AUDIT, mutant="broken-coverage-link-" + str(which),
                             killed=expected in guard.T063_violations(copy)))
+    d2a = guard.D2a_documents()
+    original.update({p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in d2a})
+    if guard.D2a_violations(d2a):
+        raise RuntimeError("D2a clean control failed")
+    for path, (_, figure) in guard.D2A_ROWS.items():
+        for defect in ("restored-figure", "missing-count-pointer"):
+            copy = dict(d2a)
+            if defect == "restored-figure":
+                copy[path] = copy[path].replace(guard.STRUCK, figure, 1)
+                expected = f"{path}: D2a unsupported historical figure restored"
+            else:
+                copy[path] = copy[path].replace(guard.D2A_COUNT_POINTER, "history-unavailable")
+                expected = f"{path}: D2a strike or count/archive context missing"
+            results.append(dict(path=path, mutant=defect,
+                                killed=expected in guard.D2a_violations(copy)))
     unchanged = all(hashlib.sha256((ROOT / p).read_bytes()).hexdigest() == sha for p, sha in original.items())
     print(json.dumps(dict(control="PASS", results=results, mutants=len(results),
                          killed=sum(r["killed"] for r in results), documents_unchanged=unchanged), indent=2))

@@ -54,10 +54,11 @@ that produces no error and a better-looking Sharpe.
   uses the whole distribution of the response. Thresholding to a sign first
   discards most of it and then asks the model to recover a decision boundary
   from what remains.
-- **The existing binary result stays the control.** `docs/PROJECT_CONTEXT.md`
-  records AAPL direction accuracy of 0.519 against a 0.542 majority-class
-  baseline. Keeping both targets selectable is what makes "did the continuous
-  target help?" answerable rather than assumed.
+- **The binary target stays the control.** Historical AAPL accuracy figures
+  quoted from `docs/PROJECT_CONTEXT.md` are [struck]; original result artifacts
+  are unavailable. Keeping both targets selectable is what makes "did the
+  continuous target help?" answerable rather than assumed.
+  Historical-count context: [backfill record](../../../docs/trials/backfill/manifest.json) (counts only, not returns); archival discussion: [audit](../../../docs/audit-2026-09-12/AUDIT.md) (not results provenance).
 
 ---
 

@@ -228,10 +228,9 @@ fold's training set.
 
 ## Consequences — the spec-005 numbers move
 
-`docs/PROJECT_CONTEXT.md` quotes an AAPL result produced under the old
-semantics: walk-forward accuracy 0.519 against a 0.542 majority-class
-baseline, strategy P&L $47.25 against buy-and-hold $126.71 and a random
-baseline of $74.26 +/- $19.00 over 20 seeds.
+The AAPL outcome figures formerly quoted from `docs/PROJECT_CONTEXT.md` under
+the old semantics are [struck]; their original result artifacts are unavailable.
+Historical-count context: [backfill record](../../../docs/trials/backfill/manifest.json) (counts only, not returns); archival discussion: [audit](../../../docs/audit-2026-09-12/AUDIT.md) (not results provenance).
 
 Every one of those numbers was produced by models trained on 130 rows. After
 this change the same script trains on progressively more data, so **all of
