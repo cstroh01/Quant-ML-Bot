@@ -1,5 +1,7 @@
 # Research — 017 Position Sizing and Portfolio Risk Layer
 
+Historical sizing-result figures below are [struck]; their original input/result artifacts are unavailable. [Backfill record](../../../docs/trials/backfill/manifest.json) provides counts only, not returns; [archival audit](../../../docs/audit-2026-09-12/AUDIT.md) is not results provenance. Risk decisions, limits, formulas and historical task states are preserved.
+
 Phase 0 output. Each decision: what was chosen, why, what else was
 considered. The five clarifications in `spec.md` are the source of R1, R2,
 R4, R5 and R6; this file adds the alternatives that were rejected, which the
@@ -21,21 +23,11 @@ signal:
 | Volatility targeting | `σ` | Yes — clusters, estimable point-in-time |
 | Kelly | `μ` (expected return) *and* `σ` | No validated `μ` anywhere |
 
-The size of a Kelly bet moves one-for-one with the error in `μ`. Worked on
-this repo's numbers (binary Kelly, `f* = (2p − 1)/σ_daily`):
-
-| Input | Value | Source |
-|---|---|---|
-| `p` | 0.5299 | spec 014, `logistic`/classification on AAPL |
-| `σ_daily` | 0.0181 | spec 012 Background |
-| full Kelly | **3.30×** the book | |
-| half Kelly | 1.65× | |
-| quarter Kelly | 0.83× | |
-
-A one-ticker screening result that spec 005 showed does not beat a
-majority-class baseline would set 165% leverage at half Kelly. That is the
-"too good" failure CLAUDE.md tells agents to distrust, relocated from the
-Sharpe ratio into the position size.
+The size of a Kelly bet moves one-for-one with the error in `μ`. The
+symbolic binary example remains `f* = (2p − 1)/σ_daily`. The quoted classifier
+and volatility inputs and derived full/half/quarter Kelly book fractions are
+[struck]; naming earlier specs does not recover the absent result artifacts.
+The choice above still rejects sizing from an unvalidated expected return.
 
 The continuous (Merton) form is worse for the regression path. With a
 log-return forecast `m`, the arithmetic drift is `m + σ²/2`, so

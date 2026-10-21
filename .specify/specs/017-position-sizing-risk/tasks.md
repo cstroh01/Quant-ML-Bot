@@ -3,6 +3,9 @@
 description: "Task list for spec 017 — position sizing and portfolio risk layer"
 ---
 
+Historical sizing-result figures below are [struck]; their original input/result artifacts are unavailable. [Backfill record](../../../docs/trials/backfill/manifest.json) provides counts only, not returns; [archival audit](../../../docs/audit-2026-09-12/AUDIT.md) is not results provenance. Risk decisions, limits, formulas and historical task states are preserved.
+
+
 # Tasks: Position Sizing and Portfolio Risk Layer
 
 **Input**: Design documents from `.specify/specs/017-position-sizing-risk/`
@@ -181,19 +184,15 @@ come after all three.
   by running the mutant without the new test.
 - [X] T031 Real-data sizing diagnostic on the cached ten-year universe (`data/cache/AAPL-AMZN-GOOGL-MSFT-NVDA_10y.csv`): overlap and gross exposure at full conviction — no return, Sharpe, or P&L
 
-  Read straight from the CSV (no network path), 2,514 sessions 2016-09-06 → 2026-09-04, 2,451 sized. `RECOMMENDED_CONFIG`, all five names at confidence 1.0, starting flat, no halt.
+  Historical session counts, overlap/gross table, exposure reductions and final
+  target weights are [struck]; the original input CSV is absent from the tree.
+  Retained declared setup: `RECOMMENDED_CONFIG`, five names at confidence 1.0,
+  starting flat, no halt. This is historical diagnostic context, not a current
+  spec061 allocation result or broker/account acceptance.
 
-  | Measure | p10 | median | p90 |
-  |---|---|---|---|
-  | mean overlap per held name | 2.20 | **3.24** | 4.02 |
-  | gross after per-name cap | — | 1.22 | — |
-  | gross after overlap step | 0.27 | **0.38** | 0.57 |
-  | share of exposure the overlap step removes | — | **69%** | 75% |
-
-  - Max overlap 4.48 (2020-05-20); 4.44 in the window around 2020-03-16; 3.71 around 2025-04-08 — the correlation spike in market-wide sell-offs is visible, and those are the sessions the adjustment cuts hardest.
-  - Gross cap never bound (0 sessions): the overlap step alone keeps a full-conviction book well under 1.0.
-  - Last session (2026-09-04): median pairwise correlation 0.15 — a low-correlation regime. Targets AAPL 0.218, NVDA 0.177, MSFT 0.117, GOOGL 0.115, AMZN 0.099; gross 0.73.
-  - **Flag, not a fix:** removing a median 69% of full-conviction exposure is aggressive. It is what the rule says (five names behaving like ~1.5 independent bets), but whether overlap division should be softened — e.g. toward portfolio-vol scaling — is Camden's call once a costed backtest exists. Recorded as an open question.
+  The open question about softening overlap division toward portfolio-vol
+  scaling remains Camden's call after a costed backtest; this edit makes no
+  risk-policy choice. Historical task completion is not renewed results proof.
 - [X] T032 Run quickstart §3 (the halt example) and confirm its stated output — **EXAMPLE — NOT A RESULT:** **Matches:** 09-09 halted (daily −3.54%, weekly −4.5%); 09-10 and 09-11 recover and stay halted on the weekly latch.
 - [X] T033 [P] Add a spec 017 section to `docs/PROJECT_CONTEXT.md` — **Written in the night run** (top of the file, above spec 015); ticked on resumption. Two flags added on resumption (T035).
 - [X] T034 [P] Write `NIGHT_RUN_SUMMARY.md` at the repo root: what was built, open questions, final test count — **Written in the night run**; the run ended right after writing it, before ticking T033/T034. A *Resumption* section was added on 2026-09-12.
