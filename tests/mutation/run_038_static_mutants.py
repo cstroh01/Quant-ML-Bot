@@ -107,6 +107,17 @@ def main():
     results.append(dict(path=guard.D3A_PATH, block="015", mutant="D3a-unformatted-equivalence",
                         killed=changed != d3a and "D3a 015: unsupported historical outcome restored"
                         in guard.D3a_violations(changed)))
+    d3b = guard.text(guard.D3A_PATH)
+    if guard.D3b_violations(d3b):
+        raise RuntimeError("D3b clean control failed")
+    for block in guard.D3B_ROWS:
+        for defect, reason in (("figure", "unsupported historical outcome restored"),
+                ("context", "strike or count/archive context missing"),
+                ("requirement", "operative requirement missing"),
+                ("anchor", "unique ordered section anchors missing")):
+            changed = guard.D3b_mutated(d3b, block, defect)
+            results.append(dict(path=guard.D3A_PATH, block=block, mutant="D3b-" + defect,
+                killed=changed != d3b and f"D3b {block}: {reason}" in guard.D3b_violations(changed)))
     unchanged = all(hashlib.sha256((ROOT / p).read_bytes()).hexdigest() == sha for p, sha in original.items())
     print(json.dumps(dict(control="PASS", results=results, mutants=len(results),
                          killed=sum(r["killed"] for r in results), documents_unchanged=unchanged), indent=2))

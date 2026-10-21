@@ -378,27 +378,18 @@ was ill-conditioned; the cause was the design matrix, not the model.
   third, smaller defect, and conflating it with the reported one is why
   "add a scaler" looked sufficient.
 
-**Measured on cached 10y AAPL** (`scripts/feature_diagnostics.py`):
+**Historical conditioning diagnostic:** measured condition number, VIF and
+pairwise-correlation outcomes are [struck]. The conventional ill-conditioning
+line of 30 remains a diagnostic threshold, not a measured outcome.
 
-| | levels | scale_free |
-|---|---|---|
-| standardized condition number | 36.17 | 2.15 |
-| max VIF | 268.31 | 1.60 |
-| largest absolute correlation | 0.998 (`Short_SMA`/`Long_SMA`) | 0.527 (`Log_Return`/`Close_To_Short`) |
+**A near-miss worth recording.** Defining the second ratio as
+`Close/Long_SMA - 1` re-measures the crossover spread because
+`Close/Long == (Close/Short) * (Short/Long)`. Keep the fast (`Close/Short`)
+and slow (`Short/Long`) legs; their product recovers the long-trend quantity.
+The quoted correlation and condition-number improvement are [struck].
+FR-005 remains pairwise rather than a condition-number threshold.
 
-36.17 is above the conventional ill-conditioning line of 30 - independent
-confirmation of the reported defect, on real data.
-
-**A near-miss worth recording.** The first implementation defined the second
-ratio as `Close/Long_SMA - 1` ("price against the long trend"), which sounds
-right and is not: `Close/Long == (Close/Short) * (Short/Long)`, so it
-re-measures the crossover spread. It correlated **0.865** with `SMA_Spread`
-while passing every scale-invariance test and improving the condition number
-9x. Only the pairwise VIF/correlation assertions caught it. Using the two
-*legs* of that identity instead - fast (`Close/Short`) and slow
-(`Short/Long`) - loses nothing, since their product recovers the long-trend
-quantity exactly, and drops the correlation to 0.325. This is why the spec
-states FR-005 pairwise rather than as a condition-number threshold.
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
 
 - Two new diagnostic entry points: `feature_diagnostics.py` (conditioning)
   and `feature_set_comparison.py` (paired significance - McNemar for the
@@ -409,35 +400,26 @@ states FR-005 pairwise rather than as a condition-number threshold.
   explicitly *not* a capital-readiness bar, which is the deflated Sharpe step
   and comes later.
 
-**The comparison run: screening bar MET** (`feature_set_comparison.py`,
-cached 10y AAPL, results in `data/cache/feature_set_comparison.json`).
-113 outer folds per side, 2,359 paired bars per entry, purge = label
+**Historical comparison outcomes:** accuracy, MSE, p-values, fold/sample
+counts and the screening-pass claim are [struck]; the cached result artifact
+is unavailable. Retained declared geometry: purge = label
 horizon = 1 bar, embargo = 1 bar, seed fixed. Commission and slippage are
-not applicable - nothing here is a backtest; these are prediction-quality
+not applicable — nothing here is a backtest; these are prediction-quality
 tests only.
 
-| entry | test | levels -> scale_free | p (one-sided) |
-|---|---|---|---|
-| `logistic` / classification | McNemar (exact) | accuracy 0.5078 -> 0.5299 | **0.0122** |
-| `ridge` / regression | Wilcoxon signed-rank | MSE 0.00035600 -> 0.00035570 | **0.0313** |
-| `hgb` / regression | Wilcoxon signed-rank | MSE 0.00036282 -> 0.00036111 | 0.2633 |
-| `hgb` / classification | McNemar (exact) | accuracy 0.5155 -> 0.5180 | 0.4329 |
+| entry | test | historical outcome |
+|---|---|---|
+| `logistic` / classification | McNemar (exact) | [struck] |
+| `ridge` / regression | Wilcoxon signed-rank | [struck] |
+| `hgb` / regression | Wilcoxon signed-rank | [struck] |
+| `hgb` / classification | McNemar (exact) | [struck] |
 
-Cleared on `logistic`/classification and `ridge`/regression; the two `hgb`
-entries did not clear. All four favour the scale-free set directionally.
-The split is the expected shape rather than a surprise: the two linear
-entries are the ones standardization and decorrelation can help, and a tree
-is invariant to the monotone part of what changed, so only the ratios'
-better conditioning could move `hgb` - on one ticker it did not move it
-enough to separate from noise.
+The p < 0.10 one-sided screening requirement remains; a one-ticker screen
+is not evidence of capital readiness or beating a baseline. Cross-ticker
+validation remains spec013's separate question.
 
-**What this result is not.** It is a *screening* result on **AAPL alone**,
-in the script's own words "a screening threshold on one ticker, not a
-capital-readiness bar. That is the deflated Sharpe step, and it is not
-this." Two entries clearing p < 0.10 one-sided on a single ticker is cheap
-evidence that the scale-free set is worth carrying forward. It is not
-evidence that any model beats a baseline, and it justifies no capital.
-Whether these entries hold up across tickers is spec 013's question.
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
+
 - The `logistic_baseline` equivalence tests still pass element for element,
   and now pin `feature_set="levels"` and `scale=False` explicitly rather than
   relying on defaults that this spec changed.
@@ -866,10 +848,12 @@ compared a simple return against a log-return target.
 - **Spec 011 — Nested, leakage-safe hyperparameter tuning. DONE** (see
   above).
 - **Spec 014 — Scale-free features and fold-fit standardization. DONE**
-  (see above), including the T032 comparison run: **screening bar met** on
-  AAPL, on `logistic`/classification (p = 0.0122) and `ridge`/regression
-  (p = 0.0313). Inserted ahead of 012 and 013 on the reasoning below; that
-  evidence is now in, so the hold it justified is released.
+  (see above). Historical screening outcomes are [struck]. The historical sequencing decision
+  to insert it ahead of 012/013 and release the former hold is retained;
+  that old decision is not renewed result evidence.
+
+Historical outcomes are [struck]; original result artifacts are unavailable. [Backfill record](trials/backfill/manifest.json) provides counts only, not returns; [archival audit](audit-2026-09-12/AUDIT.md) is not results provenance.
+
 - **Spec 012 — Cost-aware entry rule. DONE** (see top of doc). Built
   estimator-agnostic per plan, mutation-tested, 366 tests passing. Not yet
   through the Merge Gate.
