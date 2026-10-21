@@ -1,5 +1,7 @@
 # Implementation Plan — 014 Scale-Free Features and Fold-Fit Standardization
 
+Historical figures are [struck]; their original result artifacts are unavailable. [Backfill record](../../../docs/trials/backfill/manifest.json) provides counts only, not returns; [archival audit](../../../docs/audit-2026-09-12/AUDIT.md) is not results provenance. Operating requirements and historical task states below are preserved.
+
 **Spec**: `.specify/specs/014-scale-free-features/spec.md`
 
 ---
@@ -46,7 +48,7 @@ installed; the two diagnostic scripts are their first use in this repository.
 | 2 — Purge/embargo | Not re-established, but newly *at risk*: a scaler is a fitted object, and one fitted on the whole frame would leak every test window's mean into every fold. The `Pipeline` makes the scaler fit wherever the estimator fits, which is per fold. Three tests assert the statistics are the training slice's, differ from the frame's, and differ between folds. |
 | 3 — Costs | Not applicable. Nothing in this spec computes a return, a Sharpe, or a P&L. `feature_set_comparison.py` says so in its own report rather than printing a commission line that would imply otherwise. |
 | 4 — Baselines | The comparison's baseline is the level feature set, run over identical bars with identical splits and seed — a paired control, which is stronger than the unpaired kind for this question. Buy-and-hold and random-signal baselines belong to spec 013's runner and are not displaced. |
-| 5 — Tests | 45 new tests; the suite goes 256 → 301, all passing. Six of them cover `feature_set_comparison.py`, added after an invalid `zero_method` argument survived into a 45-minute real-data run — the script was an entry point with no tests, so nothing executed its statistics until the run did. The pairwise-collinearity class (SC-002) earned its keep during implementation: it caught a `Close_To_Long` definition that passed every other test and still correlated 0.865. |
+| 5 — Tests | Historical suite totals and near-miss measurements are [struck]. The comparison entry-point tests and pairwise-collinearity contracts remain required; removing historical totals does not certify current execution. |
 | 6 — Dependencies | None added. The PR's Rule 6 line is that there is no line. |
 | 8 — Layer separation | `features.py` still imports only `signals` and `targets`. `estimators.py`'s AST import-set assertion still holds — `sklearn.pipeline` and `sklearn.preprocessing` both collapse to the top-level name `sklearn`, so `tests/test_estimators.py:496` needed no change. The two new scripts are entry points above the layers, not new layers. |
 | 9 — The merge gate | Three modified modules, two new scripts, one new test file. The two things to check twice are in **Design** below: why the `Pipeline` is leakage-safe for free, and why `Close_To_Short` rather than the more natural-sounding `Close_To_Long`. |
@@ -88,16 +90,16 @@ This is the part to check twice, because the wrong answer looks right.
 `Close/Long == (Close/Short) * (Short/Long)`. So a feature set containing
 both the crossover spread (`Short/Long - 1`) and price-against-long-trend
 (`Close/Long - 1`) contains one quantity and its own product with another —
-they measured 0.865 correlated on the spec's fixture, which is a long way
-past the FR-005 bound of 0.5.
+their historical measured correlation is [struck]. The FR-005 bound of 0.5
+remains the operating contract.
 
 Taking the two *legs* of that identity instead — `Close/Short - 1` (fast) and
 `Short/Long - 1` (slow) — loses nothing, because their product recovers the
-long-trend quantity exactly, and measured 0.325 on the same fixture.
+long-trend quantity exactly; the measured fixture correlation is [struck].
 
 The first implementation of this spec used `Close_To_Long`. Every
-scale-invariance test passed, the condition number improved 9x, and the
-collinearity was still there. Only the pairwise assertions in
+scale-invariance test could pass while collinearity remained; the historical
+condition-number improvement is [struck]. Only the pairwise assertions in
 `TestCollinearity` caught it. That is the argument for FR-005 being stated
 pairwise rather than as a condition-number threshold, and the reason the
 class carries a docstring recording the near-miss.
@@ -130,14 +132,8 @@ only. Both halves matter:
   union would discard `Rel_Volume`'s extra warm-up rows from the level path
   too, and move the committed control.
 
-### Measured outcome (10y AAPL, cached)
+### Historical measured outcome (10y AAPL, cached)
 
-| | levels | scale_free |
-|---|---|---|
-| standardized condition number | 36.17 | 2.15 |
-| max VIF | 268.31 | 1.60 |
-| largest \|correlation\| | 0.998 (`Short_SMA`/`Long_SMA`) | 0.527 (`Log_Return`/`Close_To_Short`) |
-
-36.17 is above the conventional ill-conditioning line of 30, which is the
-independent confirmation of the reported defect. The FR-012 significance
-results are a separate artifact and go in the PR beside this table.
+The former condition-number, maximum-VIF and correlation table is [struck];
+its producing result artifact is unavailable. FR-012 still requires its paired
+comparison and diagnostics evidence; no replacement figure is generated here.

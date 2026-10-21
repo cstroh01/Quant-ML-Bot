@@ -1,5 +1,7 @@
 # Tasks — 014 Scale-Free Features and Fold-Fit Standardization
 
+Historical figures are [struck]; their original result artifacts are unavailable. [Backfill record](../../../docs/trials/backfill/manifest.json) provides counts only, not returns; [archival audit](../../../docs/audit-2026-09-12/AUDIT.md) is not results provenance. Operating requirements and historical task states below are preserved.
+
 Dependency-ordered. `[P]` = parallelizable with the task above it.
 
 ---
@@ -112,16 +114,16 @@ Dependency-ordered. `[P]` = parallelizable with the task above it.
   including a swapped-argument case that a wrongly-directed one-sided test
   would fail. Added *after* an invalid `zero_method="wilcoxon"` reached a
   45-minute real-data run: `feature_set_comparison.py` was an entry point
-  with no tests. Mutation-checked by flipping `alternative` to `"greater"` —
-  2 failures. (FR-012)
-- [x] **T030b** Full suite green: 256 → 301 tests, no network, no new
-  test dependency.
+  with no tests. Historical mutation failure count is [struck]; the
+  wrong-direction `alternative="greater"` defect must still be caught. (FR-012)
+- [x] **T030b** Historical full-suite totals and green claim are [struck].
+  The no-network and no-new-test-dependency constraints remain.
 
 ## Phase 6 — Evidence and record (outside the agent lane where noted)
 
-- [x] **T031** Run `feature_diagnostics.py` on cached 10y AAPL. Result:
-  condition number 36.17 → 2.15, max VIF 268.31 → 1.60, largest
-  |correlation| 0.998 → 0.527.
+- [x] **T031** Run `feature_diagnostics.py` on cached 10y AAPL. Historical
+  condition-number, maximum-VIF and correlation figures are [struck]. This
+  historical checkbox does not accept a present result without its artifact.
 - [x] **T031b** Per-entry checkpoint to
   `data/cache/feature_set_comparison.json`, so a failure in the fourth entry
   no longer discards the first three hours. Regenerable output, gitignored
@@ -136,26 +138,22 @@ Dependency-ordered. `[P]` = parallelizable with the task above it.
   checkpoint bug, but it surfaced two.
 - [x] **T032** Run `feature_set_comparison.py` on the same data and record
   all four p-values. **Merge requirement** (FR-012), not optional. Run
-  completed; results in `data/cache/feature_set_comparison.json`. Cached 10y
+  historically completed; its referenced `data/cache/feature_set_comparison.json`
+  is not committed result evidence. Retained historical run geometry: cached 10y
   AAPL, 113 outer folds per side, 2359 paired bars per entry, purge = label
   horizon = 1 bar, embargo = 1 bar. Commission and slippage are not
   applicable — nothing here is a backtest.
 
   | entry | test | control -> scale_free | p (one-sided) |
   |---|---|---|---|
-  | `logistic`/classification | McNemar (exact) | accuracy 0.5078 -> 0.5299 | **0.0122** |
-  | `ridge`/regression | Wilcoxon signed-rank | MSE 0.00035600 -> 0.00035570 | **0.0313** |
-  | `hgb`/regression | Wilcoxon signed-rank | MSE 0.00036282 -> 0.00036111 | 0.2633 |
-  | `hgb`/classification | McNemar (exact) | accuracy 0.5155 -> 0.5180 | 0.4329 |
+  | `logistic`/classification | McNemar (exact) | accuracy [struck] | [struck] |
+  | `ridge`/regression | Wilcoxon signed-rank | MSE [struck] | [struck] |
+  | `hgb`/regression | Wilcoxon signed-rank | MSE [struck] | [struck] |
+  | `hgb`/classification | McNemar (exact) | accuracy [struck] | [struck] |
 
-  **Screening bar MET** (p < 0.10 one-sided on at least one entry), on
-  `logistic`/classification and `ridge`/regression. All four entries favour
-  the scale-free set directionally; the two `hgb` entries do not clear the
-  bar, which is the expected shape — a tree is invariant to the monotone
-  part of what changed, so only the ratios' better conditioning could move
-  it, and on one ticker it did not move it enough to separate from noise.
-  This is a screening threshold on one ticker, not a capital-readiness bar;
-  that is the deflated Sharpe step and it is not this.
+  Historical directional and screening-outcome claims are [struck]. The
+  FR-013 screening threshold remains p < 0.10 one-sided, not a capital-readiness
+  bar. No historical task checkbox here re-certifies an unavailable result.
 - [x] **T033** `docs/PROJECT_CONTEXT.md` — record 011 as done (it is
   code-complete on disk but still listed pending), add 014 with the
   measured table, and record 012/013 as deliberately held until 014 lands.
