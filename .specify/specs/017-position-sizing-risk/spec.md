@@ -1,5 +1,7 @@
 # Feature Specification: Position Sizing and Portfolio Risk Layer
 
+Historical sizing-result figures below are [struck]; their original input/result artifacts are unavailable. [Backfill record](../../../docs/trials/backfill/manifest.json) provides counts only, not returns; [archival audit](../../../docs/audit-2026-09-12/AUDIT.md) is not results provenance. Risk decisions, limits, formulas and historical task states are preserved.
+
 **Feature Branch**: `017-position-sizing-risk`
 
 **Created**: 2026-09-11
@@ -102,18 +104,16 @@ reconstructing a chat.
   parameter check someone can raise.
 
   **Why.** Kelly sizes off an *expected return*, and this repo does not have
-  a validated one. Worked with this repo's own numbers: spec 014's best
-  classifier is 52.99% accurate on AAPL; AAPL's daily σ is about 181 bps
-  (spec 012). The binary Kelly fraction is `(2p − 1)/σ_daily = 0.0598 / 0.0181
-  = 3.3×` the book. Half Kelly is still 1.65× — leverage, from a screening
-  result on one ticker that spec 005 showed does not yet beat a majority-class
-  baseline. That is CLAUDE.md's *"an unusually high Sharpe is a bug report"*
-  in sizing form: Kelly turns an unproven edge directly into leverage, and its
-  size scales linearly with the error in that edge. The regression path is
+  a validated one. The quoted classifier accuracy, volatility and derived
+  Kelly book fractions are [struck]; their original result artifacts are
+  unavailable. The symbolic binary example remains `(2p − 1)/σ_daily`.
+  Kelly turns an unproven edge directly into leverage, and its size scales
+  linearly with the error in that edge. The regression path is
   worse: continuous Kelly on a log-return forecast carries a `+σ²/2` term that
   holds a position even at zero predicted edge — the opposite of "sized off
   confidence." Volatility targeting needs only `σ`, which clusters and is
-  estimable point-in-time (`docs/PROJECT_CONTEXT.md`: MSFT 21-day vol 10%–58%).
+  estimable point-in-time. The historical MSFT volatility-range quotation
+  from `docs/PROJECT_CONTEXT.md` is [struck].
   A Kelly path belongs in a later spec, after spec 013 produces calibrated
   evidence, with a fraction ceiling of at most one half stated in that spec.
 

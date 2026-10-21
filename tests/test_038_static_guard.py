@@ -319,3 +319,64 @@ def test_D2b_restored_historical_verification_counts_are_caught(path, restored):
     documents[path] += "\n" + restored + "\n"
     expected = f"{path}: D2b unsupported historical figure restored"
     assert expected in D2b_violations(documents), "D2b OLD-COUNT MUTANT"
+
+
+# T061 D2c: historical figures only; risk limits and synthetic halt output stay intact.
+D2C_ROWS = {
+    ".specify/specs/017-position-sizing-risk/spec.md":
+        (r"52\.99%|181 bps|0\.0598|0\.0181|3\.3×|1\.65×|21-day vol 10%–58%", "52.99%"),
+    ".specify/specs/017-position-sizing-risk/research.md":
+        (r"0\.5299|0\.0181|3\.30×|1\.65×|0\.83×|165%", "0.5299"),
+    ".specify/specs/017-position-sizing-risk/tasks.md":
+        (r"2,514|2,451|2\.20|3\.24|4\.02|1\.22|0\.27|0\.38|0\.57|69%|75%|4\.48|4\.44|3\.71|0 sessions|0\.15|0\.218|0\.177|0\.117|0\.115|0\.099|0\.73|~1\.5", "mean overlap 3.24"),
+}
+
+
+def D2c_documents():
+    return {p: text(p) for p in D2C_ROWS}
+
+
+def D2c_violations(documents):
+    found = []
+    for path, (pattern, _) in D2C_ROWS.items():
+        body = documents[path]
+        checked = body
+        if path.endswith("/tasks.md"):
+            checked = body.split("- [X] T031 ", 1)[1].split("- [X] T032 ", 1)[0]
+        if re.search(pattern, checked):
+            found.append(f"{path}: D2c unsupported historical figure restored")
+        if (STRUCK not in body or D2A_COUNT_POINTER not in body or D2A_ARCHIVE_POINTER not in body
+                or "counts only, not returns" not in body or "not results provenance" not in body):
+            found.append(f"{path}: D2c strike or count/archive context missing")
+    return found
+
+
+@pytest.mark.parametrize("path", list(D2C_ROWS))
+def test_D2c_actual_registered_figures_are_struck(path):
+    problems = [v for v in D2c_violations(D2c_documents()) if v.startswith(path + ":")]
+    assert problems == [], "D2c STATIC DISPOSITION: " + repr(problems)
+
+
+@pytest.mark.parametrize("path", list(D2C_ROWS))
+def test_D2c_restored_figure_is_caught(path):
+    """EXAMPLE — NOT A RESULT. Restore an unsupported sizing figure in a copy."""
+    documents = D2c_documents()
+    assert D2c_violations(documents) == [], "D2c clean control"
+    old = documents[path]
+    if path.endswith("/tasks.md"):
+        before, selected = old.split("- [X] T031 ", 1)
+        documents[path] = before + "- [X] T031 " + selected.replace(STRUCK, D2C_ROWS[path][1], 1)
+    else:
+        documents[path] = old.replace(STRUCK, D2C_ROWS[path][1], 1)
+    expected = f"{path}: D2c unsupported historical figure restored"
+    assert expected in D2c_violations(documents), "D2c RESTORED-FIGURE MUTANT"
+
+
+@pytest.mark.parametrize("path", list(D2C_ROWS))
+def test_D2c_dropped_count_pointer_is_caught(path):
+    """EXAMPLE — NOT A RESULT. Remove the history-only context from a copy."""
+    documents = D2c_documents()
+    assert D2c_violations(documents) == [], "D2c clean control"
+    documents[path] = documents[path].replace(D2A_COUNT_POINTER, "history-unavailable")
+    expected = f"{path}: D2c strike or count/archive context missing"
+    assert expected in D2c_violations(documents), "D2c POINTER-DROPPED MUTANT"

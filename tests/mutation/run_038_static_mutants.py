@@ -1,4 +1,4 @@
-"""EXAMPLE — NOT A RESULT. 038 T063 and T061 D2a/D2b only: mutate document copies against their actual guards."""
+"""EXAMPLE — NOT A RESULT. 038 T063 and T061 D2a/D2b/D2c only: mutate document copies against their actual guards."""
 from pathlib import Path
 import hashlib
 import json
@@ -71,6 +71,25 @@ def main():
         expected = f"{path}: D2b unsupported historical figure restored"
         results.append(dict(path=path, mutant="D2b-old-verification-count",
                             killed=expected in guard.D2b_violations(copy)))
+    d2c = guard.D2c_documents()
+    original.update({p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in d2c})
+    if guard.D2c_violations(d2c):
+        raise RuntimeError("D2c clean control failed")
+    for path, (_, figure) in guard.D2C_ROWS.items():
+        for defect in ("restored-figure", "missing-count-pointer"):
+            copy = dict(d2c)
+            if defect == "restored-figure":
+                if path.endswith("/tasks.md"):
+                    before, selected = copy[path].split("- [X] T031 ", 1)
+                    copy[path] = before + "- [X] T031 " + selected.replace(guard.STRUCK, figure, 1)
+                else:
+                    copy[path] = copy[path].replace(guard.STRUCK, figure, 1)
+                expected = f"{path}: D2c unsupported historical figure restored"
+            else:
+                copy[path] = copy[path].replace(guard.D2A_COUNT_POINTER, "history-unavailable")
+                expected = f"{path}: D2c strike or count/archive context missing"
+            results.append(dict(path=path, mutant="D2c-" + defect,
+                                killed=expected in guard.D2c_violations(copy)))
     unchanged = all(hashlib.sha256((ROOT / p).read_bytes()).hexdigest() == sha for p, sha in original.items())
     print(json.dumps(dict(control="PASS", results=results, mutants=len(results),
                          killed=sum(r["killed"] for r in results), documents_unchanged=unchanged), indent=2))

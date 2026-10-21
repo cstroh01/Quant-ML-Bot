@@ -217,7 +217,7 @@ One guard file serves all D units: `tests/test_038_static_guard.py`, with driver
   and M8 (`docs/audit-2026-09-12/AUDIT.md:41` flag removed). Control: bannered, flagged tree. Sharpe matcher fixtures:
   `0.17 Sharpe`, `Sharpe ratio = 0.5`; false-positive controls `Logit Score=+0.17` (`docs/audit-2026-09-12/AUDIT.md:143`) and a
   Sharpe sentence with no number.
-- [ ] T061 D2 closed-spec strikes; D2a, D2b, D2c each separately admitted. Each sub-unit adds its rows to `tests/test_038_static_guard.py` and
+- [x] T061 D2 closed-spec strikes; D2a, D2b, D2c each separately admitted. Each sub-unit adds its rows to `tests/test_038_static_guard.py` and
   `tests/mutation/run_038_static_mutants.py`. D2a files: `.specify/specs/002-backtest-costs-baselines/spec.md`,
   `.specify/specs/002-backtest-costs-baselines/plan.md`, `.specify/specs/006-embargo-window-semantics/spec.md`,
   `.specify/specs/009-selectable-target/spec.md`, `.specify/specs/012-cost-aware-entry-rule/spec.md`. D2b files:
@@ -228,9 +228,11 @@ One guard file serves all D units: `tests/test_038_static_guard.py`, with driver
   quotation is not results provenance. Red: struck figure still present. Mutant: one figure restored in
   a copy. Control: pointer line present, figure absent. Each sub-unit separately admitted.
   - [x] T061-D2a: the five admitted paths are struck; count/archive pointers are
-    explicitly not results provenance. Parent T061 remains open.
+    explicitly not results provenance.
   - [x] T061-D2b: the three admitted spec014 paths are struck, preserving
-    requirements, bounds and historic task states. D2c and parent T061 remain open.
+    requirements, bounds and historic task states.
+  - [x] T061-D2c: the three admitted spec017 paths are struck; operating risk
+    rules and the T063 halt example are unchanged. All three D2 groups are covered.
 - [ ] T062 D3. Files: `docs/PROJECT_CONTEXT.md`, `tests/test_038_static_guard.py`,
   `tests/mutation/run_038_static_mutants.py`. Strikes per register; `:826-828` replaced by the Rule 15
   requirement. Split by block if over the cap. Same red/mutant/control shape as T061; the extra mutant
