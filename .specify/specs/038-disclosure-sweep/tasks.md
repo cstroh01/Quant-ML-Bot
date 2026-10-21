@@ -238,7 +238,9 @@ One guard file serves all D units: `tests/test_038_static_guard.py`, with driver
   requirement. Split by block if over the cap. Same red/mutant/control shape as T061; the extra mutant
   restores "Sharpe ratio output now trusted".
   - [x] T062-D3a: registered spec017 sizing and spec015 parallel-comparison outcomes
-    are struck; requirements preserved. D3b/D3c and parent T062 remain open.
+    are struck; requirements preserved.
+  - [x] T062-D3b: registered spec014 outcomes and their Phase3 duplicate are
+    struck; definitions/declarations retained. D3c and parent T062 remain open.
 - [x] T063 D4 labels. Files: `NIGHT_RUN_SUMMARY.md` (`:176`), `.specify/specs/017-position-sizing-risk/tasks.md`
   (`:197`), `.specify/specs/020-unadjusted-price-data/spec.md` (`:111`), `docs/audit-2026-09-12/CODEX_LANE_HANDOFF.md` (`:120-128`),
   `docs/implementation/spec-033/SPEC_CORRECTION_PROPOSAL.md` (`:14-15`, `:20`, `:27`), `docs/audit-2026-09-12/AUDIT.md`

@@ -461,3 +461,70 @@ def test_D3a_unformatted_equivalence_claim_is_caught():
     changed = D3a_mutated(original, "015", "equivalence")
     assert changed != original, "D3a equivalence defect was not planted"
     assert "D3a 015: unsupported historical outcome restored" in D3a_violations(changed), "D3a EQUIVALENCE MUTANT"
+
+
+
+# T062-D3b: conditioning/screening outcomes and their Phase3 duplicate.
+D3B_ROWS = {
+    "features": ("## Spec 014 -", "## Spec 011 -",
+        r"36\.17|2\.15|268\.31|1\.60|0\.998|0\.527|0\.865|9x|0\.325|113 outer|2,359|0\.5078|0\.5299|0\.00035600|0\.00035570|0\.00036282|0\.00036111|0\.5155|0\.5180|0\.0122|0\.0313|0\.2633|0\.4329|screening bar MET|Cleared on",
+        "max VIF 268.31", ("`SCALE_FREE_FEATURE_COLUMNS` is the **default**: `Log_Return`", "Rolling_Volatility", "SMA_Spread", "Close_To_Short",
+            "Rel_Volume", "Close/Long == (Close/Short) * (Short/Long)", "line of 30", "p < 0.10",
+            "horizon = 1 bar, embargo = 1 bar", "nothing here is a backtest")),
+    "phase3": ("- **Spec 014 —", "- **Spec 012 —",
+        r"0\.0122|0\.0313|screening bar met|evidence is now in",
+        "p = 0.0122", ("historical sequencing decision",)),
+}
+
+
+def D3b_block(body, block):
+    start, end = D3B_ROWS[block][:2]
+    if body.count(start) != 1 or body.count(end) != 1:
+        return None
+    return body.partition(start)[2].partition(end)[0] if body.index(start) < body.index(end) else None
+
+
+def D3b_violations(body):
+    found = []
+    for block, (_, _, pattern, _, required) in D3B_ROWS.items():
+        selected = D3b_block(body, block)
+        if selected is None:
+            found.append(f"D3b {block}: unique ordered section anchors missing")
+            continue
+        if re.search(pattern, selected, re.IGNORECASE):
+            found.append(f"D3b {block}: unsupported historical outcome restored")
+        minimum = 2 if block == "features" else 1
+        if any(selected.count(token) < minimum for token in D3A_CONTEXT):
+            found.append(f"D3b {block}: strike or count/archive context missing")
+        if any(token not in selected for token in required):
+            found.append(f"D3b {block}: operative requirement missing")
+    return found
+
+
+@pytest.mark.parametrize("block", list(D3B_ROWS))
+def test_D3b_actual_registered_outcomes_are_struck(block):
+    problems = [p for p in D3b_violations(text(D3A_PATH)) if p.startswith(f"D3b {block}:")]
+    assert problems == [], "D3b STATIC DISPOSITION: " + repr(problems)
+
+
+def D3b_mutated(body, block, defect):
+    """EXAMPLE — NOT A RESULT. Restore only a copied registered block."""
+    start, _, _, figure, required = D3B_ROWS[block]
+    if defect == "anchor":
+        return body.replace(start, "## Historical section —", 1)
+    selected = D3b_block(body, block)
+    old, new = {"figure": (STRUCK, figure), "context": (D3A_CONTEXT[1], "history-unavailable"),
+                "requirement": (required[0], "requirement-unavailable")}[defect]
+    return body.replace(selected, selected.replace(old, new, 1), 1)
+
+
+@pytest.mark.parametrize("block", list(D3B_ROWS))
+@pytest.mark.parametrize("defect,reason", [("figure", "unsupported historical outcome restored"),
+    ("context", "strike or count/archive context missing"), ("requirement", "operative requirement missing"),
+    ("anchor", "unique ordered section anchors missing")])
+def test_D3b_planted_defects_are_caught(block, defect, reason):
+    original = text(D3A_PATH)
+    assert D3b_violations(original) == [], "D3b clean control"
+    changed = D3b_mutated(original, block, defect)
+    assert changed != original, "D3b defect was not planted"
+    assert f"D3b {block}: {reason}" in D3b_violations(changed), "D3b MUTANT: " + defect
