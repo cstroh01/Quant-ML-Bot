@@ -1,0 +1,182 @@
+# 057 T011: ordinary armed LIVE host. TEMPLATE in the public repo (it never runs here).
+# Camden installs it in the private companion repo; it stays inert until he personally:
+#   1. sets secret QMB_FIDELITY_ARMING_JSON (his arming record, bound to the pinned §11.3 gate manifest),
+#   2. sets variable QMB_FIDELITY_LIVE_ENABLED=true, and
+#   3. sets variable QMB_FIDELITY_PREVIEW_ENABLED to anything but 'true' (the two hosts never both run).
+# At most ONE attempt per NYSE session, shared with the preview host: the marker is persisted before
+# login and never retried. Off switch: QMB_FIDELITY_LIVE_ENABLED to anything but 'true', or delete the
+# arming secret (the host then refuses before any child and opens an issue).
+name: fidelity-live
+on:
+  schedule:
+    # UTC. Inside 09:35-12:00 ET in both EDT and EST: EDT 10:40 11:10 11:40, EST 09:40 10:10 10:40.
+    - cron: "40 14 * * 1-5"
+    - cron: "10 15 * * 1-5"
+    - cron: "40 15 * * 1-5"
+  workflow_dispatch:
+permissions:
+  contents: write
+  issues: write
+# Same group as PAPER and the preview host: all write the same ops-state branch.
+concurrency:
+  group: paper-loop
+  cancel-in-progress: false
+jobs:
+  live:
+    if: >-
+      github.repository == 'cstroh01/Quant-ML-Bot-private' &&
+      github.event.repository.private == true && github.ref == 'refs/heads/main' &&
+      vars.QMB_FIDELITY_LIVE_ENABLED == 'true' && vars.QMB_FIDELITY_PREVIEW_ENABLED != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PIN: ${{ vars.QMB_FIDELITY_PIN }}
+      QMB_STATE_DIR: ${{ github.workspace }}/state/live_fidelity
+    steps:
+      - name: Today's session, window check (no checkout, no credentials)
+        id: due
+        run: |
+          python3 - <<'PY'
+          import os
+          from datetime import datetime,time
+          from zoneinfo import ZoneInfo
+          now=datetime.now(ZoneInfo('America/New_York'))
+          due=now.weekday()<5 and time(9,36)<=now.time()<time(11,50)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('run='+('true' if due else 'false')+'\n')
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('AUTHORIZED_SESSION='+now.date().isoformat()+'\n')
+          print('due' if due else 'outside window; nothing to do')
+          PY
+      - name: Require immutable public-main ancestor
+        if: steps.due.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import json,os,re,subprocess
+          pin=os.environ['PIN']
+          if not re.fullmatch('[0-9a-f]{40}',pin): raise SystemExit('Invalid source pin')
+          r=subprocess.run(['gh','api','repos/cstroh01/Quant-ML-Bot/compare/'+pin+'...main'],capture_output=True,text=True,check=True)
+          if json.loads(r.stdout)['status'] not in ('ahead','identical'): raise SystemExit('Pin outside main')
+          PY
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        if: steps.due.outputs.run == 'true'
+        with:
+          repository: cstroh01/Quant-ML-Bot
+          ref: ${{ vars.QMB_FIDELITY_PIN }}
+          path: qmb
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        if: steps.due.outputs.run == 'true'
+        with:
+          ref: ops-state
+          path: state
+      - name: Skip quietly if today already had an attempt
+        id: fresh
+        if: steps.due.outputs.run == 'true'
+        run: |
+          if [ -e "$QMB_STATE_DIR/attempts/$AUTHORIZED_SESSION.json" ] || [ -e "$QMB_STATE_DIR/preview-sessions/$AUTHORIZED_SESSION.json" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"; echo "already attempted $AUTHORIZED_SESSION; no retry"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        if: steps.fresh.outputs.run == 'true'
+        with:
+          python-version: "3.12"
+      - name: Install existing runtime and audited SDK lock without credentials
+        if: steps.fresh.outputs.run == 'true'
+        run: |
+          pip install -r qmb/requirements.txt
+          pip install --require-hashes --only-binary=:all: -r qmb/requirements-fidelity-host.txt
+      - name: Skip quietly on NYSE holidays
+        id: session
+        if: steps.fresh.outputs.run == 'true'
+        working-directory: qmb
+        run: |
+          python - <<'PY'
+          import os,sys
+          from datetime import date
+          sys.path.insert(0,'scripts')
+          from data import trading_days
+          day=date.fromisoformat(os.environ['AUTHORIZED_SESSION'])
+          ok=trading_days(day,day)==[day]
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f: f.write('run='+('true' if ok else 'false')+'\n')
+          print('NYSE session' if ok else 'not an NYSE session; nothing to do')
+          PY
+      - name: Check window, KILL/HALTED, restored state and Camden's arming against the pinned gate
+        id: ready
+        if: steps.session.outputs.run == 'true'
+        working-directory: qmb
+        env:
+          QMB_FIDELITY_ARMING_JSON: ${{ secrets.QMB_FIDELITY_ARMING_JSON }}
+        run: >-
+          python scripts/fidelity_live_host.py --mode check --pin "$PIN" --authorized-session "$AUTHORIZED_SESSION"
+          --state "$QMB_STATE_DIR" --profiles "$RUNNER_TEMP/fidelity-profiles.json" --inputs "$RUNNER_TEMP/fidelity-inputs"
+      - name: Persist today's single attempt before any data or broker access
+        if: steps.ready.outcome == 'success'
+        working-directory: qmb
+        run: |
+          mkdir -p "$QMB_STATE_DIR/attempts"
+          printf '{"session":"%s","run_id":"%s","pin":"%s","mode":"live","no_retry":true}\n' "$AUTHORIZED_SESSION" "$GITHUB_RUN_ID" "$PIN" \
+            > "$QMB_STATE_DIR/attempts/$AUTHORIZED_SESSION.json"
+          bash ops/persist_state.sh "$GITHUB_WORKSPACE/state" "fidelity live attempt $AUTHORIZED_SESSION"
+      - name: Refresh completed bars without Fidelity credentials
+        if: steps.ready.outcome == 'success'
+        working-directory: qmb
+        env:
+          APCA_API_KEY_ID: ${{ secrets.PAPER_SMALL_KEY_ID }}
+          APCA_API_SECRET_KEY: ${{ secrets.PAPER_SMALL_SECRET }}
+        run: >-
+          python scripts/fidelity_preview_host.py --mode inputs --pin "$PIN" --authorized-session "$AUTHORIZED_SESSION"
+          --state "$QMB_STATE_DIR" --profiles "$RUNNER_TEMP/fidelity-profiles.json" --inputs "$RUNNER_TEMP/fidelity-inputs"
+      - name: Armed allocation run; host rechecks window and arming before the launcher
+        if: steps.ready.outcome == 'success'
+        working-directory: qmb
+        env:
+          QMB_FIDELITY_ARMING_JSON: ${{ secrets.QMB_FIDELITY_ARMING_JSON }}
+          QMB_FIDELITY_PROFILES_JSON: ${{ secrets.QMB_FIDELITY_PROFILES_JSON }}
+          FIDELITY_LIVE_USERNAME: ${{ secrets.FIDELITY_LIVE_USERNAME }}
+          FIDELITY_LIVE_PASSWORD: ${{ secrets.FIDELITY_LIVE_PASSWORD }}
+          FIDELITY_LIVE_TOTP: ${{ secrets.FIDELITY_LIVE_TOTP }}
+          FIDELITY_LIVE_ACCOUNT: ${{ secrets.FIDELITY_LIVE_ACCOUNT }}
+          FIDELITY_LIVE_FP_KEY: ${{ secrets.FIDELITY_LIVE_FP_KEY }}
+        run: |
+          umask 077
+          printf '%s' "$QMB_FIDELITY_PROFILES_JSON" > "$RUNNER_TEMP/fidelity-profiles.json"
+          python scripts/fidelity_live_host.py --mode submit --pin "$PIN" --authorized-session "$AUTHORIZED_SESSION" \
+            --state "$QMB_STATE_DIR" --profiles "$RUNNER_TEMP/fidelity-profiles.json" --inputs "$RUNNER_TEMP/fidelity-inputs"
+      - name: Queue daily summary and deliver incidents
+        if: ${{ always() && steps.ready.outcome == 'success' }}
+        working-directory: qmb
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python - <<'PY'
+          import os,sys
+          sys.path.insert(0,'scripts')
+          from ops_runtime import queue_outbox
+          queue_outbox(os.environ['QMB_STATE_DIR'],'fidelity-live-'+os.environ['GITHUB_RUN_ID'],kind='summary',title='fidelity-live daily summary',body='LIVE $200 pilot. Outcome: '+os.environ['OUTCOME']+'. Run: '+os.environ['RUN_URL']+'. ALLOCATION — NO EDGE CLAIMED. Inspect private state.')
+          PY
+          python scripts/ops_deliver.py --repo "${{ github.repository }}" --state-dir "$QMB_STATE_DIR"
+      - name: Persist state even after a LIVE or notification failure
+        if: ${{ always() && steps.ready.outcome == 'success' }}
+        working-directory: qmb
+        run: bash ops/persist_state.sh "$GITHUB_WORKSPACE/state" fidelity-live
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        if: ${{ always() && steps.ready.outcome == 'success' }}
+        with:
+          name: fidelity-live-state-${{ github.run_id }}
+          path: state/live_fidelity
+          include-hidden-files: true
+          retention-days: 90
+      - name: Notify host failure; never retried today
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh issue create -R "${{ github.repository }}" --title "fidelity-live failed $(date -u +%F)"
+          --body "LIVE host refused or failed. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Inspect private state; no automatic retry today. Off switch: QMB_FIDELITY_LIVE_ENABLED."
