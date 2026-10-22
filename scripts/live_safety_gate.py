@@ -71,14 +71,20 @@ Camden to confirm or override.
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import json
 import math
 import sqlite3
 import uuid
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Mapping, Optional
+from typing import Mapping, Optional, Sequence
 from zoneinfo import ZoneInfo
+
+# Spec 064 T003a: the pure transfer journal (no I/O, no broker, no research
+# module) is reconciled inside the gate's own transaction, so its
+# acknowledgement and the equity boundary commit together or not at all.
+from cash_flow_journal import empty_journal, reconcile as reconcile_cash_flows
 
 # ---------------------------------------------------------------------------
 # Reason / state vocabulary
@@ -100,6 +106,7 @@ DENY_PRICE_UNAVAILABLE = "PRICE_UNAVAILABLE"
 DENY_MAX_POSITION_PCT = "MAX_POSITION_PCT_BREACH"
 DENY_MAX_GROSS_PCT = "MAX_GROSS_PCT_BREACH"
 DENY_DUPLICATE_ORDER = "DUPLICATE_CLIENT_ORDER_ID"
+DENY_CASH_FLOW_QUARANTINE = "CASH_FLOW_QUARANTINE"
 
 # REQ-008 action classes. FLATTEN has no implementation in this module by
 # design (spec 032: automatic flattening "requires a separate Camden-approved
@@ -130,6 +137,14 @@ class ConfigMismatchError(RuntimeError):
     than silently taking effect. Raised at construction (a version or a
     value differs from what is durably recorded) so the mismatch is caught
     before a single order is evaluated, not discovered mid-session.
+    """
+
+
+class FlowObservationConflict(RuntimeError):
+    """An ``observation_id`` was reused with a different snapshot or event batch.
+
+    Spec 064 T003a: an observation is applied once. A retry must carry the
+    same payload; anything else is refused with no state change.
     """
 
 
@@ -381,6 +396,41 @@ class GateDecision:
         return self.outcome == ALLOW
 
 
+@dataclasses.dataclass(frozen=True)
+class FlowObservation:
+    """Result of one attributable cash-flow observation (spec 064 T003a).
+
+    ``net_flow`` is the exact signed Decimal text applied to the loss
+    boundary by this observation (deposits positive). ``equity`` is the
+    breaker result, or None when a stale snapshot halted before any flow.
+    ``replayed`` is True when an already-committed observation was returned.
+    """
+
+    observation_id: str
+    net_flow: str
+    quarantined: bool
+    quarantine_reasons: tuple
+    reconciliation_halt: bool
+    equity: Optional[Mapping[str, object]]
+    replayed: bool = False
+
+
+def _flow_digest(snapshot: "BrokerSnapshot", events: object, account: object, sources: object) -> str:
+    """Canonical identity of one observation's payload, for exact-retry detection."""
+    payload = {
+        "as_of": _iso(snapshot.as_of),
+        "status": snapshot.status,
+        "equity": repr(float(snapshot.equity)),
+        "positions": sorted((k, repr(float(v))) for k, v in snapshot.positions.items()),
+        "prices": sorted((k, repr(float(v))) for k, v in snapshot.prices.items()),
+        "events": events,
+        "account": account,
+        "sources": sorted(map(str, sources)) if isinstance(sources, (set, frozenset, list, tuple)) else repr(sources),
+    }
+    text = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 # ---------------------------------------------------------------------------
 # The gate
 # ---------------------------------------------------------------------------
@@ -433,6 +483,16 @@ class SafetyGate:
                 ts TEXT NOT NULL,
                 event_type TEXT NOT NULL,
                 payload TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS cash_flow_journal (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                journal TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS flow_observations (
+                observation_id TEXT PRIMARY KEY,
+                digest TEXT NOT NULL,
+                result TEXT NOT NULL,
+                created_at TEXT NOT NULL
             );
             """
         )
@@ -594,6 +654,13 @@ class SafetyGate:
             decision = self._deny(DENY_CONFIG_MISMATCH, action=ACTION_BLOCK_NEW, checks={})
             self._log_locked("DENY", dataclasses.asdict(decision))
             return decision
+        if snapshot.external_cash_flow != 0.0 and self._read_journal() is not None:
+            # 064 T003a: once flows go through the journal, the aggregate float
+            # channel would let one deposit be applied twice.
+            raise ValueError(
+                "external_cash_flow must be 0.0 once a cash-flow journal exists; "
+                "use observe_equity_with_flows"
+            )
 
         freshness_deny = self._check_freshness(snapshot, now=now)
         if freshness_deny is not None:
@@ -642,6 +709,15 @@ class SafetyGate:
         if halted and not is_reduce_only:
             decision = self._deny(
                 DENY_LOSS_HALT, action=ACTION_CANCEL_RISK_ADDING, checks=breach
+            )
+            self._log_locked("DENY", dataclasses.asdict(decision))
+            return decision
+
+        if state.get("cash_flow_quarantine") and not is_reduce_only:
+            # 064 T003a: an unattributable movement may be someone else's money;
+            # no new exposure until it is reviewed. Reductions stay allowed.
+            decision = self._deny(
+                DENY_CASH_FLOW_QUARANTINE, action=ACTION_BLOCK_NEW, checks=breach
             )
             self._log_locked("DENY", dataclasses.asdict(decision))
             return decision
@@ -759,6 +835,119 @@ class SafetyGate:
                 return {"reconciliation_halt": True, "reason": deny_reason}
             trading_day = _trading_day(snapshot.as_of, self._config.timezone)
             result = self._observe_equity_locked(snapshot, trading_day=trading_day, now=now)
+            self._conn.execute("COMMIT")
+            return result
+        except Exception:
+            self._conn.execute("ROLLBACK")
+            raise
+
+    # -- attributable cash flows (spec 064 T003a) ---------------------------
+
+    def cash_flow_journal(self) -> Optional[dict]:
+        """The committed transfer journal, or None before any flow observation."""
+        return self._read_journal()
+
+    def _read_journal(self) -> Optional[dict]:
+        row = self._conn.execute("SELECT journal FROM cash_flow_journal WHERE id = 1").fetchone()
+        return None if row is None else json.loads(row[0])
+
+    def observe_equity_with_flows(
+        self,
+        snapshot: BrokerSnapshot,
+        *,
+        observation_id: str,
+        events: Sequence[Mapping[str, object]],
+        account_fingerprint: str,
+        approved_sources: object,
+        now: datetime,
+    ) -> FlowObservation:
+        """Apply attributable transfers to the loss boundary exactly once.
+
+        Guarantees, all inside ONE ``BEGIN IMMEDIATE`` transaction (any
+        exception rolls everything back, so a crash before COMMIT leaves no
+        trace and a retry is safe):
+
+        1. An ``observation_id`` already committed with the same payload digest
+           returns its stored result and writes nothing; the same ID with a
+           different payload raises ``FlowObservationConflict``.
+        2. Freshness is checked first. A stale snapshot latches the
+           reconciliation halt, consumes no flow and is not recorded.
+        3. The prior journal is read under the lock and reconciled by the pure
+           ``cash_flow_journal.reconcile``; a journal/policy refusal raises.
+        4. Any quarantine latches ``cash_flow_quarantine`` (add-exposure
+           denied, reductions allowed) and applies no flow.
+        5. The attributable net flow passes once through the existing breaker
+           arithmetic; journal, observation record and equity boundary commit
+           together. The caller's ``external_cash_flow`` must be 0.0, and later
+           order snapshots carry 0.0, so the flow cannot be applied twice.
+
+        This method proves nothing about the broker: events are only as true as
+        the evidence the caller supplies.
+        """
+        if not isinstance(snapshot, BrokerSnapshot):
+            raise TypeError("snapshot must be a BrokerSnapshot")
+        _require_aware("now", now)
+        _require_nonempty_str("observation_id", observation_id)
+        if len(observation_id) > 128:
+            raise ValueError("observation_id must be at most 128 characters")
+        if snapshot.external_cash_flow != 0.0:
+            raise ValueError("external_cash_flow must be 0.0; flows arrive only as journal events")
+        digest = _flow_digest(snapshot, events, account_fingerprint, approved_sources)
+
+        self._conn.execute("BEGIN IMMEDIATE")
+        try:
+            row = self._conn.execute(
+                "SELECT digest, result FROM flow_observations WHERE observation_id = ?",
+                (observation_id,),
+            ).fetchone()
+            if row is not None:
+                if row[0] != digest:
+                    raise FlowObservationConflict(
+                        f"observation {observation_id!r} was committed with a different payload"
+                    )
+                self._conn.execute("COMMIT")
+                stored = json.loads(row[1])
+                stored["quarantine_reasons"] = tuple(stored["quarantine_reasons"])
+                return FlowObservation(**stored, replayed=True)
+
+            deny_reason = self._check_freshness(snapshot, now=now)
+            if deny_reason is not None:
+                self._write_kv({"reconciliation_halt": True, "reconciliation_reason": deny_reason})
+                self._log_locked("RECONCILIATION_HALT", {"reason": deny_reason, "observation_id": observation_id})
+                self._conn.execute("COMMIT")
+                return FlowObservation(observation_id, "0", False, (), True, None)
+
+            prior = self._read_journal()
+            if prior is None:
+                prior = empty_journal(account_fingerprint, approved_sources)
+            outcome = reconcile_cash_flows(
+                prior, list(events), account_fingerprint=account_fingerprint,
+                approved_sources=approved_sources, as_of=snapshot.as_of,
+            )
+            reasons = tuple(sorted(
+                set(outcome.journal["quarantine_reasons"]) | {q["reason"] for q in outcome.quarantined}
+            ))
+            if outcome.quarantined:
+                self._write_kv({"cash_flow_quarantine": True,
+                                "cash_flow_quarantine_reasons": list(reasons)})
+            net_text = format(outcome.net_flow, "f")
+            trading_day = _trading_day(snapshot.as_of, self._config.timezone)
+            flowed = dataclasses.replace(snapshot, external_cash_flow=float(outcome.net_flow))
+            equity = self._observe_equity_locked(flowed, trading_day=trading_day, now=now)
+            result = FlowObservation(observation_id, net_text, bool(outcome.quarantined), reasons, False, equity)
+            stored = {k: v for k, v in dataclasses.asdict(result).items() if k != "replayed"}
+            stored["quarantine_reasons"] = list(reasons)
+            self._conn.execute(
+                "INSERT INTO cash_flow_journal (id, journal) VALUES (1, ?) "
+                "ON CONFLICT(id) DO UPDATE SET journal = excluded.journal",
+                (json.dumps(outcome.journal, sort_keys=True),),
+            )
+            self._conn.execute(
+                "INSERT INTO flow_observations (observation_id, digest, result, created_at) VALUES (?, ?, ?, ?)",
+                (observation_id, digest, json.dumps(stored, sort_keys=True), _iso(now)),
+            )
+            self._log_locked("FLOW_OBSERVATION", {"observation_id": observation_id, "net_flow": net_text,
+                                                  "quarantine_reasons": list(reasons)})
             self._conn.execute("COMMIT")
             return result
         except Exception:
