@@ -1,6 +1,6 @@
 # Plan 065 — Verified capital scaling (PROPOSAL)
 
-Proposal only. Nothing here starts until Camden records D-1..D-6 in `spec.md` §4.
+Proposal only. Nothing here starts until Camden records D-1..D-7 in `spec.md` §4.
 The $200 pilot stays in force throughout.
 
 ## Design
@@ -11,7 +11,7 @@ reviewable:
 - `scripts/capital_authority.py` (new; not a protected path). Inputs: settled
   cash, bot book (open orders, bot-owned quantities), last closes, journal
   result and pending outflows, previous acknowledged snapshot, mandate record.
-  Outputs: `V`, `A`, `above_ceiling_usd`, cash-bridge residual, quarantine flag,
+  Outputs: `V`, `A`, `above_ceiling_usd`, cash-bridge residual, unmanaged cash `U`,
   and `stage_pro_rata(buys, cap_left)`. Decimal arithmetic, no I/O, no clock.
   It knows nothing about signals, fills or broker calls (Rule 8).
 - `scripts/cash_flow_journal.py` gains one read-only accessor,
@@ -59,8 +59,8 @@ built on top of the merged 064 T003, never in parallel with it.
 ## Risks
 
 - **Feed capability.** If the Fidelity integration cannot read transfer history,
-  FR-002's bridge can never close for a deposit and `A` stays frozen. The spec
-  then holds at $200 by construction. No workaround that infers deposits from
+  a deposit can never be attributed: it lands in `U` (unmanaged) and `A` cannot rise.
+  The spec then holds at $200 by construction. No workaround that infers deposits from
   balances is acceptable.
 - **Fractional eligibility.** If any sleeve is not fractionable at Fidelity, the
   $200 end cannot hold all eight sleeves. The run halts instead of trading a
