@@ -65,6 +65,39 @@ def test_non_numeric_quantity_refuses():
         parse_positions_csv(body)
 
 
+CASH_ONLY_2026_10 = (  # Fidelity's October 2026 layout: sentence-case headers, trailing comma
+    "Account number,Account name,Symbol,Description,Quantity,Last price,Last price change,Current value,"
+    "Today's gain/loss dollar,Today's gain/loss percent,Total gain/loss dollar,Total gain/loss percent,"
+    "Percent of account,Cost basis total,Average cost basis,Type\n"
+    "Z00000000,Individual,SPAXX**,HELD IN MONEY MARKET,,,,$49.00,,,,,100.00%,,,Cash,\n"
+    "\n"
+    '"Date downloaded Oct-07-2026 10:45 p.m ET"\n'
+)
+
+
+def test_sentence_case_headers_parse_like_title_case():
+    snap = parse_positions_csv(CASH_ONLY_2026_10)
+    assert snap.positions == () and snap.cash_usd == 49.0
+    assert snap.as_of == datetime(2026, 10, 7, 22, 45, tzinfo=NY)
+    assert len(snap.account_pseudonyms) == 1 and "Z00000000" not in repr(snap)
+    other = POSITIONS.replace("Account Number", "account number").replace("Current Value", "CURRENT VALUE")
+    assert other != POSITIONS
+    assert parse_positions_csv(other).positions == parse_positions_csv(POSITIONS).positions
+    assert parse_positions_csv(other).cash_usd == parse_positions_csv(POSITIONS).cash_usd
+
+
+def test_headers_differing_only_in_case_refuse():
+    body = CASH_ONLY_2026_10.replace("Account name", "Current VALUE", 1)
+    with pytest.raises(HoldingsImportError, match="duplicate column headers"):
+        parse_positions_csv(body)
+
+
+def test_history_headers_match_without_regard_to_case():
+    lowered = HISTORY.replace("Run Date", "Run date").replace("Amount ($)", "amount ($)")
+    assert lowered != HISTORY
+    assert parse_history_csv(lowered).activity == parse_history_csv(HISTORY).activity
+
+
 @pytest.mark.parametrize("token", ["NaN", "nan", "Infinity", "-inf", "1e999"])
 @pytest.mark.parametrize("parser,name,old", [
     (parse_positions_csv, "positions_example.csv", "$25.75"),
