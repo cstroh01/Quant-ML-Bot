@@ -112,8 +112,11 @@ class _Row(dict):
     def get(self, key, default=None):
         return super().get(key.casefold(), default)
 
+    def __contains__(self, key):
+        return super().__contains__(key.casefold())
 
-def _rows(text: str, first_header: str) -> list[dict]:
+
+def _rows(text: str, first_header: str, required: tuple[str, ...] = ()) -> list[dict]:
     lines = text.replace("\r\n", "\n").split("\n")
     wanted = first_header.casefold()
     start = next((i for i, line in enumerate(lines) if line.casefold().startswith(wanted)), None)
@@ -128,6 +131,10 @@ def _rows(text: str, first_header: str) -> list[dict]:
     headers = [name.strip().casefold() for name in reader.fieldnames or []]
     if len(headers) != len(set(headers)):
         raise HoldingsImportError("duplicate column headers differing only in case or spacing")
+    # A renamed column must refuse: read as blank, it would yield a plausible empty snapshot.
+    missing = [name for name in required if name.casefold() not in headers]
+    if missing:
+        raise HoldingsImportError(f"missing required column(s): {', '.join(missing)}")
     return [_Row({key.strip().casefold(): value for key, value in row.items() if key is not None})
             for row in reader]
 
@@ -137,7 +144,7 @@ def parse_positions_csv(text: str, *, account_fingerprint_fn=None) -> PositionsS
     as_of = _downloaded(text)
     positions, cash, accounts = [], 0.0, set()
     fingerprint = account_fingerprint_fn or (lambda account: hashlib.sha256(account.encode()).hexdigest())
-    for row in _rows(text, "Account Number"):
+    for row in _rows(text, "Account Number", ("Account Number", "Symbol", "Current Value")):
         symbol = (row.get("Symbol") or "").strip()
         if row.get("Account Number"):
             accounts.add(fingerprint(row["Account Number"].strip()))
@@ -158,7 +165,7 @@ def parse_history_csv(text: str) -> HistorySnapshot:
     """Normalize a Fidelity activity/History export; run dates are session labels."""
     as_of = _downloaded(text)
     activity = []
-    for row in _rows(text, "Run Date"):
+    for row in _rows(text, "Run Date", ("Run Date", "Action", "Symbol", "Quantity", "Amount ($)")):
         symbol = (row.get("Symbol") or "").strip()
         run_date = datetime.strptime(row["Run Date"].strip(), "%m/%d/%Y").date()
         activity.append(Activity(

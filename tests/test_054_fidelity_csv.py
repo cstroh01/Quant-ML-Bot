@@ -92,6 +92,28 @@ def test_headers_differing_only_in_case_refuse():
         parse_positions_csv(body)
 
 
+@pytest.mark.parametrize("renamed", [("Symbol", "Ticker"), ("Current value", "Current value ($)")])
+def test_a_renamed_required_positions_column_refuses_instead_of_reading_empty(renamed):
+    # A renamed column used to parse as "no positions, $0 cash": a plausible, wrong snapshot.
+    # (A renamed "Account number" already refuses: the header line is located by that column.)
+    body = CASH_ONLY_2026_10.replace(renamed[0], renamed[1], 1)
+    with pytest.raises(HoldingsImportError, match="missing required column"):
+        parse_positions_csv(body)
+
+
+@pytest.mark.parametrize("renamed", [("Action", "Activity"), ("Symbol", "Ticker"), ("Quantity", "Shares"),
+                                     ("Amount ($)", "Amount")])
+def test_a_renamed_required_history_column_refuses(renamed):
+    with pytest.raises(HoldingsImportError, match="missing required column"):
+        parse_history_csv(HISTORY.replace(renamed[0], renamed[1], 1))
+
+
+def test_row_membership_ignores_case_like_lookup():
+    from holdings_import import _rows
+    row = _rows(CASH_ONLY_2026_10, "Account Number")[0]
+    assert "Symbol" in row and "symbol" in row and row["SYMBOL"] == row.get("Symbol") == "SPAXX**"
+
+
 def test_history_headers_match_without_regard_to_case():
     lowered = HISTORY.replace("Run Date", "Run date").replace("Amount ($)", "amount ($)")
     assert lowered != HISTORY
