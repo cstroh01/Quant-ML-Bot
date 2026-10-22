@@ -34,7 +34,7 @@ def evidenced(tmp_path, numbers=None):
                 session.write_text(json.dumps({'profile':'live_fidelity','session':f'2026-10-{day:02}',
                     'clean':True,'challenge':False,'place_calls':0,'totp_step':True,
                     'library':{'version':'0.2.2','sha256':'f5a94056bd9a055ba88482ffcc7dc17013de9871b852b4d9b0dc55352506dd15'},
-                    'pin_sha':'c3eb34846a65'+'0'*28,'holdings_match':True,'csv_sha256':'b'*64,'account_fingerprint':'f'*64,
+                    'pin_sha':'c3eb34846a65'+'0'*28,'holdings_match':True,'csv_sha256':'b'*64,'account_fingerprint':'f'*64,'api_holdings_reconciled':True,
                     'previews':[{'qty':1.0,'conf_num':'FIXTURE'}],
                     'settled_cash':{'amount':10,'as_of':f'2026-10-{day:02}T15:00:00+00:00'}}))
                 sessions.append({'artifact':str(session.relative_to(tmp_path)),'sha256':hashlib.sha256(session.read_bytes()).hexdigest()})

@@ -93,7 +93,7 @@ def test_gate_five_distinct_clean_days_and_csv_required(tmp_path):
         row={'session':f'2026-10-{day:02}', 'profile':'live_fidelity','clean':True,'challenge':False,'place_calls':0,
              'previews':[{'qty':1.0,'conf_num':'FIXTURE'}],
              'pin_sha':'a'*40,'library':fs.LIBRARY,'holdings_match':True,'csv_sha256':'b'*64,'account_fingerprint':live_profile().account_fingerprint,
-             'totp_step':True,'settled_cash':{'amount':10,'as_of':f'2026-10-{day:02}T15:00:00+00:00'}}
+             'api_holdings_reconciled':True,'totp_step':True,'settled_cash':{'amount':10,'as_of':f'2026-10-{day:02}T15:00:00+00:00'}}
         p.write_text(json.dumps(row)); rows.append({'artifact':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()})
     p=tmp_path/'sessions.json'; p.write_text(json.dumps({'sessions':rows}))
     entry={'type':'fidelity_preview','artifact':p.name,'account_fingerprint':live_profile().account_fingerprint}
@@ -137,9 +137,17 @@ def test_gate_records_totp_observation_without_inventing_a_new_clean_condition(t
     p.write_text(json.dumps(row)); item['sha256']=hashlib.sha256(p.read_bytes()).hexdigest()
     manifest.write_text(json.dumps(bundle))
     assert fidelity_preview(entry,tmp_path)[0]
-    row['holdings_match']=None; p.write_text(json.dumps(row))
+    row['holdings_match']=None; row.pop('csv_sha256'); p.write_text(json.dumps(row))
     item['sha256']=hashlib.sha256(p.read_bytes()).hexdigest(); manifest.write_text(json.dumps(bundle))
-    assert not fidelity_preview(entry,tmp_path)[0]  # older CSV evidence does not cover the latest session
+    assert fidelity_preview(entry,tmp_path)[0]  # Camden 2026-10-22: "API holdings count."
+    row['api_holdings_reconciled']=False; p.write_text(json.dumps(row))
+    item['sha256']=hashlib.sha256(p.read_bytes()).hexdigest(); manifest.write_text(json.dumps(bundle))
+    assert not fidelity_preview(entry,tmp_path)[0]  # every session needs its own API reconciliation
+
+def test_session_records_the_exact_api_check_the_evidence_requires(tmp_path):
+    from fidelity_preview_evidence import API_RECONCILED
+    r=run_session(live_profile(),tmp_path,now=NOW,broker=Broker(),environ=ENV,pin='a'*40)
+    assert r['clean'] and r['holdings_match'] is None and API_RECONCILED in r['checks']
 
 def test_output_guard_drops_untrusted_nested_fields(tmp_path):
     session=fs.Session(live_profile(),tmp_path,now=NOW,broker=Broker(),environ=ENV,pin='a'*40)

@@ -83,7 +83,8 @@ def checklist(manifest: dict, root: Path = ROOT) -> tuple[bool, list[str]]:
 
 
 def fidelity_preview(entry, root):
-    """Typed item 6: hashed, distinct NYSE days; clean sessions and a CSV match."""
+    """Typed item 6: hashed, distinct NYSE days; clean sessions, each reconciled against broker-API
+    holdings. Camden, 2026-10-22: "API holdings count." A CSV is optional; a supplied one must match."""
     from data import trading_days
     from zoneinfo import ZoneInfo
     import math
@@ -110,11 +111,12 @@ def fidelity_preview(entry, root):
             if stamp.utcoffset() is None or stamp.astimezone(ZoneInfo('America/New_York')).date()!=day: raise ValueError
             if isinstance(cash['amount'],bool) or not math.isfinite(cash['amount']) or cash['amount']<0: raise ValueError
             if not any(p['qty']==1.0 and p['conf_num'] for p in row['previews']): raise ValueError
-            if row['holdings_match'] not in (None,True): raise ValueError
-            if row['holdings_match'] is True and bool(SHA.fullmatch(row.get('csv_sha256',''))): csv_days.add(day)
+            if row['holdings_match'] not in (None,True) or row['api_holdings_reconciled'] is not True: raise ValueError
+            if row['holdings_match'] is True and not SHA.fullmatch(row.get('csv_sha256','')): raise ValueError
+            if row['holdings_match'] is True: csv_days.add(day)
             days.add(day)
         csv=bool(days) and max(days) in csv_days
-        return len(days)>=5 and csv, f'{len(days)} distinct clean sessions; latest CSV match {csv}'
+        return len(days)>=5, f'{len(days)} distinct clean API-reconciled sessions; latest CSV match {csv} (optional)'
     except (OSError,ValueError,KeyError,TypeError,AttributeError):
         return False,'invalid fidelity_preview evidence'
 
