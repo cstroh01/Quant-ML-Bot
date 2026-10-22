@@ -87,14 +87,22 @@ after reconciliation (`exec/live_loop.py:96-110`) and before any sizing:
 - `C` — settled cash from the configured account (`exec/fidelity_live.py:294-295`),
   never buying power or margin.
 - `K` — open commitments: worst-case notional of every bot buy not yet terminal
-  in the bot book, plus any active gate reservation, plus every **pending
-  outbound** transfer the journal has observed (FR-005).
+  in the bot book, plus any active gate reservation valued at the same
+  worst-case price (last close × 1.05; gate reservations are share quantities,
+  `pending_orders.quantity`), plus every **pending outbound** transfer from the
+  FR-005 accessor. The gate applies only *settled* flows (064 T003a), so a
+  pending outflow counted here is never also counted by the breaker; when it
+  settles it leaves `K` and reaches the breaker once.
+- `U` — unmanaged cash: the running total of unexplained cash increases from
+  FR-002, clamped to `0 ≤ U ≤ C`. It sits in the account, is reported every run
+  as `unmanaged_cash_usd`, and is never traded.
 - `B` — bot-owned position value: Σ bot-owned quantity × last completed close.
   External holdings (`owner == "external"`, `scripts/mode_config.py:263-276`)
   are excluded from `B` and from authority. They still count in the gate's
   aggregate exposure, as today.
-- `V = C − K + B` — verified equity, valid only when (a) reconciliation is clean,
-  (b) the 064 journal is not blocked, and (c) the cash bridge in FR-002 closes.
+- `V = C − U − K + B` — verified equity, valid only when (a) reconciliation is
+  clean and (b) the 064 journal is not blocked. Unexplained cash is excluded
+  through `U`; it never invalidates `V` or freezes authority (FR-002).
 - `A = min(H, f × V)` — authority, where `f` is the managed fraction and `H` the
   hard ceiling (FR-003).
 
@@ -107,28 +115,38 @@ This satisfies SCOPE §10's "never sizes from total account equity"
 (`docs/SCOPE-V1.md:202-203`): `V` is built bottom-up from attributed parts, not
 read from the account total, and it excludes external holdings.
 
-### FR-002 — Cash bridge and quarantine
+### FR-002 — Cash bridge and unmanaged cash
 
-Each run proves that the change in `C` since the last acknowledged snapshot is
-fully explained:
+Each run explains the change in `C` since the last acknowledged snapshot:
 
-`ΔC = attributable settled net flow (064 journal) + bot fill cash (sells − buys, from the bot book) + evidenced income on bot-owned lots − evidenced fees`
+`ΔC = attributable settled net flow (064 journal) + bot fill cash (sells − buys, from the bot book) + evidenced income on bot-owned lots − evidenced fees + residual`
 
-- An **unexplained increase** (residual > $0.01) quarantines: `A` is frozen at
-  `min(A_prev, A_now)` and new buys are refused with reason
-  `unattributed_cash`. It never unfreezes by itself; resolution follows the 064
-  journal's external-review path (`scripts/cash_flow_journal.py:4-5`).
-- An **unexplained decrease** reduces `A` immediately (conservative) and is
-  reported as an incident. It is not fed to the breaker as a flow, so a real
-  loss is never masked as a withdrawal.
-- Income (dividends, interest) counts only with broker activity evidence of the
-  same quality the journal demands for transfers. Without that evidence it is
-  an unexplained increase. Spec 064 already forbids deriving flows from
+- An **unexplained increase** (residual > $0.01) is added to `U`, so it is
+  excluded from `V`: unexplained money **never raises authority** and is never
+  traded. It does **not** freeze `A` or refuse buys, because the account's
+  existing verified funds are unaffected. Each run reports
+  `unmanaged_cash_usd` and an incident the first time `U` grows. Moving money
+  out of `U` into `V` needs evidence; the review path is the 064 journal's
+  (`scripts/cash_flow_journal.py:4-5`).
+- An **unexplained decrease** first reduces `U`, then `V` (conservative: it
+  shrinks authority immediately). It is reported as an incident. It is not fed
+  to the breaker as a flow, so a real loss is never masked as a withdrawal.
+- **Income** (dividends, interest) counts as attributed only with broker
+  activity evidence of the same quality the journal demands for transfers.
+  Without that evidence it lands in `U`. Several sleeves distribute monthly
+  (IEF, TLT, TIP) or quarterly, so in practice un-evidenced distributions
+  accumulate in `U` as a small, disclosed cash drag instead of halting the bot.
+  This is why the design is not a freeze: a freeze would demand manual review
+  roughly monthly, against Camden's requirement (2026-10-22): "I need things to
+  run entirely autonomously". Spec 064 already forbids deriving flows from
   dividends (`.specify/specs/064-final-v1-completion/spec.md:85-86`); this
-  keeps income out of the transfer journal and in the bridge.
+  keeps income out of the transfer journal and in the bridge. D-7 offers an
+  optional bounded income allowance.
 
-Unattributed movements stay quarantined exactly as 064 T002/T003 define. This
-spec adds no auto-unblock.
+Malformed or conflicting **transfer evidence** still quarantines exactly as
+064 T002/T003a define (add-exposure denied, reductions allowed); that latch is
+about bad evidence, not about unexplained cash, and this spec adds no
+auto-unblock to it.
 
 ### FR-003 — Mandate shape: percentages plus one separate hard ceiling
 
@@ -249,7 +267,7 @@ by line and merged by Camden only, under Rule 7a and Rule 9b condition 2.
 | P1 | `MAX_LIVE_BUDGET_USD` (`scripts/mode_config.py:21`) | 200.0 | Replaced by `MAX_LIVE_AUTHORITY_USD = H` (proposed 5000.0) |
 | P2 | `ModeProfile` (`scripts/mode_config.py:40-84`) | `bot_budget_usd` is the LIVE budget | LIVE profiles carry `managed_fraction`, `hard_ceiling_usd` (≤ P1) and `min_operating_authority_usd`; PAPER profiles unchanged |
 | P3 | `sizing_equity` / `bound_buys` (`scripts/mode_config.py:200-258`) | budget-based cap, list-order shrink | cap base is `A`; pro-rata staging (FR-004.5) |
-| P4 | `exec/live_loop.py:31-35`, `:115`, `:128`, `:138`, `:193` | `$200` cap, grant, equity, disclosure | `A` from FR-001, `unattributed_cash` refusal, `above_ceiling_usd`, disclosure names `f`, `H`, `A` |
+| P4 | `exec/live_loop.py:31-35`, `:115`, `:128`, `:138`, `:193` (lines at `bbd4e26`; 064 T003b shifts them, and T007 is built on top of it) | `$200` cap, grant, equity, disclosure | `A` from FR-001, `unmanaged_cash_usd`, `above_ceiling_usd`, disclosure names `f`, `H`, `A` |
 | P5 | Profile template pins (`scripts/fidelity_provision.py:34-35`, `:90`, `:92`) | `== 200.0`, `== 0.2` | pins the adopted mandate values |
 | P6 | `ALLOCATION_SAFETY_CONFIG.version` (`exec/paper_loop.py:100`) | `2026-10-14-alloc-v1` | **Recommended unchanged** (D-3); see below |
 
@@ -309,14 +327,16 @@ Scenarios (each with a clean control):
 | S5 | $800 settled deposit after an executed decision | `A` rises next run; zero orders until the next monthly decision; breaker adjusted equity unchanged |
 | S6 | Pending deposit | no change to `A` until settled |
 | S7 | $100 withdrawal, observed pending, then settled | `A` falls on observation; no breaker trip; no sell |
-| S8 | Unexplained $500 cash increase | quarantine; `A` frozen at prior value; buys refused `unattributed_cash`; survives restart |
+| S8 | Unexplained $500 cash increase | `U` += 500; `A` unchanged (not raised, not frozen); buys still sized from prior `V`; `unmanaged_cash_usd = 500` reported; survives restart |
+| S8b | Un-evidenced $0.40 TLT distribution | lands in `U`; no halt, no incident beyond the first `U` growth; bot keeps trading |
+| S8c | Unexplained $50 decrease with `U = 30` | `U` → 0, `V` falls by 20; incident; breaker not fed a flow |
 | S9 | External holding in the account | excluded from `V`; included in gate exposure; never sold |
 | S10 | Authority below `min_operating_authority_usd` | no buys; held book unchanged |
 
 Planted defects (Rule 12). Each must turn a named test red, in an isolated copy,
 never committed:
 
-1. Authority read from raw account equity instead of `C − K + B` (S4, S8 red).
+1. Authority read from raw account equity instead of `C − U − K + B` (S4, S8 red).
 2. `external_cash_flow` left at 0.0 (S7 red: daily-loss breach).
 3. Hard ceiling removed (S4 red).
 4. List-order staging restored (S1 red: proportions).
@@ -326,6 +346,8 @@ never committed:
    settled cash).
 8. Pending withdrawal ignored in `K` (S7 red).
 9. A deposit reopens an executed decision (S5 red: orders appear).
+10. Unexplained increase freezes authority or refuses buys (S8b red).
+11. Unexplained increase added to `V` instead of `U` (S8 red).
 
 Final verification: `python -m pytest tests` from the repo root on the exact
 head, plus the relevant mutation drivers and CI. Ledger hashes recorded before
@@ -341,6 +363,7 @@ and after, unchanged.
 | D-4 | Deposit deployment | wait for next monthly decision; no off-cycle top-up |
 | D-5 | Re-provisioning | delete all six and re-run T001 helper, or add a reviewed profile-only mode |
 | D-6 | `min_operating_authority_usd` | 100.0 |
+| D-7 | Un-evidenced income | Default: lands in `U` (unmanaged, disclosed cash drag). Optional: a bounded allowance treating an increase no larger than bot quantity × the last declared distribution (free data) as income |
 
 ## 5. Limitations (Rule 16)
 
@@ -353,7 +376,7 @@ a fill guarantee.
 
 ## 6. Adoption conditions (all required, in order)
 
-1. Camden records D-1..D-6.
+1. Camden records D-1..D-7.
 2. The separate §11.3 item 7 amendment is merged by Camden.
 3. 064 T003 (deposit feed into the safety snapshot) is accepted, and the Fidelity
    transfer-history capability check is evidenced read-only. Until then
