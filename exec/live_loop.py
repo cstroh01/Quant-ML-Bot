@@ -29,6 +29,9 @@ from paper_loop import (ALLOCATION_SAFETY_CONFIG, AllocationPlanner, GAP_ALLOWAN
                         MAX_DAILY_LOG_MOVE, previous_session, persist_command)
 from signals import ALLOCATION_SLEEVES
 LIVE_CAP=MAX_LIVE_BUDGET_USD
+# 064 T003b: no Fidelity transfer feed has passed its capability check, so the only real
+# source is 'unsupported': no events, and an unattributed equity change stays P&L.
+UNSUPPORTED_FLOWS=SimpleNamespace(source_id='unsupported',events=lambda live,now:[])
 
 def validate_live_budget(profile):
     if profile.bot_budget_usd > LIVE_CAP:
@@ -71,7 +74,7 @@ class DurableBroker:
         return self.inner.place(*args)
 
 def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
-             arming=None,persist=None,gate=None,csv=None,now_fn=None):
+             arming=None,persist=None,gate=None,csv=None,now_fn=None,flow_source=None):
     """One leased session; all decisions require reconciliation and every order uses the gateway."""
     if now.utcoffset() is None or not time(9,35)<=now.astimezone(NY).time()<time(12):
         raise HaltProfile('conservative NYSE morning window is 09:35-12:00 ET')
@@ -130,6 +133,18 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
         planner=AllocationPlanner(Path(state)/'allocation-state.json',{s:profile.fractional for s in ALLOCATION_SLEEVES})
         plan=planner.plan(closes,closes.index[-1],equity=equity,positions=session.bot)
         worst={s:float(last[s])*(1+GAP_ALLOWANCE) for s in ALLOCATION_SLEEVES}
+        # 064 T003b: one attributable-flow observation per run, after reconciliation and before
+        # any order snapshot. The gate applies the flow once; order snapshots keep 0.0.
+        flows=flow_source or UNSUPPORTED_FLOWS
+        held={s:q for s,q in live.positions().items() if not _CASH_SYMBOLS.match(s)}
+        marks={**live.prices(),**worst}
+        observed=gate.observe_equity_with_flows(
+            BrokerSnapshot(now_fn(),'OK',sum(q*marks[s] for s,q in held.items())+cash,0.0,held,marks),
+            observation_id=f'{profile.name}:{today}:{session.run_id}',events=list(flows.events(live,now_fn())),
+            account_fingerprint=profile.account_fingerprint,approved_sources=(flows.source_id,),now=now_fn())
+        if observed.reconciliation_halt: raise HaltProfile('stale snapshot halted the flow observation')
+        session.record['cash_flows']={'source':flows.source_id,'net_flow':observed.net_flow,
+            'quarantined':observed.quarantined,'reasons':list(observed.quarantine_reasons)}
         precise_orders=live_order_precision(plan.orders,profile.fractional)
         buys=[BuyRequest(o.ticker,o.delta_quantity,worst[o.ticker],profile.fractional)
               for o in precise_orders if o.delta_quantity>0]

@@ -8,7 +8,7 @@ import context  # noqa
 from test_057_q139 import blocked, NOW
 from test_057_q135 import Broker, process, ENV, live_profile
 from test_110_paper_allocation import sleeve_closes
-from live_safety_gate import ALLOW, GateDecision
+from live_safety_gate import ALLOW, FlowObservation, GateDecision
 from mode_config import ArmingRecord
 import fidelity_session as fs
 import live_loop as loop
@@ -24,6 +24,9 @@ class Gate:
         self.calls.append((snapshot,intent))
         return GateDecision('DENY' if self.deny else ALLOW,'FIXTURE',self._config.version,'order',{})
     def record_order_outcome(self,cid,**kwargs): self.outcomes.append(cid)
+    def observe_equity_with_flows(self,snapshot,*,observation_id,**kwargs):
+        self.flow_calls=getattr(self,'flow_calls',[])+[(snapshot,kwargs)]
+        return FlowObservation(observation_id,'0',False,(),False,{})
 
 def execute(tmp_path, **kw):
     args=dict(profile=profile(),state=tmp_path,now=NOW,closes=bars(),sources=[],
