@@ -5,7 +5,7 @@ All boxes start open. This packet adopts nothing; the $200 pilot stays until
 merged by an agent. Each unit stays ≤600 added+removed lines and touches only
 its listed files.
 
-- [ ] T001 **Camden-only.** Record D-1..D-6 in `spec.md` §4 (managed fraction,
+- [ ] T001 **Camden-only.** Record D-1..D-7 in `spec.md` §4 (managed fraction,
   hard ceiling, SafetyConfig version, deposit deployment, re-provisioning
   route, minimum operating authority).
   Files: `.specify/specs/065-verified-capital-scaling/spec.md`.
@@ -18,7 +18,7 @@ its listed files.
   read-only, whether the Fidelity integration exposes transfer history. Until
   both hold, authority cannot exceed $200. Files: none in this packet.
 - [ ] T004 Pure `capital_authority` module: `V = C − K + B`, `A = min(H, f × V)`,
-  cash bridge with asymmetric quarantine (increase freezes, decrease reduces),
+  cash bridge with unmanaged cash `U` (an unexplained increase goes to `U` and never raises or freezes `A`; a decrease reduces `U`, then `V`),
   `above_ceiling_usd`, `min_operating_authority_usd`, `stage_pro_rata`. Decimal
   only; no I/O or clock. Planted defects 1, 3, 4, 5, 7, 8 at unit level, each
   with a clean control.
@@ -33,8 +33,8 @@ its listed files.
   profiles unchanged. Camden line-by-line review and merge.
   Files: `scripts/mode_config.py`, `tests/test_065_mode_config_mandate.py`.
 - [ ] T007 **Camden-only (Rule 7).** Wire authority into `exec/live_loop.py` on
-  top of merged 064 T003: `A` replaces grant/equity, `unattributed_cash`
-  refusal, `above_ceiling_usd`, disclosure. Scenarios S1–S10 through `run_once`
+  top of merged 064 T003: `A` replaces grant/equity, `unmanaged_cash_usd`
+  reporting, `above_ceiling_usd`, disclosure. Scenarios S1–S10 through `run_once`
   with fakes; planted defects 1–9 against the real consumer.
   Files: `exec/live_loop.py`, `tests/test_065_live_scaling.py`.
 - [ ] T008 **Camden-only; only if D-3 chooses a bump.** Change
