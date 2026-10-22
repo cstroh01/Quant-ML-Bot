@@ -99,9 +99,24 @@ def _downloaded(text: str) -> datetime:
     raise HoldingsImportError("Date downloaded line missing: export time unknown")
 
 
+class _Row(dict):
+    """A CSV row whose header lookups ignore case.
+
+    Fidelity has exported both "Current Value" and "Current value"; the column
+    is the same either way, so neither spelling may make a holding vanish.
+    """
+
+    def __getitem__(self, key):
+        return super().__getitem__(key.casefold())
+
+    def get(self, key, default=None):
+        return super().get(key.casefold(), default)
+
+
 def _rows(text: str, first_header: str) -> list[dict]:
     lines = text.replace("\r\n", "\n").split("\n")
-    start = next((i for i, line in enumerate(lines) if line.startswith(first_header)), None)
+    wanted = first_header.casefold()
+    start = next((i for i, line in enumerate(lines) if line.casefold().startswith(wanted)), None)
     if start is None:
         raise HoldingsImportError(f"header starting {first_header!r} not found")
     block = []
@@ -109,7 +124,12 @@ def _rows(text: str, first_header: str) -> list[dict]:
         if not line.strip():
             break
         block.append(line)
-    return list(csv.DictReader(io.StringIO("\n".join(block))))
+    reader = csv.DictReader(io.StringIO("\n".join(block)))
+    headers = [name.strip().casefold() for name in reader.fieldnames or []]
+    if len(headers) != len(set(headers)):
+        raise HoldingsImportError("duplicate column headers differing only in case or spacing")
+    return [_Row({key.strip().casefold(): value for key, value in row.items() if key is not None})
+            for row in reader]
 
 
 def parse_positions_csv(text: str, *, account_fingerprint_fn=None) -> PositionsSnapshot:
