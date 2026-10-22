@@ -19,9 +19,12 @@ reviewable:
 - `scripts/mode_config.py` (protected) holds the mandate fields, the renamed
   ceiling and the pro-rata cap base. Nothing else moves there.
 - `exec/live_loop.py` (protected, Rule 7) calls `capital_authority` after
-  reconciliation, uses `A` in place of `grant`/`equity`, passes settled flows to
-  `BrokerSnapshot.external_cash_flow` (built on 064 T003), and adds the new
-  refusal reasons and disclosure fields.
+  reconciliation, sizes from `A`, bounds cash by
+  `grant = max(0, min(C − U − K, A − B − R))`, relies on 064 T003a/T003b to apply
+  settled flows to the breaker once, and adds the new refusal reasons and
+  disclosure fields.
+- `scripts/live_safety_gate.py` (protected) persists `U` and the bridge boundary
+  in the T003a observation transaction (FR-002a; task T006b).
 
 Data flow per run: reconcile → journal reconcile → cash bridge → `V`, `A` →
 planner with `equity = A` → pro-rata stage → `bound_buys` → gateway. Monthly
@@ -37,8 +40,9 @@ cadence and ownership stay where they are (`scripts/paper_targets.py`,
 | T003 | none in this repo: 064 T003 acceptance + read-only transfer-history check | **Camden-only** (protected / personal) | 064 T002 | — |
 | T004 | `scripts/capital_authority.py`; `tests/test_065_capital_authority.py` | agent (Rule 9b) | T001 | ≤450 |
 | T005 | `scripts/cash_flow_journal.py`; `tests/test_065_journal_outflows.py` | agent (Rule 9b) | T001 | ≤150 |
+| T006b | `scripts/live_safety_gate.py`; `tests/test_065_gate_unmanaged.py` | **Camden-only** (protected) | T004 | ≤250 |
 | T006 | `scripts/mode_config.py`; `tests/test_065_mode_config_mandate.py` | **Camden-only** (protected) | T004 | ≤350 |
-| T007 | `exec/live_loop.py`; `tests/test_065_live_scaling.py` | **Camden-only** (Rule 7) | T003, T004, T005, T006 | ≤600 |
+| T007 | `exec/live_loop.py`; `tests/test_065_live_scaling.py` | **Camden-only** (Rule 7) | T003, T004, T005, T006, T006b | ≤600 |
 | T008 | `exec/paper_loop.py` (`ALLOCATION_SAFETY_CONFIG.version` only) | **Camden-only**; only if D-3 says bump | T006 | <20 + migration note |
 | T009 | `scripts/fidelity_provision.py`; `tests/test_064_fidelity_provision.py` | **Camden-only** (credential handling) | T006 | ≤250 |
 | T010 | `docs/implementation/spec-065/acceptance.md`; `CLAUDE.md` (module table row) | agent (Rule 9b) | T004–T009 | ≤150 |
@@ -51,8 +55,8 @@ built on top of the merged 064 T003, never in parallel with it.
 - Each unit: focused tests red before the change, green after; each planted
   defect from `spec.md` FR-009 that the unit owns, in an isolated copy, turning
   its named test red; one clean control.
-- T007 runs scenarios S1–S10 through `run_once` with a fake broker and fake
-  journal; sockets blocked.
+- T007 runs scenarios S1–S8, S8b, S8c and S9–S13 through `run_once` with a fake
+  broker and fake journal; sockets blocked.
 - Final: `python -m pytest tests` on the exact head, mutation drivers, CI. Ledger
   hashes before and after, unchanged.
 

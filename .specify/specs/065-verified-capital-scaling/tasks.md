@@ -7,7 +7,7 @@ its listed files.
 
 - [ ] T001 **Camden-only.** Record D-1..D-7 in `spec.md` §4 (managed fraction,
   hard ceiling, SafetyConfig version, deposit deployment, re-provisioning
-  route, minimum operating authority).
+  route, minimum operating authority, un-evidenced income).
   Files: `.specify/specs/065-verified-capital-scaling/spec.md`.
 - [ ] T002 **Camden-only.** Separate governance PR, on Camden's explicit chat
   instruction, amending only `docs/SCOPE-V1.md` §11.3 item 7 so verified,
@@ -17,25 +17,36 @@ its listed files.
   `BrokerSnapshot.external_cash_flow`; cash net of commitments) and evidence,
   read-only, whether the Fidelity integration exposes transfer history. Until
   both hold, authority cannot exceed $200. Files: none in this packet.
-- [ ] T004 Pure `capital_authority` module: `V = C − K + B`, `A = min(H, f × V)`,
-  cash bridge with unmanaged cash `U` (an unexplained increase goes to `U` and never raises or freezes `A`; a decrease reduces `U`, then `V`),
-  `above_ceiling_usd`, `min_operating_authority_usd`, `stage_pro_rata`. Decimal
-  only; no I/O or clock. Planted defects 1, 3, 4, 5, 7, 8 at unit level, each
-  with a clean control.
+- [ ] T004 Pure `capital_authority` module: `V = C − U − K + R + B`,
+  `A = min(H, f × V)`, `grant = max(0, min(C − U − K, A − B − R))`, the
+  settlement-date cash bridge with unmanaged cash `U` (an unexplained increase
+  goes to `U` and never raises or freezes `A`; a decrease reduces `U`, then `V`;
+  late attribution moves `U` to `V`), the `U₀` seed, `above_ceiling_usd`,
+  `min_operating_authority_usd`, `stage_pro_rata`. Decimal only; no I/O or
+  clock. Planted defects 1, 3, 4, 5, 7, 8, 10, 11, 12, 14 and 15 at unit level,
+  each with a clean control.
   Files: `scripts/capital_authority.py`, `tests/test_065_capital_authority.py`.
 - [ ] T005 Read-only `pending_outflow(journal)` accessor; existing journal
   behaviour byte-for-byte unchanged (existing 064 tests stay green). Planted
   defect: a pending inbound counted as outbound.
   Files: `scripts/cash_flow_journal.py`, `tests/test_065_journal_outflows.py`.
+- [ ] T006b **Camden-only (protected).** Persist `U`, the bridge's last `C` and
+  its `as_of` as `kv_state` keys inside the 064 T003a
+  `observe_equity_with_flows` transaction; refuse adds when they are missing
+  after a prior successor observation (FR-002a). Planted defect 13 and a
+  rollback test. Files: `scripts/live_safety_gate.py`,
+  `tests/test_065_gate_unmanaged.py`.
 - [ ] T006 **Camden-only (protected).** Replace `MAX_LIVE_BUDGET_USD` with
   `MAX_LIVE_AUTHORITY_USD`; LIVE `ModeProfile` mandate fields with validation;
   daily cap based on authority; pro-rata staging in `bound_buys`. PAPER
   profiles unchanged. Camden line-by-line review and merge.
   Files: `scripts/mode_config.py`, `tests/test_065_mode_config_mandate.py`.
 - [ ] T007 **Camden-only (Rule 7).** Wire authority into `exec/live_loop.py` on
-  top of merged 064 T003: `A` replaces grant/equity, `unmanaged_cash_usd`
-  reporting, `above_ceiling_usd`, disclosure. Scenarios S1–S10 through `run_once`
-  with fakes; planted defects 1–9 against the real consumer.
+  top of merged 064 T003a/T003b: `A` replaces the sizing equity,
+  `grant = max(0, min(C − U − K, A − B − R))` replaces the cash bound,
+  `unmanaged_cash_usd` reporting, `above_ceiling_usd`, disclosure. Scenarios
+  S1–S8, S8b, S8c and S9–S13 through `run_once` with fakes; planted defects 1–15
+  against the real consumer.
   Files: `exec/live_loop.py`, `tests/test_065_live_scaling.py`.
 - [ ] T008 **Camden-only; only if D-3 chooses a bump.** Change
   `ALLOCATION_SAFETY_CONFIG.version` with a written gate-store migration and

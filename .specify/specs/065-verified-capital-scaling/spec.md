@@ -92,23 +92,33 @@ after reconciliation (`exec/live_loop.py:96-110`) and before any sizing:
   `pending_orders.quantity`), plus every **pending outbound** transfer from the
   FR-005 accessor. The gate applies only *settled* flows (064 T003a), so a
   pending outflow counted here is never also counted by the breaker; when it
-  settles it leaves `K` and reaches the breaker once.
+  settles it leaves `K` and reaches the breaker once. A bot buy that has
+  **filled but not settled** stays in `K` at its fill notional until its
+  settlement date (FR-002 convention), so its cash is never counted twice.
 - `U` — unmanaged cash: the running total of unexplained cash increases from
   FR-002, clamped to `0 ≤ U ≤ C`. It sits in the account, is reported every run
   as `unmanaged_cash_usd`, and is never traded.
+- `R` — receivables: proceeds of bot sells that have filled but not settled,
+  at fill notional from the bot book. They leave `R` on their settlement date,
+  when they arrive in `C`. `R` counts toward `V` but is never spendable.
 - `B` — bot-owned position value: Σ bot-owned quantity × last completed close.
   External holdings (`owner == "external"`, `scripts/mode_config.py:263-276`)
   are excluded from `B` and from authority. They still count in the gate's
   aggregate exposure, as today.
-- `V = C − U − K + B` — verified equity, valid only when (a) reconciliation is
-  clean and (b) the 064 journal is not blocked. Unexplained cash is excluded
-  through `U`; it never invalidates `V` or freezes authority (FR-002).
+- `V = C − U − K + R + B` — verified equity, valid only when (a) reconciliation
+  is clean, (b) the 064 journal is not blocked and (c) persisted `U` state is
+  present (FR-002a). Unexplained cash is excluded through `U`; it never
+  invalidates `V` or freezes authority (FR-002).
 - `A = min(H, f × V)` — authority, where `f` is the managed fraction and `H` the
   hard ceiling (FR-003).
 
 `A` replaces `bot_budget_usd`/`LIVE_CAP` as the sizing equity in
 `exec/live_loop.py:128` and as the base of the daily cap
-(`scripts/mode_config.py:232`). It is never computed from raw account equity, a
+(`scripts/mode_config.py:232`). It does **not** replace the cash bound: new buys
+stay inside managed settled cash through
+`grant = max(0, min(C − U − K, A − B − R))`, passed as `settled_cash` to
+`bound_buys` where `grant` is passed today (`exec/live_loop.py:115`, `:138`).
+So unsettled sale proceeds and `U` are never spent, even while `A` includes `R`. It is never computed from raw account equity, a
 raw cash jump, buying power, or a balance difference.
 
 This satisfies SCOPE §10's "never sizes from total account equity"
@@ -119,7 +129,18 @@ read from the account total, and it excludes external holdings.
 
 Each run explains the change in `C` since the last acknowledged snapshot:
 
-`ΔC = attributable settled net flow (064 journal) + bot fill cash (sells − buys, from the bot book) + evidenced income on bot-owned lots − evidenced fees + residual`
+`ΔC = attributable settled net flow (064 journal) + settling bot fill cash (sells − buys whose settlement date is in this interval, from the bot book) + evidenced income on bot-owned lots − evidenced fees + residual`
+
+**One convention: settlement date.** The bot book records each fill's trade
+date and its settlement date (next NYSE session, T+1, from `scripts/data.py`
+`trading_days`). A fill's cash enters the bridge only on its settlement date;
+until then a buy stays in `K` and a sell sits in `R` (FR-001). `C` is settled
+cash, so both sides use the same date. Whether Fidelity's `settled_amt` moves on
+the settlement date is UNVERIFIED in this repo. Adoption condition 3 (§6) needs
+it evidenced by the $200 pilot's own first rebalance: a zero bridge residual on
+both the fill run and the settlement run. If `settled_amt` moves on trade date
+instead, authority stays at $200 and this convention is amended before adoption.
+Scenario S11 pins the convention.
 
 - An **unexplained increase** (residual > $0.01) is added to `U`, so it is
   excluded from `V`: unexplained money **never raises authority** and is never
@@ -128,6 +149,14 @@ Each run explains the change in `C` since the last acknowledged snapshot:
   `unmanaged_cash_usd` and an incident the first time `U` grows. Moving money
   out of `U` into `V` needs evidence; the review path is the 064 journal's
   (`scripts/cash_flow_journal.py:4-5`).
+  The same increase is passed to the breaker as an external flow in the run
+  where raw equity moved, so it is neither a gain nor, if attributed later, a
+  loss.
+- **Late attribution.** A settled journal flow that arrives after its cash
+  already went to `U` moves that amount from `U` to `V` with no incident, and
+  its breaker flow is 0 in that run, because the breaker already excluded it.
+  Only an amount up to the current `U` is matched; any excess is an ordinary
+  attributed flow. Scenario S13.
 - An **unexplained decrease** first reduces `U`, then `V` (conservative: it
   shrinks authority immediately). It is reported as an incident. It is not fed
   to the breaker as a flow, so a real loss is never masked as a withdrawal.
@@ -147,6 +176,29 @@ Malformed or conflicting **transfer evidence** still quarantines exactly as
 064 T002/T003a define (add-exposure denied, reductions allowed); that latch is
 about bad evidence, not about unexplained cash, and this spec adds no
 auto-unblock to it.
+
+**Reading of 064.** 064 says "Unknown movements remain quarantined and
+ineligible for new exposure" (`.specify/specs/064-final-v1-completion/spec.md:86-87`).
+This spec reads `U` as that ineligibility: unknown cash is never traded and
+never counts toward `A`. It adds no new 064 quarantine and does not latch the
+journal for unexplained cash.
+
+### FR-002a — `U` persistence, seeding and loss
+
+- **Persistence.** `U`, the bridge's last `C` and its `as_of` are written in the
+  same `BEGIN IMMEDIATE` transaction as the 064 T003a flow observation
+  (`SafetyGate.observe_equity_with_flows`), as new `kv_state` keys. A crash
+  either keeps both the boundary and `U` or neither. This needs a protected gate
+  unit (task T006b), not a second store.
+- **Seeding.** On the first successor run only, seed
+  `U₀ = clamp(C − K − M₀, 0, C)`, where `M₀` is the managed cash the pilot's own
+  records explain: the $200 grant, plus settled bot sell proceeds, minus settled
+  bot buy cost since arming (bot book), plus journal-attributed settled net flow
+  since arming. The seed and its inputs are recorded in that run's evidence.
+- **Missing or corrupt state.** If any prior successor observation exists and
+  the `U` keys are missing or invalid, the run refuses new buys (reductions
+  allowed), raises an incident and never re-seeds. Re-seeding is a separately
+  named Camden operator action. Scenario S12.
 
 ### FR-003 — Mandate shape: percentages plus one separate hard ceiling
 
@@ -332,6 +384,9 @@ Scenarios (each with a clean control):
 | S8c | Unexplained $50 decrease with `U = 30` | `U` → 0, `V` falls by 20; incident; breaker not fed a flow |
 | S9 | External holding in the account | excluded from `V`; included in gate exposure; never sold |
 | S10 | Authority below `min_operating_authority_usd` | no buys; held book unchanged |
+| S11 | Rebalance sell $X and buy $Y, fill day then T+1 settlement day | `U` unchanged on both runs; buy stays in `K` until settled; sell sits in `R`; `grant` excludes `R` |
+| S12 | `U` state missing after a prior successor run | no new buys; reductions allowed; incident; no automatic re-seed |
+| S13 | Settled $500 deposit seen in `C` one run before the journal attributes it | run 1: `U` += 500, breaker unchanged; run 2: `U` → `V`, no incident, breaker unchanged |
 
 Planted defects (Rule 12). Each must turn a named test red, in an isolated copy,
 never committed:
@@ -348,6 +403,10 @@ never committed:
 9. A deposit reopens an executed decision (S5 red: orders appear).
 10. Unexplained increase freezes authority or refuses buys (S8b red).
 11. Unexplained increase added to `V` instead of `U` (S8 red).
+12. Fill cash bridged on trade date (S11 red: `U` moves).
+13. `U` state reset to 0 when missing (S12 red).
+14. `grant = A` instead of `min(C − U − K, A − B − R)` (S11 red: `U` or `R` spent).
+15. Late attribution raises an incident or a breaker flow (S13 red).
 
 Final verification: `python -m pytest tests` from the repo root on the exact
 head, plus the relevant mutation drivers and CI. Ledger hashes recorded before
@@ -363,7 +422,7 @@ and after, unchanged.
 | D-4 | Deposit deployment | wait for next monthly decision; no off-cycle top-up |
 | D-5 | Re-provisioning | delete all six and re-run T001 helper, or add a reviewed profile-only mode |
 | D-6 | `min_operating_authority_usd` | 100.0 |
-| D-7 | Un-evidenced income | Default: lands in `U` (unmanaged, disclosed cash drag). Optional: a bounded allowance treating an increase no larger than bot quantity × the last declared distribution (free data) as income |
+| D-7 | Un-evidenced income | Default: lands in `U` (unmanaged, disclosed cash drag). Optional: a bounded allowance treating an increase no larger than bot quantity × the last declared distribution (free data) as income, **at most once per declared distribution per sleeve**, only within 5 sessions of its pay date |
 
 ## 5. Limitations (Rule 16)
 
@@ -378,9 +437,14 @@ a fill guarantee.
 
 1. Camden records D-1..D-7.
 2. The separate §11.3 item 7 amendment is merged by Camden.
-3. 064 T003 (deposit feed into the safety snapshot) is accepted, and the Fidelity
-   transfer-history capability check is evidenced read-only. Until then
-   authority cannot rise above $200 under any reading of this spec.
+3. 064 T003 is complete: T003a (`SafetyGate.observe_equity_with_flows`) merged in
+   PR #291 under amendment 001
+   (`.specify/specs/064-final-v1-completion/amendment-001-t003-atomic-gate.md`,
+   admitted by PR #288), and T003b (`exec/live_loop.py` calling it once per run)
+   merged by Camden. The Fidelity transfer-history capability check is evidenced
+   read-only, and the pilot's first rebalance evidences the settlement-date
+   convention (FR-002). Until all three hold, authority cannot rise above $200
+   under any reading of this spec.
 4. Tasks T004–T009 are merged; every protected unit by Camden after line review.
 5. Camden personally re-provisions (FR-007).
 6. §11.3 items 1–6 still hold; Camden arms LIVE himself, separately.
