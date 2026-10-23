@@ -164,3 +164,50 @@ def test_workflow_is_dormant_exclusive_and_attempts_once():
     login = text.index("--mode submit")
     assert text.index("Skip quietly if today already had an attempt") < check < marker < login
     assert "FIDELITY_LIVE_PASSWORD" not in text[:login - 600]
+
+
+def unsettled(**changes):
+    """The record live_loop writes when settled cash lags: refused before any order snapshot."""
+    return dict(session="2026-10-20", pin_sha=PIN, profile="live_fidelity", account_fingerprint=FINGERPRINT,
+                clean=False, challenge=False, place_calls=0, previews=[], refused="unsettled_cash") | changes
+
+
+def test_clean_unsettled_cash_day_is_a_quiet_skip(tmp_path, armable):
+    root, digest = root_with_manifest(tmp_path)
+    config, seen = settings(tmp_path), {}
+    spawn = child(config, seen)
+
+    def skip(command, **kwargs):
+        spawn(command, **kwargs)
+        (config["state"] / "preview-sessions" / "2026-10-20.json").write_text(json.dumps(unsettled()))
+        return SimpleNamespace(returncode=0)
+    assert live.run(mode="submit", now=NOW, environ={}, spawn=skip, arming_text=arming(digest),
+                    root=root, **config) == "UNSETTLED"
+    assert not list(config["profiles"].parent.glob("fidelity-arming.json"))
+
+
+@pytest.mark.parametrize("change", [
+    {"place_calls": 1}, {"place_calls": False}, {"actions": [{"outcome": "SUBMITTED"}]}, {"challenge": True},
+    {"aborted": "Fidelity loop halted; Camden review required"}, {"pin_sha": "b" * 40},
+    {"account_fingerprint": "e" * 64}, {"session": "2026-10-19"}, {"refused": "preview_unaffordable"}, "HALTED",
+])
+def test_unsettled_skip_that_is_not_clean_refuses(tmp_path, armable, change):
+    root, digest = root_with_manifest(tmp_path)
+    config, seen = settings(tmp_path), {}
+    spawn = child(config, seen)
+
+    def skip(command, **kwargs):
+        spawn(command, **kwargs)
+        record = unsettled() if change == "HALTED" else unsettled(**change)
+        (config["state"] / "preview-sessions" / "2026-10-20.json").write_text(json.dumps(record))
+        if change == "HALTED":
+            (config["state"] / "HALTED").write_text("Camden review required\n")
+        return SimpleNamespace(returncode=0)
+    with pytest.raises(live.HostRefused):
+        live.run(mode="submit", now=NOW, environ={}, spawn=skip, arming_text=arming(digest), root=root, **config)
+
+
+def test_failure_issue_opens_at_most_once_per_day():
+    text = WORKFLOW.read_text(encoding="utf-8")
+    step = text[text.index("Notify host failure"):]
+    assert step.index("gh issue list") < step.index("gh issue create")

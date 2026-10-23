@@ -6,6 +6,8 @@
 # At most ONE attempt per NYSE session, shared with the preview host: the marker is persisted before
 # login and never retried. Off switch: QMB_FIDELITY_LIVE_ENABLED to anything but 'true', or delete the
 # arming secret (the host then refuses before any child and opens an issue).
+# GitHub's schedule fires hours late on the private repo; the real trigger is an external timer
+# calling workflow_dispatch inside the window (see FIDELITY-HOST.md). A late cron fire is a no-op.
 name: fidelity-live
 on:
   schedule:
@@ -177,6 +179,12 @@ jobs:
         if: failure()
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh issue create -R "${{ github.repository }}" --title "fidelity-live failed $(date -u +%F)"
-          --body "LIVE host refused or failed. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Inspect private state; no automatic retry today. Off switch: QMB_FIDELITY_LIVE_ENABLED."
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        # One issue per day: repeated dispatches of a refused host (e.g. an expired arming) add no noise.
+        run: |
+          title="fidelity-live failed $(date -u +%F)"
+          open=$(gh issue list -R "$REPO" --state open --search "\"$title\" in:title" --json title --jq "map(select(.title == \"$title\")) | length")
+          [ "$open" = "0" ] || { echo "already reported: $title"; exit 0; }
+          gh issue create -R "$REPO" --title "$title" \
+            --body "LIVE host refused or failed. Run: $RUN_URL. Inspect private state; no automatic retry today. Off switch: QMB_FIDELITY_LIVE_ENABLED."

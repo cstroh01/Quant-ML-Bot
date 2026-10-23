@@ -57,12 +57,19 @@ is its helper. Installing it changes nothing until Camden personally arms:
    the pinned manifest's bytes), `activated_by` (`Camden`), `activated_at` and
    `expires_at` (ISO instants with an offset).
 4. Set `QMB_FIDELITY_PREVIEW_ENABLED=false` and `QMB_FIDELITY_LIVE_ENABLED=true`.
+5. Point the external timer at LIVE: in the cron-job.org `qmb preview` job, change
+   `fidelity-preview.yml` to `fidelity-live.yml` in the dispatch URL (same body
+   `{"ref":"main"}`, same 10:10/10:40/11:10/11:40 ET schedule). GitHub's own
+   `schedule:` fires hours late on the private repo and cannot be relied on.
 
 Before any child, the helper reruns the preview preflight, then refuses unless the
 record arms exactly this profile now, its digest equals the pinned manifest and the
 manifest still checks `ARMABLE`. The record reaches `live_loop.py` only as a 0600
 temporary file deleted after the child. A run that fell back to preview, saw a gate
 denial, refused, or whose `place_calls` differ from its submitted orders is a
-failure: an issue opens and the day is not retried. Repinning to a commit whose
+failure: one issue opens per day and the day is not retried. The exception is a
+clean `unsettled_cash` refusal (settled cash does not yet show a deposit or the
+previous fills; no order, no attempt, no halt): the host reports `UNSETTLED` and the
+next session runs normally. Repinning to a commit whose
 manifest bytes changed requires a new arming record. Disarm by deleting the secret
 or setting `QMB_FIDELITY_LIVE_ENABLED` to anything else.
