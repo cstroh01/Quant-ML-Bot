@@ -34,6 +34,7 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   `fidelity-trader-api` SDK) after source audit; (b) Playwright browser automation of Fidelity's
   site as fallback. Choose the one that returns order status by id and supports preview.
 - **D-3 (Camden, at arming)** LIVE bot budget (a few hundred dollars), 0.20 daily deploy fraction.
+  Superseded 2026-10-23 by spec 064 amendment 002: daily deploy fraction 1.0.
 
 ### Amendment — 2026-10-15 (Camden, D-4..D-7 approved in chat)
 - D-4 Primary SDK only (fidelity-trader-api==0.2.2). Playwright fallback dropped: stealth-by-default
