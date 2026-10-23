@@ -42,3 +42,27 @@ acceptance. Today's CSV, when separately supplied, belongs under
 state/live_fidelity/holdings/YYYY-MM-DD.csv. No old file may be relabeled.
 Authentication challenges halt and require operator action. Scheduling and
 LIVE trading remain later reviewed changes behind all SCOPE §11.3 gates.
+
+## Armed LIVE host (057 T011)
+
+`fidelity-live.yml` is the ordinary LIVE template; `scripts/fidelity_live_host.py`
+is its helper. Installing it changes nothing until Camden personally arms:
+
+1. All seven §11.3 items are evidenced in `docs/implementation/spec-059/gate-manifest.json`
+   on public main and `python scripts/gate_checklist.py` prints `ARMABLE`.
+2. Repin `QMB_FIDELITY_PIN` to a main commit containing that manifest.
+3. Set private secret `QMB_FIDELITY_ARMING_JSON` to exactly these six keys:
+   `profile_name` (`live_fidelity`), `account_fingerprint` (the 64-hex value in
+   any clean `preview-sessions/*.json`), `capital_gate_evidence_sha256` (SHA-256 of
+   the pinned manifest's bytes), `activated_by` (`Camden`), `activated_at` and
+   `expires_at` (ISO instants with an offset).
+4. Set `QMB_FIDELITY_PREVIEW_ENABLED=false` and `QMB_FIDELITY_LIVE_ENABLED=true`.
+
+Before any child, the helper reruns the preview preflight, then refuses unless the
+record arms exactly this profile now, its digest equals the pinned manifest and the
+manifest still checks `ARMABLE`. The record reaches `live_loop.py` only as a 0600
+temporary file deleted after the child. A run that fell back to preview, saw a gate
+denial, refused, or whose `place_calls` differ from its submitted orders is a
+failure: an issue opens and the day is not retried. Repinning to a commit whose
+manifest bytes changed requires a new arming record. Disarm by deleting the secret
+or setting `QMB_FIDELITY_LIVE_ENABLED` to anything else.
