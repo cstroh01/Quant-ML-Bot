@@ -102,10 +102,17 @@ def test_a_renamed_required_positions_column_refuses_instead_of_reading_empty(re
 
 
 @pytest.mark.parametrize("renamed", [("Action", "Activity"), ("Symbol", "Ticker"), ("Quantity", "Shares"),
-                                     ("Amount ($)", "Amount")])
+                                     ("Amount ($)", "Amount"), ("Cash Balance ($)", "Balance")])
 def test_a_renamed_required_history_column_refuses(renamed):
     with pytest.raises(HoldingsImportError, match="missing required column"):
         parse_history_csv(HISTORY.replace(renamed[0], renamed[1], 1))
+
+
+def test_padded_headers_parse_like_exact_headers():
+    padded = POSITIONS.replace(",Symbol,", ", Symbol ,", 1).replace(",Current Value,", ",Current Value  ,", 1)
+    assert padded != POSITIONS
+    assert parse_positions_csv(padded).positions == parse_positions_csv(POSITIONS).positions
+    assert parse_positions_csv(padded).cash_usd == parse_positions_csv(POSITIONS).cash_usd
 
 
 def test_row_membership_ignores_case_like_lookup():
