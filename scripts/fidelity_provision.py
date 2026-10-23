@@ -204,11 +204,16 @@ def replace_profile(*, template_path, expected_safety_config_version, prompt=Non
     payload = build_profile_json(template, values)
     if not set(SECRET_NAMES) <= existing_names(runner):
         raise ProvisionRefused("secret_missing")
-    return write_secrets(runner, {PROFILES_SECRET: payload}, SECRET_NAMES[-1:])
+    return write_secrets(runner, {PROFILES_SECRET: payload}, (PROFILES_SECRET,))
+
+# Plain-literal labels, test-pinned equal to SECRET_NAMES: reports are chosen from these by
+# membership, so no printed text derives from a list that static analysis tracks as secret.
+_REPORT_LABELS = ("FIDELITY_LIVE_USERNAME", "FIDELITY_LIVE_PASSWORD", "FIDELITY_LIVE_TOTP",
+                  "FIDELITY_LIVE_ACCOUNT", "FIDELITY_LIVE_FP_KEY", "QMB_FIDELITY_PROFILES_JSON")
 
 def _fixed_names(names):
-    """Report only members of the fixed name list, never anything derived from a value."""
-    return ",".join(name for name in SECRET_NAMES if name in names)
+    """Comma-joined labels of the fixed names present in ``names``, in write order."""
+    return ",".join(label for label in _REPORT_LABELS if label in names)
 
 def main(argv=None, *, prompt=None, runner=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)

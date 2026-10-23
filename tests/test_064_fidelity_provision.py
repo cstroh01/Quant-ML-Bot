@@ -291,6 +291,9 @@ def test_matching_supplied_versions_cannot_override_installed_contract(tmp_path)
                      prompt=prompt, runner=gh)
     assert not gh.calls and not prompt.labels
 
+def test_report_labels_are_exactly_the_fixed_names():
+    assert fp._REPORT_LABELS == fp.SECRET_NAMES == tuple(NAMES)
+
 def replace_args(path):
     return ["--apply", "--replace-profile"] + apply_args(path)[1:]
 
