@@ -204,7 +204,11 @@ def replace_profile(*, template_path, expected_safety_config_version, prompt=Non
     payload = build_profile_json(template, values)
     if not set(SECRET_NAMES) <= existing_names(runner):
         raise ProvisionRefused("secret_missing")
-    return write_secrets(runner, {PROFILES_SECRET: payload}, (PROFILES_SECRET,))
+    return write_secrets(runner, {PROFILES_SECRET: payload}, SECRET_NAMES[-1:])
+
+def _fixed_names(names):
+    """Report only members of the fixed name list, never anything derived from a value."""
+    return ",".join(name for name in SECRET_NAMES if name in names)
 
 def main(argv=None, *, prompt=None, runner=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -223,14 +227,14 @@ def main(argv=None, *, prompt=None, runner=None):
                            expected_safety_config_version=args.expected_safety_config_version,
                            prompt=prompt, runner=runner)
     except ProvisionRefused as error:
-        print(str(error) + "; completed: " + (",".join(error.completed) or "none")
+        print("Provision refused: " + error.category + "; completed: " + (_fixed_names(error.completed) or "none")
               + "; no automatic retry, review remote secret names personally", file=sys.stderr)
         return 2
     except (Exception, KeyboardInterrupt):
         print("Provision refused: internal_error; completed: unknown; review remote secret names personally",
               file=sys.stderr)
         return 2
-    print("COMPLETED: " + ",".join(completed))
+    print("COMPLETED: " + _fixed_names(completed))
     return 0
 
 if __name__ == "__main__":
