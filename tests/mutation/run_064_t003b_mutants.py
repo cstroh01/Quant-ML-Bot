@@ -29,6 +29,9 @@ MUTANTS={
  'settlement watermark ignored':("if mark_path.exists():","if False:"),
  'settlement lag window unbounded':("recent=mark['session'] in (str(expected),str(previous_session(expected)))","recent=True"),
  'settlement direction ignored':("(cash-mark['settled_cash'])*math.copysign(1,due)","(cash-mark['settled_cash'])"),
+ 'watermark cash never refreshed':("'settled_cash':cash,","'settled_cash':(mark['settled_cash'] if mark_path.exists() else cash),"),
+ 'sold-out sleeve dropped from due':("for s in set(held)|set(mark['held'])","for s in held"),
+ 'dust floor raised to $10':("abs(due)>=0.01","abs(due)>=10"),
 }
 def main():
     directory=Path(sys.argv[1]); directory.mkdir(parents=True,exist_ok=True)
