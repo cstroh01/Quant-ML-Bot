@@ -32,6 +32,13 @@ MUTANTS={
  'watermark cash never refreshed':("'settled_cash':cash,","'settled_cash':(mark['settled_cash'] if mark_path.exists() else cash),"),
  'sold-out sleeve dropped from due':("for s in set(held)|set(mark['held'])","for s in held"),
  'dust floor raised to $10':("abs(due)>=0.01","abs(due)>=10"),
+ 'dust floor raised to $4.99':("abs(due)>=0.01","abs(due)>=4.99"),
+ 'any settled movement counts':("(cash-mark['settled_cash'])*math.copysign(1,due)<abs(due)/2",
+                                "(cash-mark['settled_cash'])*math.copysign(1,due)<=0"),
+ 'full due must settle':("(cash-mark['settled_cash'])*math.copysign(1,due)<abs(due)/2",
+                         "(cash-mark['settled_cash'])*math.copysign(1,due)<abs(due)*0.99"),
+ 'every trade treated as a buy':("(cash-mark['settled_cash'])*math.copysign(1,due)<abs(due)/2",
+                                 "(mark['settled_cash']-cash)<abs(due)/2"),
 }
 def main():
     directory=Path(sys.argv[1]); directory.mkdir(parents=True,exist_ok=True)

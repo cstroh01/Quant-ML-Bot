@@ -207,8 +207,8 @@ def test_persistent_lag_refreshes_the_watermark_every_cycle(tmp_path, gate, monk
         submitted = any(a['outcome'] == 'SUBMITTED' for a in record.get('actions', []))
         outcomes.append(record.get('refused') or ('SUBMITTED' if submitted else 'IDLE'))
         spent_after.append(broker.spent)
-    assert outcomes[:4] == ['unsettled_cash', 'SUBMITTED', 'unsettled_cash', 'SUBMITTED'], outcomes
-    assert len(seen) >= 3 and max(seen) - min(seen) < 1e-6, seen  # no lagged equity ever reached the gate
+    assert outcomes == ['unsettled_cash', 'SUBMITTED', 'unsettled_cash', 'SUBMITTED', 'unsettled_cash'], outcomes
+    assert len(seen) == 3 and max(seen) - min(seen) < 1e-6, seen  # no lagged equity ever reached the gate
 
 
 @pytest.mark.parametrize('held_mark,held_now', [({}, {'SPY': None}), ({'SPY': 0.05}, {})],
@@ -225,3 +225,38 @@ def test_unsettled_share_change_since_yesterday_is_refused(tmp_path, gate, held_
     (tmp_path / 'cash-basis.json').write_text(json.dumps(mark))
     record = run(tmp_path, gate, FillingBroker(closes, settled=150.0, held=held_now), NOW, closes)
     assert record.get('refused') == 'unsettled_cash' and record['place_calls'] == 0, record.get('abort_kind')
+
+
+def _guarded_run(tmp_path, gate, held_mark, held_now, settled_now, mark_cash=150.0):
+    """One run against yesterday's watermark; holdings in dollars at the last SPY close."""
+    closes = bars()
+    spy = float(closes.iloc[-1]['SPY'])
+    held_mark = {s: d / spy for s, d in held_mark.items()}
+    held_now = {s: d / spy for s, d in held_now.items()}
+    book = {'account_fingerprint': profile().account_fingerprint, 'positions': dict(held_now), 'orders': {}}
+    (tmp_path / 'bot-positions.json').write_text(json.dumps(book))
+    mark = {'session': str(loop.previous_session(NOW.astimezone(fs.NY).date())), 'settled_cash': mark_cash,
+            'held': held_mark}
+    (tmp_path / 'cash-basis.json').write_text(json.dumps(mark))
+    return run(tmp_path, gate, FillingBroker(closes, settled=settled_now, held=held_now), NOW, closes)
+
+
+@pytest.mark.parametrize('settled_share,refused', [(0.4, 'unsettled_cash'), (0.6, None)],
+                         ids=['40% of due settled', '60% of due settled'])
+def test_half_of_due_is_the_settlement_threshold(tmp_path, gate, settled_share, refused):
+    """A $40 buy: settled cash must fall by at least $20 before the move counts as settled."""
+    record = _guarded_run(tmp_path, gate, {}, {'SPY': 40.0}, settled_now=150.0 - 40.0 * settled_share)
+    assert not record.get('aborted'), record.get('abort_kind')
+    assert record.get('refused') == refused, record.get('refused')
+
+
+def test_one_dollar_fill_is_above_the_dust_floor(tmp_path, gate):
+    """The smallest real order ($1) still has to show in settled cash."""
+    record = _guarded_run(tmp_path, gate, {}, {'SPY': 1.0}, settled_now=150.0)
+    assert record.get('refused') == 'unsettled_cash' and record['place_calls'] == 0, record.get('abort_kind')
+
+
+def test_settled_sale_proceeds(tmp_path, gate):
+    """A $40 sale whose cash has settled raises settled cash by $40: the run is not refused."""
+    record = _guarded_run(tmp_path, gate, {'SPY': 40.0}, {}, settled_now=190.0)
+    assert not record.get('aborted') and record.get('refused') is None, record.get('abort_kind')
