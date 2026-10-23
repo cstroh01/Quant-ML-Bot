@@ -300,3 +300,42 @@ code path, not real fills.
 §8 is replaced while constitution Rule 9b is in force: parallel lanes split by module ownership,
 any number of open PRs with no shared file, PRs up to 600 lines, agent merges under Rule 9b, and a
 daily merge digest for Camden.
+
+## 12. Amendment 2026-10-22 — final v1 release scope (PROPOSED; adopted only when Camden merges it)
+
+Camden, 2026-10-21: "All I want is a finalized project with all of my v2 wants in
+documentation." Spec 064's final-v1 contract and legacy dispositions
+(`docs/implementation/spec-064/`) said a reviewed amendment must reconcile §11.1 before a
+reduced final release is tagged. This section is that amendment. It loosens no gate:
+§11.3 stays in force word for word, and nothing here arms LIVE.
+
+### 12.1 Final v1 — definition of done (replaces §11.1 while this section is in force)
+
+The final v1 release is tagged `v1.2` when all hold:
+
+1. §11.1 items 1–4, 6 and 7 hold as written (suite/mutation green on `main`, PAPER
+   unattended and reconciled on both profiles, spec 061 trading in PAPER, spec 058
+   published — its recorded verdict is FAIL and stays published, §11.3 passed and LIVE
+   armed at Fidelity at the $200 cap, README and limitations updated).
+2. §11.1 item 5 (spec 052 registry covering spec 060's ~100-ETF list) moves to V2. The
+   traded universe stays spec 061's eight sleeves through the dated registry entries
+   that already cover them. Spec 060/062 work stays recorded with its real status.
+3. The software units that make operation PC-independent are merged: 064 T003a/T003b,
+   057 T011 (armed LIVE host template) and the item-6 API-holdings evidence path
+   (Camden, 2026-10-22: "API holdings count.").
+4. Each legacy obligation is closed, superseded or deferred to V2 exactly as
+   `docs/implementation/spec-064/legacy-dispositions.md` records it; a row that says
+   "required path" still binds wherever that path is exercised.
+
+### 12.2 Explicitly V2 (not release blockers)
+
+ML trading decisions and promotion (053), the expanded universe and stock research
+(060/062), intraday/crypto/new platforms, broad reporting/UI sweeps (038/046/047), and
+capital scaling beyond the $200 pilot (spec 065, which keeps its own adoption
+conditions). §11.3 item 7's $200 cap is unchanged by this section.
+
+### 12.3 What remains after the software is merged
+
+Only calendar and personal items: ten reconciled PAPER sessions per profile with
+per-order cost comparison, five clean Fidelity preview sessions, observed notification
+delivery, the item-1 refresh at the arming SHA, and Camden's personal arming.
