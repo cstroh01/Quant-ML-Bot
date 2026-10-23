@@ -138,8 +138,11 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
         flows=flow_source or UNSUPPORTED_FLOWS
         held={s:q for s,q in live.positions().items() if not _CASH_SYMBOLS.match(s)}
         marks={**live.prices(),**worst}
+        # Gate equity pairs settled cash with start-of-run holdings at the last completed close. A fill
+        # moves shares at once but settled cash only at T+1, so neither the fill nor its settlement is P&L.
+        gate_equity=cash+sum(q*float(last[s]) for s,q in held.items())
         observed=gate.observe_equity_with_flows(
-            BrokerSnapshot(now_fn(),'OK',sum(q*marks[s] for s,q in held.items())+cash,0.0,held,marks),
+            BrokerSnapshot(now_fn(),'OK',gate_equity,0.0,held,marks),
             observation_id=f'{profile.name}:{today}:{session.run_id}',events=list(flows.events(live,now_fn())),
             account_fingerprint=profile.account_fingerprint,approved_sources=(flows.source_id,),now=now_fn())
         if observed.reconciliation_halt: raise HaltProfile('stale snapshot halted the flow observation')
@@ -178,8 +181,7 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
             intent=OrderIntent(client_order_id(profile.name,today,order.ticker,side),order.ticker,order.delta_quantity)
             positions={s:q for s,q in positions.items() if not _CASH_SYMBOLS.match(s)}
             prices={**live.prices(),**worst}
-            market_value=sum(q*prices[s] for s,q in positions.items())
-            snapshot=BrokerSnapshot(now_fn(),'OK',market_value+cash,0.0,positions,prices)
+            snapshot=BrokerSnapshot(now_fn(),'OK',gate_equity,0.0,positions,prices)
             notional=abs(order.delta_quantity)*worst[order.ticker]
             def send(candidate):
                 if not armed: return live.preview(candidate)
