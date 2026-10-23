@@ -41,6 +41,7 @@ def build_state(root: Path) -> Path:
     (state / "ops" / "runs.jsonl").write_text(json.dumps({"profile": PROFILE, "session": "2026-10-22"}) + "\n",
                                               encoding="utf-8")
     connection = sqlite3.connect(state / "live-gate.sqlite")
+    connection.execute("PRAGMA journal_mode=WAL")  # as LiveSafetyGate opens it
     connection.execute("CREATE TABLE reservations (id TEXT PRIMARY KEY, notional REAL)")
     connection.executemany("INSERT INTO reservations VALUES (?, ?)", [(f"r{i}", 10.0 * i) for i in range(50)])
     connection.commit()
@@ -75,7 +76,12 @@ def test_faithful_backup_passes_and_leaves_inputs_untouched(tmp_path, primary, b
 def test_owned_scratch_is_removed(primary, backup, monkeypatch, tmp_path):
     made = []
     real = rd.tempfile.mkdtemp
-    monkeypatch.setattr(rd.tempfile, "mkdtemp", lambda **kw: made.append(real(dir=tmp_path, **kw)) or made[-1])
+    def spy(*args, **kw):  # records the drill's own scratch; SQLite copies use TemporaryDirectory
+        path = real(*args, **kw)
+        if kw.get("prefix") == "qmb-restore-":
+            made.append(path)
+        return path
+    monkeypatch.setattr(rd.tempfile, "mkdtemp", spy)
     assert rd.drill(primary, backup, profile=PROFILE, now=NOW)["verdict"] == "PASS"
     assert len(made) == 1 and not Path(made[0]).exists()
 
@@ -121,11 +127,72 @@ def test_extra_file_in_backup_fails_byte_comparison(tmp_path, primary, backup):
     assert evidence["verdict"] == "FAIL" and evidence["differing_files"] == ["stray.txt"]
 
 
-def test_corrupt_gate_in_both_copies_still_fails(tmp_path, primary, backup):
-    _corrupt_sqlite(primary)
-    _corrupt_sqlite(backup)
+def _write(rel, data):
+    return lambda s: (s / rel).write_bytes(data)
+
+
+LEASE = f"leases/{PROFILE}-2026-10-22.json"
+BOTH_BROKEN = {  # the same refusable state in both copies; the runtime would not read it
+    "gate db corrupt": (_corrupt_sqlite, "live-gate.sqlite"),
+    "torn intent log": (_tear_intents, "intents.jsonl"),
+    "intent log missing final newline": (_write("intents.jsonl", b'{"client_order_id": "x", "intent": {}}'),
+                                         "intents.jsonl"),  # valid JSON, yet open_intents refuses it
+    "torn lease": (_write(LEASE, b"{"), LEASE),
+    "lease without run_id": (_write(LEASE, b'{"state": "running"}'), LEASE),
+    "torn ownership": (_write("bot-positions.json", b'{"positions": '), "bot-positions.json"),
+    "non-utf8 json": (_write("cash-basis.json", b'{"x": "\xff"}'), "cash-basis.json"),
+    "torn run log": (_write("ops/runs.jsonl", b'{"profile": "live_fidelity", "session": "2026-10-22"}\n{"pro'),
+                     "ops/runs.jsonl"),
+    "run row without session": (_write("ops/runs.jsonl", b'{"profile": "live_fidelity"}\n'), "ops/runs.jsonl"),
+    "torn incident log": (_write("ops/incidents.jsonl", b'{"kind": '), "ops/incidents.jsonl"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(BOTH_BROKEN))
+def test_identically_broken_copies_still_fail(tmp_path, primary, backup, name):
+    plant, unhealthy = BOTH_BROKEN[name]
+    plant(primary)
+    plant(backup)
     evidence = rd.drill(primary, backup, profile=PROFILE, now=NOW, scratch=tmp_path / "scratch")
-    assert evidence["verdict"] == "FAIL" and evidence["unhealthy_sqlite"] == ["live-gate.sqlite"]
+    assert evidence["verdict"] == "FAIL" and not evidence["differing_files"], evidence
+    assert unhealthy in evidence["unhealthy"], evidence
+
+
+def test_wal_resident_rows_count_and_inputs_gain_no_side_files(tmp_path, primary):
+    """A persisted -wal is read (rows only in the WAL change the dump); inputs never gain -wal/-shm."""
+    db = primary / "live-gate.sqlite"
+    clean = rd._sqlite(db)["dump_sha256"]
+    writer = sqlite3.connect(db)
+    writer.execute("PRAGMA wal_autocheckpoint=0")
+    writer.execute("INSERT INTO reservations VALUES ('r50', 500.0)")
+    writer.commit()
+    copy = tmp_path / "with-wal"
+    copy.mkdir()
+    for suffix in ("", "-wal"):
+        shutil.copyfile(db.with_name(db.name + suffix), copy / (db.name + suffix))
+    writer.close()
+    before = rd.manifest(copy)
+    assert rd._sqlite(copy / db.name)["dump_sha256"] == rd._sqlite(db)["dump_sha256"] != clean
+    assert rd.manifest(copy) == before
+
+
+def test_input_changed_during_drill_refuses(tmp_path, primary, backup, monkeypatch):
+    real = rd.consumer_view
+
+    def writer_meanwhile(state, profile, now):
+        (primary / "late.json").write_text("{}", encoding="utf-8")
+        return real(state, profile, now)
+    monkeypatch.setattr(rd, "consumer_view", writer_meanwhile)
+    with pytest.raises(rd.DrillRefused, match="changed during the drill"):
+        rd.drill(primary, backup, profile=PROFILE, now=NOW, scratch=tmp_path / "scratch")
+
+
+def test_due_run_counts_only_this_profiles_rows(tmp_path, primary, backup):
+    for state in (primary, backup):
+        (state / "ops" / "runs.jsonl").write_text(json.dumps({"profile": "paper_small", "session": "2026-10-22"})
+                                                  + "\n", encoding="utf-8")
+    evidence = rd.drill(primary, backup, profile=PROFILE, now=NOW, scratch=tmp_path / "scratch")
+    assert evidence["verdict"] == "PASS" and evidence["due_run"]["status"] == "after_cutoff"
 
 
 @pytest.mark.parametrize("profile", ["../paper_small", "Live", "con"])
@@ -142,13 +209,17 @@ def test_naive_clock_and_empty_backup_refuse(tmp_path, primary):
         rd.drill(primary, tmp_path / "empty", profile=PROFILE, now=NOW)
 
 
-def test_symlink_in_backup_refuses(tmp_path, primary, backup):
+def test_symlink_in_backup_or_as_root_refuses(tmp_path, primary, backup):
     try:
         os.symlink(primary / "HALTED", backup / "link")
+        os.symlink(primary, tmp_path / "root-link", target_is_directory=True)
     except (OSError, NotImplementedError):
         pytest.skip("symlinks unavailable on this host")
     with pytest.raises(rd.DrillRefused, match="symlink"):
         rd.drill(primary, backup, profile=PROFILE, now=NOW, scratch=tmp_path / "scratch")
+    (backup / "link").unlink()
+    with pytest.raises(rd.DrillRefused, match="not a directory"):
+        rd.drill(tmp_path / "root-link", backup, profile=PROFILE, now=NOW, scratch=tmp_path / "s2")
 
 
 def test_cli_writes_evidence_and_exit_code(tmp_path, primary, backup, capsys):
@@ -161,11 +232,11 @@ def test_cli_writes_evidence_and_exit_code(tmp_path, primary, backup, capsys):
     assert json.loads(out.read_text(encoding="utf-8"))["verdict"] == "REFUSED"
 
 
-def test_torn_intent_log_in_both_copies_still_fails(tmp_path, primary, backup):
-    _tear_intents(primary)
-    _tear_intents(backup)
-    evidence = rd.drill(primary, backup, profile=PROFILE, now=NOW, scratch=tmp_path / "scratch")
-    assert evidence["verdict"] == "FAIL" and evidence["open_intents"] == "corrupt"
+def test_cli_records_unexpected_errors_as_refused(tmp_path, monkeypatch):
+    out = tmp_path / "evidence.json"
+    monkeypatch.setattr(rd, "drill", lambda *a, **k: (_ for _ in ()).throw(KeyError("session")))
+    assert rd.main(["--primary", "a", "--backup", "b", "--profile", PROFILE, "--evidence", str(out)]) == 1
+    assert json.loads(out.read_text(encoding="utf-8"))["reason"] == "internal: KeyError"
 
 
 def test_restore_that_reads_differently_at_its_new_location_fails(tmp_path, primary, backup, monkeypatch):
@@ -179,16 +250,3 @@ def test_restore_that_reads_differently_at_its_new_location_fails(tmp_path, prim
     evidence = rd.drill(primary, backup, profile=PROFILE, now=NOW, scratch=tmp_path / "scratch")
     assert evidence["verdict"] == "FAIL" and evidence["differing_files"] == []
     assert evidence["differing_views"] == ["leases"]
-
-
-def test_workflow_template_is_dispatch_only_and_read_only():
-    text = (ROOT / "ops" / "workflows" / "restore-drill.yml").read_text(encoding="utf-8")
-    body = "\n".join(line.split("#", 1)[0] for line in text.splitlines())  # comments may name what is absent
-    assert "workflow_dispatch:" in body and "schedule:" not in body and "concurrency:" not in body
-    assert "permissions:\n  contents: read\n  actions: read\n" in body and ": write" not in body
-    for forbidden in ("secrets.", "persist_state", "git push", "issue create", "--submit", "exec/"):
-        assert forbidden not in body, forbidden
-    uses = [line.split("uses:", 1)[1].strip() for line in body.splitlines() if "uses:" in line]
-    assert uses and all(len(u.split("@", 1)[1]) == 40 for u in uses), uses
-    assert body.count("persist-credentials: false") == 2
-    assert "scripts/restore_drill.py" in body

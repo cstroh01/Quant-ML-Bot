@@ -27,21 +27,32 @@ and a 90-day `upload-artifact` backup. Nobody has shown the backup restores.
      `open_intents` (the real `ops_runtime` reader), the real `due_run` decision built from
      `ops/runs.jsonl`, every parsed `*.json`/`*.jsonl` (ownership `bot-positions.json`,
      `cash-basis.json`, allocation state, attempt markers, run logs) and every `*.sqlite`
-     (immutable read-only `integrity_check` plus a logical-dump hash).
-  3. No restored SQLite fails `integrity_check` and the intent log is not torn, even when the
-     primary has the same defect: a faithful copy of broken state is not a usable restore.
+     (`integrity_check` plus a logical-dump hash, read from a private copy that includes any
+     `-wal`/`-shm`, so WAL-resident pages count and the input never gains side files).
+  3. Nothing in the restored copy is state the runtime would refuse, even when the primary has
+     the same defect: unparseable or non-UTF-8 JSON/JSONL, a lease without `run_id`, a torn
+     intent log, a `runs.jsonl` the runner cannot read, or a SQLite failing `integrity_check`.
+     A faithful copy of broken state is not a usable restore.
 - Evidence: verdict, profile, file count, manifest hash, differing files and views, latches,
   lease names, open-intent count, due-run decision, SQLite names. No values beyond those.
 
-CLI: `--primary --backup --profile --evidence`; exit 0 only on PASS; REFUSED is recorded.
+CLI: `--primary --backup --profile --evidence`; exit 0 only on PASS; REFUSED is recorded,
+including any unexpected error, so the evidence file is always written.
 
 ## FR-002 — Dispatch-only template (`ops/workflows/restore-drill.yml`)
+
+Shipped as its own review unit (template, `tests/test_066_restore_drill_workflow.py`,
+`tests/mutation/run_066_restore_workflow_mutants.py`) to keep each unit within 600 lines.
+
 
 - `workflow_dispatch` with a `profile` choice; no schedule; `contents: read`, `actions: read`.
 - No secrets, no broker, no push, no issue, both checkouts `persist-credentials: false`.
 - **No concurrency group.** Joining the writers' group would make the drill the group's single
-  pending run and cancel a pending PAPER or Fidelity run. Instead it refuses while any writer
-  workflow is queued or running, and the drill itself refuses if an input changes mid-run.
+  pending run and cancel a pending PAPER or Fidelity run. Instead, before any checkout, it
+  refuses while any writer workflow is queued or running, failing closed on any `gh` error
+  except a workflow that is not installed. It checks out `ops-state` at one recorded SHA and,
+  after the drill, refuses if `ops-state` has moved (a stale comparison, not a FAIL). The
+  drill's own input-change refusal covers local runs only.
 - Restores the newest unexpired artifact for the profile (`state-<profile>-<run>`; for
   `live_fidelity` the newer of `fidelity-live-state-<run>` and `fidelity-state-<run>`).
 - Uploads `restore-drill.json` as `restore-drill-<profile>-<run>` (90 days).

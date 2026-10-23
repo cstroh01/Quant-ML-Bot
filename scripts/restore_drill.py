@@ -3,8 +3,9 @@
 Copies a backup (a workflow's ``state-<profile>-<run>`` artifact) into a fresh scratch
 directory and proves the copy reproduces the primary (the ``ops-state`` checkout of that
 profile) byte for byte and as every consumer reads it: latches, leases, intents, the due-run
-decision, JSON/JSONL state and gate SQLite. Never writes either input; writes only the
-scratch copy and the evidence file. No network, no broker, no credentials.
+decision, JSON/JSONL state and gate SQLite. A faithful copy of state the runtime would refuse
+(torn JSON, unreadable lease, torn run log, corrupt SQLite) also fails. Never writes either
+input; writes only scratch copies and the evidence file. No network, no broker, no credentials.
 """
 from __future__ import annotations
 
@@ -21,6 +22,7 @@ from pathlib import Path
 from ops_runtime import IntentLogCorrupt, due_run, open_intents, require_storage_identifier
 
 LATCHES = ("HALTED", "KILL")
+UNPARSEABLE = "unparseable"
 
 
 class DrillRefused(RuntimeError):
@@ -42,26 +44,46 @@ def manifest(root: Path) -> dict[str, str]:
 
 
 def _sqlite(path: Path) -> dict:
-    """Integrity check and logical dump through an immutable read-only connection."""
-    connection = sqlite3.connect(path.resolve().as_uri() + "?mode=ro&immutable=1", uri=True)
-    try:
-        check = connection.execute("PRAGMA integrity_check").fetchone()[0]
-        return {"integrity": check, "dump_sha256": hashlib.sha256(
-            "\n".join(connection.iterdump()).encode("utf-8")).hexdigest()}
-    except sqlite3.DatabaseError as error:
-        return {"integrity": "unreadable: " + type(error).__name__}
-    finally:
-        connection.close()
+    """Integrity check and logical dump of a private copy (with any -wal/-shm), so WAL-resident
+    pages count and the input never gains side files."""
+    with tempfile.TemporaryDirectory(prefix="qmb-sqlite-") as scratch:
+        for suffix in ("", "-wal", "-shm"):
+            source = path.with_name(path.name + suffix)
+            if source.is_file():
+                shutil.copyfile(source, Path(scratch) / (path.name + suffix))
+        connection = sqlite3.connect(Path(scratch) / path.name)
+        try:
+            check = connection.execute("PRAGMA integrity_check").fetchone()[0]
+            return {"integrity": check, "dump_sha256": hashlib.sha256(
+                "\n".join(connection.iterdump()).encode("utf-8")).hexdigest()}
+        except sqlite3.DatabaseError as error:
+            return {"integrity": "unreadable: " + type(error).__name__}
+        finally:
+            connection.close()
 
 
 def _parsed(path: Path):
-    text = path.read_text(encoding="utf-8")
+    """Parsed JSON or JSONL, or UNPARSEABLE for any read, decode or parse error."""
     try:
+        text = path.read_text(encoding="utf-8")
         if path.suffix == ".jsonl":
             return [json.loads(line) for line in text.splitlines() if line.strip()]
         return json.loads(text)
-    except ValueError:
-        return "unparseable"
+    except (OSError, ValueError):
+        return UNPARSEABLE
+
+
+def _due_run(state: Path, profile: str, now: datetime):
+    """The runner's due decision, reading runs.jsonl as strictly as ops_runner does; "corrupt"
+    where the runner would raise before deciding."""
+    runs = state / "ops" / "runs.jsonl"
+    rows = _parsed(runs) if runs.exists() else []
+    try:
+        completed = {(r["profile"], date.fromisoformat(r["session"])) for r in rows if r["profile"] == profile}
+    except (KeyError, TypeError, ValueError):
+        return "corrupt"
+    decision = due_run(now, profile=profile, completed=completed)
+    return {"status": decision.status, "session": decision.session.isoformat()}
 
 
 def consumer_view(state: Path, profile: str, now: datetime) -> dict:
@@ -71,21 +93,29 @@ def consumer_view(state: Path, profile: str, now: datetime) -> dict:
         intents = open_intents(state)
     except IntentLogCorrupt:
         intents = "corrupt"
-    runs = state / "ops" / "runs.jsonl"
-    rows = _parsed(runs) if runs.exists() else []  # an unparseable log still differs under "json"
-    completed = {(r["profile"], date.fromisoformat(r["session"]))
-                 for r in (rows if isinstance(rows, list) else []) if r.get("profile") == profile}
-    decision = due_run(now, profile=profile, completed=completed)
     return {
         "latches": sorted(name for name in LATCHES if (state / name).exists()),
         "leases": {p.name: _parsed(p) for p in sorted((state / "leases").glob("*.json"))},
         "open_intents": intents,
-        "due_run": {"status": decision.status, "session": decision.session.isoformat()},
+        "due_run": _due_run(state, profile, now),
         "json": {p.relative_to(state).as_posix(): _parsed(p)
                  for p in sorted(state.rglob("*")) if p.suffix in (".json", ".jsonl") and p.is_file()},
         "sqlite": {p.relative_to(state).as_posix(): _sqlite(p)
                    for p in sorted(state.rglob("*.sqlite")) if p.is_file()},
     }
+
+
+def unusable(view: dict) -> list[str]:
+    """State in ``view`` that the runtime would refuse to read, whatever the other copy holds."""
+    bad = [p for p, value in view["json"].items() if value == UNPARSEABLE]
+    bad += ["leases/" + name for name, lease in view["leases"].items()
+            if not (isinstance(lease, dict) and "run_id" in lease)]  # complete_lease reads run_id
+    bad += [p for p, s in view["sqlite"].items() if s["integrity"] != "ok"]
+    if view["open_intents"] == "corrupt":
+        bad.append("intents.jsonl")
+    if view["due_run"] == "corrupt":
+        bad.append("ops/runs.jsonl")
+    return sorted(set(bad))
 
 
 def drill(primary: Path, backup: Path, *, profile: str, now: datetime, scratch: Path | None = None) -> dict:
@@ -96,8 +126,8 @@ def drill(primary: Path, backup: Path, *, profile: str, now: datetime, scratch: 
     require_storage_identifier(profile)
     if now.tzinfo is None:
         raise DrillRefused("now must be timezone-aware")
+    before = {"primary": manifest(primary), "backup": manifest(backup)}  # refuses symlinked roots
     primary, backup = Path(primary).resolve(), Path(backup).resolve()
-    before = {"primary": manifest(primary), "backup": manifest(backup)}
     if not before["backup"]:
         raise DrillRefused("backup is empty")
     owned = scratch is None
@@ -117,12 +147,12 @@ def drill(primary: Path, backup: Path, *, profile: str, now: datetime, scratch: 
         raise DrillRefused("an input changed during the drill; rerun when no writer is active")
     differing = sorted(p for p in set(files) | set(before["primary"]) if files.get(p) != before["primary"].get(p))
     view_diff = sorted(k for k in views["primary"] if views["primary"][k] != views["restored"][k])
-    unhealthy = sorted(p for p, s in views["restored"]["sqlite"].items() if s["integrity"] != "ok")
-    passed = not differing and not view_diff and not unhealthy and views["restored"]["open_intents"] != "corrupt"
+    unhealthy = unusable(views["restored"])
+    passed = not differing and not view_diff and not unhealthy
     return {"verdict": "PASS" if passed else "FAIL", "profile": profile, "as_of": now.isoformat(),
             "files": len(files), "manifest_sha256": hashlib.sha256(
                 json.dumps(files, sort_keys=True).encode("utf-8")).hexdigest(),
-            "differing_files": differing, "differing_views": view_diff, "unhealthy_sqlite": unhealthy,
+            "differing_files": differing, "differing_views": view_diff, "unhealthy": unhealthy,
             "latches": views["restored"]["latches"], "leases": sorted(views["restored"]["leases"]),
             "open_intents": (len(views["restored"]["open_intents"])
                              if isinstance(views["restored"]["open_intents"], list) else "corrupt"),
@@ -140,6 +170,8 @@ def main(argv: list[str] | None = None) -> int:
         evidence = drill(args.primary, args.backup, profile=args.profile, now=datetime.now(timezone.utc))
     except (DrillRefused, ValueError) as error:
         evidence = {"verdict": "REFUSED", "profile": args.profile, "reason": str(error)}
+    except Exception as error:  # last resort: the evidence file is always written
+        evidence = {"verdict": "REFUSED", "profile": args.profile, "reason": "internal: " + type(error).__name__}
     args.evidence.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps({k: evidence[k] for k in ("verdict", "profile")}))
     return 0 if evidence["verdict"] == "PASS" else 1
