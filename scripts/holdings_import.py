@@ -165,7 +165,7 @@ def parse_history_csv(text: str) -> HistorySnapshot:
     """Normalize a Fidelity activity/History export; run dates are session labels."""
     as_of = _downloaded(text)
     activity = []
-    for row in _rows(text, "Run Date", ("Run Date", "Action", "Symbol", "Quantity", "Amount ($)")):
+    for row in _rows(text, "Run Date", ("Run Date", "Action", "Symbol", "Quantity", "Amount ($)", "Cash Balance ($)")):
         symbol = (row.get("Symbol") or "").strip()
         run_date = datetime.strptime(row["Run Date"].strip(), "%m/%d/%Y").date()
         activity.append(Activity(

@@ -143,6 +143,9 @@ def test_gate_records_totp_observation_without_inventing_a_new_clean_condition(t
     row['api_holdings_reconciled']=False; p.write_text(json.dumps(row))
     item['sha256']=hashlib.sha256(p.read_bytes()).hexdigest(); manifest.write_text(json.dumps(bundle))
     assert not fidelity_preview(entry,tmp_path)[0]  # every session needs its own API reconciliation
+    row.pop('api_holdings_reconciled'); p.write_text(json.dumps(row))
+    item['sha256']=hashlib.sha256(p.read_bytes()).hexdigest(); manifest.write_text(json.dumps(bundle))
+    assert not fidelity_preview(entry,tmp_path)[0]  # a row without the field is refused, not read as absent-ok
 
 def test_session_records_the_exact_api_check_the_evidence_requires(tmp_path):
     from fidelity_preview_evidence import API_RECONCILED
