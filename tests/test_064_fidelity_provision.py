@@ -42,7 +42,7 @@ DROP = object()
 def template(**changes):
     base = {"name": "live_fidelity", "mode": "LIVE", "broker": "fidelity", "credential_refs": NAMES[:5],
             "state_dir": "state/live_fidelity", "log_namespace": "live_fidelity", "bot_budget_usd": 200.0,
-            "daily_deploy_fraction": 0.2, "instruments": ["etf"], "fractional": True,
+            "daily_deploy_fraction": 1.0, "instruments": ["etf"], "fractional": True,
             "safety_config_version": VERSION}
     for key, value in changes.items():
         if value is DROP:
@@ -165,6 +165,7 @@ BAD_TEMPLATES = {
     "budget_below_pilot": template(bot_budget_usd=199.99),
     "budget_string": template(bot_budget_usd="200"),
     "daily_fraction": template(daily_deploy_fraction=0.25),
+    "superseded_daily_fraction": template(daily_deploy_fraction=0.2),
     "paper_mode": template(mode="PAPER"),
     "paper_broker": template(broker="alpaca_paper"),
     "other_name": template(name="live_fidelity2"),
@@ -289,6 +290,55 @@ def test_matching_supplied_versions_cannot_override_installed_contract(tmp_path)
         fp.provision(template_path=path, expected_safety_config_version="other-installed-contract",
                      prompt=prompt, runner=gh)
     assert not gh.calls and not prompt.labels
+
+def replace_args(path):
+    return ["--apply", "--replace-profile"] + apply_args(path)[1:]
+
+def test_replace_profile_writes_only_profile_secret_with_full_fraction(tmp_path, capsys):
+    gh, prompt = FakeGh(existing=tuple(NAMES) + ("PAPER_SMALL_KEY_ID",)), Prompter()
+    assert fp.main(replace_args(write_template(tmp_path, template())), prompt=prompt, runner=gh) == 0
+    assert gh.unexpected == [] and len(prompt.labels) == 10
+    assert [argv for argv, _ in gh.calls] == [LIST_ARGV, ["gh", "secret", "set", NAMES[5], "--repo", REPO]]
+    raw = json.loads(gh.writes()[0][1]["input"].decode("utf-8"))
+    assert raw[0]["account_fingerprint"] == EXPECTED_DIGEST and raw[0]["daily_deploy_fraction"] == 1.0
+    profile = load_profiles(raw)["live_fidelity"]
+    assert profile.daily_deploy_fraction == 1.0 and profile.bot_budget_usd == 200.0
+    out, err = capsys.readouterr()
+    assert out.strip() == "COMPLETED: " + NAMES[5] and err == ""
+    assert_clean(out + err)
+
+@pytest.mark.parametrize("name", NAMES)
+def test_replace_profile_refuses_when_any_name_is_missing(tmp_path, name):
+    gh = FakeGh(existing=tuple(n for n in NAMES if n != name))
+    with pytest.raises(fp.ProvisionRefused) as caught:
+        fp.replace_profile(template_path=write_template(tmp_path, template()),
+                           expected_safety_config_version=VERSION, prompt=Prompter(), runner=gh)
+    assert caught.value.category == "secret_missing" and gh.writes() == []
+
+def test_replace_profile_refuses_old_fraction_and_needs_apply(tmp_path):
+    gh, prompt = FakeGh(existing=tuple(NAMES)), Prompter()
+    old = write_template(tmp_path, template(daily_deploy_fraction=0.2))
+    with pytest.raises(fp.ProvisionRefused, match="invalid_template"):
+        fp.replace_profile(template_path=old, expected_safety_config_version=VERSION, prompt=prompt, runner=gh)
+    assert fp.main(replace_args(old)[1:], prompt=prompt, runner=gh) == 2
+    assert gh.calls == [] and prompt.labels == []
+
+@pytest.mark.parametrize("case", sorted(BAD_VALUES))
+def test_replace_profile_validates_values_before_any_external_call(tmp_path, case):
+    name, bad = BAD_VALUES[case]
+    gh = FakeGh(existing=tuple(NAMES))
+    with pytest.raises(fp.ProvisionRefused) as caught:
+        fp.replace_profile(template_path=write_template(tmp_path, template()), expected_safety_config_version=VERSION,
+                           prompt=Prompter(dict(VALUES, **{name: bad})), runner=gh)
+    assert caught.value.category == "invalid_value:" + name and gh.calls == []
+
+def test_replace_profile_write_failure_reports_nothing_completed(tmp_path, capsys):
+    gh = FakeGh(existing=tuple(NAMES), fail_on=NAMES[5])
+    assert fp.main(replace_args(write_template(tmp_path, template())), prompt=Prompter(), runner=gh) == 2
+    assert len(gh.writes()) == 1
+    out, err = capsys.readouterr()
+    assert out == "" and "write_failed; completed: none" in err
+    assert_clean(out + err)
 
 @pytest.fixture(autouse=True)
 def no_real_process_or_network(monkeypatch):

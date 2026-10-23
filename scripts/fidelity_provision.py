@@ -6,6 +6,8 @@ regenerate. Profile stays in memory. Six fixed private secret writes use stdin,
 never argv/files/environment. No broker, state, workflow or schedule changes.
 Remote values are unreadable; partial writes are not atomic or rolled back.
 Any uncertain result requires personal review, without automatic retry.
+--replace-profile (amendment 002) instead requires all six names to exist and
+rewrites only the profile secret, from the same validated values and template.
 """
 from __future__ import annotations
 
@@ -32,7 +34,7 @@ LIST_ARGV = ("gh", "api", "--paginate", "repos/" + REPO + "/actions/secrets", "-
 PROFILE_NAME = "live_fidelity"
 STATE_DIR = "state/live_fidelity"
 PILOT_BUDGET_USD = 200.0
-DAILY_DEPLOY_FRACTION = 0.2
+DAILY_DEPLOY_FRACTION = 1.0  # spec 064 amendment 002 (Camden, 2026-10-23)
 INSTRUMENTS = ("etf",)
 TEMPLATE_FIELDS = frozenset({"name", "mode", "broker", "credential_refs", "state_dir", "log_namespace",
                              "bot_budget_usd", "daily_deploy_fraction", "instruments", "fractional",
@@ -164,10 +166,10 @@ def existing_names(runner):
         raise ProvisionRefused("listing_failed") from None
     return {name.upper() for name in names}
 
-def write_secrets(runner, payloads):
-    """Exactly six fixed writes in order; stop at the first failure, never retry."""
+def write_secrets(runner, payloads, names=SECRET_NAMES):
+    """Fixed writes in order (all six by default); stop at the first failure, never retry."""
     completed = []
-    for name in SECRET_NAMES:
+    for name in names:
         try:
             result = runner(["gh", "secret", "set", name, "--repo", REPO], input=payloads[name].encode("utf-8"),
                             capture_output=True, shell=False, check=False, timeout=TIMEOUT_SECONDS)
@@ -192,9 +194,22 @@ def provision(*, template_path, expected_safety_config_version, prompt=None, run
         raise ProvisionRefused("secret_exists")
     return write_secrets(runner, payloads)
 
+def replace_profile(*, template_path, expected_safety_config_version, prompt=None, runner=None):
+    """Rewrite only the profile secret; refuse unless all six names already exist."""
+    prompt = _no_echo_prompt if prompt is None else prompt
+    runner = subprocess.run if runner is None else runner
+    template = load_template(template_path, expected_safety_config_version)
+    values = read_values(prompt)
+    validate_values(values)
+    payload = build_profile_json(template, values)
+    if not set(SECRET_NAMES) <= existing_names(runner):
+        raise ProvisionRefused("secret_missing")
+    return write_secrets(runner, {PROFILES_SECRET: payload}, (PROFILES_SECRET,))
+
 def main(argv=None, *, prompt=None, runner=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--apply", action="store_true")
+    parser.add_argument("--replace-profile", action="store_true")
     parser.add_argument("--template", type=Path)
     parser.add_argument("--expected-safety-config-version")
     args = parser.parse_args(argv)
@@ -203,9 +218,10 @@ def main(argv=None, *, prompt=None, runner=None):
               "nothing was read, prompted or written.", file=sys.stderr)
         return 2
     try:
-        completed = provision(template_path=args.template,
-                              expected_safety_config_version=args.expected_safety_config_version,
-                              prompt=prompt, runner=runner)
+        action = replace_profile if args.replace_profile else provision
+        completed = action(template_path=args.template,
+                           expected_safety_config_version=args.expected_safety_config_version,
+                           prompt=prompt, runner=runner)
     except ProvisionRefused as error:
         print(str(error) + "; completed: " + (",".join(error.completed) or "none")
               + "; no automatic retry, review remote secret names personally", file=sys.stderr)
