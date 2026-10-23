@@ -18,6 +18,7 @@ from gate_checklist import fidelity_preview
 from trial_registry import ROOT
 
 DEST = Path('docs/implementation/spec-061/fidelity-preview')
+API_RECONCILED = 'dedicated account reconciled exactly with bot ledger'  # exec/fidelity_session.py check
 
 
 def body(value):
@@ -43,6 +44,10 @@ def record_session(source, *, root=ROOT, gate=None, record=False):
     keys=('session','profile','clean','challenge','place_calls','account_fingerprint',
           'pin_sha','totp_step','library','settled_cash','holdings_match')
     row={k:raw[k] for k in keys}
+    # Camden, 2026-10-22: "API holdings count." The session's own exact broker-API holdings
+    # reconciliation is the item-6 holdings evidence; a CSV is optional and must match if present.
+    row['api_holdings_reconciled']=API_RECONCILED in raw.get('checks',[])
+    if not row['api_holdings_reconciled']: raise ValueError('API holdings reconciliation missing')
     row['settled_cash']={k:raw['settled_cash'][k] for k in ('amount','as_of')}
     row['previews']=[{'qty':float(p['qty']),'conf_num':p['conf_num']} for p in raw['previews']]
     if any(not isinstance(p['conf_num'],str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,128}',p['conf_num'])
