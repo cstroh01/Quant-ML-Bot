@@ -185,3 +185,43 @@ def test_settled_cash_above_the_budget_counts_in_full(tmp_path, gate, monkeypatc
     record = run(tmp_path, gate, FillingBroker(bars(), settled=250.0), NOW, bars())
     assert not record.get('aborted'), record.get('abort_kind')
     assert observed == [pytest.approx(250.0)]
+
+
+def test_persistent_lag_refreshes_the_watermark_every_cycle(tmp_path, gate, monkeypatch):
+    """Settled cash always one session late: trade and refusal alternate, equity never moves."""
+    seen = []
+    flow = LiveSafetyGate.observe_equity_with_flows
+    monkeypatch.setattr(LiveSafetyGate, 'observe_equity_with_flows',
+                        lambda self, snapshot, **kw: seen.append(snapshot.equity) or flow(self, snapshot, **kw))
+    closes = bars()
+    broker = FillingBroker(closes)
+    run(tmp_path, gate, broker, NOW, closes)
+    spent_after = [broker.spent]  # cumulative cost after each session's run
+    outcomes = []
+    for i, day in enumerate((1, 4, 5, 6, 7), start=1):  # Fri 10-16 .. Thu 10-22: NYSE sessions
+        monkeypatch.setattr(fs, '_STARTED', False)
+        broker.settled = BUDGET - (spent_after[i - 2] if i >= 2 else 0.0)  # fills settle one session late
+        closes = through(closes, NOW + timedelta(days=day))
+        record = run(tmp_path, gate, broker, NOW + timedelta(days=day), closes)
+        assert not record.get('aborted'), (day, record.get('abort_kind'))
+        submitted = any(a['outcome'] == 'SUBMITTED' for a in record.get('actions', []))
+        outcomes.append(record.get('refused') or ('SUBMITTED' if submitted else 'IDLE'))
+        spent_after.append(broker.spent)
+    assert outcomes[:4] == ['unsettled_cash', 'SUBMITTED', 'unsettled_cash', 'SUBMITTED'], outcomes
+    assert len(seen) >= 3 and max(seen) - min(seen) < 1e-6, seen  # no lagged equity ever reached the gate
+
+
+@pytest.mark.parametrize('held_mark,held_now', [({}, {'SPY': None}), ({'SPY': 0.05}, {})],
+                         ids=['five-dollar buy', 'sleeve sold to zero'])
+def test_unsettled_share_change_since_yesterday_is_refused(tmp_path, gate, held_mark, held_now):
+    """Shares moved since yesterday's watermark but settled cash did not: refused, whatever the size or side."""
+    closes = bars()
+    spy = float(closes.iloc[-1]['SPY'])
+    held_now = {s: (5.0 / spy if q is None else q) for s, q in held_now.items()}  # a $5 fill
+    book = {'account_fingerprint': profile().account_fingerprint, 'positions': dict(held_now), 'orders': {}}
+    (tmp_path / 'bot-positions.json').write_text(json.dumps(book))
+    mark = {'session': str(loop.previous_session(NOW.astimezone(fs.NY).date())), 'settled_cash': 150.0,
+            'held': held_mark}
+    (tmp_path / 'cash-basis.json').write_text(json.dumps(mark))
+    record = run(tmp_path, gate, FillingBroker(closes, settled=150.0, held=held_now), NOW, closes)
+    assert record.get('refused') == 'unsettled_cash' and record['place_calls'] == 0, record.get('abort_kind')
