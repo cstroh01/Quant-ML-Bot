@@ -23,6 +23,12 @@ MUTANTS={
  'held valued at zero':("gate_equity=cash+sum(q*float(last[s]) for s,q in held.items())","gate_equity=cash"),
  'quarantine unreported':("'quarantined':observed.quarantined","'quarantined':False"),
  'observation id not per run':("observation_id=f'{profile.name}:{today}:{session.run_id}'","observation_id=profile.name"),
+ 'gate equity clamped to the budget':("gate_equity=cash+sum(q*float(last[s]) for s,q in held.items())",
+                                      "gate_equity=min(profile.bot_budget_usd,cash+sum(q*float(last[s]) for s,q in held.items()))"),
+ 'settlement guard removed':("raise UnsettledCash('prior fills not yet in settled cash')","pass"),
+ 'settlement watermark ignored':("if mark_path.exists():","if False:"),
+ 'settlement lag window unbounded':("recent=mark['session'] in (str(expected),str(previous_session(expected)))","recent=True"),
+ 'settlement direction ignored':("(cash-mark['settled_cash'])*math.copysign(1,due)","(cash-mark['settled_cash'])"),
 }
 def main():
     directory=Path(sys.argv[1]); directory.mkdir(parents=True,exist_ok=True)

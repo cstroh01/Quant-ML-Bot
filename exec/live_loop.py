@@ -141,6 +141,17 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
         # Gate equity pairs settled cash with start-of-run holdings at the last completed close. A fill
         # moves shares at once but settled cash only at T+1, so neither the fill nor its settlement is P&L.
         gate_equity=cash+sum(q*float(last[s]) for s,q in held.items())
+        # Settlement guard: shares moved since the watermark must already show in settled cash (at
+        # least half of qty x last close) or a lagging balance would read settlement as a loss. Lag
+        # skips the day; after two sessions a mismatch is a cash flow, not lag, and the run proceeds.
+        mark_path=Path(state)/'cash-basis.json'
+        if mark_path.exists():
+            mark=json.loads(mark_path.read_text(encoding='utf-8'))
+            due=-sum((held.get(s,0)-mark['held'].get(s,0))*float(last[s]) for s in set(held)|set(mark['held']))
+            recent=mark['session'] in (str(expected),str(previous_session(expected)))
+            if recent and abs(due)>=0.01 and (cash-mark['settled_cash'])*math.copysign(1,due)<abs(due)/2:
+                raise UnsettledCash('prior fills not yet in settled cash')
+        atomic_write(mark_path,json.dumps({'session':str(today),'settled_cash':cash,'held':held},sort_keys=True))
         observed=gate.observe_equity_with_flows(
             BrokerSnapshot(now_fn(),'OK',gate_equity,0.0,held,marks),
             observation_id=f'{profile.name}:{today}:{session.run_id}',events=list(flows.events(live,now_fn())),

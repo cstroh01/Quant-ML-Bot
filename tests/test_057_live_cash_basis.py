@@ -133,3 +133,55 @@ def test_held_positions_count_at_last_close(tmp_path, gate):
         LiveSafetyGate.observe_equity_with_flows = original
     assert not record.get('aborted'), record.get('abort_kind')
     assert observed == [pytest.approx(150.0 + 0.05 * float(closes.iloc[-1]['SPY']))]
+
+
+def test_lagging_settlement_skips_the_day_instead_of_halting(tmp_path, gate, monkeypatch):
+    """Settled cash one session late: the run is refused as unsettled, never read as a loss."""
+    seen = []
+    flow = LiveSafetyGate.observe_equity_with_flows
+    monkeypatch.setattr(LiveSafetyGate, 'observe_equity_with_flows',
+                        lambda self, snapshot, **kw: seen.append(snapshot.equity) or flow(self, snapshot, **kw))
+    closes = bars()
+    broker = FillingBroker(closes)
+    first = run(tmp_path, gate, broker, NOW, closes)
+    assert first['place_calls'] >= 2, first.get('abort_kind')
+    monkeypatch.setattr(fs, '_STARTED', False)
+    closes = through(closes, NOW + timedelta(days=1))
+    lagged = run(tmp_path, gate, broker, NOW + timedelta(days=1), closes)  # Fri: settled cash not moved yet
+    assert lagged.get('refused') == 'unsettled_cash' and not lagged.get('aborted')
+    assert lagged['place_calls'] == 0 and not (tmp_path / 'HALTED').exists()
+    monkeypatch.setattr(fs, '_STARTED', False)
+    broker.settled = BUDGET - broker.spent  # Mon: the fills have settled
+    closes = through(closes, NOW + timedelta(days=4))
+    record = run(tmp_path, gate, broker, NOW + timedelta(days=4), closes)
+    assert not record.get('aborted') and not record.get('refused'), record.get('abort_kind')
+    assert any(a['outcome'] == 'SUBMITTED' for a in record['actions'])
+    assert not any(a.get('reason') == DENY_LOSS_HALT for a in record['actions'])
+    assert len(seen) == 2 and max(seen) - min(seen) < 1e-6, seen  # the lagged equity never reached the gate
+
+
+def test_deposit_beside_settled_fills_skips_at_most_two_sessions(tmp_path, gate, monkeypatch):
+    """A deposit can mask settlement; after two sessions the mismatch is a flow and the run proceeds."""
+    closes = bars()
+    broker = FillingBroker(closes)
+    run(tmp_path, gate, broker, NOW, closes)
+    broker.settled = BUDGET - broker.spent + 100.0
+    outcomes = []
+    for day in (1, 4, 5):  # Fri 10-16, Mon 10-19, Tue 10-20
+        monkeypatch.setattr(fs, '_STARTED', False)
+        closes = through(closes, NOW + timedelta(days=day))
+        record = run(tmp_path, gate, broker, NOW + timedelta(days=day), closes)
+        assert not record.get('aborted'), (day, record.get('abort_kind'))
+        outcomes.append(record.get('refused'))
+    assert outcomes == ['unsettled_cash', 'unsettled_cash', None], outcomes
+
+
+def test_settled_cash_above_the_budget_counts_in_full(tmp_path, gate, monkeypatch):
+    """Gate equity is the account's, not the budget-clipped planner equity: a clamp would hide losses."""
+    observed = []
+    flow = LiveSafetyGate.observe_equity_with_flows
+    monkeypatch.setattr(LiveSafetyGate, 'observe_equity_with_flows',
+                        lambda self, snapshot, **kw: observed.append(snapshot.equity) or flow(self, snapshot, **kw))
+    record = run(tmp_path, gate, FillingBroker(bars(), settled=250.0), NOW, bars())
+    assert not record.get('aborted'), record.get('abort_kind')
+    assert observed == [pytest.approx(250.0)]
