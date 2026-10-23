@@ -301,7 +301,7 @@ code path, not real fills.
 any number of open PRs with no shared file, PRs up to 600 lines, agent merges under Rule 9b, and a
 daily merge digest for Camden.
 
-## 12. Amendment 2026-10-22 — final v1 release scope (PROPOSED; adopted only when Camden merges it)
+## 12. Amendment 2026-10-22 — final v1 release scope (ADOPTED: Camden merged #295, 2026-10-22)
 
 Camden, 2026-10-21: "All I want is a finalized project with all of my v2 wants in
 documentation." Spec 064's final-v1 contract and legacy dispositions
@@ -336,6 +336,15 @@ conditions). §11.3 item 7's $200 cap is unchanged by this section.
 
 ### 12.3 What remains after the software is merged
 
-Only calendar and personal items: ten reconciled PAPER sessions per profile with
-per-order cost comparison, five clean Fidelity preview sessions, observed notification
-delivery, the item-1 refresh at the arming SHA, and Camden's personal arming.
+No new software is required. What remains are calendar, operations and personal items:
+
+- ten reconciled PAPER sessions per profile, with per-order cost comparison;
+- five clean Fidelity preview sessions;
+- observed notification delivery;
+- cloud/schedule, restore and PC-off acceptance (spec 064 contract steps 3–5, 057 T010,
+  062 T007). GitHub's own `schedule:` fires hours late on the private repo, so the accepted
+  trigger is an external timer calling `workflow_dispatch` (`ops/workflows/FIDELITY-HOST.md`);
+- the item-1 refresh at the arming SHA;
+- Camden's personal arming.
+
+§12.1 item 4 binds every required path row whether or not it is restated here.
