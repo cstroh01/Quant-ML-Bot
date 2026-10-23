@@ -6,7 +6,8 @@ name exactly this profile, be inside its validity window and carry the SHA-256
 of the pinned SCOPE §11.3 gate manifest, and that manifest must still check
 ARMABLE. The arming record is Camden's activation; this helper never creates,
 extends or repairs one. A child that silently fell back to preview, saw a gate
-denial or recorded anything but a clean submit session is a refusal.
+denial or recorded anything but a clean submit session is a refusal. The one
+exception is a clean unsettled-cash skip: no order, no attempt, no halt.
 """
 from __future__ import annotations
 
@@ -81,6 +82,17 @@ def run(*, mode, now, pin, authorized_session, state, profiles, inputs, arming_t
         if result.returncode != 0:
             raise ValueError
         record = json.loads((state / "preview-sessions" / (session + ".json")).read_text(encoding="utf-8"))
+        if record.get("refused") == "unsettled_cash":
+            # 064: settled cash not yet showing a deposit or prior fills skips the day by design. It is
+            # not an incident only if this child placed nothing, attempted nothing and latched no halt.
+            if (record.get("session") != session or record.get("pin_sha") != pin
+                    or record.get("profile") != "live_fidelity"
+                    or row["account_fingerprint"] != record.get("account_fingerprint")
+                    or record.get("challenge") is not False or record.get("aborted")
+                    or type(record.get("place_calls")) is not int or record["place_calls"] != 0
+                    or record.get("actions") or (state / "HALTED").exists()):
+                raise ValueError
+            return "UNSETTLED"
         if (record.get("session") != session or record.get("pin_sha") != pin
                 or record.get("profile") != "live_fidelity" or record.get("mode") != "submit"
                 or record.get("account_fingerprint") != row["account_fingerprint"]

@@ -19,6 +19,10 @@ MUTANTS={
  'denial accepted':('OUTCOMES = frozenset({"SUBMITTED", "BUDGET_REFUSED"})','OUTCOMES = frozenset({"SUBMITTED", "BUDGET_REFUSED", "DENIED"})'),
  'arming file left behind':('arming.unlink(missing_ok=True)','pass'),
  'other account accepted':('or record.get("account_fingerprint") != row["account_fingerprint"]','or False'),
+ 'unsettled day still fails':('return "UNSETTLED"','raise ValueError'),
+ 'unsettled skip with orders accepted':('or type(record.get("place_calls")) is not int or record["place_calls"] != 0','or False'),
+ 'unsettled skip ignores a latched halt':(' or (state / "HALTED").exists()):','):'),
+ 'unsettled skip from another account':('row["account_fingerprint"] != record.get("account_fingerprint")','False'),
 }
 def main():
     directory=Path(sys.argv[1]); directory.mkdir(parents=True,exist_ok=True)
