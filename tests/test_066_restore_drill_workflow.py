@@ -22,6 +22,10 @@ def test_workflow_template_is_dispatch_only_and_read_only():
     assert text.index("Refuse while a state writer") < text.index("actions/checkout")
     assert "2>/dev/null" not in body and "|| echo 0" not in body and "could not find any workflows named" in body
     assert 'echo "::error::cannot check $wf: $active"; exit 1' in body
+    # gh's actual not-installed text (seen 2026-10-24 for fidelity-live.yml): HTTP 404,
+    # "workflow fidelity-live.yml not found on the default branch".
+    assert '*"not found on the default branch"*' in body
+    assert "if: ${{ always() && env.STATE_SHA != '' }}" in body  # no recheck before a snapshot exists
     assert "ref: ${{ env.STATE_SHA }}" in body and "ops-state moved; rerun the drill" in body
     for needle in ("select(.expired | not)", "sort_by(.created_at) | last",
                    '"fidelity-live-state-"', '"fidelity-state-"', '"[\\"state-$PROFILE-\\"]"'):

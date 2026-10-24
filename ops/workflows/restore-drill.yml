@@ -30,7 +30,8 @@ jobs:
           for wf in paper-loop.yml fidelity-preview.yml fidelity-live.yml; do
             filter='[.[] | select(.status != "completed")] | length'
             if ! active=$(gh run list -R "$GITHUB_REPOSITORY" -w "$wf" -L 20 --json status --jq "$filter" 2>&1); then
-              case "$active" in *"could not find any workflows named"*) continue ;; esac
+              # Not installed: gh reports "workflow X not found on the default branch" (HTTP 404).
+              case "$active" in *"not found on the default branch"*|*"could not find any workflows named"*) continue ;; esac
               echo "::error::cannot check $wf: $active"; exit 1
             fi
             if [ "$active" != "0" ]; then echo "::error::$wf is active; dispatch the drill later"; exit 1; fi
@@ -72,8 +73,9 @@ jobs:
           python scripts/restore_drill.py --primary "$GITHUB_WORKSPACE/state/$PROFILE"
           --backup "$RUNNER_TEMP/backup" --profile "$PROFILE" --evidence "$RUNNER_TEMP/restore-drill.json"
       # A writer that pushed during the drill makes the comparison stale: refuse, never FAIL.
+      # Only meaningful once a snapshot SHA was recorded.
       - name: Refuse if ops-state moved during the drill
-        if: always()
+        if: ${{ always() && env.STATE_SHA != '' }}
         run: |
           now=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/ops-state" --jq .object.sha)
           if [ "$now" != "$STATE_SHA" ]; then echo "::error::ops-state moved; rerun the drill"; exit 1; fi

@@ -16,6 +16,8 @@ MUTANTS = {
     "LIVE host backups ignored": (FLOW, """prefixes='["fidelity-live-state-","fidelity-state-"]'""",
                                   """prefixes='["fidelity-state-"]'"""),
     "ops-state not pinned": (FLOW, "ref: ${{ env.STATE_SHA }}", "ref: ops-state"),
+    "real not-installed text unmatched": (FLOW, '*"not found on the default branch"*|', ""),
+    "recheck without a snapshot": (FLOW, "if: ${{ always() && env.STATE_SHA != '' }}", "if: always()"),
 }
 def run():
     return subprocess.run([sys.executable, "-B", "-m", "pytest", *TESTS, "-q", "-p", "no:cacheprovider"],
