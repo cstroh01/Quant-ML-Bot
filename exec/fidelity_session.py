@@ -18,6 +18,8 @@ from ops_runtime import acquire_lease, atomic_write, complete_lease, open_intent
 NY = ZoneInfo('America/New_York')
 LIBRARY = {'version':'0.2.2','sha256':'f5a94056bd9a055ba88482ffcc7dc17013de9871b852b4d9b0dc55352506dd15'}
 _STARTED = False
+# FR-013: exception types defined in these exec/ modules carry fixed texts and type names, never library text.
+_OWN_MODULES = frozenset({'fidelity_live','fidelity_session','fidelity_reconcile','live_loop'})
 
 class PreviewUnaffordable(RuntimeError):
     """Normal refusal when no whole sleeve share fits settled cash."""
@@ -77,22 +79,30 @@ class Session:
                        'account_fingerprint':profile.account_fingerprint}
         self.broker = broker
         self.live = None
+        self.stage = 'preflight'
 
     def connect(self, csv=None, *, reconcile=None):
+        self.stage='broker'
         if self.broker is None:
             self.broker=LibraryBroker('FIDELITY_LIVE_ACCOUNT',self.env)
         if self.broker.account_fingerprint != self.profile.account_fingerprint:
             raise HaltProfile('account fingerprint mismatch')
         self.live=FidelityLive(self.profile,broker=self.broker,state_dir=self.state,environ=self.env)
+        self.stage='login'
         self.live.connect()
+        self.stage='reconcile'
         if reconcile is not None: reconcile(self.live)
         self.record['totp_step']=bool(self.broker.totp_step)
+        self.stage='settled_cash'
         self.record['settled_cash']=self.live.settled_cash(self.now)
         if self.record['settled_cash']['settled_amt']<=0: raise UnsettledCash('deposit not settled')
+        self.stage='holdings'
         self.snapshot=read_holdings(self.live,now=self.now,prices=self.live.prices(),
                                     account_fingerprint=self.profile.account_fingerprint)
+        self.stage='ownership'
         self.bot=ownership(self.state,self.snapshot,self.profile.account_fingerprint)
         if csv:
+            self.stage='csv'
             imported=parse_positions_csv(Path(csv).read_text(encoding='utf-8-sig'),account_fingerprint_fn=lambda account:account_hmac(account,self.env['FIDELITY_LIVE_FP_KEY']))
             actual={p.symbol:p.quantity for p in self.snapshot.positions if not _CASH_SYMBOLS.match(p.symbol)}
             wanted={p.symbol:p.quantity for p in imported.positions}
@@ -106,6 +116,7 @@ class Session:
         return self.live
 
     def preview_pair(self, closes):
+        self.stage='preview'
         from paper_loop import GAP_ALLOWANCE
         validate_closes(closes,self.now)
         last=closes.iloc[-1]
@@ -126,6 +137,17 @@ class Session:
                 if qty==1.0: raise
                 self.record['checks'].append('fractional preview refused; broker support UNVERIFIED')
         self.record['clean']=True
+
+    def failure(self, exc):
+        """FR-013: stage reached, exception type, its message only for exec/ types (at most 200
+        characters) and the broker's redacted login facts. Never raises: the halt must still latch."""
+        try:
+            diagnostic=getattr(self.broker,'diagnostic',None)
+            return {'stage':self.stage,'kind':type(exc).__name__,
+                    'detail':str(exc)[:200] if type(exc).__module__ in _OWN_MODULES else None,
+                    'login':diagnostic() if callable(diagnostic) else None}
+        except Exception:
+            return {'stage':getattr(self,'stage',None),'kind':type(exc).__name__,'detail':None,'login':None}
 
     def finish(self, error=False):
         if error:

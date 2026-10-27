@@ -104,6 +104,22 @@ credentials migration, scheduling, deployment-pin changes or LIVE activation.
   host/credential acceptance, notification receipt and real sessions remain
   human gates. Templates and fake Windows-host tests prove neither Linux
   execution nor ARM/Pi compatibility. Authentication challenges still halt.
+- **FR-013 Failure diagnostics (Camden, 2026-10-26).** The first hosted preview
+  (private run 40337114980) halted in `connect` and recorded only
+  `abort_kind: HaltProfile`, so its cause could not be determined. A failed
+  session record adds `failure`: the stage reached (`preflight`, `broker`,
+  `login`, `reconcile`, `settled_cash`, `holdings`, `ownership`, `csv`,
+  `allocation`, `preview`); the exception type; its message only when the type
+  is defined in `exec/` (fixed texts and type names), at most 200 characters;
+  and the login diagnostic. That holds the first refusal raised by this
+  adapter's own guards or the library exception's type name, whether status
+  1201 was seen, and up to 20 responses as host (`*.fidelity.com`, else
+  `other`), method, HTTP status, integer Fidelity auth code (auth endpoints
+  only) and path with the query dropped and every segment that holds a digit
+  or exceeds 24 characters masked. No library message, header, cookie, body or
+  query string is recorded, and the existing credential guard still blanks the
+  record. Diagnostics change no guard, halt or retry; a clean record is
+  unchanged.
 
 Acceptance: offline boundary/gap/DST and credential/command contracts, planted
 defects, full suite; then independent exact-head reviews. Human-reviewed private

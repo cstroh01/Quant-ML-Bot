@@ -208,6 +208,16 @@ class FidelityLive:
         return self._call("status", self._broker.status, previous["conf_num"])
 
 
+_AUTH_PATHS = ('/user/session/login', '/user/factor/password/authentication', '/user/factor/totp/authentication')
+_TRACE_LIMIT = 20
+
+
+def _masked_path(url) -> str:
+    """Path only: no host, query or fragment; a segment holding a digit or over 24 characters is '*'."""
+    segments = urlparse(str(url)).path.split('/')
+    return '/'.join('*' if any(c.isdigit() for c in s) or len(s) > 24 else s for s in segments)[:80]
+
+
 def account_hmac(account, key):
     import hashlib, hmac, re
     if not isinstance(key,str) or not re.fullmatch('[0-9a-f]{64}',key) or not isinstance(account,str) or not account:
@@ -226,6 +236,8 @@ class LibraryBroker:
         self._client: Any = client()
         self.totp_step = False
         self._totp_present = False
+        self.failure = None
+        self.trace = []
         self._client._http.event_hooks['request'].append(self._request_hook)
         self._client._http.event_hooks['response'].append(self._response_hook)
 
@@ -240,8 +252,43 @@ class LibraryBroker:
             context = self._client.security_context.get_context()
             if getattr(context, 'has_atp_access', None) is not True or getattr(context, 'errors', None) != []:
                 raise SecurityChallenge('Fidelity entitlement refused')
-        except Exception:
+        except Exception as exc:
+            # FR-013: this module's own fixed text, or only the library exception's type name.
+            self._note_refusal(str(exc) if isinstance(exc, SecurityChallenge) else 'library ' + type(exc).__name__)
             raise SecurityChallenge('Fidelity authentication or entitlement refused') from None
+
+    def _note_refusal(self, reason: str) -> None:
+        """Keep the first refusal; later ones are consequences of it."""
+        if getattr(self, 'failure', None) is None:
+            self.failure = reason
+
+    def _note_response(self, response) -> None:
+        """FR-013: one redacted response fact; never raises, so it cannot change a guard."""
+        try:
+            trace = getattr(self, 'trace', None)
+            if trace is None or len(trace) >= _TRACE_LIMIT:
+                return
+            url = urlparse(str(response.request.url))
+            entry = {'host': url.hostname if self._allowed(url.geturl()) else 'other',
+                     'method': str(response.request.method), 'path': _masked_path(url.geturl()),
+                     'status': int(response.status_code)}
+            location = response.headers.get('location')
+            if location:
+                entry['redirect'] = _masked_path(urljoin(url.geturl(), location))
+            if url.path.endswith(_AUTH_PATHS):
+                try:
+                    code = response.json()['responseBaseInfo']['status']['code']
+                except Exception:
+                    code = None
+                entry['auth_code'] = code if type(code) is int else None
+            trace.append(entry)
+        except Exception:
+            pass
+
+    def diagnostic(self) -> dict:
+        """Redacted login facts for a failed session record (FR-013)."""
+        return {'reason': getattr(self, 'failure', None), 'totp_step': bool(getattr(self, 'totp_step', False)),
+                'responses': list(getattr(self, 'trace', []))}
 
     @staticmethod
     def _allowed(url) -> bool:
@@ -249,6 +296,13 @@ class LibraryBroker:
         return parsed.scheme == 'https' and bool(parsed.hostname) and parsed.hostname.endswith('.fidelity.com')
 
     def _request_hook(self, request) -> None:
+        try:
+            self._check_request(request)
+        except SecurityChallenge as exc:
+            self._note_refusal(str(exc))
+            raise
+
+    def _check_request(self, request) -> None:
         if not self._allowed(request.url):
             raise SecurityChallenge('Fidelity request host refused')
         if any(p in request.url.path for p in ('/position/', '/balance/', '/order-status/', '/equity/', '/accounts')):
@@ -264,6 +318,15 @@ class LibraryBroker:
         return [a for k,v in value.items() for a in ([v] if k in ('acctNum','accountNumber','account_number') else LibraryBroker._account_ids(v))]
 
     def _response_hook(self, response) -> None:
+        try:
+            self._check_response(response)
+        except SecurityChallenge as exc:
+            self._note_refusal(str(exc))
+            raise
+        finally:
+            self._note_response(response)
+
+    def _check_response(self, response) -> None:
         self._request_hook(response.request)
         try:
             response.read(); payload = response.json()
@@ -278,7 +341,7 @@ class LibraryBroker:
         if response.status_code in (401, 403):
             raise SecurityChallenge('Fidelity session refused')
         path = response.request.url.path
-        if response.request.method == 'POST' and path.endswith(('/user/session/login', '/user/factor/password/authentication', '/user/factor/totp/authentication')):
+        if response.request.method == 'POST' and path.endswith(_AUTH_PATHS):
             try:
                 response.read()
                 code = response.json()['responseBaseInfo']['status']['code']

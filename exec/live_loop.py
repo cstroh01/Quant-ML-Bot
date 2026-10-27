@@ -111,6 +111,7 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
             if book_path.exists(): atomic_write(book_path,json.dumps(book,sort_keys=True))
             if persist: persist()
         live=session.connect(csv,reconcile=reconcile)
+        session.stage='allocation'
         secrets=[session.env.get(r,'') for r in profile.credential_refs]
         durable=DurableBroker(session.broker,persist,secrets)
         live._broker=durable
@@ -228,7 +229,8 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
         session.record['refused']='unsettled_cash' if isinstance(exc,UnsettledCash) else 'preview_unaffordable'
         record=session.finish()
     except Exception as exc:
-        session.record.update(aborted='Fidelity loop halted; Camden review required',abort_kind=type(exc).__name__,place_calls=getattr(locals().get('durable'),'place_calls',0))
+        session.record.update(aborted='Fidelity loop halted; Camden review required',abort_kind=type(exc).__name__,place_calls=getattr(locals().get('durable'),'place_calls',0),
+            failure=session.failure(exc))
         record=session.finish(error=True)
     finally:
         if own_gate and gate is not None: gate.close()
