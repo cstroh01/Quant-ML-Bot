@@ -34,6 +34,13 @@ Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or br
 - [ ] T011 **Human (Camden)**: schedule/ordinary autonomy proposal only after
   accepted operations; LIVE still requires all current SCOPE §11.3 gates and
   personal arming. Do not enable a schedule or infer permission from T008/T009.
+- [ ] T012 FR-013 **Reviewed lane** (Camden, 2026-10-26): record a redacted
+  failure stage, own-exception message and login diagnostic in failed preview
+  records. Synthetic-only RED/GREEN contracts (library text, credentials,
+  query strings and account digits never written; guards and halts unchanged;
+  clean records unchanged) and planted defects. Camden reads every line; after
+  merge and repin he clears `live_fidelity/HALTED` and the next session
+  records the cause. This task authorizes no retry and no guard change.
 
 
 ## Local pin preflight correction - 2026-10-18
