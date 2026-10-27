@@ -263,10 +263,10 @@ class LibraryBroker:
             self.failure = reason
 
     def _note_response(self, response) -> None:
-        """FR-013: one redacted response fact; never raises, so it cannot change a guard."""
+        """FR-013: one redacted response fact, keeping the latest 20; never raises, so it cannot change a guard."""
         try:
             trace = getattr(self, 'trace', None)
-            if trace is None or len(trace) >= _TRACE_LIMIT:
+            if trace is None:
                 return
             url = urlparse(str(response.request.url))
             entry = {'host': url.hostname if self._allowed(url.geturl()) else 'other',
@@ -282,6 +282,7 @@ class LibraryBroker:
                     code = None
                 entry['auth_code'] = code if type(code) is int else None
             trace.append(entry)
+            del trace[:-_TRACE_LIMIT]
         except Exception:
             pass
 

@@ -100,11 +100,21 @@ def test_non_integer_auth_code_is_none():
     assert b.diagnostic()['responses'][0]['auth_code'] is None and 'SECRET' not in json.dumps(b.diagnostic())
 
 
-def test_trace_is_bounded():
+def test_trace_keeps_the_latest_twenty():
     b = broker()
-    for _ in range(25):
-        b._response_hook(httpx.Response(200, request=httpx.Request('GET', 'https://digital.fidelity.com/x')))
-    assert len(b.diagnostic()['responses']) == 20
+    for status in range(200, 225):
+        b._response_hook(httpx.Response(status, request=httpx.Request('GET', 'https://digital.fidelity.com/x')))
+    assert [r['status'] for r in b.diagnostic()['responses']] == list(range(205, 225))
+
+
+@pytest.mark.parametrize('request_, reason', [
+    (httpx.Request('GET', 'https://evil.test/x'), 'Fidelity request host refused'),
+    (httpx.Request('POST', 'https://digital.fidelity.com/position/v2', json={}), 'Fidelity account filter refused'),
+    (httpx.Request('POST', 'https://digital.fidelity.com/position/v2', content=b'not json'), 'Fidelity account filter missing')])
+def test_request_time_refusal_recorded_before_any_response(request_, reason):
+    b = broker()
+    with pytest.raises(SecurityChallenge, match=reason): b._request_hook(request_)
+    assert b.diagnostic() == {'reason': reason, 'totp_step': False, 'responses': []}
 
 
 def test_broken_diagnostics_never_change_a_guard(monkeypatch):

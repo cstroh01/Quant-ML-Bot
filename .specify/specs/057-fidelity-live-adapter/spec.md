@@ -113,7 +113,7 @@ credentials migration, scheduling, deployment-pin changes or LIVE activation.
   is defined in `exec/` (fixed texts and type names), at most 200 characters;
   and the login diagnostic. That holds the first refusal raised by this
   adapter's own guards or the library exception's type name, whether status
-  1201 was seen, and up to 20 responses as host (`*.fidelity.com`, else
+  1201 was seen, and the latest 20 responses as host (`*.fidelity.com`, else
   `other`), method, HTTP status, integer Fidelity auth code (auth endpoints
   only) and path with the query dropped and every segment that holds a digit
   or exceeds 24 characters masked. No library message, header, cookie, body or
