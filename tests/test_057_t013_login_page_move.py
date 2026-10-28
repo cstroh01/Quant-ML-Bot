@@ -58,10 +58,13 @@ def test_sdk_page_load_follows_the_moved_login_page():
     assert b.diagnostic()['responses'][0]['redirect'] == '/prgw/digital/signin/atp'
 
 
-def test_moved_page_may_not_redirect_again():
+@pytest.mark.parametrize('second', [NEW.replace('atp', 'retail') + '?' + QUERY,
+                                    'https://digital.fidelity.com/ftgw/digital/portfolio?x', NEW + '?' + QUERY],
+                         ids=['login-path', 'non-login-path', 'same-page'])
+def test_moved_page_may_not_redirect_again(second):
     b = fresh()
     client, seen = sdk_client(b, {'/prgw/digital/login/atp': (308, {'location': NEW + '?' + QUERY}),
-                                  '/prgw/digital/signin/atp': (308, {'location': NEW.replace('atp', 'retail') + '?' + QUERY})})
+                                  '/prgw/digital/signin/atp': (302, {'location': second})})
     with pytest.raises(SecurityChallenge, match='Fidelity redirect refused'): client.get(OLD + '?' + QUERY)
     assert len(seen) == 2 and b.diagnostic()['reason'] == 'Fidelity redirect refused'
 
@@ -97,8 +100,21 @@ def test_move_refused_when_the_flag_is_missing():
     {'source': 'http://digital.fidelity.com/prgw/digital/login/atp?' + QUERY},
     {'source': 'https://www.fidelity.com/prgw/digital/login/atp?' + QUERY,
      'location': 'https://www.fidelity.com/prgw/digital/signin/atp?' + QUERY},
+    {'source': 'https://www.fidelity.com/prgw/digital/login/atp?' + QUERY},
+    {'location': 'https://digital.fidelity.com:8443/prgw/digital/signin/atp?' + QUERY},
+    {'source': 'https://digital.fidelity.com:444/prgw/digital/login/atp?' + QUERY},
+    {'location': 'https://u:p@digital.fidelity.com/prgw/digital/signin/atp?' + QUERY},
+    {'source': 'https://u:p@digital.fidelity.com/prgw/digital/login/atp?' + QUERY},
+    {'location': NEW + ';jsessionid=x?' + QUERY},
+    {'source': OLD + ';a=b?' + QUERY},
+    {'location': NEW + '?' + QUERY + '&exp=new'},
+    {'location': 'https://digital.fidelity.com/PRGW/digital/signin/atp?' + QUERY},
+    {'location': NEW + '/?' + QUERY},
+    {'method': 'HEAD'},
 ], ids=['301', '302', '307', 'post', 'signin-retail', 'login-full-page', 'other-fidelity-host', 'http-target',
-        'query-changed', 'query-dropped', 'other-source-path', 'other-source-host', 'http-source', 'both-other-host'])
+        'query-changed', 'query-dropped', 'other-source-path', 'other-source-host', 'http-source', 'both-other-host',
+        'www-source-only', 'target-port', 'source-port', 'target-userinfo', 'source-userinfo', 'target-params',
+        'source-params', 'query-appended', 'target-case', 'target-trailing-slash', 'head'])
 def test_every_near_miss_still_refused(change):
     b = fresh()
     with pytest.raises(SecurityChallenge, match='Fidelity redirect refused|Fidelity request host refused'): moved(b, **change)
@@ -109,3 +125,18 @@ def test_page_load_does_not_start_auth():
     b = fresh()
     b._request_hook(httpx.Request('GET', NEW + '?' + QUERY))
     assert b._auth_started is False
+
+
+def test_relative_location_is_the_same_move():
+    b = fresh()
+    moved(b, location='/prgw/digital/signin/atp?' + QUERY)
+    assert b.diagnostic()['reason'] is None
+
+
+def test_a_later_login_does_not_rearm_the_move():
+    b = fresh()
+    b._request_hook(httpx.Request('DELETE', AUTH, json={}))
+    b._client = NS(login=lambda *a, **k: None,
+                   security_context=NS(get_context=lambda: NS(has_atp_access=True, errors=[])))
+    b.login('fixture', 'fixture', 'fixture')
+    with pytest.raises(SecurityChallenge, match='Fidelity redirect refused'): moved(b)

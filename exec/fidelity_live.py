@@ -210,7 +210,8 @@ class FidelityLive:
 
 _AUTH_PATHS = ('/user/session/login', '/user/factor/password/authentication', '/user/factor/totp/authentication')
 _TRACE_LIMIT = 20
-_LOGIN_PAGE_MOVE = ('/prgw/digital/login/atp', '/prgw/digital/signin/atp')  # D-6a: Fidelity's permanent move
+_LOGIN_PAGE_MOVE = ('https://digital.fidelity.com/prgw/digital/login/atp',  # D-6a: Fidelity's permanent move,
+                    'https://digital.fidelity.com/prgw/digital/signin/atp')  # compared as exact strings
 
 
 def _masked_path(url) -> str:
@@ -341,8 +342,9 @@ class LibraryBroker:
         location = response.headers.get('location')
         if location:
             target = urljoin(str(response.url), location)
-            if not self._page_moved(response, target) and (
-                    not self._allowed(target) or any(x in urlparse(target).path.lower() for x in ('/signin', '/login'))):
+            from_moved_page = urlparse(str(response.request.url)).path.lower().startswith('/prgw/digital/signin/atp')
+            if not self._page_moved(response, target) and (from_moved_page or not self._allowed(target)
+                    or any(x in urlparse(target).path.lower() for x in ('/signin', '/login'))):
                 raise SecurityChallenge('Fidelity redirect refused')
         if response.status_code in (401, 403):
             raise SecurityChallenge('Fidelity session refused')
@@ -362,12 +364,10 @@ class LibraryBroker:
 
     def _page_moved(self, response, target) -> bool:
         """D-6a: only the pre-credential page load may follow Fidelity's permanent login-page move."""
-        src, dst = urlparse(str(response.request.url)), urlparse(target)
+        base, sep, query = str(response.request.url).partition('?')
         return (response.request.method == 'GET' and response.status_code == 308
                 and not getattr(self, '_auth_started', True)
-                and src.scheme == dst.scheme == 'https'
-                and src.hostname == dst.hostname == 'digital.fidelity.com'
-                and (src.path, dst.path) == _LOGIN_PAGE_MOVE and src.query == dst.query)
+                and base == _LOGIN_PAGE_MOVE[0] and target == _LOGIN_PAGE_MOVE[1] + sep + query)
 
     def settled_cash(self, as_of: datetime) -> dict:
         """Configured-account settled cash only; fresh NY session, never buying power."""

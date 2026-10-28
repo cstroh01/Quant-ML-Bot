@@ -44,9 +44,10 @@ Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or br
 - [ ] T013 D-6a **Reviewed lane** (Camden, 2026-10-28): the 2026-10-28 FR-013
   record shows the halt was our redirect guard refusing Fidelity's permanent
   `/prgw/digital/login/atp` -> `/prgw/digital/signin/atp` 308 on the SDK's
-  pre-credential page load. Accept exactly that redirect before any ecaap
-  request; every near miss (status, method, host, scheme, path, query, after
-  auth, missing marker, second hop) still refuses. Synthetic-only RED/GREEN
+  pre-credential page load. Accept exactly that redirect (exact URL strings)
+  before any ecaap request; every near miss (status, method, host, port,
+  userinfo, scheme, path, params, case, query, after auth or a later login,
+  missing marker, any second hop) still refuses. Synthetic-only RED/GREEN
   contracts through a real httpx redirect-following client on an in-memory
   transport, and planted defects. Camden reads every line; after merge and
   repin he clears `live_fidelity/HALTED`. No retry, no SDK change.
