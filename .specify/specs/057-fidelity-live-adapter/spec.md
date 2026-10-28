@@ -44,6 +44,12 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
 - D-6 The SDK's status-1201 TOTP step answered with the configured seed is EXPECTED, not a challenge.
   The wrapper must observe it (record `totp_step: true` in run evidence). Any other non-1200 status,
   AuthenticationError, CSRFTokenError, 401/403, login redirect, or unknown auth payload = latched halt.
+- D-6a (Camden, 2026-10-28, after the FR-013 record of private run 40703286171): Fidelity
+  permanently moved its login page on or before 2026-10-26. Exactly one redirect is accepted:
+  the SDK's pre-credential page load `GET https://digital.fidelity.com/prgw/digital/login/atp`
+  answered `308` to the same scheme and host, path `/prgw/digital/signin/atp`, identical
+  query, before any request to `ecaap.fidelity.com`. A missing marker refuses. Every other
+  login redirect, including any redirect from the moved page, remains a latched halt (D-6).
 - D-7 The SDK's built-in Trader+ client headers are accepted as inherent to D-1. Headers are static:
   never modified, randomized, rotated or extended by our code. Recorded as risk, not compliance.
 
