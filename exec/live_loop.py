@@ -33,6 +33,10 @@ LIVE_CAP=MAX_LIVE_BUDGET_USD
 # source is 'unsupported': no events, and an unattributed equity change stays P&L.
 UNSUPPORTED_FLOWS=SimpleNamespace(source_id='unsupported',events=lambda live,now:[])
 
+def noncash_prices(live):
+    """057 D-8: broker marks for non-cash symbols only; a core money-market row may carry no price."""
+    return {s:p for s,p in live.prices().items() if not _CASH_SYMBOLS.match(s)}
+
 def validate_live_budget(profile):
     if profile.bot_budget_usd > LIVE_CAP:
         raise HaltProfile('LIVE budget exceeds the reviewed $200 cap')
@@ -138,7 +142,7 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
         # any order snapshot. The gate applies the flow once; order snapshots keep 0.0.
         flows=flow_source or UNSUPPORTED_FLOWS
         held={s:q for s,q in live.positions().items() if not _CASH_SYMBOLS.match(s)}
-        marks={**live.prices(),**worst}
+        marks={**noncash_prices(live),**worst}
         # Gate equity pairs settled cash with start-of-run holdings at the last completed close. A fill
         # moves shares at once but settled cash only at T+1, so neither the fill nor its settlement is P&L.
         gate_equity=cash+sum(q*float(last[s]) for s,q in held.items())
@@ -192,7 +196,7 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
             side='buy' if order.delta_quantity>0 else 'sell'
             intent=OrderIntent(client_order_id(profile.name,today,order.ticker,side),order.ticker,order.delta_quantity)
             positions={s:q for s,q in positions.items() if not _CASH_SYMBOLS.match(s)}
-            prices={**live.prices(),**worst}
+            prices={**noncash_prices(live),**worst}
             snapshot=BrokerSnapshot(now_fn(),'OK',gate_equity,0.0,positions,prices)
             notional=abs(order.delta_quantity)*worst[order.ticker]
             def send(candidate):
