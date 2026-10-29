@@ -51,6 +51,14 @@ Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or br
   contracts through a real httpx redirect-following client on an in-memory
   transport, and planted defects. Camden reads every line; after merge and
   repin he clears `live_fidelity/HALTED`. No retry, no SDK change.
+- [ ] T014 D-4a **Reviewed lane** (Camden, 2026-10-29): the 2026-10-29 FR-013
+  record shows the moved page followed, password accepted (1200), then session
+  1201 and the SDK's own AuthenticationError with no TOTP request: the SDK
+  imports pyotp for a base32 seed and the host lock lacked it. Add exactly
+  `pyotp==2.10.0` with its wheel hash; offline contracts pin the line, the
+  complete-lock shape and both workflows' hash-checked install, plus planted
+  defects. Camden reads every line; after merge and repin he clears
+  `live_fidelity/HALTED`. No retry, no SDK, wrapper or guard change.
 
 
 ## Local pin preflight correction - 2026-10-18
