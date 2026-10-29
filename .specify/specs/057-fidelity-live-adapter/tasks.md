@@ -59,6 +59,14 @@ Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or br
   complete-lock shape and both workflows' hash-checked install, plus planted
   defects. Camden reads every line; after merge and repin he clears
   `live_fidelity/HALTED`. No retry, no SDK, wrapper or guard change.
+- [ ] T015 D-8 **Reviewed lane** (Camden, 2026-10-29): an offline dress rehearsal
+  (real run_once, LibraryBroker, audited SDK and LiveSafetyGate; in-memory
+  transport) halted with TypeError when the core money-market row had no
+  lastPrice: live_loop passed it into the gate marks and the flow digest
+  called float(None). Build both mark maps from non-cash broker prices plus
+  the sleeve worst-case marks. Synthetic contracts (RED on main) and planted
+  defects; Camden reads every line, merges and repins before the next
+  preview. No guard, ownership or sizing change.
 
 
 ## Local pin preflight correction - 2026-10-18

@@ -60,6 +60,12 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   at all from the moved page, remains a latched halt (D-6).
 - D-7 The SDK's built-in Trader+ client headers are accepted as inherent to D-1. Headers are static:
   never modified, randomized, rotated or extended by our code. Recorded as risk, not compliance.
+- D-8 (Camden, 2026-10-29, after an offline dress rehearsal of the merged pin): safety-gate
+  price marks built in `exec/live_loop.py` take broker prices for non-cash symbols only. A core
+  money-market row (`_CASH_SYMBOLS`) is never a gate position, so its price fed only the
+  observation digest, where a missing `lastPrice` became `float(None)` and a latched halt.
+  Sleeve marks stay last close x (1 + GAP_ALLOWANCE); ownership, the foreign-symbol halt and
+  every other guard are unchanged.
 
 ### Dedicated-account amendment (Camden, 2026-10-15, codex-task6c-dedicated-account.md)
 The dedicated $200 cash bot account alone is in scope (Camden, 2026-10-17; settled cash only). Every account-sensitive request filters exactly that
