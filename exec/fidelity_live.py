@@ -210,6 +210,8 @@ class FidelityLive:
 
 _AUTH_PATHS = ('/user/session/login', '/user/factor/password/authentication', '/user/factor/totp/authentication')
 _TRACE_LIMIT = 20
+_LOGIN_PAGE_MOVE = ('https://digital.fidelity.com/prgw/digital/login/atp',  # D-6a: Fidelity's permanent move,
+                    'https://digital.fidelity.com/prgw/digital/signin/atp')  # compared as exact strings
 
 
 def _masked_path(url) -> str:
@@ -238,6 +240,7 @@ class LibraryBroker:
         self._totp_present = False
         self.failure = None
         self.trace = []
+        self._auth_started = False
         self._client._http.event_hooks['request'].append(self._request_hook)
         self._client._http.event_hooks['response'].append(self._response_hook)
 
@@ -306,6 +309,8 @@ class LibraryBroker:
     def _check_request(self, request) -> None:
         if not self._allowed(request.url):
             raise SecurityChallenge('Fidelity request host refused')
+        if request.url.host == 'ecaap.fidelity.com':
+            self._auth_started = True
         if any(p in request.url.path for p in ('/position/', '/balance/', '/order-status/', '/equity/', '/accounts')):
             try: accounts = self._account_ids(json.loads(request.content))
             except Exception: raise SecurityChallenge('Fidelity account filter missing') from None
@@ -337,7 +342,9 @@ class LibraryBroker:
         location = response.headers.get('location')
         if location:
             target = urljoin(str(response.url), location)
-            if not self._allowed(target) or any(x in urlparse(target).path.lower() for x in ('/signin', '/login')):
+            from_moved_page = urlparse(str(response.request.url)).path.lower().startswith('/prgw/digital/signin/atp')
+            if not self._page_moved(response, target) and (from_moved_page or not self._allowed(target)
+                    or any(x in urlparse(target).path.lower() for x in ('/signin', '/login'))):
                 raise SecurityChallenge('Fidelity redirect refused')
         if response.status_code in (401, 403):
             raise SecurityChallenge('Fidelity session refused')
@@ -354,6 +361,13 @@ class LibraryBroker:
                 self.totp_step = True
             elif code != 1200 or isinstance(code, bool):
                 raise SecurityChallenge('Fidelity authentication refused')
+
+    def _page_moved(self, response, target) -> bool:
+        """D-6a: only the pre-credential page load may follow Fidelity's permanent login-page move."""
+        base, sep, query = str(response.request.url).partition('?')
+        return (response.request.method == 'GET' and response.status_code == 308
+                and not getattr(self, '_auth_started', True)
+                and base == _LOGIN_PAGE_MOVE[0] and target == _LOGIN_PAGE_MOVE[1] + sep + query)
 
     def settled_cash(self, as_of: datetime) -> dict:
         """Configured-account settled cash only; fresh NY session, never buying power."""
