@@ -39,6 +39,12 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
 ### Amendment — 2026-10-15 (Camden, D-4..D-7 approved in chat)
 - D-4 Primary SDK only (fidelity-trader-api==0.2.2). Playwright fallback dropped: stealth-by-default
   (FR-005), no settled-cash read, no order status by id. On SDK breakage: halt; Camden trades manually.
+- D-4a (Camden, 2026-10-29, after the FR-013 record of private run 40888803539): the SDK's
+  status-1201 step (D-6) turns the configured base32 seed into a code with `import pyotp`, which
+  is not among the SDK's declared dependencies, so the hash-locked host never had it and the SDK
+  raised AuthenticationError before any TOTP request. `pyotp==2.10.0` is added to
+  `requirements-fidelity-host.txt` with its wheel hash. It is the only addition: no SDK, wrapper
+  or guard change, and no other source of a TOTP code.
 - D-5 Session tokens stay memory-only (FR-004 unchanged). Never import or call cli/_session or any
   save/load path. One login (with TOTP) per run; at most one run per trading day.
 - D-6 The SDK's status-1201 TOTP step answered with the configured seed is EXPECTED, not a challenge.
