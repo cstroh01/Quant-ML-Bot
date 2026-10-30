@@ -24,6 +24,10 @@ MUTANTS = {
     "window open": (PROBE, WINDOW, "if now.utcoffset() is None or trading_days(day, day) != [day]:"),
     "window start early": (PROBE, "time(9, 35)", "time(9, 30)"),
     "window end late": (PROBE, "< time(16)", "<= time(16)"),
+    "window end early": (PROBE, "< time(16)", "< time(15)"),
+    "weekday holiday allowed": (PROBE, "trading_days(day, day) != [day]", "day.weekday() >= 5"),
+    "fixed EDT offset": (PROBE, "now.astimezone(NY)", "now.astimezone(__import__('datetime').timezone(__import__('datetime').timedelta(hours=-4)))"),
+    "KILL file only": (PROBE, "(state / 'KILL').exists()", "(state / 'KILL').is_file()"),
     "host-ready unchecked": (PROBE, "        if json.loads((state / 'host-ready.json').read_text(encoding='utf-8')) != {'schema': 1, 'profile': 'live_fidelity'}:\n            raise ValueError\n", ""),
     "profile unchecked": (PROBE, "        if profile.name != 'live_fidelity' or profile.mode != 'LIVE' or profile.broker != 'fidelity':\n            raise ValueError\n", ""),
     "fingerprint unchecked": (PROBE, "        if account_hmac(environ.get('FIDELITY_LIVE_ACCOUNT'), environ.get('FIDELITY_LIVE_FP_KEY')) != profile.account_fingerprint:\n            raise ValueError\n", ""),
@@ -59,6 +63,12 @@ MUTANTS = {
     "workflow no ancestor check": (FLOW, "not in ('ahead','identical')", "not in ('ahead','identical','behind','diverged')"),
     "workflow runs preview": (FLOW, "python exec/fidelity_login_probe.py", "python exec/live_loop.py"),
     "workflow no persist": (FLOW, 'run: bash ops/persist_state.sh "$GITHUB_WORKSPACE/state" fidelity-login-probe', "run: 'true'"),
+    "workflow persist not always": (FLOW, "        if: ${{ always() }}\n", ""),
+    "workflow any repository": (FLOW, "github.repository == 'cstroh01/Quant-ML-Bot-private' &&\n      ", ""),
+    "workflow any branch": (FLOW, " && github.ref == 'refs/heads/main'", ""),
+    "workflow secrets at job level": (FLOW, "      PIN: ${{ vars.QMB_FIDELITY_PIN }}\n", "      PIN: ${{ vars.QMB_FIDELITY_PIN }}\n      FIDELITY_LIVE_PASSWORD: ${{ secrets.FIDELITY_LIVE_PASSWORD }}\n"),
+    "workflow no umask": (FLOW, "          umask 077\n", ""),
+    "workflow traces shell": (FLOW, "          umask 077\n", "          set -x\n          umask 077\n"),
 }
 def run():
     return subprocess.run([sys.executable, "-B", "-m", "pytest", *TESTS, "-q", "-p", "no:cacheprovider"],

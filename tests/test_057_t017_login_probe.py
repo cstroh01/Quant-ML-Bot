@@ -3,6 +3,7 @@ import ast
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 from types import SimpleNamespace as NS
 import httpx
 import pytest
@@ -199,6 +200,11 @@ def test_failed_marker_push_means_no_login_and_still_counts(tmp_path):
     {'now': datetime(2026, 10, 31, 17, 0, tzinfo=timezone.utc)},   # Saturday
     {'now': datetime(2026, 10, 30, 13, 34, tzinfo=timezone.utc)},  # 09:34 ET
     {'now': datetime(2026, 10, 30, 20, 0, tzinfo=timezone.utc)},   # 16:00 ET
+    {'now': datetime(2026, 11, 26, 17, 0, tzinfo=timezone.utc)},   # Thanksgiving, a weekday holiday
+    {'now': datetime(2026, 12, 25, 17, 0, tzinfo=timezone.utc)},   # Christmas, a weekday holiday
+    {'now': datetime(2026, 11, 2, 13, 40, tzinfo=timezone.utc)},   # 08:40 EST; would be 09:40 under EDT
+    {'now': datetime(2026, 11, 2, 14, 34, tzinfo=timezone.utc)},   # 09:34 EST, first session after DST ends
+    {'now': datetime(2026, 11, 2, 21, 0, tzinfo=timezone.utc)},    # 16:00 EST
     {'now': datetime(2026, 10, 30, 17, 0)},                        # naive
     {'environ': {**ENV, 'FIDELITY_LIVE_ACCOUNT': 'OTHER'}},
     {'environ': {k: v for k, v in ENV.items() if k != 'FIDELITY_LIVE_FP_KEY'}}])
@@ -208,9 +214,22 @@ def test_preflight_refusals_never_log_in(tmp_path, kw):
     assert b.calls == [] and not (state / 'login-probes').exists()
 
 
-def test_window_edges_allowed(tmp_path):
+@pytest.mark.parametrize('now', [
+    datetime(2026, 10, 30, 13, 35, tzinfo=timezone.utc),  # 09:35 EDT
+    datetime(2026, 10, 30, 19, 59, tzinfo=timezone.utc),  # 15:59 EDT
+    datetime(2026, 11, 2, 14, 35, tzinfo=timezone.utc),   # 09:35 EST
+    datetime(2026, 11, 2, 20, 30, tzinfo=timezone.utc),   # 15:30 EST; would be 16:30 under EDT
+    datetime(2026, 11, 2, 20, 59, tzinfo=timezone.utc)])  # 15:59 EST
+def test_window_edges_allowed(tmp_path, now):
     state = ready(tmp_path)
-    assert go(state, now=datetime(2026, 10, 30, 13, 35, tzinfo=timezone.utc)) == probe.PASSED
+    assert go(state, now=now) == probe.PASSED
+
+
+def test_kill_of_any_file_type_refuses(tmp_path):
+    state, b = ready(tmp_path), Fake()
+    (state / 'KILL').mkdir()
+    with pytest.raises(probe.ProbeRefused): go(state, b)
+    assert b.calls == []
 
 
 def test_uninitialized_state_refuses(tmp_path):
@@ -350,12 +369,18 @@ def test_refusal_condition_is_still_byte_identical():
     "github.event.repository.private == true", "compare/'+pin+'...main", "not in ('ahead','identical')",
     'ref: ${{ vars.QMB_FIDELITY_PIN }}', 'persist-credentials: false', 'pip install --require-hashes --only-binary=:all: -r qmb/requirements-fidelity-host.txt',
     'python scripts/fidelity_launch.py -- python exec/fidelity_login_probe.py', 'bash ops/persist_state.sh "$GITHUB_WORKSPACE/state" fidelity-login-probe',
-    'if: failure()'])
+    'if: failure()', 'if: ${{ always() }}', "github.repository == 'cstroh01/Quant-ML-Bot-private'",
+    "github.ref == 'refs/heads/main'", 'umask 077'])
 def test_workflow_requires(required):
     assert required in WORKFLOW.read_text(encoding='utf-8')
 
 
-@pytest.mark.parametrize('forbidden', ['schedule:', 'cron', 'pull_request', 'repository_dispatch', 'live_loop', 'fidelity_preview_host', 'arming', 'ARMING', '--mode preview', 'HALTED'])
+def test_workflow_secrets_reach_only_the_probe_step():
+    head, step, tail = re.split(r'^      - name: (?:Login probe.*|Persist the probe record.*)$', WORKFLOW.read_text(encoding='utf-8'), flags=re.M)
+    assert 'secrets.' not in head and 'secrets.' not in tail and 'secrets.FIDELITY_LIVE_PASSWORD' in step
+
+
+@pytest.mark.parametrize('forbidden', ['schedule:', 'cron', 'pull_request', 'repository_dispatch', 'live_loop', 'fidelity_preview_host', 'arming', 'ARMING', '--mode preview', 'HALTED', 'set -x'])
 def test_workflow_forbids(forbidden):
     text = '\n'.join(l for l in WORKFLOW.read_text(encoding='utf-8').splitlines() if not l.startswith('#'))
     assert forbidden not in text
