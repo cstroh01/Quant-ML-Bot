@@ -37,6 +37,7 @@ from datetime import datetime, timezone
 import json
 import math
 import os
+import re
 from typing import Any, Mapping, Protocol
 from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
@@ -210,6 +211,10 @@ class FidelityLive:
 
 _AUTH_PATHS = ('/user/session/login', '/user/factor/password/authentication', '/user/factor/totp/authentication')
 _TRACE_LIMIT = 20
+_ENTITLEMENT_LIMIT = 60  # D-9: rows kept from one security-context response
+_ERROR_LIMIT = 5
+_KEY_LIMIT = 40
+_LABEL = re.compile(r'[A-Za-z][A-Za-z0-9_ -]{0,31}')
 _LOGIN_PAGE_MOVE = ('https://digital.fidelity.com/prgw/digital/login/atp',  # D-6a: Fidelity's permanent move,
                     'https://digital.fidelity.com/prgw/digital/signin/atp')  # compared as exact strings
 
@@ -218,6 +223,46 @@ def _masked_path(url) -> str:
     """Path only: no host, query or fragment; a segment holding a digit or over 24 characters is '*'."""
     segments = urlparse(str(url)).path.split('/')
     return '/'.join('*' if any(c.isdigit() for c in s) or len(s) > 24 else s for s in segments)[:80]
+
+
+def _label(value) -> str:
+    """D-9: a short plain name as is; anything that could hold an identifier or free text is '*'."""
+    return value if isinstance(value, str) and _LABEL.fullmatch(value) and not re.search(r'[0-9]{3}', value) else '*'
+
+
+def _key_names(value: dict) -> list:
+    return sorted(_label(k) for k in value)[:_KEY_LIMIT]
+
+
+def _error_fact(error) -> dict:
+    """D-9: key names plus only short code/type/status values; never message text."""
+    if not isinstance(error, dict):
+        return {'kind': type(error).__name__}
+    fact = {'keys': _key_names(error)}
+    for name in ('code', 'type', 'status'):
+        if name in error:
+            value = error[name]
+            fact[name] = value if type(value) is int and abs(value) < 100000 else _label(value)
+    return fact
+
+
+def _entitlement_facts(payload) -> dict:
+    """D-9: shape and entitlement names of a security-context response. Never an internal
+    system id, a persona value or error text; a value is only 'true', 'false' or 'other'."""
+    if not isinstance(payload, dict):
+        return {'kind': type(payload).__name__}
+    facts = {'keys': _key_names(payload)}
+    rows, errors = payload.get('entitlements'), payload.get('errors')
+    if isinstance(rows, list):
+        facts['entitlement_count'] = len(rows)
+        facts['entitlements'] = [
+            {'display': _label(row.get('display')), 'classification': _label(row.get('classification')),
+             'value': row['value'].lower() if isinstance(row.get('value'), str) and row['value'].lower() in ('true', 'false') else 'other'}
+            if isinstance(row, dict) else {'kind': type(row).__name__} for row in rows[:_ENTITLEMENT_LIMIT]]
+    if isinstance(errors, list):
+        facts['error_count'] = len(errors)
+        facts['errors'] = [_error_fact(error) for error in errors[:_ERROR_LIMIT]]
+    return facts
 
 
 def account_hmac(account, key):
@@ -240,6 +285,7 @@ class LibraryBroker:
         self._totp_present = False
         self.failure = None
         self.trace = []
+        self.entitlement = None
         self._auth_started = False
         self._client._http.event_hooks['request'].append(self._request_hook)
         self._client._http.event_hooks['response'].append(self._response_hook)
@@ -286,13 +332,18 @@ class LibraryBroker:
                 entry['auth_code'] = code if type(code) is int else None
             trace.append(entry)
             del trace[:-_TRACE_LIMIT]
+            if url.path.endswith('/context/security'):
+                self.entitlement = _entitlement_facts(response.json())
         except Exception:
             pass
 
     def diagnostic(self) -> dict:
         """Redacted login facts for a failed session record (FR-013)."""
-        return {'reason': getattr(self, 'failure', None), 'totp_step': bool(getattr(self, 'totp_step', False)),
-                'responses': list(getattr(self, 'trace', []))}
+        facts = {'reason': getattr(self, 'failure', None), 'totp_step': bool(getattr(self, 'totp_step', False)),
+                 'responses': list(getattr(self, 'trace', []))}
+        if getattr(self, 'entitlement', None) is not None:
+            facts['entitlement'] = self.entitlement  # D-9
+        return facts
 
     @staticmethod
     def _allowed(url) -> bool:
