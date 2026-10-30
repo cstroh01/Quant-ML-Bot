@@ -67,6 +67,12 @@ Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or br
   the sleeve worst-case marks. Synthetic contracts (RED on main) and planted
   defects; Camden reads every line, merges and repins before the next
   preview. No guard, ownership or sizing change.
+- [ ] T016 D-9 **Reviewed lane** (Camden, 2026-10-30): private run 41069466690
+  logged in fully, then refused at the entitlement check without recording why.
+  Add the redacted `entitlement` facts to the FR-013 login record. Synthetic
+  contracts (RED on main) and planted defects; Camden reads every line, merges,
+  repins and clears HALTED before the next preview. The refusal condition is
+  byte-identical; no guard, ownership or sizing change.
 
 
 ## Local pin preflight correction - 2026-10-18

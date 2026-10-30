@@ -66,6 +66,15 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   observation digest, where a missing `lastPrice` became `float(None)` and a latched halt.
   Sleeve marks stay last close x (1 + GAP_ALLOWANCE); ownership, the foreign-symbol halt and
   every other guard are unchanged.
+- D-9 (Camden, 2026-10-30, after the FR-013 record of private run 41069466690): the full login
+  succeeded and `context/security` answered 200, but the wrapper refused with `Fidelity
+  entitlement refused`, and the record could not say whether the ATP entitlement was absent, had
+  another name or value, or `errors` was non-empty. The redacted FR-013 login facts gain one
+  optional `entitlement` entry read from that response: top-level key names, each entitlement's
+  display, classification and a value reduced to true/false/other, and the error count with key
+  names and short code/type/status values. A label that is not short plain text, or holds three
+  consecutive digits, is `*`. Internal system ids, persona values and error messages are never
+  recorded. Diagnostic only: the entitlement refusal itself is unchanged and is not loosened.
 
 ### Dedicated-account amendment (Camden, 2026-10-15, codex-task6c-dedicated-account.md)
 The dedicated $200 cash bot account alone is in scope (Camden, 2026-10-17; settled cash only). Every account-sensitive request filters exactly that
