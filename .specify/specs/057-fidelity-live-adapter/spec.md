@@ -47,6 +47,15 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   or guard change, and no other source of a TOTP code.
 - D-5 Session tokens stay memory-only (FR-004 unchanged). Never import or call cli/_session or any
   save/load path. One login (with TOTP) per run; at most one run per trading day.
+- D-5a (Camden, 2026-10-30, answering "Do you approve amending D-5 for up to two login probes?":
+  "Yes, build the probe"): up to two extra supervised logins in total, started by Camden, for
+  entitlement diagnosis only, through `exec/fidelity_login_probe.py` and the dispatch-only
+  `ops/workflows/fidelity-login-probe.yml`. Login with every LibraryBroker guard and the
+  entitlement check, then only if that passes read settled cash and positions of the dedicated
+  account. No preview or place path and no arming. The cap counts persisted records, with a marker
+  pushed before login. It refuses on KILL, refuses unless HALTED exists (so D-6 and FR-005 still
+  hold: the profile is already latched, and a failed probe alerts Camden), and never writes HALTED,
+  `attempts/` or `preview-sessions/`. Its record is not preview evidence. D-5 is otherwise unchanged.
 - D-6 The SDK's status-1201 TOTP step answered with the configured seed is EXPECTED, not a challenge.
   The wrapper must observe it (record `totp_step: true` in run evidence). Any other non-1200 status,
   AuthenticationError, CSRFTokenError, 401/403, login redirect, or unknown auth payload = latched halt.

@@ -73,6 +73,11 @@ Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or br
   contracts (RED on main) and planted defects; Camden reads every line, merges,
   repins and clears HALTED before the next preview. The refusal condition is
   byte-identical; no guard, ownership or sizing change.
+- [ ] T017 D-5a **Reviewed lane** (Camden, 2026-10-30): supervised login probe,
+  at most two ever, for entitlement diagnosis. New entry point and dormant
+  dispatch-only template; synthetic contracts and planted defects for every
+  limit. Camden reads every line, merges, repins, installs the private workflow
+  and starts each probe. No guard, order path or evidence change.
 
 
 ## Local pin preflight correction - 2026-10-18
