@@ -7,6 +7,7 @@ from types import SimpleNamespace as NS
 import pytest
 import context  # noqa: F401
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'exec'))
+import fidelity_live
 from fidelity_live import LibraryBroker, SecurityChallenge, HaltProfile, FidelityLive
 from test_057_fidelity_live import live_profile, ENV
 
@@ -76,13 +77,14 @@ def cash_client(amount=12.5, stamp=STAMP, account='FIXTURE'):
     balance = NS(acct_num=account, recent_balance_detail=timing, intraday_balance_detail=None, close_balance_detail=None)
     return NS(balances=NS(get_balances=lambda a: NS(accounts=[balance])))
 
-def test_settled_cash_exact_and_boundary():
+def test_settled_cash_exact_and_boundary(monkeypatch):
+    monkeypatch.setattr(fidelity_live, '_read_clock', lambda: NOW)
     b = broker(cash_client())
     assert b.settled_cash(NOW)['amount'] == 12.5
     assert b.settled_cash(NOW)['settled_amt'] == 12.5 and b.settled_cash(NOW)['coreBalance'] == 100.0
     assert b.settled_cash(NOW)['as_of'] == NOW.isoformat()
     with pytest.raises(SecurityChallenge): broker(cash_client(stamp=STAMP-86400000)).settled_cash(NOW)
-    with pytest.raises(SecurityChallenge): broker(cash_client(stamp=STAMP+1000)).settled_cash(NOW)
+    with pytest.raises(SecurityChallenge): broker(cash_client(stamp=STAMP+61000)).settled_cash(NOW)
     with pytest.raises(SecurityChallenge): b.settled_cash(NOW.replace(tzinfo=None))
 
 @pytest.mark.parametrize('amount', [None, float('nan'), float('inf'), -1, True])

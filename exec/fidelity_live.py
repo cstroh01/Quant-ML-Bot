@@ -33,7 +33,7 @@ What this module guarantees:
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 import math
 import os
@@ -215,8 +215,13 @@ _ENTITLEMENT_LIMIT = 60  # D-9: rows kept from one security-context response
 _ERROR_LIMIT = 5
 _KEY_LIMIT = 40
 _LABEL = re.compile(r'[A-Za-z][A-Za-z0-9_ -]{0,31}')
+_CASH_STAMP_SKEW = timedelta(seconds=60)  # D-10: allowed Fidelity clock lead over the runner
 _LOGIN_PAGE_MOVE = ('https://digital.fidelity.com/prgw/digital/login/atp',  # D-6a: Fidelity's permanent move,
                     'https://digital.fidelity.com/prgw/digital/signin/atp')  # compared as exact strings
+
+
+def _read_clock() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _masked_path(url) -> str:
@@ -343,6 +348,8 @@ class LibraryBroker:
                  'responses': list(getattr(self, 'trace', []))}
         if getattr(self, 'entitlement', None) is not None:
             facts['entitlement'] = self.entitlement  # D-9
+        if getattr(self, 'cash_stamps', None) is not None:
+            facts['cash_stamps'] = self.cash_stamps  # D-10
         return facts
 
     @staticmethod
@@ -421,7 +428,12 @@ class LibraryBroker:
                 and base == _LOGIN_PAGE_MOVE[0] and target == _LOGIN_PAGE_MOVE[1] + sep + query)
 
     def settled_cash(self, as_of: datetime) -> dict:
-        """Configured-account settled cash only; fresh NY session, never buying power."""
+        """Configured-account settled cash only; fresh NY session, never buying power.
+
+        ``as_of`` names the session. A snapshot may be stamped up to the clock read after the
+        response plus ``_CASH_STAMP_SKEW`` (D-10); a later stamp or another NY day never counts.
+        """
+        offsets, types = [], []
         try:
             from data import trading_days
             if as_of.utcoffset() is None:
@@ -432,6 +444,7 @@ class LibraryBroker:
             accounts = self._client.balances.get_balances([self.__account]).accounts
             if len(accounts) != 1 or accounts[0].acct_num != self.__account:
                 raise ValueError
+            latest = max(as_of, _read_clock())
             snapshots = [getattr(accounts[0], name, None) for name in
                          ('recent_balance_detail', 'intraday_balance_detail', 'close_balance_detail')]
             candidates = []
@@ -439,10 +452,12 @@ class LibraryBroker:
                 if snapshot is None:
                     continue
                 stamp = snapshot.as_of_date_time
+                types.append(type(stamp).__name__)
                 if isinstance(stamp, bool) or not isinstance(stamp, (int, float)) or not math.isfinite(stamp):
                     raise ValueError
                 when = datetime.fromtimestamp(stamp / 1000 if abs(stamp) > 100000000000 else stamp, timezone.utc)
-                if when > as_of or when.astimezone(ZoneInfo('America/New_York')).date() != as_of.astimezone(ZoneInfo('America/New_York')).date():
+                offsets.append(int((when - latest).total_seconds()))
+                if when > latest + _CASH_STAMP_SKEW or when.astimezone(ZoneInfo('America/New_York')).date() != as_of.astimezone(ZoneInfo('America/New_York')).date():
                     continue
                 amount = snapshot.cash_detail.settled_amt
                 if isinstance(amount, bool) or not isinstance(amount, (int, float)) or not math.isfinite(amount) or amount < 0:
@@ -453,6 +468,7 @@ class LibraryBroker:
             when, amount, core = max(candidates, key=lambda row: row[0])
             return {'amount': amount, 'settled_amt': amount, 'coreBalance': core, 'as_of': when.isoformat()}
         except Exception:
+            self.cash_stamps = {'snapshots': len(types), 'stamp_types': types, 'offsets_s': offsets}  # D-10: no values
             raise SecurityChallenge('Fidelity settled cash unavailable or stale') from None
 
     def _order(self, symbol: str, side: str, quantity: float):
