@@ -78,6 +78,11 @@ Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or br
   dispatch-only template; synthetic contracts and planted defects for every
   limit. Camden reads every line, merges, repins, installs the private workflow
   and starts each probe. No guard, order path or evidence change.
+- [ ] T018 D-10 **Reviewed lane** (Camden, 2026-10-30): settled cash bounds snapshot
+  stamps by the clock read after the response plus 60 seconds, not by the pre-login
+  `as_of`, and a refused read records redacted `cash_stamps`. Synthetic contracts
+  (RED on main) and planted defects; Camden reads every line, merges and repins
+  before the first probe. The entitlement check is byte-identical.
 
 
 ## Local pin preflight correction - 2026-10-18

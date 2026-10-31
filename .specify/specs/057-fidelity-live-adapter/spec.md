@@ -84,6 +84,17 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   names and short code/type/status values. A label that is not short plain text, or holds three
   consecutive digits, is `*`. Internal system ids, persona values and error messages are never
   recorded. Diagnostic only: the entitlement refusal itself is unchanged and is not loosened.
+- D-10 (Camden, 2026-10-30, "Yes, fix it first", after a read of the merged code; no real run has
+  reached this step, so this is a plausible defect and not an observed one): `settled_cash` skipped
+  any snapshot stamped later than `as_of`, and every caller takes `as_of` before login, so a balance
+  stamped at request time would refuse after a clean login. The upper bound is now the later of
+  `as_of` and a clock read after the balance response, plus 60 seconds for Fidelity's clock leading
+  the runner. This loosens one guard: a stamp up to 60 seconds ahead of the runner now counts. A
+  later stamp and another New York day still never count. One read becomes stricter: a snapshot
+  stamped inside the new range with an invalid amount now refuses the whole read, where it used to
+  be skipped before validation. A refused read adds an optional `cash_stamps` login fact: snapshot
+  count, each stamp's type name and its whole-second offset from the bound's base, never an amount
+  or account value.
 
 ### Dedicated-account amendment (Camden, 2026-10-15, codex-task6c-dedicated-account.md)
 The dedicated $200 cash bot account alone is in scope (Camden, 2026-10-17; settled cash only). Every account-sensitive request filters exactly that
