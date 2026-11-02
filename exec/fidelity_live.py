@@ -304,7 +304,9 @@ class LibraryBroker:
         try:
             self._client.login(username, password, totp_secret=totp_secret)
             context = self._client.security_context.get_context()
-            if getattr(context, 'has_atp_access', None) is not True or getattr(context, 'errors', None) != []:
+            # D-11: ATP is not required (false for this Trader+ login); at least one named entitlement
+            # and errors == [] suffice. Later account-matched reads still fail closed.
+            if not isinstance(getattr(context, 'entitlements', None), list) or not any(getattr(row, 'display', '') for row in context.entitlements) or getattr(context, 'errors', None) != []:
                 raise SecurityChallenge('Fidelity entitlement refused')
         except Exception as exc:
             # FR-013: this module's own fixed text, or only the library exception's type name.

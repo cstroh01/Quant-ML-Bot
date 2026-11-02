@@ -137,6 +137,6 @@ def test_a_later_login_does_not_rearm_the_move():
     b = fresh()
     b._request_hook(httpx.Request('DELETE', AUTH, json={}))
     b._client = NS(login=lambda *a, **k: None,
-                   security_context=NS(get_context=lambda: NS(has_atp_access=True, errors=[])))
+                   security_context=NS(get_context=lambda: NS(entitlements=[NS(display='RTQ')], errors=[])))
     b.login('fixture', 'fixture', 'fixture')
     with pytest.raises(SecurityChallenge, match='Fidelity redirect refused'): moved(b)

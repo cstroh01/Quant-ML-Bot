@@ -41,9 +41,8 @@ def facts(payload):
 
 def context_of(payload):
     """The refusal's inputs as the audited model derives them from the same payload."""
-    rows = payload.get('entitlements', [])
-    has = any(r.get('display') == 'ATP' and r.get('value', '').lower() == 'true' for r in rows)
-    return NS(has_atp_access=has, errors=payload.get('errors', []))
+    rows = [NS(**row) if isinstance(row, dict) else row for row in payload.get('entitlements', [])]
+    return NS(entitlements=rows, errors=payload.get('errors', []))
 
 
 def login_with(b, payload):
@@ -190,8 +189,6 @@ def test_healthy_context_still_logs_in():
 
 
 @pytest.mark.parametrize('payload', [
-    {'entitlements': [{'display': 'TraderPlus', 'value': 'true'}], 'errors': []},
-    {'entitlements': [{'display': 'ATP', 'value': 'false'}], 'errors': []},
     {'entitlements': [], 'errors': []},
     {'errors': []},
     {'entitlements': [ATP], 'errors': [{'code': 1}]},
@@ -207,7 +204,9 @@ def test_every_refusal_condition_still_refuses_and_is_explained(payload):
 
 def test_refusal_condition_is_byte_identical():
     source = (ROOT / 'exec/fidelity_live.py').read_text(encoding='utf-8')
-    assert source.count("if getattr(context, 'has_atp_access', None) is not True or getattr(context, 'errors', None) != []:\n"
+    assert source.count("if not isinstance(getattr(context, 'entitlements', None), list)"
+                        " or not any(getattr(row, 'display', '') for row in context.entitlements)"
+                        " or getattr(context, 'errors', None) != []:\n"
                         "                raise SecurityChallenge('Fidelity entitlement refused')\n") == 1
 
 
@@ -251,8 +250,8 @@ def test_real_audited_model_agrees_with_the_recorded_facts():
     except Exception:
         pytest.skip('audited SDK not installed')
     client._http._transport = httpx.MockTransport(lambda request: httpx.Response(200, json={
-        'entitlements': [{'display': 'TraderPlus', 'value': 'true', 'classification': 'product'}], 'errors': [],
-        'internalSystemIds': [{'type': 'x', 'ID': 'SYNTHETIC_INTERNAL_ID'}]}))
+        'entitlements': [{'display': 'TraderPlus', 'value': 'true', 'classification': 'product'}],
+        'errors': [{'code': 7}], 'internalSystemIds': [{'type': 'x', 'ID': 'SYNTHETIC_INTERNAL_ID'}]}))
     b = broker(NS(login=lambda *a, **k: None, security_context=client.security_context))
     client._http.event_hooks['response'].append(b._response_hook)
     with pytest.raises(SecurityChallenge):

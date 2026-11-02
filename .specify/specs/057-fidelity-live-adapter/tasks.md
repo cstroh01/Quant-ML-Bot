@@ -83,6 +83,10 @@ Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or br
   `as_of`, and a refused read records redacted `cash_stamps`. Synthetic contracts
   (RED on main) and planted defects; Camden reads every line, merges and repins
   before the first probe. The entitlement check is byte-identical.
+- [ ] T019 D-11 **Reviewed lane** (Camden, 2026-11-02): login no longer requires
+  `ATP` true; one named entitlement with `errors == []` suffices. Synthetic
+  contracts (the probe-1 shape is RED on main) and planted defects; Camden reads
+  every line, merges and repins before probe 2, the last D-5a probe.
 
 
 ## Local pin preflight correction - 2026-10-18

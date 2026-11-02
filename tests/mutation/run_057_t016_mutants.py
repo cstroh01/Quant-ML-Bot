@@ -9,12 +9,12 @@ import sys
 ROOT = Path(__file__).resolve().parents[2]
 LIVE = ROOT / "exec/fidelity_live.py"
 TESTS = ["tests/test_057_t016_entitlement_diagnostic.py"]
-GUARD = "if getattr(context, 'has_atp_access', None) is not True or getattr(context, 'errors', None) != []:"
+GUARD = "if not isinstance(getattr(context, 'entitlements', None), list) or not any(getattr(row, 'display', '') for row in context.entitlements) or getattr(context, 'errors', None) != []:"
 LABEL = "return value if isinstance(value, str) and _LABEL.fullmatch(value) and not re.search(r'[0-9]{3}', value) else '*'"
 VALUE = "row['value'].lower() if isinstance(row.get('value'), str) and row['value'].lower() in ('true', 'false') else 'other'"
 FACT = "fact[name] = value if type(value) is int and abs(value) < 100000 else _label(value)"
 MUTANTS = {
-    "guard: errors ignored": (LIVE, GUARD, "if getattr(context, 'has_atp_access', None) is not True:"),
+    "guard: errors ignored": (LIVE, GUARD, "if not isinstance(getattr(context, 'entitlements', None), list) or not any(getattr(row, 'display', '') for row in context.entitlements):"),
     "guard: entitlement ignored": (LIVE, GUARD, "if getattr(context, 'errors', None) != []:"),
     "label: digit run allowed": (LIVE, LABEL, "return value if isinstance(value, str) and _LABEL.fullmatch(value) else '*'"),
     "label: match not full": (LIVE, LABEL, "return value if isinstance(value, str) and _LABEL.match(value) and not re.search(r'[0-9]{3}', value) else '*'"),

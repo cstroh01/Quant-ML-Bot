@@ -95,6 +95,19 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   be skipped before validation. A refused read adds an optional `cash_stamps` login fact: snapshot
   count, each stamp's type name and its whole-second offset from the bound's base, never an amount
   or account value.
+- D-11 (Camden, 2026-11-02, "whatever is easiest and gets the bot working the quickest", after probe 1):
+  probe 1 logged in cleanly (password 1200, TOTP 1200, session 1200) and the security context
+  returned HTTP 200 with 19 entitlements and no errors, but `ATP` was `false`; `RTQ` was `true`
+  (observed). Inferred, not confirmed by Fidelity: ATP names Active Trader Pro, which Fidelity is
+  retiring in favour of Trader+; Camden opened Trader+ desktop with this login on 2026-10-30 and ATP
+  was false on 2026-11-02. The pinned library itself never refuses on ATP. Login now requires the
+  entitlement list to be a list holding at least one row with a non-empty name, and `errors` to
+  equal `[]`; any ATP value is accepted. Because the library model defaults a missing `errors` key
+  to `[]`, a response without that key passes this check. This loosens one guard, and every LIVE
+  login (probe, preview session and the order path) now gets past it; Fidelity's handling of a
+  preview or order for an ATP-false login is UNVERIFIED. The account match on every response, the
+  settled-cash read, positions, each preview and every halt are unchanged and still fail closed.
+  D-9 still records every entitlement name and value, so a later change in ATP is visible.
 
 ### Dedicated-account amendment (Camden, 2026-10-15, codex-task6c-dedicated-account.md)
 The dedicated $200 cash bot account alone is in scope (Camden, 2026-10-17; settled cash only). Every account-sensitive request filters exactly that

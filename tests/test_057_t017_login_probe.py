@@ -360,7 +360,9 @@ def test_record_has_neither_evidence_key_and_fixed_paths():
 
 def test_refusal_condition_is_still_byte_identical():
     source = (ROOT / 'exec/fidelity_live.py').read_text(encoding='utf-8')
-    assert source.count("if getattr(context, 'has_atp_access', None) is not True or getattr(context, 'errors', None) != []:\n"
+    assert source.count("if not isinstance(getattr(context, 'entitlements', None), list)"
+                        " or not any(getattr(row, 'display', '') for row in context.entitlements)"
+                        " or getattr(context, 'errors', None) != []:\n"
                         "                raise SecurityChallenge('Fidelity entitlement refused')\n") == 1
 
 

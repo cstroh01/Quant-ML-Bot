@@ -53,7 +53,7 @@ def test_own_refusal_kept_even_when_the_library_swallows_it():
 
 
 def test_entitlement_refusal_is_recorded_as_its_fixed_text():
-    b = broker(NS(login=lambda *a, **k: None, security_context=NS(get_context=lambda: NS(has_atp_access=False, errors=[]))))
+    b = broker(NS(login=lambda *a, **k: None, security_context=NS(get_context=lambda: NS(entitlements=[], errors=[]))))
     with pytest.raises(SecurityChallenge): b.login('fixture', 'fixture', 'fixture')
     assert b.diagnostic()['reason'] == 'Fidelity entitlement refused'
 
