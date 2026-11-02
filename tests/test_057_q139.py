@@ -67,7 +67,8 @@ def test_auth_payload(status, payload, ok):
     else:
         with pytest.raises(SecurityChallenge): b._response_hook(response)
 
-@pytest.mark.parametrize('context', [NS(has_atp_access=False, errors=[]), NS(has_atp_access=True, errors=['bad']), NS(errors=[])])
+@pytest.mark.parametrize('context', [NS(entitlements=[], errors=[]), NS(entitlements=[NS(display='RTQ')], errors=['bad']),
+                                     NS(errors=[]), NS(entitlements='RTQ', errors=[]), NS(entitlements=[NS(display='RTQ')])])
 def test_context_refused(context):
     b = broker(NS(login=lambda *a, **k: None, security_context=NS(get_context=lambda: context)))
     with pytest.raises(SecurityChallenge): b.login('fixture', 'fixture', 'fixture')
