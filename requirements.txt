@@ -27,7 +27,7 @@ scipy==1.18.1
 scikit-learn==1.9.1
 six==1.17.0
 statsmodels==0.15.0
-soupsieve==2.10
+soupsieve==3.0.3
 typing_extensions==4.16.0
 tzdata==2026.5
 urllib3==2.8.0
