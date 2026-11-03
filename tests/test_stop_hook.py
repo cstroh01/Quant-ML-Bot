@@ -186,3 +186,46 @@ def test_hook_crash_blocks_the_stop(monkeypatch):
     monkeypatch.setattr(stop, "run", boom)
     code, out, _ = stop.main('{"session_id": "s"}')
     assert json.loads(out)["decision"] == "block" and "disk full" in json.loads(out)["reason"]
+
+
+class TimeoutRunner(FakeRunner):
+    def __call__(self, args, cwd, stdout, stderr, timeout):
+        self.calls.append(args)
+        raise subprocess.TimeoutExpired(args, timeout)
+
+
+def test_timeout_blocks_once_with_its_own_reason(repo):
+    out = _stop(repo, TimeoutRunner())
+    assert out["decision"] == "block" and "timed out" in out["reason"]
+    log = Path(out["reason"].split("Log: ")[1])
+    assert b"TIMEOUT" in log.read_bytes()
+
+
+def test_unchanged_tree_after_timeout_reports_unverified_without_block_or_relaunch(repo):
+    """A timeout is 'not verified', not a failure: it must not block every later stop."""
+    r = TimeoutRunner()
+    _stop(repo, r)
+    out = _stop(repo, r)
+    assert len(r.calls) == 1 and "decision" not in out
+    assert "NOT verified" in out["systemMessage"]
+
+
+def test_changed_tree_after_timeout_reruns(repo):
+    r = TimeoutRunner()
+    _stop(repo, r)
+    (repo / "scripts" / "b.py").write_text("y = 2\n")
+    _stop(repo, r)
+    assert len(r.calls) == 2
+
+
+def test_nested_checkout_is_not_part_of_the_fingerprint(repo):
+    """Other sessions' worktrees under .claude/worktrees/ are separate checkouts."""
+    nested = repo / ".claude" / "worktrees" / "other"
+    nested.mkdir(parents=True)
+    (nested / ".git").write_text("gitdir: elsewhere\n")
+    r = FakeRunner(0)
+    _stop(repo, r)
+    (nested / "scripts").mkdir()
+    (nested / "scripts" / "edit.py").write_text("z = 3\n")
+    _stop(repo, r)
+    assert len(r.calls) == 1
