@@ -54,9 +54,41 @@ def test_fractional_only_when_profile_and_instrument_allow():
     accepted, _ = bound_buys(frac, req, settled_cash=300.0, deployed_today_usd=0.0, min_notional_usd=1.0)
     assert [a.quantity for a in accepted] == [0.75]
     accepted, refused = bound_buys(whole, req, settled_cash=300.0, deployed_today_usd=0.0, min_notional_usd=1.0)
-    assert accepted == [] and refused == [("AAA", "budget_exhausted")]
+    assert accepted == [] and refused == [("AAA", "below_one_share")]
     accepted, refused = bound_buys(frac, [BuyRequest("AAA", 0.75, 400.0, False)],
                                    settled_cash=300.0, deployed_today_usd=0.0, min_notional_usd=1.0)
+    assert accepted == [] and refused == [("AAA", "below_one_share")]
+
+
+def test_sub_share_request_with_ample_cap_and_cash_is_below_one_share():
+    # A ~$581 sleeve target on a ~$755 share: cap and cash cover it, whole shares do not.
+    p = profile(fractional=False, bot_budget_usd=5000.0, daily_deploy_fraction=1.0)
+    accepted, refused = bound_buys(p, [BuyRequest("SPY", 581.0 / 755.0, 755.0, True)],
+                                   settled_cash=5000.0, deployed_today_usd=0.0, min_notional_usd=1.0)
+    assert accepted == [] and refused == [("SPY", "below_one_share")]
+
+
+def test_sub_share_top_up_after_other_buys_is_below_one_share_not_budget_exhausted():
+    p = profile(fractional=False, bot_budget_usd=5000.0, daily_deploy_fraction=0.2)
+    accepted, refused = bound_buys(p, [BuyRequest("AAA", 10, 50.0, False), BuyRequest("BBB", 0.4, 100.0, False)],
+                                   settled_cash=5000.0, deployed_today_usd=0.0, min_notional_usd=1.0)
+    assert [(a.ticker, a.quantity) for a in accepted] == [("AAA", 10)]
+    assert refused == [("BBB", "below_one_share")]
+
+
+@pytest.mark.parametrize("cash, reason", [(5000.0, "budget_exhausted"), (30.0, "insufficient_settled_cash")])
+def test_sub_share_request_the_cap_or_cash_cannot_cover_keeps_its_limit_reason(cash, reason):
+    # Request is 0.8 share ($80); only $40 of cap (or $30 of cash) remains, so the limit binds.
+    p = profile(fractional=False, bot_budget_usd=1000.0, daily_deploy_fraction=0.1)
+    accepted, refused = bound_buys(p, [BuyRequest("AAA", 0.8, 100.0, False)],
+                                   settled_cash=cash, deployed_today_usd=60.0, min_notional_usd=1.0)
+    assert accepted == [] and refused == [("AAA", reason)]
+
+
+def test_multi_share_request_the_cap_cannot_cover_is_budget_exhausted():
+    p = profile(fractional=False, bot_budget_usd=1000.0, daily_deploy_fraction=0.1)
+    accepted, refused = bound_buys(p, [BuyRequest("AAA", 5, 100.0, False)],
+                                   settled_cash=5000.0, deployed_today_usd=40.0, min_notional_usd=1.0)
     assert accepted == [] and refused == [("AAA", "budget_exhausted")]
 
 
