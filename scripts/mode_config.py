@@ -219,8 +219,11 @@ def bound_buys(profile: ModeProfile, buys: list[BuyRequest], *, settled_cash: fl
     Guarantees: total accepted notional <= min(daily cap remaining, settled cash);
     quantities only ever shrink and are floored (whole shares unless both the
     profile and the instrument allow fractions, then six decimals); each dropped
-    buy carries one reason: daily_cap, insufficient_settled_cash, budget_exhausted
-    or below_minimum. Sells are not this function's concern. Non-finite day state, or a
+    buy carries one reason: daily_cap, insufficient_settled_cash, budget_exhausted,
+    below_one_share or below_minimum. below_one_share means the remaining cap and
+    settled cash would cover the whole request but whole-share flooring zeroes it;
+    insufficient_settled_cash and budget_exhausted mean cash or the cap is what
+    binds. Sells are not this function's concern. Non-finite day state, or a
     negative ``deployed_today_usd``, raises rather than widening the cap.
     """
     for name, value in (("settled_cash", settled_cash), ("deployed_today_usd", deployed_today_usd),
@@ -244,9 +247,13 @@ def bound_buys(profile: ModeProfile, buys: list[BuyRequest], *, settled_cash: fl
             refused.append((buy.ticker, "daily_cap"))
             continue
         spend = min(cap_left, cash_left)
-        qty = _floor_qty(min(Decimal(str(buy.quantity)), spend / price), fractional)
+        requested = Decimal(str(buy.quantity))
+        qty = _floor_qty(min(requested, spend / price), fractional)
         if qty <= 0:
-            refused.append((buy.ticker, "insufficient_settled_cash" if cash_left < cap_left else "budget_exhausted"))
+            if requested * price <= spend:
+                refused.append((buy.ticker, "below_one_share"))
+            else:
+                refused.append((buy.ticker, "insufficient_settled_cash" if cash_left < cap_left else "budget_exhausted"))
             continue
         notional = qty * price
         if notional < Decimal(str(min_notional_usd)):
