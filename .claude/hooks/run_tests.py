@@ -10,10 +10,15 @@ Guarantees:
   ``stop_hook_active`` true, an in-progress marker for this session, or a tree
   identical to the last completed run never launches pytest again; a remembered
   failure is re-reported instead.
+- A run that hits SUITE_TIMEOUT_S blocks once as "timed out". It is not a
+  verdict, so an unchanged tree afterwards is allowed with a NOT-verified note
+  rather than blocked forever; any change runs the suite again.
 
 Limitation: the fingerprint covers the name, size and mtime of every file in the
 repository except generated or environment directories (.git, venvs,
-node_modules, caches, build output, data/cache) and this hook's own state. An
+node_modules, caches, build output, data/cache), nested checkouts (any
+subdirectory holding a .git entry, e.g. .claude/worktrees/*) and this hook's
+own state. An
 edit that preserves all three is not seen. The fingerprint is taken after the
 run, so files the suite itself writes do not force a rerun.
 """
@@ -55,6 +60,7 @@ def tree_fingerprint(root: Path) -> str:
         dirnames[:] = sorted(
             n for n in dirnames
             if n not in SKIP_DIRS
+            and not (d / n / ".git").exists()
             and (d / n).resolve() != state
             and (n if rel_dir == "." else f"{rel_dir}/{n}") not in SKIP_PATHS)
         for f in sorted(filenames):
@@ -133,6 +139,8 @@ def run(payload: dict, runner=subprocess.run, python: str = sys.executable) -> t
     if last and last.get("fingerprint") == fp:
         if last.get("exit") == 0 and not last.get("ledger_changed"):
             return _allow()
+        if last.get("timed_out") and not last.get("ledger_changed"):
+            return _allow(f"run_tests: suite NOT verified (timed out after {SUITE_TIMEOUT_S}s on this tree). Log: {last.get('log')}")
         return _block(f"Unchanged tree since a FAILED suite run (exit {last.get('exit')}). Log: {last.get('log')}")
 
     log = STATE_DIR / f"{state_file.stem}-{time.strftime('%Y%m%dT%H%M%S')}-{fp[:8]}.log"
@@ -141,12 +149,13 @@ def run(payload: dict, runner=subprocess.run, python: str = sys.executable) -> t
     try:
         log.parent.mkdir(parents=True, exist_ok=True)
         with open(log, "wb") as fh:
+            timed_out = False
             try:
                 proc = runner([python, "-m", "pytest", "tests", "-rfEsx"], cwd=root,
                               stdout=fh, stderr=subprocess.STDOUT, timeout=SUITE_TIMEOUT_S)
                 code = proc.returncode
             except subprocess.TimeoutExpired:
-                code = -1
+                code, timed_out = -1, True
                 fh.write(f"\n[run_tests] TIMEOUT after {SUITE_TIMEOUT_S}s\n".encode())
         after = ledger_manifest(root)
     finally:
@@ -157,10 +166,13 @@ def run(payload: dict, runner=subprocess.run, python: str = sys.executable) -> t
     ledger_changed = before != after
     # Fingerprint AFTER the run: artifacts the suite writes are part of the
     # baseline, so only an agent's later edits trigger the next run.
-    state["last"] = {"fingerprint": tree_fingerprint(root), "exit": code, "log": str(log), "ledger_changed": ledger_changed}
+    state["last"] = {"fingerprint": tree_fingerprint(root), "exit": code, "log": str(log),
+                     "ledger_changed": ledger_changed, "timed_out": timed_out}
     _save(state_file, state)
     if ledger_changed:
         return _block(f"docs/trials/ changed during the suite run (forbidden). Log: {log}")
+    if timed_out:
+        return _block(f"Full suite timed out after {SUITE_TIMEOUT_S}s; not verified. Find the slow or hung test. Log: {log}")
     if code != 0:
         return _block(f"Full suite failed (exit {code}). Fix before stopping. Complete log: {log}")
     return _allow(f"run_tests: full suite passed. Log: {log}")

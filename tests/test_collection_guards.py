@@ -13,6 +13,8 @@ import pytest
 REPO = Path(__file__).resolve().parents[1]
 TESTS = REPO / "tests"
 # These contain tooling or third-party code, not repository-owned tests.
+# Nested checkouts (a subdirectory with a .git entry, e.g. .claude/worktrees/*)
+# are other working trees with their own tests/, also skipped below.
 EXCLUDED_DIRS = {
     ".git", ".hg", ".svn", "__pycache__", ".pytest_cache", ".mypy_cache",
     ".ruff_cache", ".tox", ".nox", "node_modules", "site-packages",
@@ -26,6 +28,7 @@ def python_test_files(root):
             name for name in dirs
             if name not in EXCLUDED_DIRS
             and not (Path(directory) / name / "pyvenv.cfg").is_file()
+            and not (Path(directory) / name / ".git").exists()
         )
         for name in sorted(files):
             if fnmatch(name, "test*.py") or fnmatch(name, "*_test.py"):
@@ -36,6 +39,16 @@ def test_python_tests_live_under_tests():
     misplaced = [str(path.relative_to(REPO)) for path in python_test_files(REPO)
                  if not path.is_relative_to(TESTS)]
     assert not misplaced, "Python test files outside tests/:\n" + "\n".join(misplaced)
+
+
+def test_nested_checkouts_are_not_scanned(tmp_path):
+    """A worktree under .claude/worktrees/ is its own checkout with its own tests/."""
+    nested = tmp_path / ".claude" / "worktrees" / "other"
+    (nested / "tests").mkdir(parents=True)
+    (nested / ".git").write_text("gitdir: elsewhere\n")
+    (nested / "tests" / "test_x.py").write_text("")
+    (tmp_path / "loose_test.py").write_text("")
+    assert [p.name for p in python_test_files(tmp_path)] == ["loose_test.py"]
 
 
 def test_each_test_module_collects_cases(collected_test_paths):
