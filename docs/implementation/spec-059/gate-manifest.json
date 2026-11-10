@@ -1,5 +1,5 @@
 {
-  "note": "Spec 061 report and replay artifacts were published on main by merge commit c6524ee210fe6a8e5ce11e165f2ceaf22d63a391; the exact artifact bytes and SHA-256 values were independently checked. Old 059/A1 report/replay is historical, not evidence of B7-EW. No arming; items 4/6/7 still require runtime/human evidence; final item-1 refresh must use the exact arming SHA.",
+  "note": "Spec 061 report and replay artifacts were published on main by merge commit c6524ee210fe6a8e5ce11e165f2ceaf22d63a391; the exact artifact bytes and SHA-256 values were independently checked. Old 059/A1 report/replay is historical, not evidence of B7-EW. Items 4, 6 and 7 evidenced 2026-11-09/10 (PAPER report, Fidelity preview manifest at pin 89bad88, budget evidence). NOT YET ARMABLE IN FACT: item 1 dates from 2026-10-16 and must be refreshed (full and mutation suites) at the exact arming SHA before arming; gate_checklist.py does not compare item 1's commit to the arming SHA. Arming remains Camden's own act.",
   "items": {
     "1": {
       "artifact": "docs/implementation/spec-059/item1-evidence-20261016.json",
@@ -34,6 +34,26 @@
       "sha256": "f4311b6d9dec008bf3a6add622a3bcee8a8fdbcb0d1650b5b977f7c4cad8acd0",
       "commit": "ff83200bd4ea7a428c078c3cca15e1e478dbedf4",
       "date_utc": "2026-10-16T15:47:02Z"
+    },
+    "6": {
+      "account_fingerprint": "9ce2aa168160565b6718cf156ef216837cac5fcbb585f519a74ddbf65ecd106e",
+      "artifact": "docs/implementation/spec-061/fidelity-preview/manifest.json",
+      "commit": "89bad888126766c07340e3024bd5c66095e687a1",
+      "date_utc": "2026-11-09T15:11:32.375415+00:00",
+      "sha256": "f6b1881b154e3a01a5d2b31060a6d14e8933af9a9ef35fe6914b104aeaa776d5",
+      "type": "fidelity_preview"
+    },
+    "4": {
+      "artifact": "docs/implementation/spec-059/paper-evidence-20261109.md",
+      "sha256": "b84259f1dc7b1f2506a02ec77056b903bb61ca72823b49c8d440f37b6e7f5e4b",
+      "commit": "5cdf42e559e39908f06c2d6e9d0c3c04f5c2ffed",
+      "date_utc": "2026-11-10T02:25:13.749956+00:00"
+    },
+    "7": {
+      "artifact": "docs/implementation/spec-059/item7-budget-evidence-20261109.json",
+      "sha256": "0f608311057d4e0ec93049d33d785389f576fb024b9a5f60133d1df3f8228cba",
+      "commit": "5cdf42e559e39908f06c2d6e9d0c3c04f5c2ffed",
+      "date_utc": "2026-11-10T02:34:47.344424+00:00"
     }
   }
 }

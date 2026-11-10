@@ -1,0 +1,24 @@
+{
+  "sessions": [
+    {
+      "artifact": "docs/implementation/spec-061/fidelity-preview/2026-11-03.json",
+      "sha256": "4eea6c83532faa56436e658519e914cdc8671e73c8eefa86ee19d29113879573"
+    },
+    {
+      "artifact": "docs/implementation/spec-061/fidelity-preview/2026-11-04.json",
+      "sha256": "38b6588948b2d9ed25a7c150aa5eb1f477c955df1f99c2ebc82093eec7951008"
+    },
+    {
+      "artifact": "docs/implementation/spec-061/fidelity-preview/2026-11-05.json",
+      "sha256": "080c22b6bb9c0e71425f8c4ab66ccf1d52366be40dd78f58207688d30ce9f025"
+    },
+    {
+      "artifact": "docs/implementation/spec-061/fidelity-preview/2026-11-06.json",
+      "sha256": "7ddd2fa42c8e1e6358f455638d4200f7bc67a3ade87a27e0c72e1dbbbf589182"
+    },
+    {
+      "artifact": "docs/implementation/spec-061/fidelity-preview/2026-11-09.json",
+      "sha256": "d9baaa7ef32c7ea722236282d83e95bc2ecfb06599ca78cde147a8767cd1278e"
+    }
+  ]
+}

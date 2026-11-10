@@ -1,0 +1,67 @@
+{
+  "account_fingerprint": "9ce2aa168160565b6718cf156ef216837cac5fcbb585f519a74ddbf65ecd106e",
+  "allocation": {
+    "declaration_hash": "4a154bfb27bd89dc484b466066b83e01baca20dc98f577c7beb4f4ca24f3b55f",
+    "policy_id": "061-b7-ew-v1",
+    "trial_id": "8d4dfeda-10ef-4951-bf0e-147090ea9731"
+  },
+  "api_holdings_reconciled": true,
+  "challenge": false,
+  "clean": true,
+  "holdings_match": null,
+  "library": {
+    "sha256": "f5a94056bd9a055ba88482ffcc7dc17013de9871b852b4d9b0dc55352506dd15",
+    "version": "0.2.2"
+  },
+  "pin_sha": "89bad888126766c07340e3024bd5c66095e687a1",
+  "place_calls": 0,
+  "previews": [
+    {
+      "conf_num": "2FD0J61M",
+      "qty": 0.737
+    },
+    {
+      "conf_num": "2FD0GVJ4",
+      "qty": 0.391
+    },
+    {
+      "conf_num": "2FD0N6YH",
+      "qty": 0.228
+    },
+    {
+      "conf_num": "2FD0Q71S",
+      "qty": 0.062
+    },
+    {
+      "conf_num": "2FD0Q72C",
+      "qty": 0.253
+    },
+    {
+      "conf_num": "2FD0N6ZM",
+      "qty": 0.031
+    },
+    {
+      "conf_num": "2FD0PKJN",
+      "qty": 0.218
+    },
+    {
+      "conf_num": "2FD0FJ0H",
+      "qty": 0.283
+    },
+    {
+      "conf_num": "2FD0N70Q",
+      "qty": 1.0
+    },
+    {
+      "conf_num": "2FD0LWC0",
+      "qty": 0.01
+    }
+  ],
+  "profile": "live_fidelity",
+  "session": "2026-11-09",
+  "settled_cash": {
+    "amount": 201.22,
+    "as_of": "2026-11-09T15:11:14+00:00"
+  },
+  "totp_step": true
+}
