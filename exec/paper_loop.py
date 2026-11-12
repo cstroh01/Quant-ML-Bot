@@ -149,6 +149,14 @@ class PersistFailed(RuntimeError):
     """State could not be made durable; the order was not sent."""
 
 
+class PersistCommandFailed(RuntimeError):
+    """057 D-12: the persist command exited non-zero; ``returncode`` is its exit status."""
+
+    def __init__(self, returncode: int):
+        super().__init__(f"persist command exited {returncode}")
+        self.returncode = returncode
+
+
 class RunAborted(RuntimeError):
     """The run stopped before acting. The reason is in the message."""
 
@@ -526,7 +534,7 @@ def persist_command(command: str) -> Callable[[], None]:
     def persist() -> None:
         result = subprocess.run(shlex.split(command), capture_output=True, text=True)
         if result.returncode != 0:
-            raise RuntimeError(f"persist command exited {result.returncode}")
+            raise PersistCommandFailed(result.returncode)
     return persist
 
 

@@ -87,6 +87,15 @@ Authority: codex-task6-fidelity.md and codex-task6b-continue.md; no arming or br
   `ATP` true; one named entitlement with `errors == []` suffices. Synthetic
   contracts (the probe-1 shape is RED on main) and planted defects; Camden reads
   every line, merges and repins before probe 2, the last D-5a probe.
+- [ ] T020 D-12 **Reviewed lane** (proposed 2026-11-10): private run 42841544475
+  halted mid-allocation with a bare `RuntimeError` and no detail, most likely a
+  one-off ops-state push failure. `ops/persist_state.sh` retries the push (3
+  attempts, waits 5 s then 15 s; exit 3 commit step, exit 4 push), and
+  `live_loop` halts any persist failure with a fixed FR-013 reason. Synthetic
+  contracts (RED on main; the script runs with stand-in `git` and `sleep`) and
+  planted defects. Camden reads every line and merges before the final gate PR,
+  so item 1 covers it; the gate PR's repin carries it. No guard, order path,
+  sizing, SafetyConfig or evidence change.
 
 
 ## Local pin preflight correction - 2026-10-18
