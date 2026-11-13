@@ -5,6 +5,7 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 p = ROOT / "scripts" / "model_registry.py"; orig = p.read_text()
+orig_bytes = p.read_bytes()
 muts = {
  "partial expected accepted": ('    if missing:\n        raise ManifestError(f"expected', '    if False:\n        raise ManifestError(f"expected'),
  "register champion allowed": ('if stage != "challenger":', 'if stage not in ("challenger", "champion"):'),
@@ -18,13 +19,16 @@ muts = {
  "truthy passes accepted": ("        if not (isinstance(evidence.gate3_pass, bool) and isinstance(evidence.oos_beats_baselines, bool)):", "        if False:"),
  "rollback single champion": ("if len(stack) < 2:", "if False:"),
 }
-killed = 0
-for name, (a, b) in muts.items():
+for name, (a, _b) in muts.items():  # every anchor is checked before any mutant is written
     assert orig.count(a) == 1, name
-    p.write_text(orig.replace(a, b))
-    r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_053_promotion.py", "tests/test_053_manifest.py", "-q", "-p", "no:cacheprovider", "-x"], capture_output=True, cwd=ROOT)
-    ok = r.returncode != 0; killed += ok
-    print(("KILLED  " if ok else "SURVIVED"), name)
-p.write_text(orig)
+killed = 0
+try:
+    for name, (a, b) in muts.items():
+        p.write_text(orig.replace(a, b))
+        r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_053_promotion.py", "tests/test_053_manifest.py", "-q", "-p", "no:cacheprovider", "-x"], capture_output=True, cwd=ROOT)
+        ok = r.returncode != 0; killed += ok
+        print(("KILLED  " if ok else "SURVIVED"), name)
+finally:
+    p.write_bytes(orig_bytes)  # a crash never leaves a mutant; exact bytes: write_text leaves CRLF on Windows, which item 1 counts as a change
 print(f"{killed}/{len(muts)} killed")
 sys.exit(0 if killed == len(muts) else 1)

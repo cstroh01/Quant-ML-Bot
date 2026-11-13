@@ -6,6 +6,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 p = ROOT / "scripts" / "asset_registry.py"
 orig = p.read_text()
+orig_bytes = p.read_bytes()
 muts = {
     "any fact activates": ('state.setdefault(fact.instrument_id, {"active": False})', 'state.setdefault(fact.instrument_id, {"active": True})'),
     "quote age unchecked": ('    if quote.quoted_at.tzinfo is None or not (0 <= (now - quote.quoted_at).total_seconds() <= max_quote_age_seconds):',
@@ -34,6 +35,6 @@ try:
         killed += ok
         print(("KILLED  " if ok else "SURVIVED"), name)
 finally:
-    p.write_text(orig)  # a crash never leaves a mutant in the source
+    p.write_bytes(orig_bytes)  # a crash never leaves a mutant; exact bytes: write_text leaves CRLF on Windows, which item 1 counts as a change
 print(f"{killed}/{len(muts)} killed")
 sys.exit(0 if killed == len(muts) else 1)

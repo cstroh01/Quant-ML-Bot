@@ -6,6 +6,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 p = ROOT / "exec" / "fidelity_live.py"
 orig = p.read_text()
+orig_bytes = p.read_bytes()
 MUTS = {
     "non-timeout place error is known": ("        except Exception as exc:  # noqa: BLE001 - once place is called, the order may exist\n            raise SubmissionUnknown(",
                                          "        except TimeoutError as exc:  # noqa: BLE001 - once place is called, the order may exist\n            raise SubmissionUnknown("),
@@ -27,7 +28,7 @@ for name, (a, b) in MUTS.items():
         r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_057_fidelity_live.py", "-q",
                             "-p", "no:cacheprovider"], capture_output=True, cwd=ROOT)
     finally:
-        p.write_text(orig)
+        p.write_bytes(orig_bytes)  # exact bytes: write_text leaves CRLF on Windows, which item 1 counts as a change
     ok = r.returncode != 0
     killed += ok
     print(("KILLED  " if ok else "SURVIVED"), name)

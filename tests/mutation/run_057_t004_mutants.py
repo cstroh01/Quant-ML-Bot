@@ -6,6 +6,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 p = ROOT / "exec" / "fidelity_reconcile.py"
 orig = p.read_text()
+orig_bytes = p.read_bytes()
 MUTS = {
     "unknown released": ('        if code is None:\n            report.append({"client_order_id": client_id, "state": "unknown"})',
                          '        if code is None:\n            gate.record_order_outcome(client_id, terminal=True, reason="NONE", now=now)\n            report.append({"client_order_id": client_id, "state": "unknown"})'),
@@ -25,7 +26,7 @@ for name, (a, b) in MUTS.items():
         r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_057_reconcile.py", "-q",
                             "-p", "no:cacheprovider"], capture_output=True, cwd=ROOT)
     finally:
-        p.write_text(orig)
+        p.write_bytes(orig_bytes)  # exact bytes: write_text leaves CRLF on Windows, which item 1 counts as a change
     ok = r.returncode != 0
     killed += ok
     print(("KILLED  " if ok else "SURVIVED"), name)

@@ -6,6 +6,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 p = ROOT / "scripts" / "mode_config.py"
 orig = p.read_text()
+orig_bytes = p.read_bytes()
 muts = {
     "state_dir compared raw": ('    if field == "state_dir":\n        return _canonical_dir(key)', '    if False:\n        return key'),
     "absolute state_dir allowed": ('        if raw_dir.startswith("/") or re.match(r"[A-Za-z]:", raw_dir) or _canonical_dir(raw_dir).startswith(".."):',
@@ -28,15 +29,18 @@ muts = {
     "NaN portfolio fails open": ("        return sorted(proposed_buy_qty)", "        return []"),
     "NaN price fails open": ("            refused.append(ticker)\n            continue", "            continue"),
 }
-killed = 0
-for name, (a, b) in muts.items():
+for name, (a, _b) in muts.items():  # every anchor is checked before any mutant is written
     assert orig.count(a) == 1, name
-    p.write_text(orig.replace(a, b))
-    r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_051_finite_inputs.py", "-q",
-                        "-p", "no:cacheprovider"], capture_output=True, cwd=ROOT)
-    ok = r.returncode != 0
-    killed += ok
-    print(("KILLED  " if ok else "SURVIVED"), name)
-p.write_text(orig)
+killed = 0
+try:
+    for name, (a, b) in muts.items():
+        p.write_text(orig.replace(a, b))
+        r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_051_finite_inputs.py", "-q",
+                            "-p", "no:cacheprovider"], capture_output=True, cwd=ROOT)
+        ok = r.returncode != 0
+        killed += ok
+        print(("KILLED  " if ok else "SURVIVED"), name)
+finally:
+    p.write_bytes(orig_bytes)  # a crash never leaves a mutant; exact bytes: write_text leaves CRLF on Windows, which item 1 counts as a change
 print(f"{killed}/{len(muts)} killed")
 sys.exit(0 if killed == len(muts) else 1)
