@@ -8,7 +8,9 @@ from driver_support import copy_into, guarded, run_pytest
 
 TESTS=('tests/test_061_paper_scope.py','tests/test_061_preview_evidence.py','tests/test_055_ops_runner.py')
 COPIED=('scripts','exec','docs/trials','tests/context.py','tests/mode_fixtures.py',
-        'tests/test_110_paper_allocation.py',*TESTS)
+        'tests/test_110_paper_allocation.py',
+        'tests/test_059_gate_checklist.py',  # helper imported by test_061_preview_evidence (2026-11-12)
+        *TESTS)
 MUTANTS=[
  ('workflow KILL ignored','scripts/ops_runner.py','if not (Path(state_dir) / "KILL").exists():','if True:'),
  ('cutoff absent','exec/paper_loop.py','    if now >= before:','    if False:'),

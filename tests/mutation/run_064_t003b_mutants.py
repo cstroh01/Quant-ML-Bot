@@ -46,7 +46,7 @@ def main():
     def run(label):
         report=directory/(label+'.xml')
         proc=subprocess.run([sys.executable,'-B','-m','pytest',*TESTS,'-q','-p','no:cacheprovider','--junitxml='+str(report)],
-                            cwd=ROOT,capture_output=True,text=True,encoding='utf-8')
+                            cwd=ROOT,capture_output=True,text=True,encoding='utf-8',errors='replace')  # log is diagnostic; Windows pipes may not be UTF-8 (2026-11-12)
         (directory/(label+'.log')).write_text(proc.stdout+proc.stderr,encoding='utf-8')
         tree=ET.parse(report); failures=tree.findall('.//failure')
         assert tree.findall('.//testcase') and not tree.findall('.//error')

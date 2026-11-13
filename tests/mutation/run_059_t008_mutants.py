@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 CHECK = "scripts/gate_checklist.py"
 TEST = "tests/test_059_gate_checklist.py"
 COPIED = ("scripts", "docs/trials", "tests/context.py", TEST)
-COLLECTED = 4
+COLLECTED = 5  # +1 since the 2026-11 gate-checklist test (2026-11-12)
 MUTANTS = (
     ("armable with a missing item", CHECK, "        armable &= ok", "        armable &= True", "T008 MISSING"),
     ("digest not compared", CHECK, "    if hashlib.sha256(path.read_bytes()).hexdigest() != digest:", "    if False:", "T008 INTEGRITY"),
