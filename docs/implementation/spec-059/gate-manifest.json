@@ -2,10 +2,10 @@
   "note": "Spec 061 report and replay artifacts were published on main by merge commit c6524ee210fe6a8e5ce11e165f2ceaf22d63a391; the exact artifact bytes and SHA-256 values were independently checked. Old 059/A1 report/replay is historical, not evidence of B7-EW. Items 4 and 6 evidenced 2026-11-09/10 (PAPER report; Fidelity preview manifest at pin 89bad88); item 7 (LIVE settled-cash budget) built 2026-11-13 on main after 057 D-12 (persist retry) merged, so its code hashes are those of the armed code. Item 1 was refreshed in the same PR that added item 7: the full and mutation suites ran on the commit just before this manifest update, whose tree differs from the merge only in the item 1 record and this file. Every item is evidenced; arming remains Camden's own act.",
   "items": {
     "1": {
-      "artifact": "docs/implementation/spec-059/item1-evidence-20261016.json",
-      "sha256": "6a0e5bb94d777f0e36361e815d4ae99e4fdcb75f8566eae45465edf72d317667",
-      "commit": "15516a433a78f6ebbee4a25b997db20e00ef3d0d",
-      "date_utc": "2026-10-16T04:31:37Z"
+      "artifact": "docs/implementation/spec-059/item1-evidence-20261112.json",
+      "sha256": "4d1ef00beb7881dfff1c68eebc65114853f04695a6e806d982ee327a0a3c93a1",
+      "commit": "73db66dd40423386ecd76edfe465ef4e72aa0467",
+      "date_utc": "2026-11-13T22:08:14.417401Z"
     },
     "5": {
       "artifact": "docs/implementation/spec-061/replay-evidence-20261017.json",
