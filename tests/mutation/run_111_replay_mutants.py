@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 REPLAY, TARGETS, LOOP = "scripts/replay_runner.py", "scripts/paper_targets.py", "exec/paper_loop.py"
 TEST = "tests/test_111_replay.py"
 COPIED = ("scripts", "exec", "docs/trials", "tests/context.py", "tests/test_110_paper_allocation.py", TEST)
-COLLECTED = 7
+COLLECTED = 8  # +1 2026-11-12: the no-trade band test
 MUTANTS = (
     ("unhandled error swallowed", REPLAY,
      '                    report["errors"].append({"session": session.isoformat(), "error": f"{type(exc).__name__}: {exc}"})\n',

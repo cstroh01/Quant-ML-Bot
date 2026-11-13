@@ -17,8 +17,8 @@ PL, RT, RN = ROOT / "exec" / "paper_loop.py", ROOT / "scripts" / "ops_runtime.py
 MUTS = {
     "random client ids": ("intent = OrderIntent(client_order_id(owner, today, order.ticker, side), order.ticker, order.delta_quantity)",
                           "import uuid; intent = OrderIntent(uuid.uuid4().hex, order.ticker, order.delta_quantity)"),
-    "send before persist": ("            try:\n                durable.persist()\n            except Exception as exc:  # noqa: BLE001 - any persist failure means \"do not send\"\n                raise PersistFailed(f\"state not persisted ({type(exc).__name__}); order not sent\") from None\n        return client.submit_market_on_open(intent)",
-                            "            result = client.submit_market_on_open(intent)\n            durable.persist()\n            return result\n        return client.submit_market_on_open(intent)"),
+    "send before persist": ("            try:\n                durable.persist()\n            except Exception as exc:  # noqa: BLE001 - any persist failure means \"do not send\"\n                raise PersistFailed(f\"state not persisted ({type(exc).__name__}); order not sent\") from None\n        _check_submit_deadline(before, clock)\n        return client.submit_market_on_open(intent)",
+                            "            _check_submit_deadline(before, clock)\n            result = client.submit_market_on_open(intent)\n            durable.persist()\n            return result\n        _check_submit_deadline(before, clock)\n        return client.submit_market_on_open(intent)"),
     "intent not recorded": ("            record_intent(durable.intents_dir, intent.client_order_id,", "            (lambda *a: None)(durable.intents_dir, intent.client_order_id,"),
     "persist failure keeps sending": ("            halted_by_persist = True", "            halted_by_persist = False"),
     "unsent reservation kept open": ("            gate.record_order_outcome(intent.client_order_id, terminal=True, reason=\"NOT_SENT_PERSIST_FAILED\",\n                                      now=now_fn())\n", ""),

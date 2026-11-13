@@ -108,6 +108,29 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   preview or order for an ATP-false login is UNVERIFIED. The account match on every response, the
   settled-cash read, positions, each preview and every halt are unchanged and still fail closed.
   D-9 still records every entitlement name and value, so a later change in ATP is visible.
+- D-12 (proposed 2026-11-10 after the FR-013 record of private run 42841544475; Camden asked for
+  this draft, "Yes, draft it"; it takes effect only when Camden merges it): the 2026-11-10 preview
+  logged in, reconciled and previewed two allocation orders, then halted at stage `allocation` with
+  kind `RuntimeError` and `detail` null. Probable cause, not proven: `ops/persist_state.sh` failed
+  (ops-state holds the persists up to 15:11:21Z and nothing more until the failure write), and
+  `persist_command` raised a bare `RuntimeError` from `paper_loop`, a module FR-013 never quotes.
+  Two changes. (1) `ops/persist_state.sh` tries the push up to 3 times, waiting 5 s and then 15 s;
+  it exits 3 when the config, add or commit step fails and 4 when every push failed. Pushing the
+  same commit again is a no-op, so a retry cannot duplicate state. (2) `persist_command` raises
+  `PersistCommandFailed`, a `RuntimeError` carrying the exit status, and `live_loop.run_once` turns
+  any persist failure into `HaltProfile('ops-state persist failed: <reason>')`, where the reason is
+  fixed text (`commit step failed (exit 3)`, `push failed after 3 attempts (exit 4)`, `exit N`, or
+  the exception's type name), never the command's output; FR-013 records it as `detail`. Every
+  LIVE persist failure still halts and latches HALTED, and no order is sent on state that is not
+  durable (PAPER keeps its own handling and has no HALTED latch). Each persist call whose push is
+  retried takes up to 20 s longer plus the extra push time; a LIVE run makes one call per order
+  plus about three more. A failing `cd` or `sleep` exits 1 under `set -e`. Known limits: a rejected
+  (non-fast-forward) push fails all 3 attempts, by design, because a concurrent writer is a fault
+  and the script never fetches, merges or forces; a hung push has no time limit; and the persist
+  immediately before a LIVE placement runs inside `FidelityLive.submit`, which still reports it as
+  `SubmissionUnknown` naming `HaltProfile`, without the reason (`exec/fidelity_live.py` is
+  unchanged). PAPER's `PersistFailed` text now names `PersistCommandFailed` instead of
+  `RuntimeError`.
 
 ### Dedicated-account amendment (Camden, 2026-10-15, codex-task6c-dedicated-account.md)
 The dedicated $200 cash bot account alone is in scope (Camden, 2026-10-17; settled cash only). Every account-sensitive request filters exactly that

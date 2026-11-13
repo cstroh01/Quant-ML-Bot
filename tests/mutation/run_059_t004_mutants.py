@@ -30,7 +30,8 @@ MUTANTS = {
 def run(directory: Path, label: str) -> tuple[int, int]:
     report = directory / f"{label}.xml"
     proc = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_059_t004.py", "-q", "-p", "no:cacheprovider",
-                           f"--junitxml={report}"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
+                           f"--junitxml={report}"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+                          errors="replace")  # log is diagnostic; Windows pipes may not be UTF-8 (2026-11-12)
     (directory / f"{label}.log").write_text(proc.stdout + proc.stderr, encoding="utf-8")
     tree = ET.parse(report)
     assert tree.findall(".//testcase") and not tree.findall(".//error"), label

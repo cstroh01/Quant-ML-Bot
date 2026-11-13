@@ -20,8 +20,9 @@ MUTANTS = {
     "earliest responses kept": (LIVE, "del trace[:-_TRACE_LIMIT]", "del trace[_TRACE_LIMIT:]"),
     "request-time refusal not noted": (LIVE, "            self._check_request(request)\n        except SecurityChallenge as exc:\n            self._note_refusal(str(exc))\n",
                                        "            self._check_request(request)\n        except SecurityChallenge as exc:\n"),
-    "diagnostic can break a guard": (LIVE, "            del trace[:-_TRACE_LIMIT]\n        except Exception:\n            pass\n",
-                                     "            del trace[:-_TRACE_LIMIT]\n        finally:\n            pass\n"),
+    # Anchor moved 2026-11-12: D-9 put the entitlement facts between the trace trim and the except.
+    "diagnostic can break a guard": (LIVE, "                self.entitlement = _entitlement_facts(response.json())\n        except Exception:\n            pass\n",
+                                     "                self.entitlement = _entitlement_facts(response.json())\n        finally:\n            pass\n"),
     "non-integer auth code kept": (LIVE, "code if type(code) is int else None", "code"),
     "foreign message recorded": (SESSION, "if type(exc).__module__ in _OWN_MODULES else None", "if True else None"),
     "settled-cash stage not set": (SESSION, "self.stage='settled_cash'", "self.stage='login'"),

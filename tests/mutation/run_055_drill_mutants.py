@@ -34,7 +34,9 @@ MUTANTS = (
     ("injected clock ignored", "now=args.now or _now()", "now=_now()", "055 DRILL CLOCK"),
     ("kill applied to the other profile", 'f"kill-{require_storage_identifier(profile)}.json"', '"kill.json"',
      "055 KILL OTHER PROFILE"),
-    ("killed profile still runs", "if _kill_path(state_dir, profile).exists():", "if False:", "055 KILL"),
+    # run_once's site; preview_once repeats the condition but returns _killed(..., now=now)
+    ("killed profile still runs", "if _kill_path(state_dir, profile).exists():\n        return _killed(state_dir, profile, now)",
+     "if False:\n        return _killed(state_dir, profile, now)", "055 KILL"),
     ("kill without a reason", 'if not str(reason or "").strip():', "if False:", "055 KILL REASON"),
     ("reset clears a kill without the explicit flag",
      "if args.reset_kill is not None and args.confirm_reset != args.profile:", "if False:", "055 RESET CONFIRM"),

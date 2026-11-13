@@ -125,3 +125,22 @@ def test_rows_after_the_window_change_nothing():
     a = replay_runner.replay_window(opens, closes, START, END, profile=profile(), config=OPEN_CONFIG)
     b = replay_runner.replay_window(later_opens, later_closes, START, END, profile=profile(), config=OPEN_CONFIG)
     assert a == b, "Q111 LOOKAHEAD the replay read rows after its window"
+
+
+def test_holdings_inside_the_no_trade_band_send_nothing():
+    # Since 061 the window test forces drift beyond the band, so it no longer shows the band at work
+    # (the queue Q111 "no-trade band removed" mutant survived it, 2026-11-12). Every sleeve here sits
+    # 0.1% of its own size below target, far under the 0.5%-of-equity band: the decision sends nothing.
+    from paper_targets import ALLOCATION_MIN_TRADE, plan_allocation
+    from test_110_paper_allocation import ALL_FRACTIONAL, SESSION, sleeve_closes
+    closes = sleeve_closes()
+    empty = {t: 0.0 for t in ALLOCATION_SLEEVES}
+    _, first, _ = plan_allocation(closes, SESSION, equity=100_000.0, positions=empty,
+                                  fractionable=ALL_FRACTIONAL, executed_decision=None)
+    assert len(first) == len(ALLOCATION_SLEEVES), f"Q111 DECISIONS setup {first}"
+    near = {o.ticker: o.delta_quantity * 0.999 for o in first}
+    assert all(abs(o.delta_quantity * 0.001) * o.reference_price < ALLOCATION_MIN_TRADE * 100_000.0
+               for o in first), "Q111 DECISIONS setup gap not inside the band"
+    _, orders, _ = plan_allocation(closes, SESSION, equity=100_000.0, positions=near,
+                                   fractionable=ALL_FRACTIONAL, executed_decision=None)
+    assert orders == [], f"Q111 DECISIONS no-trade band ignored: {orders}"

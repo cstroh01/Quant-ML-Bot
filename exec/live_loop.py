@@ -37,6 +37,23 @@ def noncash_prices(live):
     """057 D-8: broker marks for non-cash symbols only; a core money-market row may carry no price."""
     return {s:p for s,p in live.prices().items() if not _CASH_SYMBOLS.match(s)}
 
+# 057 D-12: fixed FR-013 reasons for ops/persist_state.sh exit codes; never the command's output.
+PERSIST_FAILURES={3:'commit step failed (exit 3)',4:'push failed after 3 attempts (exit 4)'}
+
+def named_persist(persist):
+    """057 D-12: a persist failure halts with a fixed reason that FR-013 records as its detail. The
+    persist inside DurableBroker.place runs under FidelityLive.submit, which reports it as
+    SubmissionUnknown naming HaltProfile, without the reason; it still halts before any placement."""
+    if persist is None: return None
+    def run():
+        try:
+            persist()
+        except Exception as exc:  # noqa: BLE001 - every persist failure still halts before a send
+            code=getattr(exc,'returncode',None)
+            reason=PERSIST_FAILURES.get(code,f'exit {code}') if type(code) is int else type(exc).__name__
+            raise HaltProfile(f'ops-state persist failed: {reason}') from None
+    return run
+
 def validate_live_budget(profile):
     if profile.bot_budget_usd > LIVE_CAP:
         raise HaltProfile('LIVE budget exceeds the reviewed $200 cap')
@@ -83,6 +100,7 @@ def run_once(*,profile,state,now,closes,sources,pin,broker=None,environ=None,
     if now.utcoffset() is None or not time(9,35)<=now.astimezone(NY).time()<time(12):
         raise HaltProfile('conservative NYSE morning window is 09:35-12:00 ET')
     now_fn=now_fn or (lambda:now)
+    persist=named_persist(persist)
     validate_live_budget(profile)
     session=Session(profile,state,now=now,broker=broker,environ=environ,pin=pin)
     own_gate=gate is None

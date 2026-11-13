@@ -14,10 +14,11 @@ MUTANTS = {
  'account filter swapped': ('get_balances([self.__account])', "get_balances(['OTHER'])"),
  'top-level status': ("getattr(getattr(order, 'id_detail', None), 'conf_num', None)", "getattr(order, 'conf_num', None)"),
  'auth not halting': ("raise SecurityChallenge('Fidelity authentication or entitlement refused') from None", "raise BrokerError('Fidelity authentication refused') from None"),
- 'foreign redirect': ("if not self._allowed(target) or any(", "if False and any("),
+ 'foreign redirect': ("(from_moved_page or not self._allowed(target)", "(from_moved_page or False"),
  'buying power as cash': ('amount = snapshot.cash_detail.settled_amt', 'amount = snapshot.buying_power_detail.cash'),
  'stale accepted': ("when.astimezone(ZoneInfo('America/New_York')).date() != as_of.astimezone(ZoneInfo('America/New_York')).date()", 'False'),
- 'inner text disclosed': ("except Exception:\n            raise SecurityChallenge('Fidelity authentication or entitlement refused') from None", "except Exception as exc:\n            raise SecurityChallenge(str(exc)) from None"),
+ # login() now notes a fixed reason before raising; the mutant still raises the inner exception's text.
+ 'inner text disclosed': ("'library ' + type(exc).__name__)\n            raise SecurityChallenge('Fidelity authentication or entitlement refused') from None", "'library ' + type(exc).__name__)\n            raise SecurityChallenge(str(exc)) from None"),
 }
 
 
