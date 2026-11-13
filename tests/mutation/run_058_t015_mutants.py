@@ -11,8 +11,11 @@ import xml.etree.ElementTree as ET
 ROOT = Path(__file__).resolve().parents[2]
 DS, RUN, WF = "scripts/data_sources.py", "scripts/run_058_t015.py", "scripts/edge_walk_forward.py"
 MUTANTS = {
-    "M1 P&L on raw close": (DS, "opens[ticker], closes[ticker] = adj_open.mask(mask), adj_close.mask(mask)",
-                            "opens[ticker], closes[ticker] = frame['open'].astype(float).mask(mask), "
+    # Anchored on load_058_panel (2026-11-12): load_058_holdout_panel repeats the bare line, so it matched twice.
+    "M1 P&L on raw close": (DS, "mask = frame.index.isin(pd.DatetimeIndex(exclusions[ticker]))\n"
+                                "        opens[ticker], closes[ticker] = adj_open.mask(mask), adj_close.mask(mask)",
+                            "mask = frame.index.isin(pd.DatetimeIndex(exclusions[ticker]))\n"
+                            "        opens[ticker], closes[ticker] = frame['open'].astype(float).mask(mask), "
                             "frame['close'].astype(float).mask(mask)"),
     "M2 unconverted quantity": (RUN, "nominal = quantity * float(panel.closes.at[as_of, ticker]) / "
                                      "float(panel.raw_closes.at[as_of, ticker])", "nominal = quantity"),
@@ -36,7 +39,8 @@ MUTANTS = {
 def run(directory: Path, label: str) -> tuple[int, int]:
     report = directory / f"{label}.xml"
     proc = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_058_t015.py", "-q", "-p", "no:cacheprovider",
-                           f"--junitxml={report}"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
+                           f"--junitxml={report}"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8",
+                          errors="replace")  # log is diagnostic; Windows pipes may not be UTF-8 (2026-11-12)
     (directory / f"{label}.log").write_text(proc.stdout + proc.stderr, encoding="utf-8")
     tree = ET.parse(report)
     assert tree.findall(".//testcase") and not tree.findall(".//error"), label
@@ -51,7 +55,9 @@ def main() -> None:
     try:
         assert run(directory, "control") == (0, 0), "unchanged-copy control must pass"
         for i, (name, (path, old, new)) in enumerate(MUTANTS.items(), 1):
-            source = originals[path].decode("utf-8")
+            # In the item 1 order run_056_validation_mutants.py may leave data_sources.py with CRLF (eol=lf
+            # ignores it); M1's anchor spans two lines, so match on LF. The original bytes are restored below.
+            source = originals[path].decode("utf-8").replace("\r\n", "\n")
             assert source.count(old) == 1, name
             (ROOT / path).write_bytes(source.replace(old, new).encode("utf-8"))
             code, failures = run(directory, f"m{i}")

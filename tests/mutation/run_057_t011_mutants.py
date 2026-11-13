@@ -30,7 +30,9 @@ def main():
     def run(label):
         report=directory/(label+'.xml')
         proc=subprocess.run([sys.executable,'-B','-m','pytest',*TESTS,'-q','-p','no:cacheprovider','--junitxml='+str(report)],
-                            cwd=ROOT,capture_output=True,text=True,encoding='utf-8')
+                            cwd=ROOT,capture_output=True,text=True,encoding='utf-8',errors='replace')
+        # The log is diagnostic only (the verdict is the JUnit report). On Windows the child writes its pipe in the
+        # locale code page, so a failure that prints a non-ASCII source line (the flipped tripwire has a section sign) is not UTF-8.
         (directory/(label+'.log')).write_text(proc.stdout+proc.stderr,encoding='utf-8')
         tree=ET.parse(report); failures=tree.findall('.//failure')
         assert tree.findall('.//testcase') and not tree.findall('.//error')
