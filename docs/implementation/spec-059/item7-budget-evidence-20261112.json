@@ -1,0 +1,146 @@
+{
+  "item": "SCOPE §11.3 item 7: LIVE budget $200 of settled cash (Camden, 2026-10-17); deposits never raise it",
+  "verdict": "EVIDENCED (budget mechanics); arming remains Camden's own act and is not evidenced here",
+  "generated_utc": "2026-11-13T19:26:18.109812+00:00",
+  "commit": "0000bb087c2837ef402ee813ceb5a4bac1a981d1",
+  "pinned_runtime_commit": "89bad888126766c07340e3024bd5c66095e687a1",
+  "pin_to_commit_note": "Between the pin and this commit, scripts/mode_config.py changed only bound_buys refusal labels (below_one_share, PR #321), and exec/live_loop.py, exec/paper_loop.py and ops/persist_state.sh changed only for 057 D-12 (the ops-state push is retried and a persist failure halts with a named reason). No cap, budget or settled-cash logic changed; the cap lines below have the same text as at the pin, at new line numbers.",
+  "claims": [
+    "The LIVE cap is a code constant: MAX_LIVE_BUDGET_USD = 200.0, used as LIVE_CAP.",
+    "A profile above $200 halts before broker login (validate_live_budget; protected test 200 allowed, 200.01 refused, zero logins).",
+    "Provisioning accepts only a $200 live_fidelity profile template (PILOT_BUDGET_USD).",
+    "Each run's budget is min(profile budget, settled cash, $200): settled cash only, never buying power or unsettled deposits.",
+    "Settled cash above $200 never raises the budget: on every pinned preview run settled cash was $201.22 and the budget was $200.00.",
+    "An unsettled deposit is a normal refusal, and an attributable deposit is applied once and is never counted as gain."
+  ],
+  "code": [
+    {
+      "file": "scripts/mode_config.py",
+      "line": 21,
+      "text": "MAX_LIVE_BUDGET_USD = 200.0",
+      "file_sha256": "78d8bdcd1c2e04c8d1faf78560775bd29c4e10a848ca25c2432133724ef9b5fd"
+    },
+    {
+      "file": "exec/live_loop.py",
+      "line": 31,
+      "text": "LIVE_CAP=MAX_LIVE_BUDGET_USD",
+      "file_sha256": "7a9c4d263f3e3e1f3b98aa270885797f9d4fb000ac17df868459ffe9264d2a23"
+    },
+    {
+      "file": "exec/live_loop.py",
+      "line": 58,
+      "text": "if profile.bot_budget_usd > LIVE_CAP:",
+      "file_sha256": "7a9c4d263f3e3e1f3b98aa270885797f9d4fb000ac17df868459ffe9264d2a23"
+    },
+    {
+      "file": "exec/live_loop.py",
+      "line": 140,
+      "text": "cash=session.record['settled_cash']['settled_amt']",
+      "file_sha256": "7a9c4d263f3e3e1f3b98aa270885797f9d4fb000ac17df868459ffe9264d2a23"
+    },
+    {
+      "file": "exec/live_loop.py",
+      "line": 141,
+      "text": "grant=min(profile.bot_budget_usd,cash,LIVE_CAP)",
+      "file_sha256": "7a9c4d263f3e3e1f3b98aa270885797f9d4fb000ac17df868459ffe9264d2a23"
+    },
+    {
+      "file": "exec/live_loop.py",
+      "line": 154,
+      "text": "equity=min(profile.bot_budget_usd,LIVE_CAP,cash+sum(q*float(last[s]) for s,q in session.bot.items()))",
+      "file_sha256": "7a9c4d263f3e3e1f3b98aa270885797f9d4fb000ac17df868459ffe9264d2a23"
+    },
+    {
+      "file": "scripts/fidelity_provision.py",
+      "line": 36,
+      "text": "PILOT_BUDGET_USD = 200.0",
+      "file_sha256": "b412f891664d6d8ae965f577b332ae801f29f53476259f163993e6508717a5c2"
+    },
+    {
+      "file": "scripts/fidelity_provision.py",
+      "line": 92,
+      "text": "and _number(raw[\"bot_budget_usd\"]) and raw[\"bot_budget_usd\"] == PILOT_BUDGET_USD",
+      "file_sha256": "b412f891664d6d8ae965f577b332ae801f29f53476259f163993e6508717a5c2"
+    }
+  ],
+  "tests": {
+    "files": [
+      "tests/test_v12_protected_budget.py",
+      "tests/test_057_q137.py",
+      "tests/test_057_live_cash_basis.py",
+      "tests/test_051_sizing.py",
+      "tests/test_064_fidelity_provision.py",
+      "tests/test_064_cash_flow_gate.py"
+    ],
+    "passed": 142,
+    "failed": 0,
+    "key_tests": [
+      "test_200_allowed_200_01_refused_before_login",
+      "test_all_eight_orders_fit_200_and_use_broker_precision",
+      "test_settled_cash_above_the_budget_counts_in_full",
+      "test_lower_settled_cash_controls_spend",
+      "test_armed_cap_daily_and_settled_not_buying_power",
+      "test_unsettled_ach_is_normal_refusal_without_decision",
+      "test_deposit_beside_settled_fills_skips_at_most_two_sessions",
+      "test_inflated_settled_cash_never_raises_spend_above_daily_cap",
+      "test_only_settled_cash_is_spent",
+      "test_deposit_applies_once_and_later_order_snapshots_do_not_see_it_as_gain"
+    ],
+    "mutation_note": "Mutant 'exceeds 200 cap' (tests/mutation/run_057_q137_mutants.py) is part of the item 1 mutation-suite refresh at the arming SHA; it was not re-run here."
+  },
+  "runtime_observations": {
+    "source": "private ops-state live_fidelity/runs.jsonl (fields copied; no account identifiers)",
+    "runs": [
+      {
+        "run_at_utc": "2026-11-03T15:11:29.929738+00:00",
+        "data_session": "2026-11-02",
+        "mode": "preview",
+        "settled_cash_usd": 201.22,
+        "budget_usd": 200.0,
+        "sizing_equity_usd": 200.0,
+        "place_calls": 0
+      },
+      {
+        "run_at_utc": "2026-11-04T15:12:03.367827+00:00",
+        "data_session": "2026-11-03",
+        "mode": "preview",
+        "settled_cash_usd": 201.22,
+        "budget_usd": 200.0,
+        "sizing_equity_usd": 200.0,
+        "place_calls": 0
+      },
+      {
+        "run_at_utc": "2026-11-05T15:11:19.911803+00:00",
+        "data_session": "2026-11-04",
+        "mode": "preview",
+        "settled_cash_usd": 201.22,
+        "budget_usd": 200.0,
+        "sizing_equity_usd": 200.0,
+        "place_calls": 0
+      },
+      {
+        "run_at_utc": "2026-11-06T15:11:33.094687+00:00",
+        "data_session": "2026-11-05",
+        "mode": "preview",
+        "settled_cash_usd": 201.22,
+        "budget_usd": 200.0,
+        "sizing_equity_usd": 200.0,
+        "place_calls": 0
+      },
+      {
+        "run_at_utc": "2026-11-09T15:11:29.194082+00:00",
+        "data_session": "2026-11-06",
+        "mode": "preview",
+        "settled_cash_usd": 201.22,
+        "budget_usd": 200.0,
+        "sizing_equity_usd": 200.0,
+        "place_calls": 0
+      }
+    ]
+  },
+  "limitations": [
+    "No real deposit has been made since the pin; 'deposits never raise it' rests on the code, the tests, and settled cash above $200 not raising the budget.",
+    "Preview mode only: no LIVE order has been placed (place_calls = 0 on every run).",
+    "The LIVE profile itself is an unreadable private secret; its $200 value is inferred from budget = 200.0 with settled cash 201.22, plus the pre-login $200 refusal."
+  ]
+}

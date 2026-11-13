@@ -1,7 +1,8 @@
 """057 T011: armed LIVE host boundaries with synthetic arming, fake children only.
 
 No credential, broker, network or real child. The real repository's gate
-manifest is read once to prove today's source is NOT ARMABLE.
+manifest is read to prove it is armable only with an arming record naming its
+exact SHA-256 (flipped from NOT ARMABLE 2026-11-10, when §11.3 was complete).
 """
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -95,10 +96,13 @@ def test_check_mode_starts_no_child(tmp_path, armable):
     assert live.run(mode="check", now=NOW, arming_text=arming(digest), root=root, **settings(tmp_path)) == "CHECKED"
 
 
-def test_todays_real_gate_manifest_is_not_armable(tmp_path):
+def test_todays_real_gate_manifest_is_armable_only_with_its_exact_digest(tmp_path):
+    # Until 2026-11-10 this asserted NOT ARMABLE. The PR that added §11.3 items 7 and the refreshed
+    # item 1 flipped it deliberately (Camden-reviewed); arming itself stays Camden's act.
     digest = hashlib.sha256((Path(live.ROOT) / live.MANIFEST).read_bytes()).hexdigest()
+    assert live.run(mode="check", now=NOW, arming_text=arming(digest), **settings(tmp_path)) == "CHECKED"
     with pytest.raises(live.HostRefused):
-        live.run(mode="check", now=NOW, arming_text=arming(digest), **settings(tmp_path))
+        live.run(mode="check", now=NOW, arming_text=arming("0" * 64), **settings(tmp_path))
 
 
 @pytest.mark.parametrize("change", [
