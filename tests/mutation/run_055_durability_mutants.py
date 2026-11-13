@@ -19,13 +19,14 @@ MUTS = {
 killed = 0
 for name, (path, a, b) in MUTS.items():
     orig = path.read_text()
+    orig_bytes = path.read_bytes()
     assert orig.count(a) == 1, name
     path.write_text(orig.replace(a, b))
     try:
         r = subprocess.run([sys.executable, "-B", "-m", "pytest", "tests/test_055_durability.py", "tests/test_055_leases.py",
                             "tests/test_055_runner.py", "-q", "-p", "no:cacheprovider"], capture_output=True, cwd=ROOT)
     finally:
-        path.write_text(orig)
+        path.write_bytes(orig_bytes)  # exact bytes: write_text leaves CRLF on Windows, which item 1 counts as a change
     ok = r.returncode != 0
     killed += ok
     print(("KILLED  " if ok else "SURVIVED"), name)

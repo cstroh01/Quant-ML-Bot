@@ -20,6 +20,7 @@ def run() -> int:
 
 def main() -> int:
     original = (ROOT / SRC).read_text(encoding="utf-8")
+    original_bytes = (ROOT / SRC).read_bytes()
     for name, (old, _) in MUTANTS.items():
         assert original.count(old) == 1, f"{name}: expected one site"
     killed = 0
@@ -31,7 +32,7 @@ def main() -> int:
             killed += ok
             print(("KILLED  " if ok else "SURVIVED"), name)
     finally:
-        (ROOT / SRC).write_text(original, encoding="utf-8")
+        (ROOT / SRC).write_bytes(original_bytes)  # exact bytes: write_text leaves CRLF on Windows, which item 1 counts as a change
     print(f"{killed}/{len(MUTANTS)} killed")
     return 0 if killed == len(MUTANTS) else 1
 
