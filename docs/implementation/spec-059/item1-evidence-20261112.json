@@ -1,0 +1,506 @@
+{
+ "label": "\u00a711.3 item 1 evidence",
+ "commit": "73db66dd40423386ecd76edfe465ef4e72aa0467",
+ "started_utc": "2026-11-13T19:26:18.909974Z",
+ "python": "3.14.6",
+ "suite": {
+  "exit_code": 0,
+  "summary": "3486 passed, 7 skipped, 1 warning, 1386 subtests passed in 1820.13s (0:30:20)",
+  "seconds": 1824
+ },
+ "drivers": [
+  {
+   "driver": "tests/mutation/run_033_counts_mutants.py",
+   "exit_code": 0,
+   "last_line": "1/1 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 33,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_033_t014_mutants.py",
+   "exit_code": 0,
+   "last_line": "8/8 killed; guard, inventory and docs/trials (371 files) byte-identical",
+   "seconds": 21,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_033_t034_mutants.py",
+   "exit_code": 0,
+   "last_line": "6/6 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 25,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_033_t035_mutants.py",
+   "exit_code": 0,
+   "last_line": "10/10 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 38,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_033_t037_mutants.py",
+   "exit_code": 0,
+   "last_line": "16/16 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 70,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_033_t039_mutants.py",
+   "exit_code": 0,
+   "last_line": "15/15 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 86,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_033_t040_mutants.py",
+   "exit_code": 0,
+   "last_line": "6/6 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 31,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_033_t046_mutants.py",
+   "exit_code": 0,
+   "last_line": "12/12 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 57,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_033_t062_mutants.py",
+   "exit_code": 0,
+   "last_line": "13/13 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 255,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_038_register_stamp_mutants.py",
+   "exit_code": 0,
+   "last_line": "11/11 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 42,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_038_static_mutants.py",
+   "exit_code": 0,
+   "last_line": "}",
+   "seconds": 1,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_043_verify_cache_mutants.py",
+   "exit_code": 0,
+   "last_line": "3/3 killed",
+   "seconds": 18,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_046_u1_mutants.py",
+   "exit_code": 0,
+   "last_line": "24/24 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 100,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_046_u2_mutants.py",
+   "exit_code": 0,
+   "last_line": "18/18 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 82,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_051_finite_inputs_mutants.py",
+   "exit_code": 0,
+   "last_line": "13/13 killed",
+   "seconds": 39,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_052_fail_closed_mutants.py",
+   "exit_code": 0,
+   "last_line": "12/12 killed",
+   "seconds": 67,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_052_quote_domain_mutants.py",
+   "exit_code": 0,
+   "last_line": "3/3 intended contract kills; source restored",
+   "seconds": 14,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_053_fold_local_mutants.py",
+   "exit_code": 0,
+   "last_line": "3/3 killed",
+   "seconds": 23,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_053_promotion_fix_mutants.py",
+   "exit_code": 0,
+   "last_line": "11/11 killed",
+   "seconds": 48,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_054_294_followup_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 4, \"total\": 4}",
+   "seconds": 30,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_055_delivery_mutants.py",
+   "exit_code": 0,
+   "last_line": "15/15 killed",
+   "seconds": 123,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_055_drill_mutants.py",
+   "exit_code": 0,
+   "last_line": "17/17 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 66,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_055_durability_mutants.py",
+   "exit_code": 0,
+   "last_line": "6/6 killed",
+   "seconds": 24,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_055_f03_mutants.py",
+   "exit_code": 0,
+   "last_line": "16/16 killed (control green, sources restored)",
+   "seconds": 79,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_055_missed_run_mutants.py",
+   "exit_code": 0,
+   "last_line": "5/5 killed",
+   "seconds": 20,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_056_validation_mutants.py",
+   "exit_code": 0,
+   "last_line": "8/8 killed",
+   "seconds": 31,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_q135_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 8, \"total\": 8}",
+   "seconds": 52,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_q137_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 5, \"total\": 5}",
+   "seconds": 33,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_q139_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 8, \"total\": 8, \"source_restored\": true}",
+   "seconds": 35,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_q140_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 5, \"total\": 5, \"source_restored\": true}",
+   "seconds": 19,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t004_mutants.py",
+   "exit_code": 0,
+   "last_line": "7/7 killed",
+   "seconds": 22,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t011_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 12, \"total\": 12}",
+   "seconds": 48,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t012_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 13, \"total\": 13, \"survivors\": []}",
+   "seconds": 57,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t013_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 17, \"total\": 17, \"survivors\": []}",
+   "seconds": 63,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t014_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 14, \"total\": 14, \"survivors\": []}",
+   "seconds": 36,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t015_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 9, \"total\": 9, \"survivors\": []}",
+   "seconds": 42,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t016_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 23, \"total\": 23, \"survivors\": []}",
+   "seconds": 103,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t017_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 56, \"total\": 56, \"survivors\": []}",
+   "seconds": 282,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t018_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"mutants\": 18, \"survivors\": []}",
+   "seconds": 64,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t019_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 7, \"total\": 7, \"survivors\": []}",
+   "seconds": 39,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_t020_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 21, \"total\": 21, \"survivors\": []}",
+   "seconds": 206,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_057_u1_fix_mutants.py",
+   "exit_code": 0,
+   "last_line": "7/7 killed",
+   "seconds": 24,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_058_amend_mutants.py",
+   "exit_code": 0,
+   "last_line": "7/7 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 74,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_058_brnd_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 6, \"total\": 6, \"source_restored\": true}",
+   "seconds": 273,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_058_t005_mutants.py",
+   "exit_code": 0,
+   "last_line": "7/7 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 96,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_058_t007_mutants.py",
+   "exit_code": 0,
+   "last_line": "6/6 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 19,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_058_t010_mutants.py",
+   "exit_code": 0,
+   "last_line": "8/8 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 25,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_058_t011_mutants.py",
+   "exit_code": 0,
+   "last_line": "15/15 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 48,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_058_t012_mutants.py",
+   "exit_code": 0,
+   "last_line": "5/5 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 311,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_058_t014_mutants.py",
+   "exit_code": 0,
+   "last_line": "17/17 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 2515,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_058_t015_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 11, \"total\": 11, \"source_restored\": true}",
+   "seconds": 205,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_059_q127_mutants.py",
+   "exit_code": 0,
+   "last_line": "3/3 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 163,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_059_t001_mutants.py",
+   "exit_code": 0,
+   "last_line": "4/4 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 53,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_059_t004_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 8, \"total\": 8, \"source_restored\": true}",
+   "seconds": 273,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_059_t008_mutants.py",
+   "exit_code": 0,
+   "last_line": "4/4 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 42,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_061_adoption_mutants.py",
+   "exit_code": 0,
+   "last_line": "KILLED input identity missing",
+   "seconds": 50,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_061_buffered_mutants.py",
+   "exit_code": 0,
+   "last_line": "KILLED source binding ignored",
+   "seconds": 57,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_061_operator_mutants.py",
+   "exit_code": 0,
+   "last_line": "KILLED other preview policy accepted",
+   "seconds": 105,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_064_t003b_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 21, \"total\": 21}",
+   "seconds": 126,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_066_restore_drill_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 20, \"total\": 20, \"survivors\": []}",
+   "seconds": 119,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_066_restore_workflow_mutants.py",
+   "exit_code": 0,
+   "last_line": "{\"control\": \"PASS\", \"killed\": 7, \"total\": 7, \"survivors\": []}",
+   "seconds": 21,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_100_paper_data_mutants.py",
+   "exit_code": 0,
+   "last_line": "4/4 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 46,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_110_paper_allocation_mutants.py",
+   "exit_code": 0,
+   "last_line": "9/9 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 92,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_111_replay_mutants.py",
+   "exit_code": 0,
+   "last_line": "7/7 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 92,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_117_paper_fills_mutants.py",
+   "exit_code": 0,
+   "last_line": "4/4 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 45,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_131_alloc_safety_config_mutants.py",
+   "exit_code": 0,
+   "last_line": "4/4 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 42,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_mutation_check.py",
+   "exit_code": 0,
+   "last_line": "KILLED: unvalidated-stamp mutant failed the tampered-file oracle",
+   "seconds": 6,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_spec_018_mutants.py",
+   "exit_code": 0,
+   "last_line": "Survivors: 0 of 14",
+   "seconds": 249,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_spec_033_gate_mutants.py",
+   "exit_code": 0,
+   "last_line": "1/1 killed; sources and docs/trials (371 files) byte-identical",
+   "seconds": 121,
+   "tree_clean_after": true
+  },
+  {
+   "driver": "tests/mutation/run_unadjusted_wiring_mutants.py",
+   "exit_code": 0,
+   "last_line": "Source SHA-256: identical (6da566e1043a3468 -> 6da566e1043a3468)",
+   "seconds": 77,
+   "tree_clean_after": true
+  }
+ ],
+ "finished_utc": "2026-11-13T22:08:14.417401Z",
+ "verdict": "PASS",
+ "drivers_passed": "70/70"
+}
