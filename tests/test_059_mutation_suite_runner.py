@@ -1,4 +1,7 @@
 """§11.3 item 1 evidence runner. Offline: drivers are faked; no driver or suite actually runs."""
+import builtins
+import hashlib
+import io
 import json
 import subprocess
 from pathlib import Path
@@ -59,3 +62,39 @@ def test_verdict_fails_on_any_failing_driver_and_refuses_a_dirty_tree(repo, monk
     assert record["verdict"] == "FAIL" and record["drivers_passed"] == "1/2" and record["commit"] == "abc1234"
     monkeypatch.setattr(rms, "_git", lambda *a: " M scripts/x.py")
     assert rms.main(["--out", str(out), "--skip-suite"]) == 2, "ITEM1 DIRTY refused"
+
+
+def crlf_platform(monkeypatch):
+    """Make every default text-mode write turn LF into CRLF, as Windows does, on any OS.
+
+    Perturbs ``newline`` in ``io.open``/``open``: the one argument that decides whether text-mode
+    output gains a CR. ``Path.write_text`` and the builtin ``open`` both reach it; binary writes and
+    an explicit ``newline`` are left alone."""
+    real = io.open
+
+    def windows_open(file, mode="r", buffering=-1, encoding=None, errors=None, newline=None,
+                     closefd=True, opener=None):
+        if "b" not in mode and newline is None and any(c in mode for c in "wax+"):
+            newline = "\r\n"
+        return real(file, mode, buffering, encoding, errors, newline, closefd, opener)
+    monkeypatch.setattr(io, "open", windows_open)
+    monkeypatch.setattr(builtins, "open", windows_open)
+
+
+def test_record_is_written_as_the_lf_bytes_the_repository_stores(repo, monkeypatch, tmp_path, capsys):
+    """Spec 067 FR-001/FR-002: the record holds no CR on any platform, and the digest the runner
+    prints is SHA-256 over exactly the bytes on disk (= the committed bytes under eol=lf)."""
+    monkeypatch.setattr(rms.subprocess, "run", lambda args, **k: SimpleNamespace(
+        returncode=0, stdout="KILLED x\r\n2/2 killed\r\n", stderr="warn\r\n"))
+    monkeypatch.setattr(rms, "_git", lambda *a: "abc1234" if "rev-parse" in a else "")
+    crlf_platform(monkeypatch)
+    probe = tmp_path / "probe.txt"
+    probe.write_text("a\n", encoding="utf-8")
+    assert probe.read_bytes() == b"a\r\n", "067 CONTROL: the CRLF emulation is live"
+    out = tmp_path / "record.json"
+    assert rms.main(["--out", str(out), "--skip-suite"]) == 0
+    data = out.read_bytes()
+    assert b"\r" not in data, "067 LF record contains CR"
+    assert data == rms.record_bytes(json.loads(data)) and data.endswith(b"}\n"), "067 LF exact record bytes"
+    printed = capsys.readouterr().out
+    assert f"record sha256 {hashlib.sha256(data).hexdigest()}" in printed, "067 DIGEST over the bytes on disk"
