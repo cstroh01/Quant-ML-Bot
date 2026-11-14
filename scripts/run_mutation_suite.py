@@ -5,12 +5,16 @@ this runner runs them one at a time, gives each that takes an output folder its 
 each that no tracked file is left changed. Writes one JSON record (commit, UTC time, suite summary,
 per-driver exit code and last line) and exits 0 only when the suite and every driver passed.
 
+The record is written as LF bytes on every platform and the last line printed carries its SHA-256 over
+the bytes on disk. That digest is the one a gate manifest records (spec 067).
+
 Usage: python scripts/run_mutation_suite.py --out <record.json> [--work <scratch dir>] [--skip-suite]
 """
 from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -28,6 +32,13 @@ def _git(*args: str) -> str:
 def _last_line(text: str) -> str:
     lines = [line for line in text.splitlines() if line.strip()]
     return lines[-1][:300] if lines else ""
+
+
+def record_bytes(record: dict) -> bytes:
+    """The record exactly as the repository stores it: UTF-8, LF line endings, one trailing LF, no CR
+    on any platform. ``.gitattributes`` stores text as LF, so these are the bytes a checkout holds and
+    the bytes a gate-manifest digest must cover (spec 067)."""
+    return (json.dumps(record, indent=1) + "\n").encode("utf-8")
 
 
 def run_suite() -> dict:
@@ -75,8 +86,10 @@ def main(argv=None) -> int:
                          and (record["suite"] is None or record["suite"]["exit_code"] == 0) else "FAIL")
     record["drivers_passed"] = f"{len(passed)}/{len(record['drivers'])}"
     a.out.parent.mkdir(parents=True, exist_ok=True)
-    a.out.write_text(json.dumps(record, indent=1) + "\n", encoding="utf-8")
-    print(f"{record['verdict']}: suite {record['suite'] and record['suite']['summary']}; drivers {record['drivers_passed']}")
+    a.out.write_bytes(record_bytes(record))  # not write_text: that writes CRLF on Windows (spec 067)
+    digest = hashlib.sha256(a.out.read_bytes()).hexdigest()
+    print(f"{record['verdict']}: suite {record['suite'] and record['suite']['summary']}; drivers {record['drivers_passed']}"
+          f"; record sha256 {digest} (LF bytes, as committed)")
     return 0 if record["verdict"] == "PASS" else 1
 
 
