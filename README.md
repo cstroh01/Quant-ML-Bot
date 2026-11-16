@@ -9,11 +9,15 @@ over the project's entire trial history, cost modeling that includes spread and
 market impact, an append-only trial ledger, and an execution safety layer with
 durable halts and a kill switch.
 
-> **Status: v1.2 in progress** (`docs/SCOPE-V1.md` §11). Supervised PAPER sessions
-> and reviewed spec 061 adoption remain pending; LIVE at Fidelity stays unarmed until every
-> item of the §11.3 capital gate has evidence (`python scripts/gate_checklist.py
-> docs/implementation/spec-059/gate-manifest.json`). No real capital has been
-> deployed. Nothing here is investment advice.
+> **Status: v1.2 — final v1 release** (`docs/SCOPE-V1.md` §12.1). All seven items of the
+> §11.3 capital gate are evidenced (`python scripts/gate_checklist.py
+> docs/implementation/spec-059/gate-manifest.json` prints `ARMABLE`). PAPER runs unattended
+> on two Alpaca paper profiles. LIVE was armed by Camden at Fidelity on 2026-11-13
+> with a hard cap of **$200 of settled cash**. Its first session (2026-11-16) halted with no
+> order filled: Fidelity has no record of the one order the bot placed, so the safety layer
+> stopped the run before any other order, and LIVE stays halted until a reviewed fix (spec 057
+> D-13). It trades spec 061's preregistered allocation:
+> `ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED`. Nothing here is investment advice.
 
 ---
 
@@ -37,7 +41,7 @@ programs run on free daily bars:
   in the research window; equal-weight buy-and-hold beat all 15. Its one-time
   holdout passed D-4, which is not evidence of edge for a fixed allocation. See
   [`docs/implementation/spec-058/results-20261016.md`](docs/implementation/spec-058/results-20261016.md).
-- **Spec 061 — fresh buffered allocation, adoption draft.** Monthly equal weights
+- **Spec 061 — fresh buffered allocation, adopted and trading.** Monthly equal weights
   over 8 asset-class ETFs (SPY, EFA, EEM, IEF, TLT, TIP, GLD, DBC), with 93% gross
   target and 7% pre-cost target cash; signals fill at the next session's open.
   Camden chose it after seeing spec 059 T004. Historical A1 and unbuffered B-BH
@@ -62,7 +66,9 @@ result appears (constitution Rule 16):
 | The 2020/2022 replay uses adjusted prices and simulated fills | It proves the order path, not execution under real stress (SCOPE §11.3 item 5). |
 | No point-in-time fundamentals | Features are price and volume only. |
 | Daily bars | No intraday behavior, microstructure, or order-book information. |
-| Costs are modeled, never calibrated against real fills | Half-spread plus square-root impact estimated from daily OHLC is an estimate. |
+| Costs are modeled, never calibrated against real fills | Half-spread plus square-root impact estimated from daily OHLC is an estimate. PAPER fills are simulator fills; the per-order comparison (spec 059 item 4) does not calibrate the model. |
+| LIVE uses an unofficial, unmaintained Fidelity library (`fidelity-trader-api` 0.2.2, pinned and hash-audited) | Fidelity can change its site at any time. Every unexpected response halts LIVE, with no retry, until Camden reviews it. |
+| LIVE evidence is one small account: $200 of settled cash, fractional market orders, once per trading day | It shows the order path works, not execution quality at size or under stress. No real deposit has tested the deposit rules. |
 
 The complete SCOPE §6 register follows; the additional allocation and replay
 limitations in the table above remain applicable. Current implementation and
@@ -74,7 +80,7 @@ acceptance are tracked in [STATE](docs/STATE.md).
 - No point-in-time fundamentals. Nothing knowable-on-date beyond price and volume.
 - Daily bars only. No intraday, no microstructure, no order-book data.
 - Costs are modeled, not calibrated. Rule 13's half-spread plus square-root impact is an estimate from daily OHLC, never validated against real fills.
-- No real capital has ever been deployed, and none will be before the §11.3 capital gate passes (docs/SCOPE-V1.md §11.3 supersedes §5).
+- Real capital is limited to the §11.3 pilot: $200 of settled cash in one dedicated Fidelity account, armed by Camden on 2026-11-13 after every §11.3 item was evidenced. Deposits never raise the cap; scaling beyond it is V2 (spec 065).
 
 ## Architecture
 

@@ -131,6 +131,29 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   `SubmissionUnknown` naming `HaltProfile`, without the reason (`exec/fidelity_live.py` is
   unchanged). PAPER's `PersistFailed` text now names `PersistCommandFailed` instead of
   `RuntimeError`.
+- D-13 (record of arming, 2026-11-13; Camden armed, this note records how): §11.3 item 6 is the
+  5 clean API-reconciled previews at pin 89bad88 (Camden, 2026-10-22: "API holdings count."; a
+  holdings CSV stays optional). The gate PR #328 merged as `0a6b5ff`; both pins were set to it and the
+  2026-11-10 HALTED latch (persist failure, see D-12) was cleared. Item 1's manifest digest is taken
+  over the committed (LF) record bytes; the first digest, over the CRLF bytes written on Windows,
+  made the PR NOT ARMABLE until a third commit fixed it (spec 067 prevents a repeat).
+  `fidelity-live.yml` was installed in the private repo from the T011 template unchanged (blob
+  38d4692). The arming record was built from the pinned manifest's exact bytes (SHA-256
+  69503099…) and the item 6 account fingerprint, cross-checked against the 2026-11-09 clean
+  preview record; previews were switched off and LIVE on, and the external timer was pointed at
+  `fidelity-live.yml`. Armed 2026-11-14T02:44Z (2026-11-13 21:44 ET); the record expires
+  2026-12-14T02:44Z. First LIVE session 2026-11-16 (private run 43893476063): HALTED, no order
+  filled. One buy (DBC, 0.755 shares) was previewed and placed (`place_calls` 1). Fidelity's order
+  list has no such order (the status lookup found none; Camden found none in the account on
+  2026-11-16), so the reconciliation before the next order raised `ReconciliationBlocked` (one
+  reservation without a known outcome), latched HALTED and sent none of the other seven sleeves.
+  Cause: `LibraryBroker.place` accepts any place response for the dedicated account without
+  checking `respTypeCode` (`"A"` = accepted; the pinned wheel's `EquityPlaceResponse.is_accepted`),
+  and `preview` does not check `"V"` (`is_validated`). The wheel drops Fidelity's message text, so
+  the refusal reason is unknown; fractional-share eligibility of DBC is a hypothesis, unverified
+  (all five gate previews used whole shares). The failure is fail-closed: nothing was bought. The
+  fix, the release of the open reservation, a repin, an item 1 refresh and re-arming follow v1.2
+  under a new spec, through Camden's Rule 7 review.
 
 ### Dedicated-account amendment (Camden, 2026-10-15, codex-task6c-dedicated-account.md)
 The dedicated $200 cash bot account alone is in scope (Camden, 2026-10-17; settled cash only). Every account-sensitive request filters exactly that
