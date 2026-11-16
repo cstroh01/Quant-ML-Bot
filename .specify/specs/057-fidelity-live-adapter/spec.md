@@ -151,7 +151,9 @@ integration may breach Fidelity's terms and risk account restriction. Fidelity h
   checking `respTypeCode` (`"A"` = accepted; the pinned wheel's `EquityPlaceResponse.is_accepted`),
   and `preview` does not check `"V"` (`is_validated`). The wheel drops Fidelity's message text, so
   the refusal reason is unknown; fractional-share eligibility of DBC is a hypothesis, unverified
-  (all five gate previews used whole shares). The failure is fail-closed: nothing was bought. The
+  (correction: the five gate preview sessions previewed fractional quantities and each returned a
+  confirmation number, so fractional previews work; see spec 068). The failure is fail-closed:
+  nothing was bought. The
   fix, the release of the open reservation, a repin, an item 1 refresh and re-arming follow v1.2
   under a new spec, through Camden's Rule 7 review.
 
