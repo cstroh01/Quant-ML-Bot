@@ -1,6 +1,58 @@
 # STATE
 
-## Verified checkpoint — 2026-10-20 America/New_York
+## Verified checkpoint — 2026-11-16 America/New_York (v1.2, final v1)
+
+Public main at the close-out merge; LIVE pin `0a6b5ff` (the final gate PR's merge).
+This checkpoint records merged code and evidence and the observed first LIVE session. Camden owns
+every human-gate decision; nothing here authorizes a change to LIVE.
+
+**The §11.3 capital gate is complete.** `python scripts/gate_checklist.py
+docs/implementation/spec-059/gate-manifest.json` prints `ARMABLE`:
+
+| §11.3 item | Evidence on main |
+|---|---|
+| 1 Full suite and mutation suites | `item1-evidence-20261112.json`, run on the gate PR's first commit (3486 passed, 7 skipped; drivers 70/70) |
+| 2 Allocation and both baselines | spec 061 trial report (c6524ee) |
+| 3 Safety layer and drills | `drill-evidence-20261016.json` (ff83200) |
+| 4 PAPER evidence | `paper-evidence-20261109.md`: 11 sessions per profile, 20/20 orders reconciled, realized vs modeled cost per order |
+| 5 Historical replay | spec 061 replay evidence (c6524ee) |
+| 6 Fidelity | 5 clean API-reconciled preview sessions at pin 89bad88 (11-03, 11-04, 11-05, 11-06, 11-09) |
+| 7 $200 settled-cash budget | `item7-budget-evidence-20261112.json`, built on the armed code |
+
+**LIVE.** Camden armed `live_fidelity` on 2026-11-13 (FIDELITY-HOST.md; arming record bound
+to the manifest's SHA-256). Cap: $200 of settled cash, never raised by deposits. One attempt per NYSE
+session at about 10:10 ET, dispatched by cron-job.org (GitHub's own schedule fires hours late). First
+session 2026-11-16 (private run 43893476063, pin `0a6b5ff`): **HALTED, no order filled.** The safety
+gate allowed one buy (DBC, 0.755 shares); the adapter previewed and placed it (`place_calls` 1), but
+Fidelity has no record of that order, so the reconciliation before the next order found no known
+outcome (`ReconciliationBlocked`, FR-013 stage `allocation`) and the run halted before any other
+order. The adapter counted a placement Fidelity did not accept as sent (spec 057 D-13). It failed
+closed: no money moved. LIVE stays halted (HALTED latched, the DBC reservation open) until a
+reviewed fix after v1.2. Spec 061 is an allocation:
+**NO EDGE CLAIMED; NOT DSR-GATED**. No performance figure is reported without both baselines and costs.
+
+**PAPER.** `paper_small` and `paper_large` run unattended every trading day at Alpaca paper
+(08:05/08:35/09:05 ET dispatches), every order reconciled. `paper_small` buys whole shares only until
+its profile's `fractional` flag is set (a recorded Camden decision of 2026-11-03, not yet applied).
+
+**Operations.** Halts latch (`HALTED`/`KILL` on the private `ops-state` branch) and are cleared only by
+Camden. Every refusal opens a private issue. Restore drills passed for all three profiles (spec 066).
+A failed ops-state push is retried three times and a persist failure halts with a named reason
+(057 D-12). Off switch: `QMB_FIDELITY_LIVE_ENABLED` to anything but `true`, or delete the arming secret.
+
+**Ledger.** `docs/trials/trials.jsonl` SHA-256
+`6c3c416edba3ea9b52d05ea59967d20be7b755204787312d731250fc53e7e65e` (371 files under docs/trials),
+unchanged by every PR from #296 through v1.2.
+
+**V2 (SCOPE §12.2, not v1 blockers).** ML trading decisions and promotion (053); the ~100-ETF universe
+and stock research (060/062, including held #198); intraday/crypto/new platforms; reporting/UI sweeps
+(038/046/047); capital scaling beyond $200 (spec 065, draft #289).
+
+Limitations are in the README register and travel with every result (constitution Rule 16).
+
+---
+
+## Earlier checkpoint — 2026-10-20 (superseded; kept for the record)
 
 Public main audited: `98ab2f716f1c969e6a66032d658841b3a371365c` after #259.
 The merge retains #255 and adds exactly the three-file reviewed #259 delta.

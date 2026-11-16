@@ -57,7 +57,7 @@ is its helper. Installing it changes nothing until Camden personally arms:
    the pinned manifest's bytes), `activated_by` (`Camden`), `activated_at` and
    `expires_at` (ISO instants with an offset).
 4. Set `QMB_FIDELITY_PREVIEW_ENABLED=false` and `QMB_FIDELITY_LIVE_ENABLED=true`.
-5. Point the external timer at LIVE: in the cron-job.org `qmb preview` job, change
+5. Point the external timer at LIVE: in the cron-job.org `qmb preview` job (renamed `qmb live` on arming), change
    `fidelity-preview.yml` to `fidelity-live.yml` in the dispatch URL (same body
    `{"ref":"main"}`, same 10:10/10:40/11:10/11:40 ET schedule). GitHub's own
    `schedule:` fires hours late on the private repo and cannot be relied on.

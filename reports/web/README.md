@@ -44,4 +44,4 @@ Full register from [SCOPE §6](../../docs/SCOPE-V1.md), mirrored by
 - No point-in-time fundamentals. Nothing knowable-on-date beyond price and volume.
 - Daily bars only. No intraday, no microstructure, no order-book data.
 - Costs are modeled, not calibrated. Rule 13's half-spread plus square-root impact is an estimate from daily OHLC, never validated against real fills.
-- No real capital has ever been deployed, and none will be before the §11.3 capital gate passes (docs/SCOPE-V1.md §11.3 supersedes §5).
+- Real capital is limited to the §11.3 pilot: $200 of settled cash in one dedicated Fidelity account, armed by Camden on 2026-11-13 after every §11.3 item was evidenced. Deposits never raise the cap; scaling beyond it is V2 (spec 065).
