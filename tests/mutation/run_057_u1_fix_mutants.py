@@ -15,8 +15,8 @@ MUTS = {
     "retry previews again": ("        if previous is not None:\n            return self._resubmission(", "        if False:\n            return self._resubmission("),
     "unknown retry returns conf": ("        if status is None:\n            raise SubmissionUnknown(", "        if False:\n            raise SubmissionUnknown("),
     "reused id accepted": ('        if (previous["symbol"], previous["side"], previous["qty"]) != (symbol, side, quantity):', "        if False:"),
-    "record after place": ("        record_intent(self._state_dir, intent.client_order_id,\n                      {\"symbol\": intent.instrument, \"side\": side, \"qty\": quantity, \"conf_num\": conf_num})\n        try:\n            return self._broker.place(intent.instrument, side, quantity, conf_num)",
-                           "        try:\n            return self._broker.place(intent.instrument, side, quantity, conf_num)"),
+    "record after place": ("        record_intent(self._state_dir, intent.client_order_id,\n                      {\"symbol\": intent.instrument, \"side\": side, \"qty\": quantity, \"conf_num\": conf_num})\n        try:\n            placed = self._broker.place(intent.instrument, side, quantity, conf_num)",
+                           "        try:\n            placed = self._broker.place(intent.instrument, side, quantity, conf_num)"),
     "challenge does not halt": ("        except SecurityChallenge:\n            self._halted = True\n            raise HaltProfile(f\"{self._profile.name}: security challenge at placement",
                                 "        except SecurityChallenge:\n            raise HaltProfile(f\"{self._profile.name}: security challenge at placement"),
 }

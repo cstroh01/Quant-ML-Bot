@@ -22,6 +22,10 @@ What this module guarantees:
 - **Any error once ``place`` is called is outcome-unknown.** The request may have
   reached Fidelity whatever the exception, so it is ``SubmissionUnknown``: never
   retried, reconciled by confirmation number.
+- **Only Fidelity's own codes count (spec 068).** A preview counts only when its reply
+  says ``V`` (validated) and a placement only when its reply says ``A`` (accepted) with
+  a confirmation number. A refused order leaves a marker beside the intent log, and
+  reads as ``REJECTED`` only while Fidelity's status list shows no such order.
 - **A client id is used once.** A repeat ``submit`` for a recorded client id never
   previews or places again: it returns the known order, or raises
   ``SubmissionUnknown`` if Fidelity has no record yet; a different order under the
@@ -37,6 +41,7 @@ from datetime import datetime, timedelta, timezone
 import json
 import math
 import os
+from pathlib import Path
 import re
 from typing import Any, Mapping, Protocol
 from urllib.parse import urljoin, urlparse
@@ -44,9 +49,10 @@ from zoneinfo import ZoneInfo
 
 from live_safety_gate import OrderIntent
 from mode_config import ArmingRecord, ModeProfile, ProfileError, require_armed
-from ops_runtime import open_intents, record_intent
+from ops_runtime import atomic_write, open_intents, record_intent, require_storage_identifier
 
 TERMINAL_STATUSES = frozenset({"FILLED", "CANCELLED", "CANCELED", "EXPIRED", "REJECTED"})
+_OUTCOMES = "order-outcomes"  # spec 068 FR-003: one record per client id, beside intents.jsonl
 
 
 class BrokerError(RuntimeError):
@@ -55,6 +61,20 @@ class BrokerError(RuntimeError):
 
 class SubmissionUnknown(BrokerError):
     """The order may or may not have reached Fidelity. Do not retry; reconcile."""
+
+
+class PreviewRefused(BrokerError):
+    """Spec 068 FR-001: Fidelity did not validate the preview, so placement never ran."""
+
+
+class PlacementRejected(BrokerError):
+    """Spec 068 FR-002: Fidelity answered the placement without accepting it. Never retried.
+
+    ``conf_num`` is the reply's confirmation number, if it had one; it is never in the message."""
+
+    def __init__(self, message: str, conf_num: str | None = None) -> None:
+        super().__init__(message)
+        self.conf_num = conf_num
 
 
 class SecurityChallenge(BrokerError):
@@ -127,6 +147,8 @@ class FidelityLive:
         except SecurityChallenge:
             self._halted = True
             raise HaltProfile(f"{self._profile.name}: security challenge at {stage}; halted") from None
+        except PreviewRefused:
+            raise  # spec 068: this module's own text, naming only a reduced code
         except BrokerError as exc:
             raise type(exc)(f"{stage} failed: {type(exc).__name__}") from None
         except Exception as exc:  # noqa: BLE001 - library messages may carry URLs or account data
@@ -171,18 +193,73 @@ class FidelityLive:
         previous = self._recorded(intent.client_order_id)
         if previous is not None:
             return self._resubmission(intent.client_order_id, previous, intent.instrument, side, quantity)
-        conf_num = self._call("preview", self._broker.preview, intent.instrument, side, quantity)
+        try:
+            conf_num = self._call("preview", self._broker.preview, intent.instrument, side, quantity)
+        except PreviewRefused:
+            self._mark(intent.client_order_id, "not_sent", ())  # FR-001: placement never ran
+            raise
         record_intent(self._state_dir, intent.client_order_id,
                       {"symbol": intent.instrument, "side": side, "qty": quantity, "conf_num": conf_num})
         try:
-            return self._broker.place(intent.instrument, side, quantity, conf_num)
+            placed = self._broker.place(intent.instrument, side, quantity, conf_num)
         except SecurityChallenge:
             self._halted = True
             raise HaltProfile(f"{self._profile.name}: security challenge at placement; halted; "
                               f"{intent.client_order_id} outcome unknown, reconcile") from None
+        except PlacementRejected as exc:
+            # FR-002/FR-003: a known refusal, re-raised as itself once its marker is durable.
+            self._settle(intent.client_order_id, "rejected", (conf_num, exc.conf_num))
+            raise
         except Exception as exc:  # noqa: BLE001 - once place is called, the order may exist
             raise SubmissionUnknown(f"{intent.client_order_id}: placement outcome unknown "
                                     f"({type(exc).__name__}); reconcile, never retry") from None
+        if not isinstance(placed, str) or not placed:
+            raise SubmissionUnknown(f"{intent.client_order_id}: placement returned no confirmation; reconcile")
+        if placed != conf_num:  # FR-002.3: status lookups must also try the placement's number
+            self._settle(intent.client_order_id, "placed", (conf_num, placed))
+        return placed
+
+    def _settle(self, client_order_id: str, outcome: str, numbers) -> None:
+        """Record a placement's outcome; if that fails the order stays unknown (never retried)."""
+        try:
+            self._mark(client_order_id, outcome, numbers)
+        except Exception as exc:  # noqa: BLE001 - without its record the order must read as unknown
+            raise SubmissionUnknown(f"{client_order_id}: placement outcome not recorded "
+                                    f"({type(exc).__name__}); reconcile, never retry") from None
+
+    def _outcome_path(self, client_order_id: str) -> Path:
+        try:
+            name = require_storage_identifier(client_order_id, "client order id")
+        except ValueError:
+            raise BrokerError("client order id is not a storage identifier") from None
+        return Path(self._state_dir) / _OUTCOMES / f"{name}.json"
+
+    def _mark(self, client_order_id: str, outcome: str, numbers) -> None:
+        """FR-003: write one outcome record atomically; a different existing record refuses."""
+        record = {"client_order_id": client_order_id, "outcome": outcome,
+                  "conf_nums": sorted({n for n in numbers if isinstance(n, str) and n})}
+        if self._outcome(client_order_id) not in (None, record):
+            raise BrokerError(f"{client_order_id}: a different order outcome is already recorded")
+        atomic_write(self._outcome_path(client_order_id), json.dumps(record, sort_keys=True))
+
+    def _outcome(self, client_order_id: str) -> dict | None:
+        """The FR-003 record for a client id, or None. A malformed record refuses (fail closed)."""
+        path = self._outcome_path(client_order_id)
+        if not path.exists():
+            return None
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+            numbers = record["conf_nums"]
+            valid = (set(record) == {"client_order_id", "outcome", "conf_nums"}
+                     and record["client_order_id"] == client_order_id
+                     and record["outcome"] in ("not_sent", "rejected", "placed")
+                     and isinstance(numbers, list) and all(isinstance(n, str) and n for n in numbers)
+                     and (record["outcome"] == "not_sent") == (numbers == []))
+        except Exception:  # noqa: BLE001 - unreadable is refused below
+            valid = False
+        if not valid:
+            raise BrokerError(f"{client_order_id}: order outcome record unreadable")
+        return record
 
     def _recorded(self, client_order_id: str) -> dict | None:
         for row in open_intents(self._state_dir):
@@ -201,12 +278,24 @@ class FidelityLive:
         return previous["conf_num"]
 
     def order_status(self, client_order_id: str) -> str | None:
-        """Fidelity's status for the bot's client id, or None if never previewed/recorded."""
+        """Fidelity's status for the bot's client id; None when its outcome is unknown.
+
+        Spec 068 FR-003: ``REJECTED`` comes from this module only when its preview was refused
+        (no intent recorded, placement never ran), or when Fidelity refused the placement and
+        its status list shows no order under any recorded confirmation number. An order that
+        Fidelity does list keeps Fidelity's status, whatever the marker says."""
         self._check_halt()
         previous = self._recorded(client_order_id)
+        outcome = self._outcome(client_order_id)
         if previous is None:
-            return None
-        return self._call("status", self._broker.status, previous["conf_num"])
+            return "REJECTED" if outcome is not None and outcome["outcome"] == "not_sent" else None
+        numbers = [previous["conf_num"]]
+        numbers += [n for n in (outcome or {}).get("conf_nums", []) if n not in numbers]
+        for number in numbers:
+            status = self._call("status", self._broker.status, number)
+            if status is not None:
+                return status
+        return "REJECTED" if outcome is not None and outcome["outcome"] == "rejected" else None
 
 
 _AUTH_PATHS = ('/user/session/login', '/user/factor/password/authentication', '/user/factor/totp/authentication')
@@ -267,6 +356,41 @@ def _entitlement_facts(payload) -> dict:
     if isinstance(errors, list):
         facts['error_count'] = len(errors)
         facts['errors'] = [_error_fact(error) for error in errors[:_ERROR_LIMIT]]
+    return facts
+
+
+_ORDER_PATHS = (('/equity/preview/v1', 'preview'), ('/equity/place/v1', 'place'))  # the pinned wheel's endpoints
+_ORDER_KEY_LIMIT = 20
+_ORDER_ENTRY_LIMIT = 5
+
+
+def _short(value):
+    """FR-005: a small integer code as is; any other value only as a D-9 label."""
+    return value if type(value) is int and abs(value) < 100000 else _label(value)
+
+
+def _order_reply_facts(endpoint: str, payload) -> dict:
+    """Spec 068 FR-005 (D-9 pattern): reduced respTypeCode, key names, and each message or error
+    entry's short code/type/severity values. Never message text, account values, amounts,
+    quantities or confirmation numbers (D-2)."""
+    facts = {'endpoint': endpoint}
+    if not isinstance(payload, dict):
+        facts['kind'] = type(payload).__name__
+        return facts
+    reply = payload.get(endpoint) if isinstance(payload.get(endpoint), dict) else {}
+    detail = reply.get('orderConfirmDetail') if isinstance(reply.get('orderConfirmDetail'), dict) else {}
+    facts['resp_type_code'] = _label(detail.get('respTypeCode'))
+    facts['keys'] = {level: sorted(_label(k) for k in value)[:_ORDER_KEY_LIMIT]
+                     for level, value in (('top', payload), ('reply', reply), ('orderConfirmDetail', detail))}
+    entries = [entry for level in (payload, reply, detail) for key, value in level.items()
+               if isinstance(key, str) and ('message' in key.lower() or 'error' in key.lower())
+               and isinstance(value, list) for entry in value]
+    facts['entry_count'] = len(entries)
+    facts['entries'] = [
+        {'keys': sorted(_label(k) for k in entry)[:_ORDER_KEY_LIMIT],
+         **{_label(k): _short(v) for k, v in entry.items()
+            if isinstance(k, str) and k.lower().endswith(('code', 'type', 'severity'))}}
+        if isinstance(entry, dict) else {'kind': type(entry).__name__} for entry in entries[:_ORDER_ENTRY_LIMIT]]
     return facts
 
 
@@ -339,10 +463,23 @@ class LibraryBroker:
                 entry['auth_code'] = code if type(code) is int else None
             trace.append(entry)
             del trace[:-_TRACE_LIMIT]
+            for suffix, endpoint in _ORDER_PATHS:  # spec 068 FR-005: reduced at once, raw never kept
+                if url.path.endswith(suffix):
+                    self._replies()[endpoint] = _order_reply_facts(endpoint, response.json())
             if url.path.endswith('/context/security'):
                 self.entitlement = _entitlement_facts(response.json())
         except Exception:
             pass
+
+    def _replies(self) -> dict:
+        """FR-005: the latest reduced reply facts per order endpoint, in memory only."""
+        return self.__dict__.setdefault('_order_replies', {})
+
+    def _refused(self, endpoint: str, response) -> str:
+        """FR-005: keep this request's reduced reply facts for diagnostic(); return the reduced code."""
+        code = _label(getattr(getattr(response, 'order_confirm_detail', None), 'resp_type_code', None))
+        self.order_reply = self._replies().get(endpoint) or {'endpoint': endpoint, 'resp_type_code': code}
+        return code
 
     def diagnostic(self) -> dict:
         """Redacted login facts for a failed session record (FR-013)."""
@@ -352,6 +489,8 @@ class LibraryBroker:
             facts['entitlement'] = self.entitlement  # D-9
         if getattr(self, 'cash_stamps', None) is not None:
             facts['cash_stamps'] = self.cash_stamps  # D-10
+        if getattr(self, 'order_reply', None) is not None:
+            facts['order_reply'] = self.order_reply  # spec 068 FR-005
         return facts
 
     @staticmethod
@@ -480,15 +619,17 @@ class LibraryBroker:
                                   acctTypeCode="C", qty=quantity, priceTypeCode="M", tifCode="D")
 
     def preview(self, symbol: str, side: str, quantity: float) -> str:
+        self._replies().pop('preview', None)  # FR-005: never report an earlier request's reply
         response = self._client.equity_orders.preview_order(self._order(symbol, side, quantity))
         if response.acct_num != self.__account: raise SecurityChallenge('Fidelity preview account refused')
         conf = response.conf_num
-        if not conf:
-            raise BrokerError("preview returned no confirmation number")
+        if not response.is_validated or not conf:  # spec 068 FR-001: only "V" with a number counts
+            raise PreviewRefused(f"preview not validated: respTypeCode {self._refused('preview', response)}")
         return conf
 
     def place(self, symbol: str, side: str, quantity: float, conf_num: str) -> str:
         order = self._order(symbol, side, quantity)  # built before the send: errors here sent nothing
+        self._replies().pop('place', None)  # FR-005: never report an earlier request's reply
         try:
             response = self._client.equity_orders.place_order(order, conf_num)
         except SecurityChallenge:
@@ -496,7 +637,12 @@ class LibraryBroker:
         except Exception as exc:  # noqa: BLE001 - the request may have reached Fidelity
             raise SubmissionUnknown(f"place outcome unknown: {type(exc).__name__}") from None
         if response.acct_num != self.__account: raise SecurityChallenge('Fidelity placement account refused')
-        return response.conf_num or conf_num
+        if not response.is_accepted:  # spec 068 FR-002: only "A" counts as placed
+            raise PlacementRejected(f"placement not accepted: respTypeCode {self._refused('place', response)}",
+                                    response.conf_num)
+        if not response.conf_num:  # accepted without a number: the order may exist
+            raise SubmissionUnknown("placement accepted without a confirmation number")
+        return response.conf_num
 
     def status(self, conf_num: str) -> str | None:
         summary = self._client.order_status.get_order_status([self.__account])

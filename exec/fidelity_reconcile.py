@@ -9,6 +9,8 @@ What this module guarantees:
   terminal status for its client id. Everything else keeps it open. Only an explicitly allowlisted
   working status (``WORKING``) lets new decisions proceed; no record, a failed lookup, a literal
   UNKNOWN or any unrecognized status makes ``require_reconciled`` refuse.
+- **A refusal says why (spec 068 FR-004).** It names each blocked client id with its state and,
+  for an unrecognized status, only the D-9 reduced code.
 - **A security challenge stops everything.** ``HaltProfile`` from the adapter propagates.
 - **Positions feed 054 as ``read_holdings`` (FR-008)** with an explicit source name, quantities
   from Fidelity and prices supplied by the caller; a position without a finite positive price is
@@ -22,7 +24,7 @@ import json
 import math
 from typing import Any
 
-from fidelity_live import BrokerError, HaltProfile
+from fidelity_live import BrokerError, HaltProfile, _label
 from holdings_import import _CASH_SYMBOLS, HoldingsImportError, Position, PositionsSnapshot
 
 TERMINAL = frozenset({"FILLED", "CANCELLED", "CANCELED", "EXPIRED", "REJECTED"})
@@ -70,7 +72,9 @@ def require_reconciled(gate: Any, adapter: Any, *, now: datetime) -> list[dict]:
     report = reconcile(gate, adapter, now=now)
     blocked = [r["client_order_id"] for r in report if r["state"] != "released" and r["state"] != "working"]
     if blocked:
-        raise ReconciliationBlocked(f"{len(blocked)} reservation(s) without a known outcome: {blocked}")
+        why = [f'{r["client_order_id"]} {r["state"]}' + (f' {_label(r["status"])}' if r["state"] == "unrecognized" else "")
+               for r in report if r["client_order_id"] in blocked]
+        raise ReconciliationBlocked(f"{len(blocked)} reservation(s) without a known outcome: {', '.join(why)}")
     return report
 
 
