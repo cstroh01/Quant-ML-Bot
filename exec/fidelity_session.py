@@ -153,6 +153,8 @@ class Session:
         if error:
             self.record.update(clean=False,challenge=True)
             self.record['previews']=[]
+        observed=getattr(self.live,'observations',None)
+        if observed: self.record['observations']=[dict(o) for o in observed]  # spec 069 FR-004
         text=json.dumps(self.record,sort_keys=True,allow_nan=False)
         secrets=[self.env.get(r,'') for r in self.profile.credential_refs]
         # Compare decoded strings too: JSON escaping must not bypass the output guard.
