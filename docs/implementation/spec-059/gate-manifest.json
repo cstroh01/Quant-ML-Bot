@@ -3,9 +3,9 @@
   "items": {
     "1": {
       "artifact": "docs/implementation/spec-059/item1-evidence-20261112.json",
-      "sha256": "63cc639b21caa716dc3107c282ec54d5314187db3c3b440786e5e67b75cd7396",
-      "commit": "1827d5dffcbcffcea88348200b055b3a09be44f6",
-      "date_utc": "2026-11-17T04:28:17.343987Z"
+      "sha256": "e6dd09ad924ffaec52efcd4c464684831061aad086e12238c18be89ff1c8bd80",
+      "commit": "338524e1bdc06edbffb9d61f62cbc56aac5820ac",
+      "date_utc": "2026-11-20T22:51:46.247723Z"
     },
     "5": {
       "artifact": "docs/implementation/spec-061/replay-evidence-20261017.json",
