@@ -26,6 +26,10 @@ What this module guarantees:
   says ``V`` (validated) and a placement only when its reply says ``A`` (accepted) with
   a confirmation number. A refused order leaves a marker beside the intent log, and
   reads as ``REJECTED`` only while Fidelity's status list shows no such order.
+- **A placed order's outcome is kept (spec 069).** After an accepted placement it looks the
+  order up a few times (read-only) and records the first terminal status Fidelity reports.
+  That record answers only when a later status list shows none of the order's numbers; the
+  observation never changes the placement's result.
 - **A client id is used once.** A repeat ``submit`` for a recorded client id never
   previews or places again: it returns the known order, or raises
   ``SubmissionUnknown`` if Fidelity has no record yet; a different order under the
@@ -43,6 +47,7 @@ import math
 import os
 from pathlib import Path
 import re
+import time
 from typing import Any, Mapping, Protocol
 from urllib.parse import urljoin, urlparse
 from zoneinfo import ZoneInfo
@@ -53,6 +58,23 @@ from ops_runtime import atomic_write, open_intents, record_intent, require_stora
 
 TERMINAL_STATUSES = frozenset({"FILLED", "CANCELLED", "CANCELED", "EXPIRED", "REJECTED"})
 _OUTCOMES = "order-outcomes"  # spec 068 FR-003: one record per client id, beside intents.jsonl
+_OBSERVED = "observed"  # spec 069 FR-002: Fidelity's terminal status, seen right after placement
+_OBSERVE_WAITS = (2.0, 3.0, 5.0, 10.0)  # spec 069 D-1: looks at about 2, 5, 10 and 20 s after placement
+_sleep = time.sleep  # module-level so tests replace it; nothing else here waits
+
+
+def _same_quantity(executed: Any, ordered: float) -> bool:
+    """Spec 069 FR-002: a reply without an executed quantity passes (the next run's ownership check
+    compares the account); otherwise it must be a finite number equal to the order at 0.001."""
+    if executed is None:
+        return True
+    if isinstance(executed, bool):
+        return False
+    try:
+        value = float(executed)
+    except (TypeError, ValueError):
+        return False
+    return math.isfinite(value) and abs(value - ordered) < 0.0005
 
 
 class BrokerError(RuntimeError):
@@ -94,6 +116,7 @@ class Broker(Protocol):
     def preview(self, symbol: str, side: str, quantity: float) -> str: ...
     def place(self, symbol: str, side: str, quantity: float, conf_num: str) -> str: ...
     def status(self, conf_num: str) -> str | None: ...
+    def status_detail(self, conf_num: str) -> tuple[str | None, float | None]: ...
     def positions(self) -> dict[str, float]: ...
 
 
@@ -118,6 +141,7 @@ class FidelityLive:
         self._state_dir = state_dir
         self._connected = False
         self._halted = False
+        self.observations: list[dict] = []  # spec 069 FR-004: one entry per observed placement
 
     def __repr__(self) -> str:
         return f"FidelityLive(profile={self._profile.name!r}, connected={self._connected})"
@@ -217,7 +241,55 @@ class FidelityLive:
             raise SubmissionUnknown(f"{intent.client_order_id}: placement returned no confirmation; reconcile")
         if placed != conf_num:  # FR-002.3: status lookups must also try the placement's number
             self._settle(intent.client_order_id, "placed", (conf_num, placed))
+        self._observe(intent.client_order_id, (conf_num, placed), quantity)
         return placed
+
+    def _observe(self, client_order_id: str, numbers, quantity: float) -> None:
+        """Spec 069 FR-001: look a placed order up at the D-1 waits until Fidelity reports a terminal
+        status, record it (FR-002) and note the result (FR-004). Read-only, never retried, and it
+        never changes the placement's result; only a security challenge escapes (it halts)."""
+        detail = getattr(self._broker, "status_detail", None)
+        if not callable(detail):
+            return  # a broker without it (a test fake) is not observed
+        numbers = [n for n in dict.fromkeys(numbers) if isinstance(n, str) and n]
+        result = "none"
+        try:
+            for wait in _OBSERVE_WAITS:
+                _sleep(wait)
+                found = self._look(detail, numbers)
+                if found is None or found[0] not in TERMINAL_STATUSES:
+                    continue  # not listed yet, or still working
+                code, executed = found
+                if code == "FILLED" and not _same_quantity(executed, quantity):
+                    result = "quantity_mismatch"  # recorded nowhere: the order stays unknown
+                    break
+                self._record_observation(client_order_id, numbers, code)
+                result = code
+                break
+        except HaltProfile:
+            raise
+        except Exception as exc:  # noqa: BLE001 - the order is placed; a failed look only leaves it unrecorded
+            result = f"error {type(exc).__name__}"
+        self.observations.append({"client_order_id": client_order_id, "observed": result})
+
+    def _look(self, detail, numbers) -> tuple[str, Any] | None:
+        """The first listed status (normalized as fidelity_reconcile does) and its executed quantity."""
+        for number in numbers:
+            status, executed = self._call("status", detail, number)
+            if status is not None:
+                return "_".join(str(status).upper().split()), executed
+        return None
+
+    def _record_observation(self, client_order_id: str, numbers, status: str) -> None:
+        """Spec 069 FR-002: write the observed terminal status atomically. It supersedes only a 068
+        ``placed`` record for the same numbers; any other different record refuses."""
+        record = {"client_order_id": client_order_id, "outcome": _OBSERVED,
+                  "conf_nums": sorted(set(numbers)), "status": status}
+        current = self._outcome(client_order_id)
+        if current is not None and current != record and not (
+                current["outcome"] == "placed" and current["conf_nums"] == record["conf_nums"]):
+            raise BrokerError(f"{client_order_id}: a different order outcome is already recorded")
+        atomic_write(self._outcome_path(client_order_id), json.dumps(record, sort_keys=True))
 
     def _settle(self, client_order_id: str, outcome: str, numbers) -> None:
         """Record a placement's outcome; if that fails the order stays unknown (never retried)."""
@@ -250,9 +322,11 @@ class FidelityLive:
         try:
             record = json.loads(path.read_text(encoding="utf-8"))
             numbers = record["conf_nums"]
-            valid = (set(record) == {"client_order_id", "outcome", "conf_nums"}
+            observed = record["outcome"] == _OBSERVED  # spec 069: carries one terminal status
+            valid = (set(record) == {"client_order_id", "outcome", "conf_nums"} | ({"status"} if observed else set())
                      and record["client_order_id"] == client_order_id
-                     and record["outcome"] in ("not_sent", "rejected", "placed")
+                     and record["outcome"] in ("not_sent", "rejected", "placed", _OBSERVED)
+                     and (not observed or record["status"] in TERMINAL_STATUSES)
                      and isinstance(numbers, list) and all(isinstance(n, str) and n for n in numbers)
                      and (record["outcome"] == "not_sent") == (numbers == []))
         except Exception:  # noqa: BLE001 - unreadable is refused below
@@ -283,7 +357,8 @@ class FidelityLive:
         Spec 068 FR-003: ``REJECTED`` comes from this module only when its preview was refused
         (no intent recorded, placement never ran), or when Fidelity refused the placement and
         its status list shows no order under any recorded confirmation number. An order that
-        Fidelity does list keeps Fidelity's status, whatever the marker says."""
+        Fidelity does list keeps Fidelity's status, whatever the marker says. Spec 069 FR-003: an
+        observed terminal status answers likewise, only when the list shows none of the numbers."""
         self._check_halt()
         previous = self._recorded(client_order_id)
         outcome = self._outcome(client_order_id)
@@ -295,6 +370,8 @@ class FidelityLive:
             status = self._call("status", self._broker.status, number)
             if status is not None:
                 return status
+        if outcome is not None and outcome["outcome"] == _OBSERVED:
+            return outcome["status"]  # spec 069 FR-003: Fidelity no longer lists it
         return "REJECTED" if outcome is not None and outcome["outcome"] == "rejected" else None
 
 
@@ -645,6 +722,11 @@ class LibraryBroker:
         return response.conf_num
 
     def status(self, conf_num: str) -> str | None:
+        return self.status_detail(conf_num)[0]
+
+    def status_detail(self, conf_num: str) -> tuple[str | None, float | None]:
+        """Fidelity's status for one confirmation number and, for spec 069, its executed quantity
+        (``amountDetail.qtyExec``); ``(None, None)`` when the list shows no such order."""
         summary = self._client.order_status.get_order_status([self.__account])
         if any(getattr(row, 'acct_num', None) != self.__account for row in
                (getattr(summary,'account_summaries',[]) or []) + (getattr(summary,'orders',[]) or [])):
@@ -652,8 +734,9 @@ class LibraryBroker:
         for order in getattr(summary, "orders", []) or []:
             if getattr(getattr(order, 'id_detail', None), 'conf_num', None) == conf_num:
                 detail = getattr(order, 'status_detail', None)
-                return getattr(detail, 'status_code', None) or getattr(detail, 'status_desc', None)
-        return None
+                executed = getattr(getattr(detail, 'amount_detail', None), 'qty_exec', None)
+                return getattr(detail, 'status_code', None) or getattr(detail, 'status_desc', None), executed
+        return None, None
 
     def positions(self) -> dict[str, float]:
         result = self._client.positions.get_positions([self.__account])
