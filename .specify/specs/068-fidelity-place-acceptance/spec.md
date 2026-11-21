@@ -1,7 +1,8 @@
 # 068 — Fidelity placement acceptance (LIVE money path)
 
 Date: 2026-11-16 America/New_York. Status: decisions D-1 to D-4 adopted by Camden on 2026-11-16
-("Accept all four"); ready for implementation.
+("Accept all four"). Implemented: #333 (merge `1827d5d`); §11.3 item 1 refreshed (#334, `5b8e4fb`);
+LIVE re-armed 2026-11-17. Its known risk below happened on 2026-11-19 and is addressed by spec 069.
 Baseline: public main `ed267531b49aca6c4981df1a5c49ac7c16dff4c4` (tag `v1.2`). LIVE pin `0a6b5ff`, HALTED.
 
 Every `exec/` file this spec changes is the LIVE money path (constitution Rule 7a). Changes come

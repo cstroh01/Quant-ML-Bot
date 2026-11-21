@@ -13,10 +13,10 @@ durable halts and a kill switch.
 > §11.3 capital gate are evidenced (`python scripts/gate_checklist.py
 > docs/implementation/spec-059/gate-manifest.json` prints `ARMABLE`). PAPER runs unattended
 > on two Alpaca paper profiles. LIVE was armed by Camden at Fidelity on 2026-11-13
-> with a hard cap of **$200 of settled cash**. Its first session (2026-11-16) halted with no
-> order filled: Fidelity has no record of the one order the bot placed, so the safety layer
-> stopped the run before any other order, and LIVE stays halted until a reviewed fix (spec 057
-> D-13). It trades spec 061's preregistered allocation:
+> with a hard cap of **$200 of settled cash**. Its first sessions exposed two adapter gaps, and
+> each halted before any further order (specs 068 and 069, both reviewed line by line and merged);
+> it first traded on 2026-11-18 and was re-armed on spec 069's code on 2026-11-20. Session-by-session
+> record: `docs/STATE.md`. It trades spec 061's preregistered allocation:
 > `ALLOCATION — NO EDGE CLAIMED; NOT DSR-GATED`. Nothing here is investment advice.
 
 ---

@@ -1,7 +1,8 @@
 # 069 — Fidelity fill observation (LIVE money path)
 
 Date: 2026-11-19 America/New_York. Status: decisions D-1 to D-4 adopted by Camden on 2026-11-19
-("Accept all four"); ready for implementation.
+("Accept all four"). Implemented: #335 (merge `338524e`, 2026-11-20); §11.3 item 1 refreshed
+(#336, `2ff292a`); LIVE repinned to `2ff292a` and re-armed 2026-11-20.
 Baseline: public main `5b8e4fbd8cb47a435865b29b7ddaf019518abc55` (= both pins). LIVE armed. The
 2026-11-19 run halted; Camden released TLT and cleared HALTED the same day (FR-005 step 1).
 

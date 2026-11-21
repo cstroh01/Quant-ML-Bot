@@ -1,6 +1,46 @@
 # STATE
 
-## Verified checkpoint — 2026-11-16 America/New_York (v1.2, final v1)
+## Verified checkpoint — 2026-11-20 America/New_York (LIVE re-armed on spec 069)
+
+Public main `2ff292a` (#336, the §11.3 item 1 refresh after spec 069); both LIVE pins
+(`QMB_PINNED_SHA`, `QMB_FIDELITY_PIN`) are `2ff292a`. Camden owns every human-gate decision; nothing
+here authorizes a change to LIVE. Spec 061 is an allocation: **NO EDGE CLAIMED; NOT DSR-GATED**. No
+performance figure is reported without both baselines and costs.
+
+**The §11.3 capital gate is complete** at `2ff292a`: `python scripts/gate_checklist.py
+docs/implementation/spec-059/gate-manifest.json` prints `ARMABLE` (manifest SHA-256 `f48e4052…`).
+Item 1 (`item1-evidence-20261112.json`, refreshed 2026-11-20) is the full suite and every mutation
+driver run at `338524e` (the spec 069 merge): 3568 passed, 7 skipped; drivers 72/72, each leaving the
+tree byte-identical. Items 2–7 are unchanged from the 2026-11-16 checkpoint below.
+
+**LIVE sessions since arming** (private `fidelity-live` runs; records on the private `ops-state` branch):
+
+| Session (ET) | Pin | Run | What happened |
+|---|---|---|---|
+| 2026-11-16 | `0a6b5ff` | 43893476063 | HALTED, no order filled: Fidelity has no record of the one DBC order the adapter counted as placed (057 D-13). Fixed by spec 068 (#333, merge `1827d5d`): a preview counts only when its reply validates it and a placement only when Fidelity accepts it. Item 1 refreshed (#334, `5b8e4fb`); re-armed 2026-11-17. |
+| 2026-11-17 | `5b8e4fb` | 44111211009 | Fidelity refused the first preview (DBC, `respTypeCode` `"E"`); 068 refused it, placement was never called (`place_calls` 0), HALTED. The cause was an account condition at Fidelity that Camden resolved that day; Camden cleared HALTED. |
+| 2026-11-18 | `5b8e4fb` | 44332474704 | First trading session: all eight sleeves previewed and placed (`place_calls` 8). The first seven read `FILLED` in the same run. |
+| 2026-11-19 | `5b8e4fb` | 44551739454 | HALTED, nothing sent: Fidelity's status list no longer showed the previous session's last order (TLT), so it read unknown (`ReconciliationBlocked`; spec 068's known risk). Camden confirmed the shares in the account; the reservation was released as `FILLED` by hand and HALTED cleared the same day. Fixed by spec 069. |
+| 2026-11-20 | `5b8e4fb` | 44760555926 | Clean: account and bot ledger reconciled exactly; no orders (`place_calls` 0). |
+
+**Spec 069** (#335, merge `338524e`): after each accepted placement the adapter looks the order up
+read-only at about 2, 5, 10 and 20 seconds and records the first terminal status Fidelity reports; the
+next session uses that record only when Fidelity's list shows none of the order's numbers. Camden
+repinned to `2ff292a` and re-armed on 2026-11-20 (arming record bound to manifest `f48e4052…`). The
+first LIVE run on this code is 2026-11-23; the next trades are expected at the December rebalance
+(first December session 2026-12-01). Known risk (spec 069): an order still working after the last look
+whose status Fidelity drops by the next session still halts that session, for a hand release.
+
+**PAPER.** Unchanged from the checkpoint below; both profiles ran on 2026-11-20, exit 0.
+
+**Ledger.** `docs/trials/trials.jsonl` SHA-256
+`6c3c416edba3ea9b52d05ea59967d20be7b755204787312d731250fc53e7e65e`, unchanged through `2ff292a`.
+
+Limitations are in the README register and travel with every result (constitution Rule 16).
+
+---
+
+## Earlier checkpoint — 2026-11-16 America/New_York (v1.2, final v1; superseded)
 
 Public main at the close-out merge; LIVE pin `0a6b5ff` (the final gate PR's merge).
 This checkpoint records merged code and evidence and the observed first LIVE session. Camden owns
