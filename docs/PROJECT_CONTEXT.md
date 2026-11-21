@@ -2,6 +2,9 @@
 
 _Last updated: 2026-09-25_
 
+> **Historical.** For the current state read `docs/STATE.md`; for scope, constraints and the capital
+> gate read `docs/SCOPE-V1.md`, which governs wherever this file disagrees (see `CLAUDE.md`).
+
 ## Scope — rewritten 2026-09-25 (read this before anything below)
 
 `docs/SCOPE-V1.md` is now the authority on scope, constraints, and the definition
